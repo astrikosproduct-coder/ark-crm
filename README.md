@@ -1,32 +1,43 @@
-# React + TypeScript + Vite
+# ARK CRM
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A clickable prototype of ARK CRM for Astrikos. See [`CLAUDE.md`](./CLAUDE.md) for the
+full brief — what this is, the hard rules (**no backend, ever** — this is a
+browser-only prototype), the domain model and the pipeline it walks through.
 
-Currently, two official plugins are available:
+## Layout
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```
+.
+├── frontend/   React + TypeScript + Vite app — the entire prototype today.
+│               Data is mocked by MSW from spec/*.json; see frontend/README.md.
+├── backend/    Placeholder only. Empty on purpose — CLAUDE.md's hard rule is
+│               "no backend, ever." Do not add a server here without first
+│               updating that rule; see backend/README.md.
+├── docs/       Reference screenshots and other non-code project artifacts.
+├── CLAUDE.md   Governs this repo. Read it before changing anything.
+└── README.md   This file.
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Getting started
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+That's the whole setup — there is nothing to run outside `frontend/`.
+
+## Scripts
+
+From the repo root:
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Starts the frontend dev server (proxies into `frontend/`) |
+| `npm run build` | Type-checks and builds the frontend (proxies into `frontend/`) |
+| `npm run lint` | Lints the frontend (proxies into `frontend/`) |
+
+Each just `cd`s into `frontend/` and runs the matching script there. There is
+no npm workspace set up — `frontend/node_modules` is exactly what `npm install`
+inside `frontend/` produced, untouched by anything at the root.

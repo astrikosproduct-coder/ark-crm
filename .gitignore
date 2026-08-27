@@ -1,3 +1,21 @@
+# Single root-level ignore file for the whole monorepo — gitignore patterns
+# with no leading slash match at any depth, so "node_modules" here already
+# covers frontend/node_modules and a future backend/node_modules alike.
+# Do not add a second .gitignore inside frontend/ or backend/.
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+build/
+
+# Env files — never commit real secrets or connection strings
+.env
+.env.*
+!.env.example
+
 # Logs
 logs
 *.log
@@ -7,18 +25,19 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
+# Editor / OS
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+*.local
+
+# Generated artifacts — regenerate with `python frontend/build_split_workbook.py`
+ARK_CRM_Field_Register_Split_v1.xlsx

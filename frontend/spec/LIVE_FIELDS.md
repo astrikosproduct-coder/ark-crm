@@ -4,7 +4,7 @@
 
 Partners · Accounts · Contacts · Leads · Opportunities · Deals — every field the prototype renders today, with its type, its picklist options and, for a child list, every column of one row.
 
-Generated on 2026-08-25 by running the application's own spec loader, not a copy of it — `npm run spec:fields`. The workbook remains the source; `spec/fields.json` is never hand-edited.
+Generated on 2026-08-27 by running the application's own spec loader, not a copy of it — `npm run spec:fields`. The workbook remains the source; `spec/fields.json` is never hand-edited.
 
 **What "live" means here.** A field is listed if the form engine puts it on a screen. Four rules shape the list:
 
@@ -29,13 +29,13 @@ Generated on 2026-08-25 by running the application's own spec loader, not a copy
 | Module | Stages | Live record fields | Child lists | Child-list columns | Sections |
 |---|---|---|---|---|---|
 | **Partners** | — | 34 | 0 | 0 | 3 |
-| **Accounts** | — | 20 | 0 | 0 | 4 |
+| **Accounts** | — | 19 | 0 | 0 | 4 |
 | **Contacts** | — | 15 | 0 | 0 | 2 |
-| **Leads** | 0–3 | 71 | 2 | 8 | 7 |
-| **Opportunities** | 4–6 | 87 | 1 | 8 | 8 |
-| **Deals** | 7–9 | 82 | 3 | 15 | 9 |
+| **Leads** | 0–3 | 77 | 2 | 8 | 8 |
+| **Opportunities** | 4–6 | 95 | 1 | 8 | 9 |
+| **Deals** | 7–9 | 88 | 3 | 15 | 10 |
 
-Row counts match the target placement in `ARK_CRM_Field_Register_Split_v1.xlsx`: Leads 71, Opportunities 91, Deals 89 — counting every row on the sheet, including the child-column rows the form engine folds into their table.
+Row counts match the target placement in `ARK_CRM_Field_Register_Split_v1.xlsx`: Leads 77, Opportunities 99, Deals 95 — counting every row on the sheet, including the child-column rows the form engine folds into their table.
 
 ---
 
@@ -102,7 +102,7 @@ Row counts match the target placement in `ARK_CRM_Field_Register_Split_v1.xlsx`:
 | Account Name | `account_name` | text | **Mandatory** | — | max 150 |
 | Account Type | `account_type` | multi-select | **Mandatory** | — | `accounts__account_type` — End Client · Partner / SI · Consultant / Specifier · OEM / Technology Partner · Sector Specialist |
 | Account Owner | `account_owner` | lookup | **Mandatory** | — | → `user` |
-| Country | `country` | picklist | **Mandatory** | — | `accounts__country` — UAE · KSA · Qatar · Oman · Kuwait · Bahrain · Other MEA · Outside MEA |
+| Region | `region` | picklist | **Mandatory** | — | `region` — India · MEA · APAC · Americas |
 | Website | `website` | url | Optional | — | — |
 | Phone | `phone` | text | Optional | — | max 30 |
 | Address | `address` | long text | Optional | — | — |
@@ -112,7 +112,6 @@ Row counts match the target placement in `ARK_CRM_Field_Register_Split_v1.xlsx`:
 | Label | api_name | Type | Requirement | Stage | Options / target / formula |
 |---|---|---|---|---|---|
 | Segment | `segment` | picklist | **Mandatory** | — | `segment` — Infrastructure · Industry · Power · Mobility |
-| Sub-Segment | `sub_segment` | picklist | **Mandatory** | — | `sub_segment` — Real Estate · Datacenter · Government · Mobility · O&G · Utilities · Industrial · Defense |
 | Customer Class | `customer_class` | picklist | **Mandatory** | — | `customer_class` — A Strategic (>$2M) · B Commercial ($250K-$2M) · C/D Transactional (<$250K) |
 | Account Target Phase | `account_target_phase` | picklist | **Mandatory** | — | `accounts__account_target_phase` — Year 1 · Year 2 · Year 3 · Not targeted |
 
@@ -181,6 +180,7 @@ Stages 0–3.
 |---|---|---|---|---|---|---|
 | Lead ID | `lead_id` | autonumber | System | 0 | LEAD-00001 | — |
 | Opportunity Name | `opportunity_name` | text | **Mandatory** | 0 | max 150<br>Format: [Project Name] — [Client] | — |
+| Region | `region` | picklist | **Mandatory** | 0 | `region` — India · MEA · APAC · Americas | — |
 | End Client | `end_client` | lookup | **Mandatory** | 0 | → `account`, filtered: _Account Type must include End Client_<br>Account Type must include End Client | — |
 | Customer (Partner / SI) | `customer_partner_si` | lookup | **Mandatory** | 0 | → `account`, filtered: _Account Type must include Partner / SI_<br>Account Type must include Partner / SI | — |
 | BD Owner | `bd_owner` | lookup | **Mandatory** | 0 | → `user`, filtered: _Role must include BD Owner_<br>Role must include BD Owner | — |
@@ -189,7 +189,7 @@ Stages 0–3.
 | Opportunity Type | `opportunity_type` | picklist | **Mandatory** | 0 | `leads__opportunity_type` — New Logo · Expansion · Renewal | — |
 | Partner Deal Registration | `partner_deal_registration` | lookup | Conditional | 0 | → `deal_registration`<br>shown when `deal_source == 'Partner-sourced'` | — |
 | Segment | `segment` | picklist | **Mandatory** | 0 | `segment` — Infrastructure · Industry · Power · Mobility | — |
-| Sub-Segment | `sub_segment` | picklist | **Mandatory** | 0 | `sub_segment` — Real Estate · Datacenter · Government · Mobility · O&G · Utilities · Industrial · Defense | — |
+| Theme | `theme` | picklist | **Mandatory** | 0 | `theme` — Smart Cities · Energy Utilities & Critical Infrastructure · Smart Buildings & Campuses · Industry 4.0 & Manufacturing · Data Centers · Defence & Protected Markets · Smart Transport & Infrastructure | — |
 | S!aP Solution Suite | `sap_solution_suite` | lookup | **Mandatory** | 0 | → `product`, filtered: _Suite Type must be Primary suite_<br>Suite Type must be Primary suite | — |
 | Lead Stage | `project_stage` | picklist | **Mandatory** | 0 | **Derived from the module range, not from `leads_stage`** — 0 Connect · 1 Demo Presentation · 2 POC / Pilot · 3 Prescription | — |
 | Lead Status | `lead_status` | picklist | **Mandatory** | 0 | `leads__lead_status` — Open · On Hold · Closed Lost · Converted | — |
@@ -204,8 +204,11 @@ Stages 0–3.
 | Incremental Value | `incremental_value` | currency | Conditional | 0 | shown when `opportunity_type == 'Expansion'` | — |
 | Contracting Party | `contracting_party` | computed | Computed | 0 | `deal_source == 'Partner-sourced' ? customer_partner_si : end_client`<br>Customer (Partner / SI) where Deal Source = Partner-sourced, otherwise End Client | — |
 | Remarks / Notes | `remarks_notes` | rich text | **Mandatory** | 0 | — | — |
+| Lighthouse Project | `lighthouse_project` | checkbox | Optional | 0 | — | — |
+| Gorilla Flag | `gorilla_flag` | checkbox | Optional | 0 | — | — |
 | Demo Agreed | `demo_agreed` | checkbox | **Mandatory** | 0 | — | — |
 | Demo Scheduled Date | `demo_scheduled_date` | date | **Mandatory** | 0 | — | — |
+| Demo Completed | `demo_completed` | checkbox | **Mandatory** | 0 | — | — |
 
 ### STAGE 1 — DEMO PRESENTATION
 
@@ -223,7 +226,6 @@ Stages 0–3.
 | Competitors Mentioned | `competitors_mentioned` | text | Optional | 1 | max 255<br>Free text. Was typed multiselect with no value set behind it in the register. | — |
 | Feature Gaps Logged | `feature_gaps_logged` | child list | Optional | 1 | row shape in the child-list table below | — |
 | Demo Debrief Notes | `demo_debrief_notes` | long text | **Mandatory** | 1 | — | — |
-| Demo Completed | `demo_completed` | checkbox | **Mandatory** | 0 | — | — |
 
 ### STAGE 2 — POC / PILOT
 
@@ -252,6 +254,14 @@ Stages 0–3.
 | CTB Approval Status | `ctb_approval_status` | picklist | **Mandatory** | 3 | `leads__ctb_approval_status` — Not started · In progress · Approved · Approved with conditions · Deferred · No bid | — |
 | CTB Approval Date | `ctb_approval_date` | date | **Mandatory** | 3 | — | — |
 | Total Project Value | `total_project_value` | currency | Optional | 3 | shown when `alliance_structure == 'Partner prime'` | — |
+
+### __header
+
+| Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
+|---|---|---|---|---|---|---|
+| Overall RAG | `overall_rag` | picklist | Optional | any | `overall_rag` — Green · Amber · Red | NEW |
+| Next Milestone | `next_milestone` | text | Optional | any | max 200 | NEW |
+| Next Milestone Date | `next_milestone_date` | date | Optional | any | — | NEW |
 
 ### CROSS-CUTTING
 
@@ -347,7 +357,7 @@ Stages 4–6. Holds `parent_lead`; identity is read through the parent `leads` a
 | 3rd-Party Recurring (per year) | `3rd_party_recurring_per_year` | currency | **Mandatory** | 4 | — | moved from `leads` |
 | Contract Years | `contract_years` | number | **Mandatory** | 4 | — | moved from `leads` |
 | Total Value (TCV) | `total_value_tcv` | computed | Computed | 4 | `arr_annual_recurring * contract_years + perpetual_licence_fee + one_time_revenue + 3rd_party_one_time + 3rd_party_recurring_per_year * contract_years`<br>(ARR × Years) + Perpetual Licence Fee + One-Time + 3rd-Party One-Time + (3rd-Party Recurring × Years) | moved from `leads` |
-| Gross Margin % | `gross_margin_pct` | computed | Computed | 4 | prose only: _Excludes third-party content_<br>Excludes third-party content | moved from `leads` |
+| Gross Margin % | `gross_margin_pct` | computed | Computed | 4 | `((arr_annual_recurring * contract_years + perpetual_licence_fee + one_time_revenue) - services_and_implementation_cost) / (arr_annual_recurring * contract_years + perpetual_licence_fee + one_time_revenue)`<br>(((ARR × Contract Years) + Perpetual Licence Fee + One-Time Revenue) - Services & Implementation Cost) / ((ARR × Contract Years) + Perpetual Licence Fee + One-Time Revenue). Excludes third-party content. | moved from `leads` |
 | Competitors Noticed | `competitors_noticed` | text | **Mandatory** | 4 | max 255<br>Free text. Was typed multiselect with no value set behind it in the register. | moved from `leads` |
 | Bid Record | `bid_record` | lookup | **Mandatory** | 4 | → `bid` | moved from `leads` |
 | Bid Submission Date | `bid_submission_date` | date-time | **Mandatory** | 4 | — | moved from `leads` |
@@ -367,6 +377,7 @@ Stages 4–6. Holds `parent_lead`; identity is read through the parent `leads` a
 | Nomination Bid | `nomination_bid` | checkbox | Optional | 4 | — | NEW |
 | Incumbent Only | `incumbent_only` | checkbox | Optional | 4 | — | NEW |
 | Parent Lead | `parent_lead` | lookup | System | 4 | → `lead` | NEW |
+| Value Confidence | `value_confidence` | picklist | Optional | 4 | `value_confidence` — Budgetary · Firm | NEW |
 
 ### STAGE 5 — TECHNICAL EVALUATION
 
@@ -401,11 +412,21 @@ Stages 4–6. Holds `parent_lead`; identity is read through the parent `leads` a
 
 > 4 further fields in this section — `milestone_—_planned_date`, `milestone_—_actual_date`, `milestone_—_invoice_date`, `milestone_—_payment_received_date` — define row columns of **Payment Milestones** and are listed there, not as record fields.
 
+### __header
+
+| Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
+|---|---|---|---|---|---|---|
+| Overall RAG | `overall_rag` | picklist | Optional | any | `overall_rag` — Green · Amber · Red | NEW |
+| Next Milestone | `next_milestone` | text | Optional | any | max 200 | NEW |
+| Next Milestone Date | `next_milestone_date` | date | Optional | any | — | NEW |
+| Pipeline Rank | `pipeline_rank` | number | Optional | any | — | NEW |
+
 ### READ THROUGH THE PARENT — resolved from the parent, never stored here
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
 | Opportunity Name | `opportunity_name` | text | **Mandatory** | 0 | max 150<br>Format: [Project Name] — [Client] | read-through from `leads` via `parent_lead` |
+| Region | `region` | picklist | **Mandatory** | 0 | `region` — India · MEA · APAC · Americas | read-through from `leads` via `parent_lead` |
 | End Client | `end_client` | lookup | **Mandatory** | 0 | → `account`, filtered: _Account Type must include End Client_<br>Account Type must include End Client | read-through from `leads` via `parent_lead` |
 | Customer (Partner / SI) | `customer_partner_si` | lookup | **Mandatory** | 0 | → `account`, filtered: _Account Type must include Partner / SI_<br>Account Type must include Partner / SI | read-through from `leads` via `parent_lead` |
 | BD Owner | `bd_owner` | lookup | **Mandatory** | 0 | → `user`, filtered: _Role must include BD Owner_<br>Role must include BD Owner | read-through from `leads` via `parent_lead` |
@@ -414,9 +435,11 @@ Stages 4–6. Holds `parent_lead`; identity is read through the parent `leads` a
 | Opportunity Type | `opportunity_type` | picklist | **Mandatory** | 0 | `leads__opportunity_type` — New Logo · Expansion · Renewal | read-through from `leads` via `parent_lead` |
 | Partner Deal Registration | `partner_deal_registration` | lookup | Conditional | 0 | → `deal_registration`<br>shown when `deal_source == 'Partner-sourced'` | read-through from `leads` via `parent_lead` |
 | Segment | `segment` | picklist | **Mandatory** | 0 | `segment` — Infrastructure · Industry · Power · Mobility | read-through from `leads` via `parent_lead` |
-| Sub-Segment | `sub_segment` | picklist | **Mandatory** | 0 | `sub_segment` — Real Estate · Datacenter · Government · Mobility · O&G · Utilities · Industrial · Defense | read-through from `leads` via `parent_lead` |
+| Theme | `theme` | picklist | **Mandatory** | 0 | `theme` — Smart Cities · Energy Utilities & Critical Infrastructure · Smart Buildings & Campuses · Industry 4.0 & Manufacturing · Data Centers · Defence & Protected Markets · Smart Transport & Infrastructure | read-through from `leads` via `parent_lead` |
 | S!aP Solution Suite | `sap_solution_suite` | lookup | **Mandatory** | 0 | → `product`, filtered: _Suite Type must be Primary suite_<br>Suite Type must be Primary suite | read-through from `leads` via `parent_lead` |
 | Currency | `currency` | picklist | **Mandatory** | 0 | `leads__currency` — USD · AED · SAR · QAR · OMR · KWD · BHD | read-through from `leads` via `parent_lead` |
+| Lighthouse Project | `lighthouse_project` | checkbox | Optional | 0 | — | read-through from `leads` via `parent_lead` |
+| Gorilla Flag | `gorilla_flag` | checkbox | Optional | 0 | — | read-through from `leads` via `parent_lead` |
 | Suite Demonstrated | `suite_demonstrated` | lookup | **Mandatory** | 1 | → `product` | read-through from `leads` via `parent_lead` |
 | Consultant / Specifier | `consultant_specifier` | lookup | **Mandatory** | 3 | → `account` | read-through from `leads` via `parent_lead` |
 | Sales Owner | `sales_owner` | lookup | Optional | 3 | → `user`, filtered: _Role must include Sales Owner_<br>Role must include Sales Owner | read-through from `leads` via `parent_lead` |
@@ -561,20 +584,31 @@ Stages 7–9. Holds `parent_opportunity`; identity is read through the parent `o
 | Renewal Signed Date | `renewal_signed_date` | date | Advisory | 9 | — | — |
 | Linked Expansion Leads | `linked_expansion_leads` | child list | **Mandatory** | 9 | row shape in the child-list table below | — |
 
+### __header
+
+| Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
+|---|---|---|---|---|---|---|
+| Overall RAG | `overall_rag` | picklist | Optional | any | `overall_rag` — Green · Amber · Red | NEW |
+| Next Milestone | `next_milestone` | text | Optional | any | max 200 | NEW |
+| Next Milestone Date | `next_milestone_date` | date | Optional | any | — | NEW |
+
 ### READ THROUGH THE PARENT — resolved from the parent, never stored here
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
 | Opportunity Name | `opportunity_name` | text | **Mandatory** | 0 | max 150<br>Format: [Project Name] — [Client] | read-through from `opportunities` via `parent_opportunity` |
+| Region | `region` | picklist | **Mandatory** | 0 | `region` — India · MEA · APAC · Americas | read-through from `opportunities` via `parent_opportunity` |
 | BD Owner | `bd_owner` | lookup | **Mandatory** | 0 | → `user`, filtered: _Role must include BD Owner_<br>Role must include BD Owner | read-through from `opportunities` via `parent_opportunity` |
 | Primary Contact | `primary_contact` | lookup | Optional | 0 | → `contact` | read-through from `opportunities` via `parent_opportunity` |
 | Deal Source | `deal_source` | picklist | **Mandatory** | 0 | `leads__deal_source` — Partner-sourced · Direct | read-through from `opportunities` via `parent_opportunity` |
 | Opportunity Type | `opportunity_type` | picklist | **Mandatory** | 0 | `leads__opportunity_type` — New Logo · Expansion · Renewal | read-through from `opportunities` via `parent_opportunity` |
 | Partner Deal Registration | `partner_deal_registration` | lookup | Conditional | 0 | → `deal_registration`<br>shown when `deal_source == 'Partner-sourced'` | read-through from `opportunities` via `parent_opportunity` |
 | Segment | `segment` | picklist | **Mandatory** | 0 | `segment` — Infrastructure · Industry · Power · Mobility | read-through from `opportunities` via `parent_opportunity` |
-| Sub-Segment | `sub_segment` | picklist | **Mandatory** | 0 | `sub_segment` — Real Estate · Datacenter · Government · Mobility · O&G · Utilities · Industrial · Defense | read-through from `opportunities` via `parent_opportunity` |
+| Theme | `theme` | picklist | **Mandatory** | 0 | `theme` — Smart Cities · Energy Utilities & Critical Infrastructure · Smart Buildings & Campuses · Industry 4.0 & Manufacturing · Data Centers · Defence & Protected Markets · Smart Transport & Infrastructure | read-through from `opportunities` via `parent_opportunity` |
 | S!aP Solution Suite | `sap_solution_suite` | lookup | **Mandatory** | 0 | → `product`, filtered: _Suite Type must be Primary suite_<br>Suite Type must be Primary suite | read-through from `opportunities` via `parent_opportunity` |
 | Currency | `currency` | picklist | **Mandatory** | 0 | `leads__currency` — USD · AED · SAR · QAR · OMR · KWD · BHD | read-through from `opportunities` via `parent_opportunity` |
+| Lighthouse Project | `lighthouse_project` | checkbox | Optional | 0 | — | read-through from `opportunities` via `parent_opportunity` |
+| Gorilla Flag | `gorilla_flag` | checkbox | Optional | 0 | — | read-through from `opportunities` via `parent_opportunity` |
 | Suite Demonstrated | `suite_demonstrated` | lookup | **Mandatory** | 1 | → `product` | read-through from `opportunities` via `parent_opportunity` |
 | Consultant / Specifier | `consultant_specifier` | lookup | **Mandatory** | 3 | → `account` | read-through from `opportunities` via `parent_opportunity` |
 | Sales Owner | `sales_owner` | lookup | Optional | 3 | → `user`, filtered: _Role must include Sales Owner_<br>Role must include Sales Owner | read-through from `opportunities` via `parent_opportunity` |
@@ -690,19 +724,6 @@ The **key** is what the store holds and what a condition compares against; the *
 | `CONSULTANT_SPECIFIER` | Consultant / Specifier |
 | `OEM_TECHNOLOGY_PARTNER` | OEM / Technology Partner |
 | `SECTOR_SPECIALIST` | Sector Specialist |
-
-**`accounts__country`** — 8 options
-
-| key | label |
-|---|---|
-| `UAE` | UAE |
-| `KSA` | KSA |
-| `QATAR` | Qatar |
-| `OMAN` | Oman |
-| `KUWAIT` | Kuwait |
-| `BAHRAIN` | Bahrain |
-| `OTHER_MEA` | Other MEA |
-| `OUTSIDE_MEA` | Outside MEA |
 
 **`accounts__engagement_cadence`** — 3 options
 
@@ -985,6 +1006,14 @@ The **key** is what the store holds and what a condition compares against; the *
 | `TRAILING` | Trailing |
 | `UNKNOWN` | Unknown |
 
+**`overall_rag`** — 3 options
+
+| key | label |
+|---|---|
+| `GREEN` | Green |
+| `AMBER` | Amber |
+| `RED` | Red |
+
 **`partners__decision`** — 3 options
 
 | key | label |
@@ -1021,6 +1050,15 @@ The **key** is what the store holds and what a condition compares against; the *
 | `SUPERSEDED` | Superseded |
 | `REJECTED` | Rejected |
 
+**`region`** — 4 options
+
+| key | label |
+|---|---|
+| `INDIA` | India |
+| `MEA` | MEA |
+| `APAC` | APAC |
+| `AMERICAS` | Americas |
+
 **`segment`** — 4 options
 
 | key | label |
@@ -1030,18 +1068,24 @@ The **key** is what the store holds and what a condition compares against; the *
 | `POWER` | Power |
 | `MOBILITY` | Mobility |
 
-**`sub_segment`** — 8 options
+**`theme`** — 7 options
 
 | key | label |
 |---|---|
-| `REAL_ESTATE` | Real Estate |
-| `DATACENTER` | Datacenter |
-| `GOVERNMENT` | Government |
-| `MOBILITY` | Mobility |
-| `OANDG` | O&G |
-| `UTILITIES` | Utilities |
-| `INDUSTRIAL` | Industrial |
-| `DEFENSE` | Defense |
+| `SMART_CITIES` | Smart Cities |
+| `ENERGY_UTILITIES_CRITICAL_INFRASTRUCTURE` | Energy Utilities & Critical Infrastructure |
+| `SMART_BUILDINGS_CAMPUSES` | Smart Buildings & Campuses |
+| `INDUSTRY_4_0_MANUFACTURING` | Industry 4.0 & Manufacturing |
+| `DATA_CENTERS` | Data Centers |
+| `DEFENCE_PROTECTED_MARKETS` | Defence & Protected Markets |
+| `SMART_TRANSPORT_INFRASTRUCTURE` | Smart Transport & Infrastructure |
+
+**`value_confidence`** — 2 options
+
+| key | label |
+|---|---|
+| `BUDGETARY` | Budgetary |
+| `FIRM` | Firm |
 
 ---
 
@@ -1051,7 +1095,7 @@ The three-module pipeline agreed at the 14-stage review is applied to the **spec
 
 ### Fields the register does not carry
 
-Declared in `spec/extensions.json` `new_fields`, so `spec/fields.json` stays generated. 5 gap-fix fields and 2 structural links — the parent lookups carry-forward-by-reference runs on, counted apart because plumbing is not an invented requirement.
+Declared in `spec/extensions.json` `new_fields`, so `spec/fields.json` stays generated. 10 gap-fix fields and 2 structural links — the parent lookups carry-forward-by-reference runs on, counted apart because plumbing is not an invented requirement.
 
 | Field | api_name | Type | Module | Stage | Kind |
 |---|---|---|---|---|---|
@@ -1064,12 +1108,23 @@ Declared in `spec/extensions.json` `new_fields`, so `spec/fields.json` stays gen
 | Bidder Declared Date | `bidder_declared_date` | date | `opportunities` | 6 | gap fix |
 | Parent Lead | `parent_lead` | lookup | `opportunities` | 4 | structural link |
 | Parent Opportunity | `parent_opportunity` | lookup | `deals` | 7 | structural link |
+| Value Confidence | `value_confidence` | picklist | `opportunities` | 4 | gap fix |
+| Overall RAG | `overall_rag` | picklist | `leads` | header | gap fix |
+| Next Milestone | `next_milestone` | text | `leads` | header | gap fix |
+| Next Milestone Date | `next_milestone_date` | date | `leads` | header | gap fix |
+| Overall RAG | `overall_rag` | picklist | `opportunities` | header | gap fix |
+| Next Milestone | `next_milestone` | text | `opportunities` | header | gap fix |
+| Next Milestone Date | `next_milestone_date` | date | `opportunities` | header | gap fix |
+| Overall RAG | `overall_rag` | picklist | `deals` | header | gap fix |
+| Next Milestone | `next_milestone` | text | `deals` | header | gap fix |
+| Next Milestone Date | `next_milestone_date` | date | `deals` | header | gap fix |
+| Pipeline Rank | `pipeline_rank` | number | `opportunities` | header | gap fix |
 
 ### Identity is carried by reference
 
-An Opportunity holds `parent_lead`; a Deal holds `parent_opportunity`. The 20 identity fields below are **read through that link and rendered read-only** — never copied, so the same value cannot drift in two places. They appear in `fieldsOf(module)` because a criterion or a formula naming a parent field would otherwise stop compiling; carrying them made one previously-broken expression compile again (`deals.incremental_value`, whose visibility rule reads `opportunity_type`).
+An Opportunity holds `parent_lead`; a Deal holds `parent_opportunity`. The 23 identity fields below are **read through that link and rendered read-only** — never copied, so the same value cannot drift in two places. They appear in `fieldsOf(module)` because a criterion or a formula naming a parent field would otherwise stop compiling; carrying them made one previously-broken expression compile again (`deals.incremental_value`, whose visibility rule reads `opportunity_type`).
 
-`opportunity_name` · `end_client` · `customer_partner_si` · `pre_bid_alliance_partner` · `primary_contact` · `partner_deal_registration` · `segment` · `sub_segment` · `sap_solution_suite` · `suite_demonstrated` · `currency` · `total_project_value` · `probable_award_date` · `deal_source` · `opportunity_type` · `alliance_structure` · `bd_owner` · `sales_owner` · `presales_owner` · `consultant_specifier`
+`opportunity_name` · `end_client` · `customer_partner_si` · `pre_bid_alliance_partner` · `primary_contact` · `partner_deal_registration` · `segment` · `theme` · `sap_solution_suite` · `suite_demonstrated` · `currency` · `total_project_value` · `probable_award_date` · `deal_source` · `opportunity_type` · `alliance_structure` · `bd_owner` · `sales_owner` · `presales_owner` · `consultant_specifier` · `region` · `lighthouse_project` · `gorilla_flag`
 
 Deals takes 18 of the 20: the Deals sheet declares `end_client` and `customer_partner_si` itself. Whether those two register rows should be read-through instead is an open question on Spec Health, not something the loader decided.
 
