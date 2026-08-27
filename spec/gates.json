@@ -1,0 +1,272 @@
+[
+ {
+  "gate_type": "POC_BRIEF",
+  "name": "POC Brief",
+  "anchor_stage": 2,
+  "blocking_threshold": 0,
+  "enforcement": "blocking",
+  "passes_on": "signatures",
+  "approver_role": null,
+  "playbook_ref": "Annexure A.1",
+  "warning": "Starting a POC without agreed success criteria is running a free pilot with no commercial control.",
+  "items": [
+   {
+    "code": "POC-01",
+    "text": "Objective defined in one prescribed sentence",
+    "is_critical": true,
+    "evaluation": "automatic",
+    "source": "poc.objective not empty"
+   },
+   {
+    "code": "POC-02",
+    "text": "Use cases agreed — between 3 and 5, specific and named",
+    "is_critical": true,
+    "evaluation": "automatic",
+    "source": "poc.use_cases.count between 3 and 5"
+   },
+   {
+    "code": "POC-03",
+    "text": "Success criteria agreed across all four categories",
+    "is_critical": true,
+    "evaluation": "automatic",
+    "source": "poc.criteria covers Technical, Functional, Business Value, Usability"
+   },
+   {
+    "code": "POC-04",
+    "text": "Data or site access confirmed in writing",
+    "is_critical": true,
+    "evaluation": "manual",
+    "source": null
+   },
+   {
+    "code": "POC-05",
+    "text": "Named client evaluator committed",
+    "is_critical": true,
+    "evaluation": "manual",
+    "source": null
+   },
+   {
+    "code": "POC-06",
+    "text": "Duration and checkpoint dates fixed",
+    "is_critical": true,
+    "evaluation": "automatic",
+    "source": "poc.start_date and poc.end_date and poc.checkpoints.count > 0"
+   },
+   {
+    "code": "POC-07",
+    "text": "Scope freeze agreed",
+    "is_critical": true,
+    "evaluation": "manual",
+    "source": null
+   },
+   {
+    "code": "POC-08",
+    "text": "Internal resource allocated",
+    "is_critical": true,
+    "evaluation": "manual",
+    "source": null
+   },
+   {
+    "code": "POC-09",
+    "text": "Signed by client technical lead (RECM or INFL)",
+    "is_critical": true,
+    "evaluation": "signature",
+    "source": null
+   },
+   {
+    "code": "POC-10",
+    "text": "Signed by BD owner",
+    "is_critical": true,
+    "evaluation": "signature",
+    "source": null
+   },
+   {
+    "code": "POC-11",
+    "text": "Signed by Product Team lead",
+    "is_critical": true,
+    "evaluation": "signature",
+    "source": null
+   }
+  ]
+ },
+ {
+  "gate_type": "CTB",
+  "name": "Commit to Bid",
+  "anchor_stage": 4,
+  "blocking_threshold": 250000,
+  "enforcement": "blocking",
+  "passes_on": "approval",
+  "approver_role": "APPROVER",
+  "playbook_ref": "§4.1",
+  "warning": "No bid may proceed to Stage 4 without a completed and approved CTB form.",
+  "items": [
+   {
+    "code": "CTB-01",
+    "text": "Strategic fit — segment and account in the target matrix",
+    "is_critical": true,
+    "evaluation": "semi_auto",
+    "source": "account.target_phase != 'Not targeted'"
+   },
+   {
+    "code": "CTB-02",
+    "text": "Probability of win above 30% — below 20% is a no-bid unless strategic",
+    "is_critical": true,
+    "evaluation": "manual",
+    "source": "shows probability"
+   },
+   {
+    "code": "CTB-03",
+    "text": "Technical feasibility confirmed in writing",
+    "is_critical": true,
+    "evaluation": "manual",
+    "source": null
+   },
+   {
+    "code": "CTB-04",
+    "text": "Commercial attractiveness — min 45% GM, max 40% third-party",
+    "is_critical": true,
+    "evaluation": "automatic",
+    "source": "gross_margin_pct >= 45 and third_party_pct_of_tcv <= 40"
+   },
+   {
+    "code": "CTB-05",
+    "text": "Resource availability — Product and Presales capacity confirmed",
+    "is_critical": true,
+    "evaluation": "manual",
+    "source": null
+   },
+   {
+    "code": "CTB-06",
+    "text": "Relationship position — at least a Recommender identified",
+    "is_critical": true,
+    "evaluation": "automatic",
+    "source": "contact_roles has RECM"
+   },
+   {
+    "code": "CTB-07",
+    "text": "Platform expansion potential — one additional suite identified",
+    "is_critical": true,
+    "evaluation": "automatic",
+    "source": "secondary_saap_suites.count >= 1"
+   },
+   {
+    "code": "CTB-08",
+    "text": "Competitive position — value proposition documented",
+    "is_critical": false,
+    "evaluation": "semi_auto",
+    "source": "competitive_threats.count >= 1"
+   },
+   {
+    "code": "CTB-09",
+    "text": "Risk profile — no show-stoppers, major risks mitigated",
+    "is_critical": true,
+    "evaluation": "manual",
+    "source": null
+   }
+  ]
+ },
+ {
+  "gate_type": "COMMERCIAL",
+  "name": "Commercial Thresholds and Red Lines",
+  "anchor_stage": 7,
+  "blocking_threshold": 0,
+  "enforcement": "blocking",
+  "passes_on": "confirmation",
+  "approver_role": "APPROVER",
+  "playbook_ref": "§8.2, §8.4",
+  "warning": "The six contract red lines require CEO and Legal sign-off and cannot be waived by anyone else.",
+  "items": [
+   {
+    "code": "RL-01",
+    "text": "Liability cap at or below 100% of contract value",
+    "is_critical": true,
+    "evaluation": "automatic",
+    "source": "agreed_liability_cap_pct <= 100"
+   },
+   {
+    "code": "RL-02",
+    "text": "Liquidated damages at or below 10%",
+    "is_critical": true,
+    "evaluation": "automatic",
+    "source": "agreed_ld_cap_pct <= 10"
+   },
+   {
+    "code": "RL-03",
+    "text": "No IP assignment of Astrikos platform code",
+    "is_critical": true,
+    "evaluation": "manual",
+    "source": null
+   },
+   {
+    "code": "RL-04",
+    "text": "No penalties for client-caused delay",
+    "is_critical": true,
+    "evaluation": "manual",
+    "source": null
+   },
+   {
+    "code": "RL-05",
+    "text": "No source code escrow without Product Team approval",
+    "is_critical": true,
+    "evaluation": "manual",
+    "source": null
+   },
+   {
+    "code": "RL-06",
+    "text": "No sector or geographic non-compete",
+    "is_critical": true,
+    "evaluation": "manual",
+    "source": null
+   },
+   {
+    "code": "TH-01",
+    "text": "Gross margin at or above 45%",
+    "is_critical": true,
+    "evaluation": "automatic",
+    "source": "gross_margin_pct >= 45"
+   },
+   {
+    "code": "TH-02",
+    "text": "Third-party content at or below 40% of TCV",
+    "is_critical": true,
+    "evaluation": "automatic",
+    "source": "third_party_pct_of_tcv <= 40"
+   },
+   {
+    "code": "TH-03",
+    "text": "Advance payment at or above 10%",
+    "is_critical": true,
+    "evaluation": "automatic",
+    "source": "agreed_advance_pct >= 10"
+   },
+   {
+    "code": "TH-04",
+    "text": "Credit period at or below 60 days",
+    "is_critical": true,
+    "evaluation": "automatic",
+    "source": "agreed_credit_period_days <= 60"
+   },
+   {
+    "code": "TH-05",
+    "text": "Performance guarantee at or below 10% and 12 months",
+    "is_critical": true,
+    "evaluation": "automatic",
+    "source": "guarantee.pct <= 10"
+   },
+   {
+    "code": "TH-06",
+    "text": "Platform licence not discounted without approval",
+    "is_critical": true,
+    "evaluation": "automatic",
+    "source": "licence_discount_pct == 0 or discount_approval"
+   },
+   {
+    "code": "TH-07",
+    "text": "Contract review signed off",
+    "is_critical": true,
+    "evaluation": "automatic",
+    "source": "contract_review_status == 'Signed off'"
+   }
+  ]
+ }
+]

@@ -1,0 +1,14 @@
+{
+ "perpetual_multiplier": 3.2,
+ "support_perpetual_amc_uplift": 1.3,
+ "user_blended_rate_usd": 320,
+ "unlimited_tier_multiplier": 1.3,
+ "onsite_premium_multiplier": 1.5,
+ "service_categories": [
+  "Project Management & Documentation",
+  "Requirement Gathering & Discovery",
+  "Software Development & Testing",
+  "Integration & Online Testing",
+  "Commissioning & Handover"
+ ]
+}

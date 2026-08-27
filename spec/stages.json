@@ -1,0 +1,92 @@
+[
+ {
+  "stage": 0,
+  "name": "Connect",
+  "prob_min": 0,
+  "prob_max": 10,
+  "owner_role": "BD_OWNER",
+  "bid_phase": "1 Qualify",
+  "applies_to": "lead"
+ },
+ {
+  "stage": 1,
+  "name": "Demo Presentation",
+  "prob_min": 10,
+  "prob_max": 20,
+  "owner_role": "BD_OWNER",
+  "bid_phase": "1 Qualify",
+  "applies_to": "lead"
+ },
+ {
+  "stage": 2,
+  "name": "POC / Pilot",
+  "prob_min": 20,
+  "prob_max": 40,
+  "owner_role": "BD_OWNER",
+  "bid_phase": "1 Qualify",
+  "applies_to": "lead"
+ },
+ {
+  "stage": 3,
+  "name": "Prescription",
+  "prob_min": 30,
+  "prob_max": 50,
+  "owner_role": "SALES_OWNER",
+  "bid_phase": "1→2",
+  "applies_to": "lead"
+ },
+ {
+  "stage": 4,
+  "name": "RFP / RFI",
+  "prob_min": 40,
+  "prob_max": 60,
+  "owner_role": "SALES_OWNER",
+  "bid_phase": "2 Proposal",
+  "applies_to": "lead"
+ },
+ {
+  "stage": 5,
+  "name": "Technical Evaluation",
+  "prob_min": 50,
+  "prob_max": 70,
+  "owner_role": "SALES_OWNER",
+  "bid_phase": "3 Evaluation",
+  "applies_to": "lead"
+ },
+ {
+  "stage": 6,
+  "name": "Commercial Evaluation",
+  "prob_min": 60,
+  "prob_max": 80,
+  "owner_role": "SALES_OWNER",
+  "bid_phase": "3→4",
+  "applies_to": "lead"
+ },
+ {
+  "stage": 7,
+  "name": "Close",
+  "prob_min": 90,
+  "prob_max": 100,
+  "owner_role": "SALES_OWNER",
+  "bid_phase": "4 Closure",
+  "applies_to": "lead"
+ },
+ {
+  "stage": 8,
+  "name": "Project Success",
+  "prob_min": 100,
+  "prob_max": 100,
+  "owner_role": "DELIVERY_OWNER",
+  "bid_phase": null,
+  "applies_to": "deal"
+ },
+ {
+  "stage": 9,
+  "name": "Expansion",
+  "prob_min": null,
+  "prob_max": null,
+  "owner_role": "DELIVERY_OWNER",
+  "bid_phase": null,
+  "applies_to": "deal"
+ }
+]

@@ -1,0 +1,867 @@
+[
+ {
+  "sku": "SAP-CORE",
+  "size": "XS",
+  "list_price_usd": 1500.0
+ },
+ {
+  "sku": "SAP-CORE",
+  "size": "S",
+  "list_price_usd": 2500.0
+ },
+ {
+  "sku": "SAP-CORE",
+  "size": "M",
+  "list_price_usd": 4500.0
+ },
+ {
+  "sku": "SAP-CORE",
+  "size": "L",
+  "list_price_usd": 8000.0
+ },
+ {
+  "sku": "SAP-CORE",
+  "size": "XL",
+  "list_price_usd": 14000.0
+ },
+ {
+  "sku": "SAP-CORE",
+  "size": "XXL",
+  "list_price_usd": 24000.0
+ },
+ {
+  "sku": "SAP-CORE",
+  "size": "Unlimited",
+  "list_price_usd": 31200.0
+ },
+ {
+  "sku": "SAP-KNCT",
+  "size": "XS",
+  "list_price_usd": 2500.0
+ },
+ {
+  "sku": "SAP-KNCT",
+  "size": "S",
+  "list_price_usd": 5000.0
+ },
+ {
+  "sku": "SAP-KNCT",
+  "size": "M",
+  "list_price_usd": 10000.0
+ },
+ {
+  "sku": "SAP-KNCT",
+  "size": "L",
+  "list_price_usd": 20000.0
+ },
+ {
+  "sku": "SAP-KNCT",
+  "size": "XL",
+  "list_price_usd": 38000.0
+ },
+ {
+  "sku": "SAP-KNCT",
+  "size": "XXL",
+  "list_price_usd": 72000.0
+ },
+ {
+  "sku": "SAP-KNCT",
+  "size": "Unlimited",
+  "list_price_usd": 93600.0
+ },
+ {
+  "sku": "SAP-DTLK",
+  "size": "XS",
+  "list_price_usd": 1500.0
+ },
+ {
+  "sku": "SAP-DTLK",
+  "size": "S",
+  "list_price_usd": 3000.0
+ },
+ {
+  "sku": "SAP-DTLK",
+  "size": "M",
+  "list_price_usd": 6000.0
+ },
+ {
+  "sku": "SAP-DTLK",
+  "size": "L",
+  "list_price_usd": 12000.0
+ },
+ {
+  "sku": "SAP-DTLK",
+  "size": "XL",
+  "list_price_usd": 22000.0
+ },
+ {
+  "sku": "SAP-DTLK",
+  "size": "XXL",
+  "list_price_usd": 40000.0
+ },
+ {
+  "sku": "SAP-DTLK",
+  "size": "Unlimited",
+  "list_price_usd": 52000.0
+ },
+ {
+  "sku": "SAP-MLAI",
+  "size": "XS",
+  "list_price_usd": 2500.0
+ },
+ {
+  "sku": "SAP-MLAI",
+  "size": "S",
+  "list_price_usd": 5500.0
+ },
+ {
+  "sku": "SAP-MLAI",
+  "size": "M",
+  "list_price_usd": 11500.0
+ },
+ {
+  "sku": "SAP-MLAI",
+  "size": "L",
+  "list_price_usd": 23000.0
+ },
+ {
+  "sku": "SAP-MLAI",
+  "size": "XL",
+  "list_price_usd": 44000.0
+ },
+ {
+  "sku": "SAP-MLAI",
+  "size": "XXL",
+  "list_price_usd": 82000.0
+ },
+ {
+  "sku": "SAP-MLAI",
+  "size": "Unlimited",
+  "list_price_usd": 106600.0
+ },
+ {
+  "sku": "SAP-BPM",
+  "size": "XS",
+  "list_price_usd": 1200.0
+ },
+ {
+  "sku": "SAP-BPM",
+  "size": "S",
+  "list_price_usd": 2500.0
+ },
+ {
+  "sku": "SAP-BPM",
+  "size": "M",
+  "list_price_usd": 5000.0
+ },
+ {
+  "sku": "SAP-BPM",
+  "size": "L",
+  "list_price_usd": 10000.0
+ },
+ {
+  "sku": "SAP-BPM",
+  "size": "XL",
+  "list_price_usd": 18500.0
+ },
+ {
+  "sku": "SAP-BPM",
+  "size": "XXL",
+  "list_price_usd": 34000.0
+ },
+ {
+  "sku": "SAP-BPM",
+  "size": "Unlimited",
+  "list_price_usd": 44200.0
+ },
+ {
+  "sku": "SAP-VIZ",
+  "size": "XS",
+  "list_price_usd": 2000.0
+ },
+ {
+  "sku": "SAP-VIZ",
+  "size": "S",
+  "list_price_usd": 4500.0
+ },
+ {
+  "sku": "SAP-VIZ",
+  "size": "M",
+  "list_price_usd": 9500.0
+ },
+ {
+  "sku": "SAP-VIZ",
+  "size": "L",
+  "list_price_usd": 19000.0
+ },
+ {
+  "sku": "SAP-VIZ",
+  "size": "XL",
+  "list_price_usd": 36000.0
+ },
+ {
+  "sku": "SAP-VIZ",
+  "size": "XXL",
+  "list_price_usd": 68000.0
+ },
+ {
+  "sku": "SAP-VIZ",
+  "size": "Unlimited",
+  "list_price_usd": 88400.0
+ },
+ {
+  "sku": "SAP-AGNT",
+  "size": "XS",
+  "list_price_usd": 1800.0
+ },
+ {
+  "sku": "SAP-AGNT",
+  "size": "S",
+  "list_price_usd": 4000.0
+ },
+ {
+  "sku": "SAP-AGNT",
+  "size": "M",
+  "list_price_usd": 8500.0
+ },
+ {
+  "sku": "SAP-AGNT",
+  "size": "L",
+  "list_price_usd": 17000.0
+ },
+ {
+  "sku": "SAP-AGNT",
+  "size": "XL",
+  "list_price_usd": 32000.0
+ },
+ {
+  "sku": "SAP-AGNT",
+  "size": "XXL",
+  "list_price_usd": 60000.0
+ },
+ {
+  "sku": "SAP-AGNT",
+  "size": "Unlimited",
+  "list_price_usd": 78000.0
+ },
+ {
+  "sku": "SEG-OMN",
+  "size": "XS",
+  "list_price_usd": 2000.0
+ },
+ {
+  "sku": "SEG-OMN",
+  "size": "S",
+  "list_price_usd": 4500.0
+ },
+ {
+  "sku": "SEG-OMN",
+  "size": "M",
+  "list_price_usd": 9000.0
+ },
+ {
+  "sku": "SEG-OMN",
+  "size": "L",
+  "list_price_usd": 18000.0
+ },
+ {
+  "sku": "SEG-OMN",
+  "size": "XL",
+  "list_price_usd": 34000.0
+ },
+ {
+  "sku": "SEG-OMN",
+  "size": "XXL",
+  "list_price_usd": 64000.0
+ },
+ {
+  "sku": "SEG-OMN",
+  "size": "Unlimited",
+  "list_price_usd": 83200.0
+ },
+ {
+  "sku": "SEG-COG",
+  "size": "XS",
+  "list_price_usd": 2200.0
+ },
+ {
+  "sku": "SEG-COG",
+  "size": "S",
+  "list_price_usd": 5000.0
+ },
+ {
+  "sku": "SEG-COG",
+  "size": "M",
+  "list_price_usd": 10000.0
+ },
+ {
+  "sku": "SEG-COG",
+  "size": "L",
+  "list_price_usd": 20000.0
+ },
+ {
+  "sku": "SEG-COG",
+  "size": "XL",
+  "list_price_usd": 38000.0
+ },
+ {
+  "sku": "SEG-COG",
+  "size": "XXL",
+  "list_price_usd": 72000.0
+ },
+ {
+  "sku": "SEG-COG",
+  "size": "Unlimited",
+  "list_price_usd": 93600.0
+ },
+ {
+  "sku": "SEG-KIM",
+  "size": "XS",
+  "list_price_usd": 2500.0
+ },
+ {
+  "sku": "SEG-KIM",
+  "size": "S",
+  "list_price_usd": 5500.0
+ },
+ {
+  "sku": "SEG-KIM",
+  "size": "M",
+  "list_price_usd": 11000.0
+ },
+ {
+  "sku": "SEG-KIM",
+  "size": "L",
+  "list_price_usd": 22000.0
+ },
+ {
+  "sku": "SEG-KIM",
+  "size": "XL",
+  "list_price_usd": 42000.0
+ },
+ {
+  "sku": "SEG-KIM",
+  "size": "XXL",
+  "list_price_usd": 79000.0
+ },
+ {
+  "sku": "SEG-KIM",
+  "size": "Unlimited",
+  "list_price_usd": 102700.0
+ },
+ {
+  "sku": "SEG-KLZ",
+  "size": "XS",
+  "list_price_usd": 2200.0
+ },
+ {
+  "sku": "SEG-KLZ",
+  "size": "S",
+  "list_price_usd": 4800.0
+ },
+ {
+  "sku": "SEG-KLZ",
+  "size": "M",
+  "list_price_usd": 9500.0
+ },
+ {
+  "sku": "SEG-KLZ",
+  "size": "L",
+  "list_price_usd": 19000.0
+ },
+ {
+  "sku": "SEG-KLZ",
+  "size": "XL",
+  "list_price_usd": 36000.0
+ },
+ {
+  "sku": "SEG-KLZ",
+  "size": "XXL",
+  "list_price_usd": 67000.0
+ },
+ {
+  "sku": "SEG-KLZ",
+  "size": "Unlimited",
+  "list_price_usd": 87100.0
+ },
+ {
+  "sku": "SEG-MAZ",
+  "size": "XS",
+  "list_price_usd": 1200.0
+ },
+ {
+  "sku": "SEG-MAZ",
+  "size": "S",
+  "list_price_usd": 2800.0
+ },
+ {
+  "sku": "SEG-MAZ",
+  "size": "M",
+  "list_price_usd": 5500.0
+ },
+ {
+  "sku": "SEG-MAZ",
+  "size": "L",
+  "list_price_usd": 11000.0
+ },
+ {
+  "sku": "SEG-MAZ",
+  "size": "XL",
+  "list_price_usd": 20000.0
+ },
+ {
+  "sku": "SEG-MAZ",
+  "size": "XXL",
+  "list_price_usd": 38000.0
+ },
+ {
+  "sku": "SEG-MAZ",
+  "size": "Unlimited",
+  "list_price_usd": 49400.0
+ },
+ {
+  "sku": "ADD-MOB",
+  "size": "XS",
+  "list_price_usd": 8000.0
+ },
+ {
+  "sku": "ADD-MOB",
+  "size": "S",
+  "list_price_usd": 15000.0
+ },
+ {
+  "sku": "ADD-MOB",
+  "size": "M",
+  "list_price_usd": 25000.0
+ },
+ {
+  "sku": "ADD-MOB",
+  "size": "L",
+  "list_price_usd": 45000.0
+ },
+ {
+  "sku": "ADD-MOB",
+  "size": "XL",
+  "list_price_usd": 80000.0
+ },
+ {
+  "sku": "ADD-MOB",
+  "size": "XXL",
+  "list_price_usd": 140000.0
+ },
+ {
+  "sku": "ADD-MOB",
+  "size": "Unlimited",
+  "list_price_usd": 182000.0
+ },
+ {
+  "sku": "ADD-VA",
+  "size": "XS",
+  "list_price_usd": 12000.0
+ },
+ {
+  "sku": "ADD-VA",
+  "size": "S",
+  "list_price_usd": 12000.0
+ },
+ {
+  "sku": "ADD-VA",
+  "size": "M",
+  "list_price_usd": 12000.0
+ },
+ {
+  "sku": "ADD-VA",
+  "size": "L",
+  "list_price_usd": 12000.0
+ },
+ {
+  "sku": "ADD-VA",
+  "size": "XL",
+  "list_price_usd": 12000.0
+ },
+ {
+  "sku": "ADD-VA",
+  "size": "XXL",
+  "list_price_usd": 12000.0
+ },
+ {
+  "sku": "ADD-VA",
+  "size": "Unlimited",
+  "list_price_usd": 15600.0
+ },
+ {
+  "sku": "ADD-VOICE",
+  "size": "XS",
+  "list_price_usd": 10000.0
+ },
+ {
+  "sku": "ADD-VOICE",
+  "size": "S",
+  "list_price_usd": 20000.0
+ },
+ {
+  "sku": "ADD-VOICE",
+  "size": "M",
+  "list_price_usd": 40000.0
+ },
+ {
+  "sku": "ADD-VOICE",
+  "size": "L",
+  "list_price_usd": 80000.0
+ },
+ {
+  "sku": "ADD-VOICE",
+  "size": "XL",
+  "list_price_usd": 150000.0
+ },
+ {
+  "sku": "ADD-VOICE",
+  "size": "XXL",
+  "list_price_usd": 280000.0
+ },
+ {
+  "sku": "ADD-VOICE",
+  "size": "Unlimited",
+  "list_price_usd": 364000.0
+ },
+ {
+  "sku": "ADD-TWIN",
+  "size": "XS",
+  "list_price_usd": 15000.0
+ },
+ {
+  "sku": "ADD-TWIN",
+  "size": "S",
+  "list_price_usd": 32000.0
+ },
+ {
+  "sku": "ADD-TWIN",
+  "size": "M",
+  "list_price_usd": 65000.0
+ },
+ {
+  "sku": "ADD-TWIN",
+  "size": "L",
+  "list_price_usd": 130000.0
+ },
+ {
+  "sku": "ADD-TWIN",
+  "size": "XL",
+  "list_price_usd": 240000.0
+ },
+ {
+  "sku": "ADD-TWIN",
+  "size": "XXL",
+  "list_price_usd": 440000.0
+ },
+ {
+  "sku": "ADD-TWIN",
+  "size": "Unlimited",
+  "list_price_usd": 572000.0
+ },
+ {
+  "sku": "ADD-AR",
+  "size": "XS",
+  "list_price_usd": 12000.0
+ },
+ {
+  "sku": "ADD-AR",
+  "size": "S",
+  "list_price_usd": 25000.0
+ },
+ {
+  "sku": "ADD-AR",
+  "size": "M",
+  "list_price_usd": 50000.0
+ },
+ {
+  "sku": "ADD-AR",
+  "size": "L",
+  "list_price_usd": 100000.0
+ },
+ {
+  "sku": "ADD-AR",
+  "size": "XL",
+  "list_price_usd": 180000.0
+ },
+ {
+  "sku": "ADD-AR",
+  "size": "XXL",
+  "list_price_usd": 320000.0
+ },
+ {
+  "sku": "ADD-AR",
+  "size": "Unlimited",
+  "list_price_usd": 416000.0
+ },
+ {
+  "sku": "ADD-EDGE",
+  "size": "XS",
+  "list_price_usd": 5000.0
+ },
+ {
+  "sku": "ADD-EDGE",
+  "size": "S",
+  "list_price_usd": 10000.0
+ },
+ {
+  "sku": "ADD-EDGE",
+  "size": "M",
+  "list_price_usd": 20000.0
+ },
+ {
+  "sku": "ADD-EDGE",
+  "size": "L",
+  "list_price_usd": 40000.0
+ },
+ {
+  "sku": "ADD-EDGE",
+  "size": "XL",
+  "list_price_usd": 75000.0
+ },
+ {
+  "sku": "ADD-EDGE",
+  "size": "XXL",
+  "list_price_usd": 140000.0
+ },
+ {
+  "sku": "ADD-EDGE",
+  "size": "Unlimited",
+  "list_price_usd": 182000.0
+ },
+ {
+  "sku": "ADD-EOC",
+  "size": "XS",
+  "list_price_usd": 15000.0
+ },
+ {
+  "sku": "ADD-EOC",
+  "size": "S",
+  "list_price_usd": 30000.0
+ },
+ {
+  "sku": "ADD-EOC",
+  "size": "M",
+  "list_price_usd": 60000.0
+ },
+ {
+  "sku": "ADD-EOC",
+  "size": "L",
+  "list_price_usd": 120000.0
+ },
+ {
+  "sku": "ADD-EOC",
+  "size": "XL",
+  "list_price_usd": 220000.0
+ },
+ {
+  "sku": "ADD-EOC",
+  "size": "XXL",
+  "list_price_usd": 400000.0
+ },
+ {
+  "sku": "ADD-EOC",
+  "size": "Unlimited",
+  "list_price_usd": 520000.0
+ },
+ {
+  "sku": "ADD-EHS",
+  "size": "XS",
+  "list_price_usd": 12000.0
+ },
+ {
+  "sku": "ADD-EHS",
+  "size": "S",
+  "list_price_usd": 25000.0
+ },
+ {
+  "sku": "ADD-EHS",
+  "size": "M",
+  "list_price_usd": 50000.0
+ },
+ {
+  "sku": "ADD-EHS",
+  "size": "L",
+  "list_price_usd": 100000.0
+ },
+ {
+  "sku": "ADD-EHS",
+  "size": "XL",
+  "list_price_usd": 180000.0
+ },
+ {
+  "sku": "ADD-EHS",
+  "size": "XXL",
+  "list_price_usd": 320000.0
+ },
+ {
+  "sku": "ADD-EHS",
+  "size": "Unlimited",
+  "list_price_usd": 416000.0
+ },
+ {
+  "sku": "ADD-SCADA",
+  "size": "XS",
+  "list_price_usd": 10000.0
+ },
+ {
+  "sku": "ADD-SCADA",
+  "size": "S",
+  "list_price_usd": 20000.0
+ },
+ {
+  "sku": "ADD-SCADA",
+  "size": "M",
+  "list_price_usd": 40000.0
+ },
+ {
+  "sku": "ADD-SCADA",
+  "size": "L",
+  "list_price_usd": 80000.0
+ },
+ {
+  "sku": "ADD-SCADA",
+  "size": "XL",
+  "list_price_usd": 150000.0
+ },
+ {
+  "sku": "ADD-SCADA",
+  "size": "XXL",
+  "list_price_usd": 280000.0
+ },
+ {
+  "sku": "ADD-SCADA",
+  "size": "Unlimited",
+  "list_price_usd": 364000.0
+ },
+ {
+  "sku": "ADD-GRID",
+  "size": "XS",
+  "list_price_usd": 15000.0
+ },
+ {
+  "sku": "ADD-GRID",
+  "size": "S",
+  "list_price_usd": 30000.0
+ },
+ {
+  "sku": "ADD-GRID",
+  "size": "M",
+  "list_price_usd": 60000.0
+ },
+ {
+  "sku": "ADD-GRID",
+  "size": "L",
+  "list_price_usd": 120000.0
+ },
+ {
+  "sku": "ADD-GRID",
+  "size": "XL",
+  "list_price_usd": 220000.0
+ },
+ {
+  "sku": "ADD-GRID",
+  "size": "XXL",
+  "list_price_usd": 400000.0
+ },
+ {
+  "sku": "ADD-GRID",
+  "size": "Unlimited",
+  "list_price_usd": 520000.0
+ },
+ {
+  "sku": "ADD-COPIL",
+  "size": "XS",
+  "list_price_usd": 8000.0
+ },
+ {
+  "sku": "ADD-COPIL",
+  "size": "S",
+  "list_price_usd": 16000.0
+ },
+ {
+  "sku": "ADD-COPIL",
+  "size": "M",
+  "list_price_usd": 32000.0
+ },
+ {
+  "sku": "ADD-COPIL",
+  "size": "L",
+  "list_price_usd": 65000.0
+ },
+ {
+  "sku": "ADD-COPIL",
+  "size": "XL",
+  "list_price_usd": 120000.0
+ },
+ {
+  "sku": "ADD-COPIL",
+  "size": "XXL",
+  "list_price_usd": 220000.0
+ },
+ {
+  "sku": "ADD-COPIL",
+  "size": "Unlimited",
+  "list_price_usd": 286000.0
+ },
+ {
+  "sku": "ADD-BI",
+  "size": "XS",
+  "list_price_usd": 6000.0
+ },
+ {
+  "sku": "ADD-BI",
+  "size": "S",
+  "list_price_usd": 12000.0
+ },
+ {
+  "sku": "ADD-BI",
+  "size": "M",
+  "list_price_usd": 24000.0
+ },
+ {
+  "sku": "ADD-BI",
+  "size": "L",
+  "list_price_usd": 48000.0
+ },
+ {
+  "sku": "ADD-BI",
+  "size": "XL",
+  "list_price_usd": 90000.0
+ },
+ {
+  "sku": "ADD-BI",
+  "size": "XXL",
+  "list_price_usd": 165000.0
+ },
+ {
+  "sku": "ADD-BI",
+  "size": "Unlimited",
+  "list_price_usd": 214500.0
+ },
+ {
+  "sku": "USR-010",
+  "size": "ALL",
+  "list_price_usd": 4000.0
+ },
+ {
+  "sku": "USR-050",
+  "size": "ALL",
+  "list_price_usd": 18000.0
+ },
+ {
+  "sku": "USR-100",
+  "size": "ALL",
+  "list_price_usd": 32000.0
+ },
+ {
+  "sku": "USR-500",
+  "size": "ALL",
+  "list_price_usd": 140000.0
+ },
+ {
+  "sku": "USR-1K",
+  "size": "ALL",
+  "list_price_usd": 260000.0
+ }
+]

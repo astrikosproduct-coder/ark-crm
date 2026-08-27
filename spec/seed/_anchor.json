@@ -1,0 +1,5 @@
+{
+  "$note": "NOT a collection. Files here beginning with an underscore are read by the loader and never seeded as data. See spec/README.md, 'Rebasing the seed to demo day'.",
+  "anchor_date": "2026-01-13",
+  "$why": "The day the journey document opens on: REG-00042 is acknowledged on 13 Jan 2026 and its exclusivity runs to 12 Apr, so on demo day that registration reads exactly 89 days left. Every other seeded date is shifted by the same delta, so the relative spacing the workbook chose is preserved exactly."
+}

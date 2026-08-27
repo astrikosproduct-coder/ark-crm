@@ -1,0 +1,58 @@
+[
+ {
+  "parameter": "Minimum gross margin",
+  "operator": ">=",
+  "policy_value": 45,
+  "unit": "percent",
+  "approver_role": "CEO + CFO"
+ },
+ {
+  "parameter": "Maximum third-party content",
+  "operator": "<=",
+  "policy_value": 40,
+  "unit": "percent",
+  "approver_role": "Presales review"
+ },
+ {
+  "parameter": "Minimum advance payment",
+  "operator": ">=",
+  "policy_value": 10,
+  "unit": "percent",
+  "approver_role": "Commercial Head"
+ },
+ {
+  "parameter": "Maximum performance guarantee",
+  "operator": "<=",
+  "policy_value": 10,
+  "unit": "percent",
+  "approver_role": "CEO"
+ },
+ {
+  "parameter": "Advance bank guarantee required above",
+  "operator": ">",
+  "policy_value": 15,
+  "unit": "percent",
+  "approver_role": "CEO"
+ },
+ {
+  "parameter": "Standard credit period",
+  "operator": "<=",
+  "policy_value": 30,
+  "unit": "days",
+  "approver_role": "CFO above 60"
+ },
+ {
+  "parameter": "Maximum liquidated damages",
+  "operator": "<=",
+  "policy_value": 5,
+  "unit": "percent",
+  "approver_role": "CEO + Legal above 10"
+ },
+ {
+  "parameter": "Maximum liability cap",
+  "operator": "<=",
+  "policy_value": 100,
+  "unit": "percent",
+  "approver_role": "CEO + Legal"
+ }
+]

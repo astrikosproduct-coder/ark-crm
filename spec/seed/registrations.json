@@ -1,0 +1,32 @@
+[
+ {
+  "id": "REG-00042",
+  "partner": "ACC-002",
+  "end_client": "ACC-001",
+  "project_name": "Khazna DC-7 Facility Operations Platform",
+  "estimated_value": 700000,
+  "partner_role": "Prime",
+  "submitted_date": "2026-01-12",
+  "acknowledged_date": "2026-01-13",
+  "acknowledgement_sla_met": true,
+  "exclusivity_start_date": "2026-01-13",
+  "exclusivity_expiry_date": "2026-04-12",
+  "registration_status": "Active",
+  "linked_lead": "LEAD-00118"
+ },
+ {
+  "id": "REG-00051",
+  "partner": "ACC-005",
+  "end_client": "ACC-006",
+  "project_name": "Aldar campus operations platform",
+  "estimated_value": 420000,
+  "partner_role": "Prime",
+  "submitted_date": "2025-10-23",
+  "acknowledged_date": "2025-10-24",
+  "acknowledgement_sla_met": true,
+  "exclusivity_start_date": "2025-10-24",
+  "exclusivity_expiry_date": "2026-01-21",
+  "registration_status": "Active",
+  "linked_lead": "LEAD-00120"
+ }
+]

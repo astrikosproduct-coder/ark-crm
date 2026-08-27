@@ -1,0 +1,255 @@
+[
+ {
+  "sku": "SAP-CORE",
+  "name": "S!aP Core (Sys Admin)",
+  "description": "Platform governance: RBAC, SSO/AD, audit logs, tenant admin. Mandatory with every S!aP deployment.",
+  "category": "Module",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "SAP-KNCT",
+  "name": "S!aP Konnect",
+  "description": "Universal integration & ingestion: 300+ connectors, BACnet/OPC-UA/MQTT/REST/Modbus, ETL, vendor-neutral.",
+  "category": "Module",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "SAP-DTLK",
+  "name": "S!aP Datalake",
+  "description": "Operational system of record: time-series storage, asset hierarchy, AI training data, compliance audit trail.",
+  "category": "Module",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "SAP-MLAI",
+  "name": "S!aP ML & AI Central",
+  "description": "Cognitive intelligence: anomaly detection, predictive maintenance, risk scoring, Glass Box explainability.",
+  "category": "Module",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "SAP-BPM",
+  "name": "S!aP BPM",
+  "description": "Workflow, SOP & governance: incident lifecycle, digitised SOPs, automated escalation, immutable audit logs.",
+  "category": "Module",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "SAP-VIZ",
+  "name": "S!aP Viz & Astriverse",
+  "description": "Immersive command & visualization: 3D Digital Twin, role-based dashboards, executive cockpit, mobile/web.",
+  "category": "Module",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "SAP-AGNT",
+  "name": "S!aP Agentic (S!a)",
+  "description": "Advisory & adaptive intelligence: background agents, proactive advisory, natural language querying, semi-autonomous ops.",
+  "category": "Module",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "SEG-OMN",
+  "name": "S!aP Omnific",
+  "description": "Smart Cities & Urban Management — Traffic, ERS, CCTV, Lighting, Waste, Water, EMS, Public Transport, E-Governance.",
+  "category": "Segment Library",
+  "charge_type": "One-Time",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "SEG-COG",
+  "name": "S!aP Cognus",
+  "description": "Data Centres & Cloud Hosting — DCIM, Cooling, Power, Rack, Capacity, CFD-ready data flows.",
+  "category": "Segment Library",
+  "charge_type": "One-Time",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "SEG-KIM",
+  "name": "S!aP KIM",
+  "description": "Industry 4.0 & Manufacturing — OEE, MES/SCADA, Predictive Maintenance, EHS, Energy, Quality.",
+  "category": "Segment Library",
+  "charge_type": "One-Time",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "SEG-KLZ",
+  "name": "S!aP Kolaz",
+  "description": "Campuses, Districts & Buildings — BMS/HVAC, Access Control, Occupancy, Energy, Terminals (incl. Airports), Passenger Flow.",
+  "category": "Segment Library",
+  "charge_type": "One-Time",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "SEG-MAZ",
+  "name": "S!aP Mazzant",
+  "description": "All-segment MIS / Dashboarding — executive dashboards, KPI packs, project and portfolio reporting.",
+  "category": "Segment Library",
+  "charge_type": "One-Time",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "SEG-AGAI",
+  "name": "S!aP Agentic AI",
+  "description": "Agentic AI suite — background agents, proactive advisory and semi-autonomous operations offered as a solution suite in its own right.",
+  "category": "Segment Library",
+  "charge_type": "One-Time",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "SEG-IVAR",
+  "name": "IVAR (Gorilla)",
+  "description": "IVAR (Gorilla) — video and vision analytics suite. Not S!aP-branded; carried as a solution suite because it is sold as one.",
+  "category": "Segment Library",
+  "charge_type": "One-Time",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "ADD-MOB",
+  "name": "Mobile App (Ops)",
+  "description": "Native iOS/Android app for field teams, approvals, alerts.",
+  "category": "Add-On",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "ADD-VA",
+  "name": "Video Analytics Pack (per 100 channels)",
+  "description": "AI on CCTV streams: crowd, intrusion, loitering, vehicle ANPR. Per 100 channels.",
+  "category": "Add-On",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "ADD-VOICE",
+  "name": "S!a Voice Agent",
+  "description": "Voice-controlled operator copilot for control rooms and field use.",
+  "category": "Add-On",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "ADD-TWIN",
+  "name": "Astriverse 3D / Digital Twin Pro",
+  "description": "Advanced 3D digital twin, photorealistic scenes, zone overlays, simulation.",
+  "category": "Add-On",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "ADD-AR",
+  "name": "AR Layer for Campuses & Industrial",
+  "description": "AR overlays on mobile/tablet for on-site operators and maintenance crews.",
+  "category": "Add-On",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "ADD-EDGE",
+  "name": "Edge Gateway Connectors",
+  "description": "Edge compute & ingestion for low-latency or offline environments.",
+  "category": "Add-On",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "ADD-EOC",
+  "name": "Emergency Ops Center (EOC) Plugin",
+  "description": "Crisis room orchestration, multi-agency command view, incident playbooks.",
+  "category": "Add-On",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "ADD-EHS",
+  "name": "EHS & Compliance Module",
+  "description": "Environmental, health & safety workflows; audit and regulatory reporting.",
+  "category": "Add-On",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "ADD-SCADA",
+  "name": "SCADA Bridge (AVEVA)",
+  "description": "OT protocol bridge for industrial SCADA / DCS / PLC systems (AVEVA).",
+  "category": "Add-On",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "ADD-GRID",
+  "name": "Grid Intelligence Plugin",
+  "description": "Grid ops, demand-response, renewable integration, forecasting.",
+  "category": "Add-On",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "ADD-COPIL",
+  "name": "Operator Copilot (BPM)",
+  "description": "In-context AI copilot for operators on dashboards & workflows.",
+  "category": "Add-On",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "ADD-BI",
+  "name": "Advanced Reporting & BI",
+  "description": "Scheduled regulator reports, executive BI packs, data export.",
+  "category": "Add-On",
+  "charge_type": "Annual",
+  "pricing_basis": "By T-shirt size"
+ },
+ {
+  "sku": "USR-010",
+  "name": "+10 Users",
+  "description": "10 users",
+  "category": "User Pack",
+  "charge_type": "Annual",
+  "pricing_basis": "Per user pack",
+  "users": 10
+ },
+ {
+  "sku": "USR-050",
+  "name": "+50 Users",
+  "description": "50 users",
+  "category": "User Pack",
+  "charge_type": "Annual",
+  "pricing_basis": "Per user pack",
+  "users": 50
+ },
+ {
+  "sku": "USR-100",
+  "name": "+100 Users",
+  "description": "100 users",
+  "category": "User Pack",
+  "charge_type": "Annual",
+  "pricing_basis": "Per user pack",
+  "users": 100
+ },
+ {
+  "sku": "USR-500",
+  "name": "+500 Users",
+  "description": "500 users",
+  "category": "User Pack",
+  "charge_type": "Annual",
+  "pricing_basis": "Per user pack",
+  "users": 500
+ },
+ {
+  "sku": "USR-1K",
+  "name": "+1000 Users",
+  "description": "1000 users",
+  "category": "User Pack",
+  "charge_type": "Annual",
+  "pricing_basis": "Per user pack",
+  "users": 1000
+ }
+]

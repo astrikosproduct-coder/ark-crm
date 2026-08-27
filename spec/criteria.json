@@ -1,0 +1,502 @@
+[
+ {
+  "stage": 0,
+  "type": "exit",
+  "code": "X0.1",
+  "text": "Decision Maker or Recommender located at the client",
+  "evaluation": "automatic",
+  "source": "contact_roles has DECM or RECM",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S0"
+ },
+ {
+  "stage": 0,
+  "type": "exit",
+  "code": "X0.2",
+  "text": "Client agrees to see a platform demonstration",
+  "evaluation": "automatic",
+  "source": "demo_agreed == true",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S0"
+ },
+ {
+  "stage": 1,
+  "type": "entry",
+  "code": "E1.1",
+  "text": "Contact confirmed and meeting scheduled",
+  "evaluation": "automatic",
+  "source": "demo_scheduled_date",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S1"
+ },
+ {
+  "stage": 1,
+  "type": "entry",
+  "code": "E1.2",
+  "text": "Relevant S!aP suite identified",
+  "evaluation": "automatic",
+  "source": "saap_solution_suite",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S1"
+ },
+ {
+  "stage": 1,
+  "type": "entry",
+  "code": "E1.3",
+  "text": "Product Team briefed on client context and sector",
+  "evaluation": "manual",
+  "source": null,
+  "enforcement": "advisory",
+  "playbook_ref": "§3.2 S1"
+ },
+ {
+  "stage": 1,
+  "type": "exit",
+  "code": "X1.1",
+  "text": "Client expresses genuine interest; next step agreed",
+  "evaluation": "attestation",
+  "source": "interest_level, agreed_next_step",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S1"
+ },
+ {
+  "stage": 1,
+  "type": "exit",
+  "code": "X1.2",
+  "text": "Product Team debrief completed",
+  "evaluation": "automatic",
+  "source": "demo_debrief_notes",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S1"
+ },
+ {
+  "stage": 2,
+  "type": "entry",
+  "code": "E2.1",
+  "text": "Data or site access confirmed in writing",
+  "evaluation": "automatic",
+  "source": "poc.data_site_access_confirmed == true",
+  "enforcement": "blocking",
+  "playbook_ref": "Annexure A.1"
+ },
+ {
+  "stage": 2,
+  "type": "entry",
+  "code": "E2.2",
+  "text": "POC brief signed off",
+  "evaluation": "gate",
+  "source": "gate:POC_BRIEF",
+  "enforcement": "blocking",
+  "playbook_ref": "Annexure A.1"
+ },
+ {
+  "stage": 2,
+  "type": "entry",
+  "code": "E2.3",
+  "text": "Internal resource allocation confirmed",
+  "evaluation": "automatic",
+  "source": "poc.internal_resource_confirmed == true",
+  "enforcement": "blocking",
+  "playbook_ref": "Annexure A.1"
+ },
+ {
+  "stage": 2,
+  "type": "exit",
+  "code": "X2.1",
+  "text": "All success criteria met and signed off by client technical authority",
+  "evaluation": "automatic",
+  "source": "poc.criteria_met_pct >= 70",
+  "enforcement": "blocking",
+  "playbook_ref": "Annexure A.4"
+ },
+ {
+  "stage": 2,
+  "type": "exit",
+  "code": "X2.2",
+  "text": "Close-out report issued and accepted",
+  "evaluation": "automatic",
+  "source": "poc.close_out_accepted_date",
+  "enforcement": "blocking",
+  "playbook_ref": "Annexure A.4"
+ },
+ {
+  "stage": 2,
+  "type": "exit",
+  "code": "X2.3",
+  "text": "Client provides a statement of intent to proceed",
+  "evaluation": "automatic",
+  "source": "poc.statement_of_intent_received == true",
+  "enforcement": "advisory",
+  "playbook_ref": "§3.2 S2"
+ },
+ {
+  "stage": 3,
+  "type": "entry",
+  "code": "E3.1",
+  "text": "POC successful, or client in solution design or budgeting",
+  "evaluation": "automatic",
+  "source": "client_phase != 'Neither' or poc.outcome == 'Success'",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S3"
+ },
+ {
+  "stage": 3,
+  "type": "entry",
+  "code": "E3.2",
+  "text": "Access to client project team, PMO or consultant confirmed",
+  "evaluation": "automatic",
+  "source": "project_team_access_confirmed == true",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S3"
+ },
+ {
+  "stage": 3,
+  "type": "entry",
+  "code": "E3.3",
+  "text": "Budget and timeline directionally confirmed",
+  "evaluation": "automatic",
+  "source": "budget_estimate and probable_award_date",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S3"
+ },
+ {
+  "stage": 3,
+  "type": "exit",
+  "code": "X3.1",
+  "text": "Requirements influenced to include S!aP-aligned specifications",
+  "evaluation": "attestation",
+  "source": "spec_influence_evidence",
+  "enforcement": "advisory",
+  "playbook_ref": "§3.2 S3"
+ },
+ {
+  "stage": 3,
+  "type": "exit",
+  "code": "X3.2",
+  "text": "Budget confirmed",
+  "evaluation": "automatic",
+  "source": "budget_confirmed == true",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S3"
+ },
+ {
+  "stage": 3,
+  "type": "exit",
+  "code": "X3.3",
+  "text": "Pre-bid alliance partner locked",
+  "evaluation": "automatic",
+  "source": "pre_bid_alliance_partner and alliance_structure and pbaa_signed_date",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S3"
+ },
+ {
+  "stage": 4,
+  "type": "entry",
+  "code": "E4.1",
+  "text": "RFP or RFI document received",
+  "evaluation": "automatic",
+  "source": "rfp_received_date and rfp_document",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S4"
+ },
+ {
+  "stage": 4,
+  "type": "entry",
+  "code": "E4.2",
+  "text": "CTB completed and management bid-approval obtained",
+  "evaluation": "gate",
+  "source": "gate:CTB",
+  "enforcement": "blocking",
+  "playbook_ref": "§4.1"
+ },
+ {
+  "stage": 4,
+  "type": "entry",
+  "code": "E4.3",
+  "text": "Pre-Bid Alliance partner finalised and engaged",
+  "evaluation": "automatic",
+  "source": "pbaa_signed_date",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S4"
+ },
+ {
+  "stage": 4,
+  "type": "exit",
+  "code": "X4.1",
+  "text": "Compliant bid submitted by the deadline",
+  "evaluation": "automatic",
+  "source": "submitted_on_time == true",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S4"
+ },
+ {
+  "stage": 4,
+  "type": "exit",
+  "code": "X4.2",
+  "text": "Bid tracking checklist phases 1 and 2 complete",
+  "evaluation": "automatic",
+  "source": "bid.checklist_phase_1_2_pct == 100",
+  "enforcement": "blocking",
+  "playbook_ref": "§4.2"
+ },
+ {
+  "stage": 4,
+  "type": "exit",
+  "code": "X4.3",
+  "text": "Debrief request submitted to the client",
+  "evaluation": "automatic",
+  "source": "debrief_requested_date",
+  "enforcement": "advisory",
+  "playbook_ref": "§3.2 S4"
+ },
+ {
+  "stage": 5,
+  "type": "entry",
+  "code": "E5.1",
+  "text": "Bid submitted and client confirms receipt",
+  "evaluation": "automatic",
+  "source": "bid_receipt_confirmed_date",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S5"
+ },
+ {
+  "stage": 5,
+  "type": "exit",
+  "code": "X5.1",
+  "text": "All TBE queries answered",
+  "evaluation": "automatic",
+  "source": "bid.open_tbe_queries == 0",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S5"
+ },
+ {
+  "stage": 5,
+  "type": "exit",
+  "code": "X5.2",
+  "text": "Technical approval achieved or on the approved vendor list",
+  "evaluation": "automatic",
+  "source": "technical_approval_status in ['Approved','On approved vendor list']",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S5"
+ },
+ {
+  "stage": 5,
+  "type": "exit",
+  "code": "X5.3",
+  "text": "Competitive standing assessed",
+  "evaluation": "automatic",
+  "source": "technical_standing != 'Unknown'",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S5"
+ },
+ {
+  "stage": 6,
+  "type": "entry",
+  "code": "E6.1",
+  "text": "Technical approval received",
+  "evaluation": "automatic",
+  "source": "technical_approval_date",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S6"
+ },
+ {
+  "stage": 6,
+  "type": "entry",
+  "code": "E6.2",
+  "text": "Commercial proposal under review by client procurement",
+  "evaluation": "automatic",
+  "source": "commercial_proposal_submitted_date",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S6"
+ },
+ {
+  "stage": 6,
+  "type": "exit",
+  "code": "X6.1",
+  "text": "Commercial agreement on price, payment terms and key clauses",
+  "evaluation": "automatic",
+  "source": "final_negotiated_value and payment_milestones.count == 8",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S6"
+ },
+ {
+  "stage": 6,
+  "type": "exit",
+  "code": "X6.2",
+  "text": "Contract review record completed with sign-off",
+  "evaluation": "automatic",
+  "source": "contract_review_status == 'Signed off'",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S6"
+ },
+ {
+  "stage": 6,
+  "type": "exit",
+  "code": "X6.3",
+  "text": "LOI or verbal award received",
+  "evaluation": "automatic",
+  "source": "award_type and loi_received_date",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S6"
+ },
+ {
+  "stage": 7,
+  "type": "entry",
+  "code": "E7.1",
+  "text": "LOI, PO or signed contract received",
+  "evaluation": "automatic",
+  "source": "po_number or contract_signed_date",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S7"
+ },
+ {
+  "stage": 7,
+  "type": "entry",
+  "code": "E7.2",
+  "text": "Final value, scope and payment schedule confirmed",
+  "evaluation": "automatic",
+  "source": "payment_schedule_confirmed == true",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S7"
+ },
+ {
+  "stage": 7,
+  "type": "entry",
+  "code": "E7.3",
+  "text": "Commercial thresholds and red lines resolved",
+  "evaluation": "gate",
+  "source": "gate:COMMERCIAL",
+  "enforcement": "blocking",
+  "playbook_ref": "§8.2, §8.4"
+ },
+ {
+  "stage": 7,
+  "type": "exit",
+  "code": "X7.1",
+  "text": "Order booked",
+  "evaluation": "automatic",
+  "source": "order_booked == true and booking_date and erp_reference",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S7"
+ },
+ {
+  "stage": 7,
+  "type": "exit",
+  "code": "X7.2",
+  "text": "Project Strategy Paper completed",
+  "evaluation": "automatic",
+  "source": "psp_completed_date",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S7"
+ },
+ {
+  "stage": 7,
+  "type": "exit",
+  "code": "X7.3",
+  "text": "Kickoff meeting scheduled with Delivery",
+  "evaluation": "automatic",
+  "source": "kickoff_meeting_date and delivery_pm",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S7"
+ },
+ {
+  "stage": 7,
+  "type": "exit",
+  "code": "X7.4",
+  "text": "Cash flow and resource plan signed off",
+  "evaluation": "automatic",
+  "source": "cash_flow_sign_off_date and resource_plan_sign_off_date",
+  "enforcement": "blocking",
+  "playbook_ref": "§4.2"
+ },
+ {
+  "stage": 7,
+  "type": "exit",
+  "code": "X7.5",
+  "text": "Technical Handover Pack produced and presented",
+  "evaluation": "automatic",
+  "source": "handover_pack_delivered_date",
+  "enforcement": "blocking",
+  "playbook_ref": "§9.3"
+ },
+ {
+  "stage": 8,
+  "type": "entry",
+  "code": "E8.1",
+  "text": "System commissioned and client signed off",
+  "evaluation": "automatic",
+  "source": "commissioning_date and tandc_sign_off_date",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S8"
+ },
+ {
+  "stage": 8,
+  "type": "entry",
+  "code": "E8.2",
+  "text": "Warranty or support period commenced",
+  "evaluation": "automatic",
+  "source": "warranty_start_date",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S8"
+ },
+ {
+  "stage": 8,
+  "type": "exit",
+  "code": "X8.1",
+  "text": "Customer satisfaction score recorded",
+  "evaluation": "automatic",
+  "source": "csat_score",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S8"
+ },
+ {
+  "stage": 8,
+  "type": "exit",
+  "code": "X8.2",
+  "text": "Reference letter or case study secured",
+  "evaluation": "automatic",
+  "source": "reference_status",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S8"
+ },
+ {
+  "stage": 8,
+  "type": "exit",
+  "code": "X8.3",
+  "text": "Expansion opportunity identified",
+  "evaluation": "automatic",
+  "source": "expansion_use_cases.count >= 1",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S8"
+ },
+ {
+  "stage": 9,
+  "type": "entry",
+  "code": "E9.1",
+  "text": "Platform stable and client satisfied",
+  "evaluation": "attestation",
+  "source": "delivery attestation",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S9"
+ },
+ {
+  "stage": 9,
+  "type": "exit",
+  "code": "X9.1",
+  "text": "Expansion qualified and logged as a new record",
+  "evaluation": "automatic",
+  "source": "linked_expansion_leads.count >= 1",
+  "enforcement": "blocking",
+  "playbook_ref": "§3.2 S9"
+ },
+ {
+  "stage": 9,
+  "type": "exit",
+  "code": "X9.2",
+  "text": "Renewal signed before contract expiry",
+  "evaluation": "automatic",
+  "source": "renewal_status == 'Signed'",
+  "enforcement": "advisory",
+  "playbook_ref": "§3.2 S9"
+ }
+]

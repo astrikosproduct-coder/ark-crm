@@ -1,0 +1,3174 @@
+{
+ "leads__deal_source": [
+  {
+   "key": "PARTNER_SOURCED",
+   "label": "Partner-sourced",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "DIRECT",
+   "label": "Direct",
+   "sort": 2,
+   "active": true
+  }
+ ],
+ "leads__opportunity_type": [
+  {
+   "key": "NEW_LOGO",
+   "label": "New Logo",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "EXPANSION",
+   "label": "Expansion",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "RENEWAL",
+   "label": "Renewal",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "segment": [
+  {
+   "key": "INFRASTRUCTURE",
+   "label": "Infrastructure",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "INDUSTRY",
+   "label": "Industry",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "POWER",
+   "label": "Power",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "MOBILITY",
+   "label": "Mobility",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "sub_segment": [
+  {
+   "key": "REAL_ESTATE",
+   "label": "Real Estate",
+   "sort": 1,
+   "active": false
+  },
+  {
+   "key": "DATACENTER",
+   "label": "Datacenter",
+   "sort": 2,
+   "active": false
+  },
+  {
+   "key": "GOVERNMENT",
+   "label": "Government",
+   "sort": 3,
+   "active": false
+  },
+  {
+   "key": "MOBILITY",
+   "label": "Mobility",
+   "sort": 4,
+   "active": false
+  },
+  {
+   "key": "OANDG",
+   "label": "O&G",
+   "sort": 5,
+   "active": false
+  },
+  {
+   "key": "UTILITIES",
+   "label": "Utilities",
+   "sort": 6,
+   "active": false
+  },
+  {
+   "key": "INDUSTRIAL",
+   "label": "Industrial",
+   "sort": 7,
+   "active": false
+  },
+  {
+   "key": "DEFENSE",
+   "label": "Defense",
+   "sort": 8,
+   "active": false
+  }
+ ],
+ "leads_stage": [
+  {
+   "key": "0_CONNECT",
+   "label": "0 Connect",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "1_DEMO",
+   "label": "1 Demo",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "2_POC_PILOT",
+   "label": "2 POC/Pilot",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "3_PRESCRIPTION",
+   "label": "3 Prescription",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "4_RFP_RFI",
+   "label": "4 RFP/RFI",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "5_TECHNICAL_EVAL",
+   "label": "5 Technical Eval",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "6_COMMERCIAL_EVAL",
+   "label": "6 Commercial Eval",
+   "sort": 7,
+   "active": true
+  },
+  {
+   "key": "7_CLOSE",
+   "label": "7 Close",
+   "sort": 8,
+   "active": true
+  }
+ ],
+ "leads__lead_status": [
+  {
+   "key": "OPEN",
+   "label": "Open",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "ON_HOLD",
+   "label": "On Hold",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "CLOSED_LOST",
+   "label": "Closed Lost",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "CONVERTED",
+   "label": "Converted",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "leads__currency": [
+  {
+   "key": "USD",
+   "label": "USD",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "AED",
+   "label": "AED",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "SAR",
+   "label": "SAR",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "QAR",
+   "label": "QAR",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "OMR",
+   "label": "OMR",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "KWD",
+   "label": "KWD",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "BHD",
+   "label": "BHD",
+   "sort": 7,
+   "active": true
+  }
+ ],
+ "leads__interest_level": [
+  {
+   "key": "HIGH",
+   "label": "High",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "MEDIUM",
+   "label": "Medium",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "LOW",
+   "label": "Low",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "leads__agreed_next_step": [
+  {
+   "key": "POC_SCOPING",
+   "label": "POC scoping",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "PRESCRIPTION",
+   "label": "Prescription",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "RFP",
+   "label": "RFP",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "IMPLEMENTATION",
+   "label": "Implementation",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "NONE",
+   "label": "None",
+   "sort": 5,
+   "active": true
+  }
+ ],
+ "leads__pilot_commercial_model": [
+  {
+   "key": "FREE",
+   "label": "Free",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "PAID",
+   "label": "Paid",
+   "sort": 2,
+   "active": true
+  }
+ ],
+ "leads__client_phase": [
+  {
+   "key": "SOLUTION_DESIGN",
+   "label": "Solution design",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "BUDGETING",
+   "label": "Budgeting",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "NEITHER",
+   "label": "Neither",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "leads__alliance_structure": [
+  {
+   "key": "ASTRIKOS_PRIME",
+   "label": "Astrikos prime",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "PARTNER_PRIME",
+   "label": "Partner prime",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "CONSORTIUM_JOINT_BID",
+   "label": "Consortium / joint bid",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "NOT_APPLICABLE",
+   "label": "Not applicable",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "leads__ctb_approval_status": [
+  {
+   "key": "NOT_STARTED",
+   "label": "Not started",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "IN_PROGRESS",
+   "label": "In progress",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "APPROVED",
+   "label": "Approved",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "APPROVED_WITH_CONDITIONS",
+   "label": "Approved with conditions",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "DEFERRED",
+   "label": "Deferred",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "NO_BID",
+   "label": "No bid",
+   "sort": 6,
+   "active": true
+  }
+ ],
+ "leads__rfp_type": [
+  {
+   "key": "RFP",
+   "label": "RFP",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "RFI",
+   "label": "RFI",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "TENDER",
+   "label": "Tender",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "EOI",
+   "label": "EOI",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "leads__licence_model": [
+  {
+   "key": "SUBSCRIPTION",
+   "label": "Subscription",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "PERPETUAL",
+   "label": "Perpetual",
+   "sort": 2,
+   "active": true
+  }
+ ],
+ "leads__technical_standing": [
+  {
+   "key": "LEADING",
+   "label": "Leading",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "EQUAL",
+   "label": "Equal",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "TRAILING",
+   "label": "Trailing",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "UNKNOWN",
+   "label": "Unknown",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "leads__technical_approval_status": [
+  {
+   "key": "PENDING",
+   "label": "Pending",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "APPROVED",
+   "label": "Approved",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "ON_APPROVED_VENDOR_LIST",
+   "label": "On approved vendor list",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "REJECTED",
+   "label": "Rejected",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "leads__contract_review_status": [
+  {
+   "key": "NOT_STARTED",
+   "label": "Not started",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "IN_REVIEW",
+   "label": "In review",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "SIGNED_OFF",
+   "label": "Signed off",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "leads__award_type": [
+  {
+   "key": "LOI",
+   "label": "LOI",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "VERBAL",
+   "label": "Verbal",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "PO",
+   "label": "PO",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "SIGNED_CONTRACT",
+   "label": "Signed contract",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "closed_lost_reason_code": [
+  {
+   "key": "LOST_TO_COMPETITOR",
+   "label": "Lost to competitor",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "PRICE",
+   "label": "Price",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "TECHNICAL_FIT",
+   "label": "Technical fit",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "RELATIONSHIP",
+   "label": "Relationship",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "CLIENT_CANCELLED",
+   "label": "Client cancelled",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "BUDGET_WITHDRAWN",
+   "label": "Budget withdrawn",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "NO_BID",
+   "label": "No bid",
+   "sort": 7,
+   "active": true
+  },
+  {
+   "key": "PARTNER_CONFLICT",
+   "label": "Partner conflict",
+   "sort": 8,
+   "active": true
+  },
+  {
+   "key": "TIMING",
+   "label": "Timing",
+   "sort": 9,
+   "active": true
+  }
+ ],
+ "deals__deal_stage": [
+  {
+   "key": "8_PROJECT_SUCCESS",
+   "label": "Project Success",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "9_EXPANSION",
+   "label": "Expansion",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "CLOSED",
+   "label": "Closed",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "deals__guarantee_type": [
+  {
+   "key": "ABG_ADVANCE",
+   "label": "ABG Advance",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "PBG_PERFORMANCE",
+   "label": "PBG Performance",
+   "sort": 2,
+   "active": true
+  }
+ ],
+ "deals__guarantee_status": [
+  {
+   "key": "REQUESTED",
+   "label": "Requested",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "ISSUED",
+   "label": "Issued",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "EXTENDED",
+   "label": "Extended",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "RELEASED",
+   "label": "Released",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "CALLED",
+   "label": "Called",
+   "sort": 5,
+   "active": true
+  }
+ ],
+ "deals__reference_status": [
+  {
+   "key": "SECURED",
+   "label": "Secured",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "IN_PROGRESS",
+   "label": "In progress",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "DECLINED",
+   "label": "Declined",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "NOT_REQUESTED",
+   "label": "Not requested",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "deals__renewal_status": [
+  {
+   "key": "NOT_STARTED",
+   "label": "Not started",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "IN_PROGRESS",
+   "label": "In progress",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "SIGNED",
+   "label": "Signed",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "LAPSED",
+   "label": "Lapsed",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "accounts__account_type": [
+  {
+   "key": "END_CLIENT",
+   "label": "End Client",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "PARTNER_SI",
+   "label": "Partner / SI",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "CONSULTANT_SPECIFIER",
+   "label": "Consultant / Specifier",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "OEM_TECHNOLOGY_PARTNER",
+   "label": "OEM / Technology Partner",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "SECTOR_SPECIALIST",
+   "label": "Sector Specialist",
+   "sort": 5,
+   "active": true
+  }
+ ],
+ "customer_class": [
+  {
+   "key": "A_STRATEGIC_>$2M",
+   "label": "A Strategic (>$2M)",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "B_COMMERCIAL_$250K_$2M",
+   "label": "B Commercial ($250K-$2M)",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "C_D_TRANSACTIONAL_<$250K",
+   "label": "C/D Transactional (<$250K)",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "accounts__account_target_phase": [
+  {
+   "key": "YEAR_1",
+   "label": "Year 1",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "YEAR_2",
+   "label": "Year 2",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "YEAR_3",
+   "label": "Year 3",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "NOT_TARGETED",
+   "label": "Not targeted",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "accounts__partner_tier": [
+  {
+   "key": "TIER_1_STRATEGIC",
+   "label": "Tier 1 Strategic",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "TIER_2_COMMERCIAL",
+   "label": "Tier 2 Commercial",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "REGISTERED",
+   "label": "Registered",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "NOT_A_PARTNER",
+   "label": "Not a partner",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "accounts__partner_type": [
+  {
+   "key": "STRATEGIC_MSI",
+   "label": "Strategic MSI",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "SYSTEMS_INTEGRATOR",
+   "label": "Systems Integrator",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "OEM_TECHNOLOGY",
+   "label": "OEM / Technology",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "SECTOR_SPECIALIST",
+   "label": "Sector Specialist",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "accounts__engagement_cadence": [
+  {
+   "key": "MONTHLY",
+   "label": "Monthly",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "BI_MONTHLY",
+   "label": "Bi-monthly",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "DEAL_SPECIFIC_ONLY",
+   "label": "Deal-specific only",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "contacts__contact_role": [
+  {
+   "key": "DECM_DECISION_MAKER",
+   "label": "DECM Decision Maker",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "RECM_RECOMMENDER",
+   "label": "RECM Recommender",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "INFL_INFLUENCER",
+   "label": "INFL Influencer",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "INTEL_INTEL_PROVIDER",
+   "label": "INTEL Intel Provider",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "GENL_GENERAL_CONTACT",
+   "label": "GENL General Contact",
+   "sort": 5,
+   "active": true
+  }
+ ],
+ "contacts__friend_foe_assessment": [
+  {
+   "key": "SUPPORTER",
+   "label": "Supporter",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "NEUTRAL",
+   "label": "Neutral",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "BLOCKER",
+   "label": "Blocker",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "partners__partner_role": [
+  {
+   "key": "PRIME",
+   "label": "Prime",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "SUB",
+   "label": "Sub",
+   "sort": 2,
+   "active": true
+  }
+ ],
+ "partners__registration_status": [
+  {
+   "key": "SUBMITTED",
+   "label": "Submitted",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "ACKNOWLEDGED",
+   "label": "Acknowledged",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "ACTIVE",
+   "label": "Active",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "EXTENDED",
+   "label": "Extended",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "EXPIRED",
+   "label": "Expired",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "SUPERSEDED",
+   "label": "Superseded",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "REJECTED",
+   "label": "Rejected",
+   "sort": 7,
+   "active": true
+  }
+ ],
+ "partners__decision": [
+  {
+   "key": "AWARDED_TO_REGISTRATION_A",
+   "label": "Awarded to Registration A",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "AWARDED_TO_REGISTRATION_B",
+   "label": "Awarded to Registration B",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "BOTH_DECLINED",
+   "label": "Both declined",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "partners__quarter": [
+  {
+   "key": "Q1",
+   "label": "Q1",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "Q2",
+   "label": "Q2",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "Q3",
+   "label": "Q3",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "Q4_PLUS_YEAR",
+   "label": "Q4 plus year",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "bids_pocs__bid_phase": [
+  {
+   "key": "1_QUALIFY",
+   "label": "1 Qualify",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "2_PROPOSAL",
+   "label": "2 Proposal",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "3_EVALUATION",
+   "label": "3 Evaluation",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "4_CLOSURE",
+   "label": "4 Closure",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "bids_pocs__bid_risk_assessment_status": [
+  {
+   "key": "NOT_REQUIRED",
+   "label": "Not required",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "NOT_STARTED",
+   "label": "Not started",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "IN_PROGRESS",
+   "label": "In progress",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "COMPLETE",
+   "label": "Complete",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "bids_pocs__phase": [
+  {
+   "key": "1_QUALIFY",
+   "label": "1 Qualify",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "2_PROPOSAL",
+   "label": "2 Proposal",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "3_EVALUATION",
+   "label": "3 Evaluation",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "4_CLOSURE",
+   "label": "4 Closure",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "bids_pocs__status": [
+  {
+   "key": "NOT_STARTED",
+   "label": "Not started",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "IN_PROGRESS",
+   "label": "In progress",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "PASSED",
+   "label": "Passed",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "FAILED",
+   "label": "Failed",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "WAIVED",
+   "label": "Waived",
+   "sort": 5,
+   "active": true
+  }
+ ],
+ "bids_pocs__poc_brief_status": [
+  {
+   "key": "DRAFT",
+   "label": "Draft",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "SIGNED",
+   "label": "Signed",
+   "sort": 2,
+   "active": true
+  }
+ ],
+ "bids_pocs__poc_status": [
+  {
+   "key": "DRAFT",
+   "label": "Draft",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "ACTIVE",
+   "label": "Active",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "CLOSED",
+   "label": "Closed",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "bids_pocs__poc_outcome": [
+  {
+   "key": "SUCCESS",
+   "label": "Success",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "PARTIAL",
+   "label": "Partial",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "FAILED",
+   "label": "Failed",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "bids_pocs__category": [
+  {
+   "key": "TECHNICAL",
+   "label": "Technical",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "FUNCTIONAL",
+   "label": "Functional",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "BUSINESS_VALUE",
+   "label": "Business Value",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "USABILITY",
+   "label": "Usability",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "bids_pocs__result": [
+  {
+   "key": "NOT_ASSESSED",
+   "label": "Not assessed",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "MET",
+   "label": "Met",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "PARTIAL",
+   "label": "Partial",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "NOT_MET",
+   "label": "Not Met",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "bids_pocs__use_case_status": [
+  {
+   "key": "NOT_STARTED",
+   "label": "Not started",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "IN_PROGRESS",
+   "label": "In progress",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "DEMONSTRATED",
+   "label": "Demonstrated",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "NOT_DEMONSTRATED",
+   "label": "Not demonstrated",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "bids_pocs__issue_status": [
+  {
+   "key": "OPEN",
+   "label": "Open",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "RESOLVED",
+   "label": "Resolved",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "ESCALATED",
+   "label": "Escalated",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "bids_pocs__gate_type": [
+  {
+   "key": "POC_BRIEF",
+   "label": "POC Brief",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "CTB",
+   "label": "CTB",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "COMMERCIAL",
+   "label": "Commercial",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "bids_pocs__outcome": [
+  {
+   "key": "APPROVED",
+   "label": "Approved",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "APPROVED_WITH_CONDITIONS",
+   "label": "Approved with conditions",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "DEFERRED",
+   "label": "Deferred",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "REJECTED",
+   "label": "Rejected",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "bids_pocs__response": [
+  {
+   "key": "NOT_ASSESSED",
+   "label": "Not assessed",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "PASS",
+   "label": "Pass",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "FAIL",
+   "label": "Fail",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "CONDITIONAL",
+   "label": "Conditional",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "NOT_APPLICABLE",
+   "label": "Not applicable",
+   "sort": 5,
+   "active": true
+  }
+ ],
+ "products__catalogue_category": [
+  {
+   "key": "MODULE",
+   "label": "Module",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "SEGMENT_LIBRARY",
+   "label": "Segment Library",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "USER_PACK",
+   "label": "User Pack",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "ADD_ON",
+   "label": "Add-On",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "SERVICE",
+   "label": "Service",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "SUPPORT",
+   "label": "Support",
+   "sort": 6,
+   "active": true
+  }
+ ],
+ "products__charge_type": [
+  {
+   "key": "ANNUAL",
+   "label": "Annual",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "ONE_TIME",
+   "label": "One-Time",
+   "sort": 2,
+   "active": true
+  }
+ ],
+ "products__pricing_basis": [
+  {
+   "key": "BY_T_SHIRT_SIZE",
+   "label": "By T-shirt size",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "FLAT",
+   "label": "Flat",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "PER_USER_PACK",
+   "label": "Per user pack",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "PER_DAY_RATE",
+   "label": "Per day rate",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "PCT_OF_LICENCE",
+   "label": "% of licence",
+   "sort": 5,
+   "active": true
+  }
+ ],
+ "products__unit_of_measure": [
+  {
+   "key": "PER_DEPLOYMENT",
+   "label": "Per deployment",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "PER_100_CAMERAS",
+   "label": "Per 100 cameras",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "PER_USER_PACK",
+   "label": "Per user pack",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "PER_DAY",
+   "label": "Per day",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "PER_LICENCE_PCT",
+   "label": "Per licence %",
+   "sort": 5,
+   "active": true
+  }
+ ],
+ "products__size": [
+  {
+   "key": "XS",
+   "label": "XS",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "S",
+   "label": "S",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "M",
+   "label": "M",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "L",
+   "label": "L",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "XL",
+   "label": "XL",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "XXL",
+   "label": "XXL",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "UNLIMITED",
+   "label": "Unlimited",
+   "sort": 7,
+   "active": true
+  }
+ ],
+ "products__size_code": [
+  {
+   "key": "XS",
+   "label": "XS",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "S",
+   "label": "S",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "M",
+   "label": "M",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "L",
+   "label": "L",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "XL",
+   "label": "XL",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "XXL",
+   "label": "XXL",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "UNLIMITED",
+   "label": "Unlimited",
+   "sort": 7,
+   "active": true
+  }
+ ],
+ "products__region_code": [
+  {
+   "key": "USA_USD",
+   "label": "USA USD",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "GCC_USD",
+   "label": "GCC USD",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "UAE_AED",
+   "label": "UAE AED",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "SAUDI_ARABIA_SAR",
+   "label": "Saudi Arabia SAR",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "QATAR_QAR",
+   "label": "Qatar QAR",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "KUWAIT_KWD",
+   "label": "Kuwait KWD",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "OMAN_OMR",
+   "label": "Oman OMR",
+   "sort": 7,
+   "active": true
+  },
+  {
+   "key": "ASEAN_USD",
+   "label": "ASEAN USD",
+   "sort": 8,
+   "active": true
+  },
+  {
+   "key": "INDIA_USD",
+   "label": "India USD",
+   "sort": 9,
+   "active": true
+  },
+  {
+   "key": "INDIA_INR",
+   "label": "India INR",
+   "sort": 10,
+   "active": true
+  }
+ ],
+ "products__currency": [
+  {
+   "key": "USD",
+   "label": "USD",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "AED",
+   "label": "AED",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "SAR",
+   "label": "SAR",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "QAR",
+   "label": "QAR",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "KWD",
+   "label": "KWD",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "OMR",
+   "label": "OMR",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "INR",
+   "label": "INR",
+   "sort": 7,
+   "active": true
+  }
+ ],
+ "products__level": [
+  {
+   "key": "L1",
+   "label": "L1",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "L2",
+   "label": "L2",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "L3",
+   "label": "L3",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "L4",
+   "label": "L4",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "products__service_category": [
+  {
+   "key": "PROJECT_MANAGEMENT_AND_DOCUMENTATION",
+   "label": "Project Management & Documentation",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "REQUIREMENT_GATHERING_AND_DISCOVERY",
+   "label": "Requirement Gathering & Discovery",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "SOFTWARE_DEVELOPMENT_AND_TESTING",
+   "label": "Software Development & Testing",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "INTEGRATION_AND_ONLINE_TESTING",
+   "label": "Integration & Online Testing",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "COMMISSIONING_AND_HANDOVER",
+   "label": "Commissioning & Handover",
+   "sort": 5,
+   "active": true
+  }
+ ],
+ "products__tier": [
+  {
+   "key": "BASIC",
+   "label": "Basic",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "STANDARD",
+   "label": "Standard",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "PREMIUM",
+   "label": "Premium",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "24X7_MISSION_CRITICAL",
+   "label": "24x7 Mission Critical",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "quotes__quote_type": [
+  {
+   "key": "INITIAL",
+   "label": "Initial",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "REVISED",
+   "label": "Revised",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "VALUE_ENGINEERED_ALTERNATIVE",
+   "label": "Value-engineered alternative",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "BAFO",
+   "label": "BAFO",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "quotes__status": [
+  {
+   "key": "DRAFT",
+   "label": "Draft",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "INTERNAL_REVIEW",
+   "label": "Internal review",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "APPROVED_TO_SEND",
+   "label": "Approved to send",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "SENT",
+   "label": "Sent",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "ACCEPTED",
+   "label": "Accepted",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "REJECTED",
+   "label": "Rejected",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "SUPERSEDED",
+   "label": "Superseded",
+   "sort": 7,
+   "active": true
+  },
+  {
+   "key": "EXPIRED",
+   "label": "Expired",
+   "sort": 8,
+   "active": true
+  }
+ ],
+ "quotes__licence_type": [
+  {
+   "key": "SUBSCRIPTION",
+   "label": "Subscription",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "PERPETUAL",
+   "label": "Perpetual",
+   "sort": 2,
+   "active": true
+  }
+ ],
+ "quotes__deployment_t_shirt_size": [
+  {
+   "key": "XS",
+   "label": "XS",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "S",
+   "label": "S",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "M",
+   "label": "M",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "L",
+   "label": "L",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "XL",
+   "label": "XL",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "XXL",
+   "label": "XXL",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "UNLIMITED",
+   "label": "Unlimited",
+   "sort": 7,
+   "active": true
+  }
+ ],
+ "quotes__category": [
+  {
+   "key": "MODULES",
+   "label": "Modules",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "SEGMENT_LIBRARIES",
+   "label": "Segment Libraries",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "USERS",
+   "label": "Users",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "ADD_ONS",
+   "label": "Add-Ons",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "SERVICES",
+   "label": "Services",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "SUPPORT_AMC",
+   "label": "Support / AMC",
+   "sort": 6,
+   "active": true
+  }
+ ],
+ "quotes__line_category": [
+  {
+   "key": "MODULES",
+   "label": "Modules",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "SEGMENTS",
+   "label": "Segments",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "USERS",
+   "label": "Users",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "ADD_ONS",
+   "label": "Add-Ons",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "SERVICES",
+   "label": "Services",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "SUPPORT",
+   "label": "Support",
+   "sort": 6,
+   "active": true
+  }
+ ],
+ "quotes__line_charge_type": [
+  {
+   "key": "ANNUAL",
+   "label": "Annual",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "ONE_TIME",
+   "label": "One-Time",
+   "sort": 2,
+   "active": true
+  }
+ ],
+ "quotes__line_size": [
+  {
+   "key": "XS",
+   "label": "XS",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "S",
+   "label": "S",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "M",
+   "label": "M",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "L",
+   "label": "L",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "XL",
+   "label": "XL",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "XXL",
+   "label": "XXL",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "UNLIMITED",
+   "label": "Unlimited",
+   "sort": 7,
+   "active": true
+  }
+ ],
+ "quotes__service_level": [
+  {
+   "key": "L1",
+   "label": "L1",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "L2",
+   "label": "L2",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "L3",
+   "label": "L3",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "L4",
+   "label": "L4",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "quotes__service_delivery_mode": [
+  {
+   "key": "OFFSITE",
+   "label": "Offsite",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "ONSITE",
+   "label": "Onsite",
+   "sort": 2,
+   "active": true
+  }
+ ],
+ "activities_docs__activity_type": [
+  {
+   "key": "CALL",
+   "label": "Call",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "MEETING",
+   "label": "Meeting",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "EMAIL",
+   "label": "Email",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "NOTE",
+   "label": "Note",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "DEMO",
+   "label": "Demo",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "SITE_VISIT",
+   "label": "Site visit",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "WEEKLY_REVIEW",
+   "label": "Weekly review",
+   "sort": 7,
+   "active": true
+  },
+  {
+   "key": "QBR",
+   "label": "QBR",
+   "sort": 8,
+   "active": true
+  }
+ ],
+ "activities_docs__document_type": [
+  {
+   "key": "INTERNAL_GOVERNANCE",
+   "label": "Internal governance",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "CLIENT_FACING",
+   "label": "Client-facing",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "CLIENT_ISSUED",
+   "label": "Client-issued",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "PARTNER_FACING",
+   "label": "Partner-facing",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "BANK_INSTRUMENT",
+   "label": "Bank instrument",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "INTERNAL_HANDOVER",
+   "label": "Internal handover",
+   "sort": 6,
+   "active": true
+  }
+ ],
+ "administration__roles": [
+  {
+   "key": "BD_OWNER",
+   "label": "BD Owner",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "SALES_OWNER",
+   "label": "Sales Owner",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "PRESALES_OWNER",
+   "label": "Presales Owner",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "PRODUCT_OWNER",
+   "label": "Product Owner",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "DELIVERY_OWNER",
+   "label": "Delivery Owner",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "COMMERCIAL_REVIEWER",
+   "label": "Commercial Reviewer",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "APPROVER",
+   "label": "Approver",
+   "sort": 7,
+   "active": true
+  },
+  {
+   "key": "ADMIN",
+   "label": "Admin",
+   "sort": 8,
+   "active": true
+  },
+  {
+   "key": "VIEWER",
+   "label": "Viewer",
+   "sort": 9,
+   "active": true
+  }
+ ],
+ "administration__owner_role": [
+  {
+   "key": "BD",
+   "label": "BD",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "SALES",
+   "label": "Sales",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "PRESALES",
+   "label": "Presales",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "PRODUCT",
+   "label": "Product",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "DELIVERY",
+   "label": "Delivery",
+   "sort": 5,
+   "active": true
+  }
+ ],
+ "administration__bid_phase": [
+  {
+   "key": "1_QUALIFY",
+   "label": "1 Qualify",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "2_PROPOSAL",
+   "label": "2 Proposal",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "3_EVALUATION",
+   "label": "3 Evaluation",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "4_CLOSURE",
+   "label": "4 Closure",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "NOT_APPLICABLE",
+   "label": "Not applicable",
+   "sort": 5,
+   "active": true
+  }
+ ],
+ "administration__applies_to": [
+  {
+   "key": "LEAD",
+   "label": "Lead",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "DEAL",
+   "label": "Deal",
+   "sort": 2,
+   "active": true
+  }
+ ],
+ "administration__module": [
+  {
+   "key": "LEADS",
+   "label": "Leads",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "DEALS",
+   "label": "Deals",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "ACCOUNTS",
+   "label": "Accounts",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "CONTACTS",
+   "label": "Contacts",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "PARTNERS",
+   "label": "Partners",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "BIDS_AND_POCS",
+   "label": "Bids & POCs",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "PRODUCTS",
+   "label": "Products",
+   "sort": 7,
+   "active": true
+  },
+  {
+   "key": "QUOTES",
+   "label": "Quotes",
+   "sort": 8,
+   "active": true
+  },
+  {
+   "key": "ACTIVITIES_AND_DOCUMENTS",
+   "label": "Activities & Documents",
+   "sort": 9,
+   "active": true
+  }
+ ],
+ "administration__field_type": [
+  {
+   "key": "TEXT",
+   "label": "Text",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "LONG_TEXT",
+   "label": "Long text",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "NUMBER",
+   "label": "Number",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "CURRENCY",
+   "label": "Currency",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "PERCENT",
+   "label": "Percent",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "DATE",
+   "label": "Date",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "DATE_TIME",
+   "label": "Date-time",
+   "sort": 7,
+   "active": true
+  },
+  {
+   "key": "CHECKBOX",
+   "label": "Checkbox",
+   "sort": 8,
+   "active": true
+  },
+  {
+   "key": "PICKLIST",
+   "label": "Picklist",
+   "sort": 9,
+   "active": true
+  },
+  {
+   "key": "MULTI_SELECT",
+   "label": "Multi-select",
+   "sort": 10,
+   "active": true
+  },
+  {
+   "key": "LOOKUP",
+   "label": "Lookup",
+   "sort": 11,
+   "active": true
+  },
+  {
+   "key": "COMPUTED",
+   "label": "Computed",
+   "sort": 12,
+   "active": true
+  }
+ ],
+ "administration__requirement": [
+  {
+   "key": "MANDATORY",
+   "label": "Mandatory",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "CONDITIONAL",
+   "label": "Conditional",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "ADVISORY",
+   "label": "Advisory",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "OPTIONAL",
+   "label": "Optional",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "COMPUTED",
+   "label": "Computed",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "SYSTEM",
+   "label": "System",
+   "sort": 6,
+   "active": true
+  }
+ ],
+ "administration__origin": [
+  {
+   "key": "PLAYBOOK",
+   "label": "Playbook",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "GAP_FIX",
+   "label": "Gap fix",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "CUSTOM",
+   "label": "Custom",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "administration__criterion_type": [
+  {
+   "key": "ENTRY",
+   "label": "Entry",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "EXIT",
+   "label": "Exit",
+   "sort": 2,
+   "active": true
+  }
+ ],
+ "administration__evaluation_type": [
+  {
+   "key": "AUTOMATIC",
+   "label": "Automatic",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "ATTESTATION",
+   "label": "Attestation",
+   "sort": 2,
+   "active": true
+  }
+ ],
+ "administration__enforcement": [
+  {
+   "key": "BLOCKING",
+   "label": "Blocking",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "ADVISORY",
+   "label": "Advisory",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "OFF",
+   "label": "Off",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "administration__gate_type": [
+  {
+   "key": "POC_BRIEF",
+   "label": "POC Brief",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "CTB",
+   "label": "CTB",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "COMMERCIAL",
+   "label": "Commercial",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "administration__threshold_parameter": [
+  {
+   "key": "GROSS_MARGIN",
+   "label": "Gross margin",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "3RD_PARTY_CONTENT",
+   "label": "3rd-party content",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "ADVANCE_PAYMENT",
+   "label": "Advance payment",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "PERFORMANCE_GUARANTEE",
+   "label": "Performance guarantee",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "ADVANCE_GUARANTEE",
+   "label": "Advance guarantee",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "CREDIT_PERIOD",
+   "label": "Credit period",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "LIQUIDATED_DAMAGES",
+   "label": "Liquidated damages",
+   "sort": 7,
+   "active": true
+  },
+  {
+   "key": "LIABILITY_CAP",
+   "label": "Liability cap",
+   "sort": 8,
+   "active": true
+  }
+ ],
+ "administration__approver_role": [
+  {
+   "key": "CEO",
+   "label": "CEO",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "CEO_+_CFO",
+   "label": "CEO + CFO",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "CEO_+_LEGAL",
+   "label": "CEO + Legal",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "COMMERCIAL_HEAD",
+   "label": "Commercial Head",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "BD_MANAGER",
+   "label": "BD Manager",
+   "sort": 5,
+   "active": true
+  }
+ ],
+ "administration__approval_type": [
+  {
+   "key": "CTB",
+   "label": "CTB",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "MARGIN_BELOW_THRESHOLD",
+   "label": "Margin below threshold",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "3RD_PARTY_ABOVE_THRESHOLD",
+   "label": "3rd-party above threshold",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "BANK_GUARANTEE",
+   "label": "Bank guarantee",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "CREDIT_PERIOD",
+   "label": "Credit period",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "LIQUIDATED_DAMAGES",
+   "label": "Liquidated damages",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "LIABILITY",
+   "label": "Liability",
+   "sort": 7,
+   "active": true
+  },
+  {
+   "key": "BAFO",
+   "label": "BAFO",
+   "sort": 8,
+   "active": true
+  },
+  {
+   "key": "CONTRACT_REVIEW",
+   "label": "Contract review",
+   "sort": 9,
+   "active": true
+  },
+  {
+   "key": "RED_LINE",
+   "label": "Red line",
+   "sort": 10,
+   "active": true
+  }
+ ],
+ "administration__decision": [
+  {
+   "key": "PENDING",
+   "label": "Pending",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "APPROVED",
+   "label": "Approved",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "APPROVED_WITH_CONDITIONS",
+   "label": "Approved with conditions",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "REJECTED",
+   "label": "Rejected",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "administration__transition_type": [
+  {
+   "key": "ADVANCE",
+   "label": "Advance",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "SKIP_FORWARD",
+   "label": "Skip forward",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "MOVE_BACK",
+   "label": "Move back",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "EXIT",
+   "label": "Exit",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "CONVERSION",
+   "label": "Conversion",
+   "sort": 5,
+   "active": true
+  }
+ ],
+ "administration__outcome": [
+  {
+   "key": "WON",
+   "label": "Won",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "LOST",
+   "label": "Lost",
+   "sort": 2,
+   "active": true
+  }
+ ],
+ "administration__was_it_winnable": [
+  {
+   "key": "YES",
+   "label": "Yes",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "NO",
+   "label": "No",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "UNCLEAR",
+   "label": "Unclear",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "administration__competitor_solution_type": [
+  {
+   "key": "PLATFORM",
+   "label": "Platform",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "POINT_SOLUTION",
+   "label": "Point solution",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "UNKNOWN",
+   "label": "Unknown",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "administration__category": [
+  {
+   "key": "TECHNICAL",
+   "label": "Technical",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "COMMERCIAL",
+   "label": "Commercial",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "CONTRACTUAL",
+   "label": "Contractual",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "DELIVERY",
+   "label": "Delivery",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "COMPETITIVE",
+   "label": "Competitive",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "GEOPOLITICAL_EXTERNAL",
+   "label": "Geopolitical / External",
+   "sort": 6,
+   "active": true
+  }
+ ],
+ "administration__probability": [
+  {
+   "key": "VERY_HIGH",
+   "label": "Very High",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "HIGH",
+   "label": "High",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "MEDIUM",
+   "label": "Medium",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "LOW",
+   "label": "Low",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "administration__impact": [
+  {
+   "key": "VERY_HIGH",
+   "label": "Very High",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "HIGH",
+   "label": "High",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "MEDIUM",
+   "label": "Medium",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "LOW",
+   "label": "Low",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "administration__required_response": [
+  {
+   "key": "AVOID",
+   "label": "Avoid",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "MITIGATE",
+   "label": "Mitigate",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "TRANSFER",
+   "label": "Transfer",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "ACCEPT",
+   "label": "Accept",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "administration__status": [
+  {
+   "key": "OPEN",
+   "label": "Open",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "MITIGATED",
+   "label": "Mitigated",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "CLOSED",
+   "label": "Closed",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "MATERIALISED",
+   "label": "Materialised",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "administration__milestone": [
+  {
+   "key": "CONTRACT_SIGNING",
+   "label": "Contract signing",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "DESIGN_APPROVAL",
+   "label": "Design approval",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "SUBMITTAL_APPROVAL",
+   "label": "Submittal approval",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "FAT",
+   "label": "FAT",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "DELIVERY",
+   "label": "Delivery",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "INSTALLATION",
+   "label": "Installation",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "TANDC",
+   "label": "T&C",
+   "sort": 7,
+   "active": true
+  },
+  {
+   "key": "HANDOVER",
+   "label": "Handover",
+   "sort": 8,
+   "active": true
+  }
+ ],
+ "administration__milestone_status": [
+  {
+   "key": "NOT_DUE",
+   "label": "Not due",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "DUE",
+   "label": "Due",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "INVOICED",
+   "label": "Invoiced",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "PAID",
+   "label": "Paid",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "administration__competitor_type": [
+  {
+   "key": "PLATFORM",
+   "label": "Platform",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "POINT_SOLUTION",
+   "label": "Point solution",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "INCUMBENT",
+   "label": "Incumbent",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "LOW_COST",
+   "label": "Low-cost",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "region": [
+  {
+   "key": "INDIA",
+   "label": "India",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "MEA",
+   "label": "MEA",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "APAC",
+   "label": "APAC",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "AMERICAS",
+   "label": "Americas",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "accounts__country": [
+  {
+   "key": "UAE",
+   "label": "UAE",
+   "sort": 1,
+   "active": false
+  },
+  {
+   "key": "KSA",
+   "label": "KSA",
+   "sort": 2,
+   "active": false
+  },
+  {
+   "key": "QATAR",
+   "label": "Qatar",
+   "sort": 3,
+   "active": false
+  },
+  {
+   "key": "OMAN",
+   "label": "Oman",
+   "sort": 4,
+   "active": false
+  },
+  {
+   "key": "KUWAIT",
+   "label": "Kuwait",
+   "sort": 5,
+   "active": false
+  },
+  {
+   "key": "BAHRAIN",
+   "label": "Bahrain",
+   "sort": 6,
+   "active": false
+  },
+  {
+   "key": "OTHER_MEA",
+   "label": "Other MEA",
+   "sort": 7,
+   "active": false
+  },
+  {
+   "key": "OUTSIDE_MEA",
+   "label": "Outside MEA",
+   "sort": 8,
+   "active": false
+  }
+ ],
+ "theme": [
+  {
+   "key": "SMART_CITIES",
+   "label": "Smart Cities",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "ENERGY_UTILITIES_CRITICAL_INFRASTRUCTURE",
+   "label": "Energy Utilities & Critical Infrastructure",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "SMART_BUILDINGS_CAMPUSES",
+   "label": "Smart Buildings & Campuses",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "INDUSTRY_4_0_MANUFACTURING",
+   "label": "Industry 4.0 & Manufacturing",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "DATA_CENTERS",
+   "label": "Data Centers",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "DEFENCE_PROTECTED_MARKETS",
+   "label": "Defence & Protected Markets",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "SMART_TRANSPORT_INFRASTRUCTURE",
+   "label": "Smart Transport & Infrastructure",
+   "sort": 7,
+   "active": true
+  }
+ ],
+ "value_confidence": [
+  {
+   "key": "BUDGETARY",
+   "label": "Budgetary",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "FIRM",
+   "label": "Firm",
+   "sort": 2,
+   "active": true
+  }
+ ],
+ "overall_rag": [
+  {
+   "key": "GREEN",
+   "label": "Green",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "AMBER",
+   "label": "Amber",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "RED",
+   "label": "Red",
+   "sort": 3,
+   "active": true
+  }
+ ]
+}

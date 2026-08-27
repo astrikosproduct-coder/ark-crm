@@ -1,0 +1,58 @@
+[
+ {
+  "code": "XS",
+  "managed_assets": "Up to 50",
+  "typical_deployment": "Pilot / single facility / pump station",
+  "subsystem_types": "1-2",
+  "base_users": "10",
+  "sort": 1
+ },
+ {
+  "code": "S",
+  "managed_assets": "Up to 500",
+  "typical_deployment": "Small building / small campus / small retail site",
+  "subsystem_types": "3-5",
+  "base_users": "25",
+  "sort": 2
+ },
+ {
+  "code": "M",
+  "managed_assets": "Up to 5,000",
+  "typical_deployment": "Mid campus / small city quarter / mid-size factory",
+  "subsystem_types": "6-10",
+  "base_users": "75",
+  "sort": 3
+ },
+ {
+  "code": "L",
+  "managed_assets": "Up to 50,000",
+  "typical_deployment": "Large campus / mid-tier airport / mid-size city",
+  "subsystem_types": "10-20",
+  "base_users": "250",
+  "sort": 4
+ },
+ {
+  "code": "XL",
+  "managed_assets": "Up to 500,000",
+  "typical_deployment": "Large airport / major city / multi-site industrial",
+  "subsystem_types": "20-30",
+  "base_users": "1,000",
+  "sort": 5
+ },
+ {
+  "code": "XXL",
+  "managed_assets": "Up to 5,000,000",
+  "typical_deployment": "Mega smart city / multi-city / national deployment",
+  "subsystem_types": "30-50",
+  "base_users": "5,000",
+  "sort": 6
+ },
+ {
+  "code": "Unlimited",
+  "managed_assets": "No cap",
+  "typical_deployment": "Nation-scale / country-wide / enterprise",
+  "subsystem_types": "50+",
+  "base_users": "25,000",
+  "sort": 7
+ }
+]

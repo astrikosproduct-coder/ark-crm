@@ -1,0 +1,82 @@
+[
+ {
+  "code": "USA USD",
+  "currency": "USD",
+  "region_pricing_pct": 1,
+  "fx_rate": 1,
+  "effective_multiplier": 1,
+  "display_format": "\"$\"#,##0;(\"$\"#,##0);-"
+ },
+ {
+  "code": "GCC USD",
+  "currency": "USD",
+  "region_pricing_pct": 1,
+  "fx_rate": 1,
+  "effective_multiplier": 1,
+  "display_format": "\"$\"#,##0;(\"$\"#,##0);-"
+ },
+ {
+  "code": "UAE AED",
+  "currency": "AED",
+  "region_pricing_pct": 1,
+  "fx_rate": 3.6725,
+  "effective_multiplier": 3.6725,
+  "display_format": "\"AED \"#,##0;(AED #,##0);-"
+ },
+ {
+  "code": "Saudi Arabia SAR",
+  "currency": "SAR",
+  "region_pricing_pct": 1,
+  "fx_rate": 3.75,
+  "effective_multiplier": 3.75,
+  "display_format": "\"SAR \"#,##0;(SAR #,##0);-"
+ },
+ {
+  "code": "Qatar QAR",
+  "currency": "QAR",
+  "region_pricing_pct": 1,
+  "fx_rate": 3.64,
+  "effective_multiplier": 3.64,
+  "display_format": "\"QAR \"#,##0;(QAR #,##0);-"
+ },
+ {
+  "code": "Kuwait KWD",
+  "currency": "KWD",
+  "region_pricing_pct": 1,
+  "fx_rate": 0.3075,
+  "effective_multiplier": 0.3075,
+  "display_format": "\"KWD \"#,##0;(KWD #,##0);-"
+ },
+ {
+  "code": "Oman OMR",
+  "currency": "OMR",
+  "region_pricing_pct": 1,
+  "fx_rate": 0.3845,
+  "effective_multiplier": 0.3845,
+  "display_format": "\"OMR \"#,##0;(OMR #,##0);-"
+ },
+ {
+  "code": "ASEAN USD",
+  "currency": "USD",
+  "region_pricing_pct": 0.56,
+  "fx_rate": 1,
+  "effective_multiplier": 0.56,
+  "display_format": "\"$\"#,##0;(\"$\"#,##0);-"
+ },
+ {
+  "code": "India USD",
+  "currency": "USD",
+  "region_pricing_pct": 0.31,
+  "fx_rate": 1,
+  "effective_multiplier": 0.31,
+  "display_format": "\"$\"#,##0;(\"$\"#,##0);-"
+ },
+ {
+  "code": "India INR",
+  "currency": "INR",
+  "region_pricing_pct": 0.31,
+  "fx_rate": 83,
+  "effective_multiplier": 25.73,
+  "display_format": "\"₹\"#,##0;(\"₹\"#,##0);-"
+ }
+]

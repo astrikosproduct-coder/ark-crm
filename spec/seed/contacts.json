@@ -1,0 +1,163 @@
+[
+ {
+  "id": "CON-001",
+  "full_name": "Fatima Nasser",
+  "job_title": "Chief Information Officer",
+  "account": "ACC-001",
+  "contact_role": "DECM",
+  "engagement_owner": "USR-001",
+  "relationship_score": 6,
+  "friend_foe": "Neutral",
+  "email": "f.nasser@khazna.ae"
+ },
+ {
+  "id": "CON-002",
+  "full_name": "Ahmed Al-Balushi",
+  "job_title": "Head of Critical Facilities",
+  "account": "ACC-001",
+  "contact_role": "RECM",
+  "engagement_owner": "USR-001",
+  "relationship_score": 8,
+  "friend_foe": "Supporter",
+  "email": "a.balushi@khazna.ae"
+ },
+ {
+  "id": "CON-003",
+  "full_name": "Omar Rashid",
+  "job_title": "Senior Facilities Engineer",
+  "account": "ACC-001",
+  "contact_role": "GENL",
+  "engagement_owner": "USR-002",
+  "is_client_poc_evaluator": true,
+  "email": "o.rashid@khazna.ae"
+ },
+ {
+  "id": "CON-004",
+  "full_name": "Rami Haddad",
+  "job_title": "Solution Architect",
+  "account": "ACC-002",
+  "contact_role": "INFL",
+  "engagement_owner": "USR-002",
+  "relationship_score": 9,
+  "friend_foe": "Supporter",
+  "email": "r.haddad@eand.com"
+ },
+ {
+  "id": "CON-005",
+  "full_name": "Nadia Kamal",
+  "job_title": "Enterprise Sales Director",
+  "account": "ACC-002",
+  "contact_role": "RECM",
+  "engagement_owner": "USR-001",
+  "relationship_score": 8,
+  "friend_foe": "Supporter",
+  "email": "n.kamal@eand.com"
+ },
+ {
+  "id": "CON-006",
+  "full_name": "Hassan Al-Marri",
+  "job_title": "Director of Digital",
+  "account": "ACC-003",
+  "contact_role": "DECM",
+  "engagement_owner": "USR-001",
+  "relationship_score": 4,
+  "friend_foe": "Neutral",
+  "email": "h.almarri@dewa.gov.ae"
+ },
+ {
+  "id": "CON-007",
+  "full_name": "Salma Idris",
+  "job_title": "Head of Network Operations",
+  "account": "ACC-003",
+  "contact_role": "RECM",
+  "engagement_owner": "USR-001",
+  "relationship_score": 6,
+  "friend_foe": "Supporter",
+  "email": "s.idris@dewa.gov.ae"
+ },
+ {
+  "id": "CON-008",
+  "full_name": "Tariq Bin Zayed",
+  "job_title": "Procurement Officer",
+  "account": "ACC-003",
+  "contact_role": "INTEL",
+  "engagement_owner": "USR-001",
+  "confidential": true,
+  "email": "t.binzayed@dewa.gov.ae"
+ },
+ {
+  "id": "CON-009",
+  "full_name": "Grace Fernandes",
+  "job_title": "Head of Solutions",
+  "account": "ACC-004",
+  "contact_role": "RECM",
+  "engagement_owner": "USR-003",
+  "relationship_score": 7,
+  "friend_foe": "Supporter",
+  "email": "g.fernandes@core42.ai"
+ },
+ {
+  "id": "CON-010",
+  "full_name": "Bilal Ahmed",
+  "job_title": "Practice Lead",
+  "account": "ACC-005",
+  "contact_role": "GENL",
+  "engagement_owner": "USR-003",
+  "email": "b.ahmed@alphadata.ae"
+ },
+ {
+  "id": "CON-011",
+  "full_name": "Layla Mansour",
+  "job_title": "Head of Smart Communities",
+  "account": "ACC-006",
+  "contact_role": "DECM",
+  "engagement_owner": "USR-003",
+  "relationship_score": 5,
+  "friend_foe": "Neutral",
+  "email": "l.mansour@aldar.com"
+ },
+ {
+  "id": "CON-012",
+  "full_name": "Yousef Karim",
+  "job_title": "Digital Transformation Lead",
+  "account": "ACC-007",
+  "contact_role": "RECM",
+  "engagement_owner": "USR-001",
+  "relationship_score": 5,
+  "friend_foe": "Neutral",
+  "email": "y.karim@adnoc.ae"
+ },
+ {
+  "id": "CON-013",
+  "full_name": "Meera Pillai",
+  "job_title": "Airport Systems Manager",
+  "account": "ACC-008",
+  "contact_role": "RECM",
+  "engagement_owner": "USR-003",
+  "relationship_score": 7,
+  "friend_foe": "Supporter",
+  "email": "m.pillai@dubaiairports.ae"
+ },
+ {
+  "id": "CON-014",
+  "full_name": "Jonathan Reid",
+  "job_title": "Principal Engineer",
+  "account": "ACC-015",
+  "contact_role": "INFL",
+  "engagement_owner": "USR-004",
+  "relationship_score": 6,
+  "friend_foe": "Neutral",
+  "email": "j.reid@wsp.com"
+ },
+ {
+  "id": "CON-015",
+  "full_name": "Aisha Qureshi",
+  "job_title": "Head of IT",
+  "account": "ACC-011",
+  "contact_role": "RECM",
+  "engagement_owner": "USR-003",
+  "relationship_score": 6,
+  "friend_foe": "Supporter",
+  "email": "a.qureshi@emaar.ae"
+ }
+]

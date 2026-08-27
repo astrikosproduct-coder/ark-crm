@@ -1,0 +1,34 @@
+[
+ {
+  "level": "L4",
+  "role": "Subject Matter Expert",
+  "hour_offsite": 300,
+  "day_offsite": 2400,
+  "hour_onsite": 450.0,
+  "day_onsite": 3600.0
+ },
+ {
+  "level": "L3",
+  "role": "Technical / Solutions Architect",
+  "hour_offsite": 200,
+  "day_offsite": 1600,
+  "hour_onsite": 300.0,
+  "day_onsite": 2400.0
+ },
+ {
+  "level": "L2",
+  "role": "Mid / Senior Development Engineer",
+  "hour_offsite": 100,
+  "day_offsite": 800,
+  "hour_onsite": 150.0,
+  "day_onsite": 1200.0
+ },
+ {
+  "level": "L1",
+  "role": "Associate Dev / Support Engineer",
+  "hour_offsite": 75,
+  "day_offsite": 600,
+  "hour_onsite": 112.5,
+  "day_onsite": 900.0
+ }
+]

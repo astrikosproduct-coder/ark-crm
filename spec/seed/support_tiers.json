@@ -1,0 +1,22 @@
+[
+ {
+  "tier": "Basic",
+  "coverage": "Email only · 8×5 · Next-business-day response",
+  "pct_of_annual_licence": 0.18
+ },
+ {
+  "tier": "Standard",
+  "coverage": "Email + phone · 8×5 · 4h response",
+  "pct_of_annual_licence": 0.22
+ },
+ {
+  "tier": "Premium",
+  "coverage": "Email + phone · 16×6 · 2h response · named engineer",
+  "pct_of_annual_licence": 0.28
+ },
+ {
+  "tier": "24×7 Mission Critical",
+  "coverage": "Email + phone · 24×7 · 1h response · dedicated CSM",
+  "pct_of_annual_licence": 0.35
+ }
+]

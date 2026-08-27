@@ -1,0 +1,192 @@
+{
+ "$schema_note": "The sole authority on which pipeline module owns which stage, and therefore which module a field lands on. Applied by src/lib/spec/moduleSplit.ts AFTER spec/extensions.json has been merged onto spec/fields.json, so a sidecar entry keyed on the register's own module still finds its field. fields.json is NOT edited by this - it stays generated from the workbook. Target placement matches ARK_CRM_Field_Register_Split_v1.xlsx: 71 Leads rows, 86 Opportunities, 94 Deals.",
+ "version": 1,
+ "ranges": {
+  "$note": "Inclusive stage bounds. applies_to in spec/stages.json is now WRONG - it still says stages 4 to 7 are 'lead'. It is ignored, and a register-correction row on the Spec Health page asks for the workbook to be regenerated. Nothing reads applies_to any more.",
+  "leads": [
+   0,
+   3
+  ],
+  "opportunities": [
+   4,
+   6
+  ],
+  "deals": [
+   7,
+   9
+  ]
+ },
+ "pipeline": [
+  "leads",
+  "opportunities",
+  "deals"
+ ],
+ "stage_field": {
+  "$note": "The field each module stores its own stage in. Deals keeps the register's deal_stage rather than gaining project_stage. Read by the progression resolver and by stageOptionsFor().",
+  "leads": "project_stage",
+  "opportunities": "project_stage",
+  "deals": "deal_stage"
+ },
+ "stage_options": {
+  "$note": "Stage options are DERIVED from the range above plus spec/stages.json, never from a picklist. That is deliberate and it closes three register problems at once rather than papering over them in a sidecar: leads_stage still carries dead 4_RFP_RFI..7_CLOSE keys, deals__deal_stage has no 7_CLOSE at all (so a Deal opening at Stage 7 would have nothing to store), and stages.json.applies_to disagrees with this file. All three are raised as register corrections on the Spec Health page. NO PICKLIST ENTRIES ARE ADDED HERE.",
+  "source": "spec/stages.json",
+  "derive_from": "ranges"
+ },
+ "reassign": {
+  "$note": "Reassignment by capture stage, off the Leads sheet. A field follows the stage that captures it. 53 fields move: 45 to Opportunities, 8 to Deals. Every ref that named one of them as leads.<api_name> keeps resolving through the loader's movedRefs fall-through - see src/lib/spec/moduleSplit.ts.",
+  "leads": {
+   "4": "opportunities",
+   "5": "opportunities",
+   "6": "opportunities",
+   "7": "deals"
+  }
+ },
+ "shared": {
+  "$note": "Sections that appear on ALL THREE pipeline modules rather than on Leads alone. A skip reason, an on-hold reason and a days-in-stage count are as true of an Opportunity as of a Lead.",
+  "source_module": "leads",
+  "sections": [
+   "CROSS-CUTTING",
+   "SYSTEM"
+  ],
+  "equivalence": [
+   {
+    "shared": "leads.created_date",
+    "existing": "deals.created_by_date",
+    "note": "The same concept under two names. The Deals sheet calls the record's creation timestamp created_by_date, which reads like a lookup and is not one. Declared here so the pair is known to be one thing; NOT silently collapsed, because dropping either row would hide a register inconsistency that the workbook should fix. Raised as a register correction on Spec Health."
+   },
+   {
+    "shared": "leads.modified_date",
+    "existing": "deals.modified_by_date",
+    "note": "Same pair, modification side."
+   }
+  ]
+ },
+ "own": {
+  "$note": "Per-record state. Each module needs its OWN instance of these - an Opportunity at Stage 5 and the Lead it came from at Stage 3 are two different stages, and neither is a copy of the other. These are NOT read through the parent and NOT copied at conversion. On Opportunities and Deals they are grouped into their own section rather than left in STAGE 0 - CONNECT, which is a Leads section.",
+  "section": "RECORD STATE — each module keeps its own instance",
+  "fields": {
+   "project_stage": {
+    "reason": "Each module stores its own stage. Leads 0-3, Opportunities 4-6, Deals 7-9.",
+    "exclude": [
+     "deals"
+    ],
+    "exclude_reason": "Deals already declares deal_stage in the register. Adding project_stage would give one record two stage fields.",
+    "relabel": {
+     "opportunities": "Opportunity Stage"
+    },
+    "relabel_note": "The register labels this field 'Lead Stage'. On an Opportunity that is simply the wrong word - the record is not a Lead and its stage is not a Lead's stage. Label only; the api_name stays project_stage."
+   },
+   "probability_pct": {
+    "reason": "Probability is a judgement about the live record, not a property inherited from the parent."
+   },
+   "lead_status": {
+    "reason": "Open / On Hold / Closed Lost / Converted applies to each record separately.",
+    "relabel": {
+     "opportunities": "Opportunity Status",
+     "deals": "Deal Status"
+    },
+    "relabel_note": "Label only. The api_name stays lead_status on all three modules so one condition, one picklist and one seed normalisation cover all of them."
+   }
+  }
+ },
+ "read_through": {
+  "$note": "Identity. These are READ THROUGH THE PARENT and rendered read-only - never copied, so the same value cannot drift in two places. They must appear in fieldsOf(module) even though the record does not store them: compileFor() checks every identifier in a computed_expr, a visibility_condition and a condition against the module's api_name set, so a criterion or formula naming a parent field would otherwise stop compiling. sub_segment removed and country, theme, lighthouse_project, gorilla_flag added at the Country/Theme/ROB-gap pass — see spec/extensions.json open_questions.",
+  "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
+  "parent_of": {
+   "opportunities": "leads",
+   "deals": "opportunities"
+  },
+  "parent_link": {
+   "opportunities": "parent_lead",
+   "deals": "parent_opportunity"
+  },
+  "source_module": "leads",
+  "skip_when_declared": true,
+  "skip_note": "A field the target module already declares in the register is left as its own - deals.end_client and deals.customer_partner_si are register rows on the Deals sheet, so Deals takes 18 of these 20 rather than all 20. Whether those two register rows SHOULD be read-through instead is an open question recorded in extensions.json.",
+  "fields": [
+   "opportunity_name",
+   "end_client",
+   "customer_partner_si",
+   "pre_bid_alliance_partner",
+   "primary_contact",
+   "partner_deal_registration",
+   "segment",
+   "theme",
+   "sap_solution_suite",
+   "suite_demonstrated",
+   "currency",
+   "total_project_value",
+   "probable_award_date",
+   "deal_source",
+   "opportunity_type",
+   "alliance_structure",
+   "bd_owner",
+   "sales_owner",
+   "presales_owner",
+   "consultant_specifier",
+   "region",
+   "lighthouse_project",
+   "gorilla_flag"
+  ]
+ },
+ "section_order": {
+  "$note": "Rank used to order the sections of a split module. Register order is preserved WITHIN a section; only the sequence of sections is decided here. A stage section ranks at 10 + its stage number.",
+  "HEADER": 0,
+  "RECORD STATE": 1,
+  "stage_offset": 10,
+  "unstaged": 90,
+  "READ THROUGH THE PARENT": 95,
+  "CROSS-CUTTING": 97,
+  "SYSTEM": 98
+ },
+ "register_corrections": [
+  {
+   "ref": "spec/stages.json",
+   "detail": "applies_to still says stages 4, 5, 6 and 7 are 'lead'. Under the split, 4-6 belong to Opportunities and 7 to Deals. Nothing reads applies_to any more - spec/module_split.json ranges are the authority - but the workbook should be regenerated so the two agree."
+  },
+  {
+   "ref": "spec/picklists.json leads_stage",
+   "detail": "Still carries 4_RFP_RFI, 5_TECHNICAL_EVAL, 6_COMMERCIAL_EVAL and 7_CLOSE. A Lead now stops at Stage 3, so four of its eight keys are unreachable from the Leads module. Stage options are derived from the module range instead of this picklist; regenerate it from the split."
+  },
+  {
+   "ref": "spec/picklists.json deals__deal_stage",
+   "detail": "Carries 8_PROJECT_SUCCESS, 9_EXPANSION and CLOSED. A Deal now OPENS at Stage 7 and there is no 7_CLOSE key to store. Stage options are derived from the module range instead. Separately, CLOSED is a status, not a stage, and does not belong in a stage picklist."
+  },
+  {
+   "ref": "deals.created_by_date",
+   "detail": "The Deals sheet names the record's creation timestamp created_by_date and its modification timestamp modified_by_date, where every other sheet uses created_date / modified_date plus a separate created_by lookup. The shared SYSTEM section therefore lands a near-duplicate pair on Deals. Declared in shared.equivalence above; rename in the workbook rather than in a sidecar."
+  }
+ ],
+ "relocated_fields": {
+  "$note": "Individual fields the register places at one stage, but which this build relocates to another as a deliberate product decision — not a register error, so this is a separate mechanism from register_corrections below. Keyed on \"<register_module>.<api_name>\", checked in moduleSplit.ts placementsFor() BEFORE the normal stage-based reassign, so the field routes to whichever module owns the override stage instead of its own capture_stage. mandatory_from/blocks_transition are overridden alongside capture_stage so validateForTransition gates the RIGHT hop — leaving capture_stage=6 in place while still blocking \"7 → Deal\" would check a transition this field can no longer be near.",
+  "leads.payment_milestones": {
+   "capture_stage": 6,
+   "section": "STAGE 6 — COMMERCIAL EVALUATION",
+   "mandatory_from": 6,
+   "blocks_transition": "6 → 7",
+   "reason": "Payment milestones are the payment SCHEDULE — they belong to the commercial terms negotiated during Commercial Evaluation, not to the paperwork closed out afterward. Register capture_stage was 7."
+  },
+  "leads.milestone_—_planned_date": {
+   "capture_stage": 6,
+   "section": "STAGE 6 — COMMERCIAL EVALUATION",
+   "mandatory_from": 6,
+   "blocks_transition": "6 → 7",
+   "reason": "Row column of payment_milestones — travels with the table it belongs to. Register capture_stage was 7."
+  },
+  "leads.milestone_—_actual_date": {
+   "capture_stage": 6,
+   "section": "STAGE 6 — COMMERCIAL EVALUATION",
+   "reason": "Row column of payment_milestones. Conditional in the register, not stage-gated, so only capture_stage/section move."
+  },
+  "leads.milestone_—_invoice_date": {
+   "capture_stage": 6,
+   "section": "STAGE 6 — COMMERCIAL EVALUATION",
+   "reason": "Row column of payment_milestones. Conditional in the register, not stage-gated, so only capture_stage/section move."
+  },
+  "leads.milestone_—_payment_received_date": {
+   "capture_stage": 6,
+   "section": "STAGE 6 — COMMERCIAL EVALUATION",
+   "reason": "Row column of payment_milestones. Conditional in the register, not stage-gated, so only capture_stage/section move."
+  }
+ }
+}
