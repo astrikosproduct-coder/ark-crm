@@ -16,6 +16,11 @@ build/
 .env.*
 !.env.example
 
+# Python bytecode — backend/ and its alembic/ migrations both produce it.
+# The virtualenv needs no entry: venv writes its own .gitignore inside itself.
+__pycache__/
+*.py[cod]
+
 # Logs
 logs
 *.log

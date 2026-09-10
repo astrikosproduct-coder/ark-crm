@@ -1,3 +1,4 @@
+import { currentUserId } from '@/lib/currentUser'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -16,8 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ReadinessPanel } from '@/components/leads/ReadinessPanel'
 import { api } from '@/lib/api'
-import { logAutomation } from '@/lib/automation'
-import { CURRENT_USER_ID, probabilityMidpoint, stageKeyOf, stagesFor, type Transition } from '@/lib/pipeline'
+import { probabilityMidpoint, stageKeyOf, stagesFor, type Transition } from '@/lib/pipeline'
 import { fieldsOf } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
 
@@ -82,14 +82,14 @@ export function LeadAdvanceDialog({
   const canConfirm = target !== currentStage && (!reasonRequired || reason.trim().length > 0)
 
   const readThrough = useMemo(
-    () => new Set(fieldsOf('opportunities').filter((f) => f.carry === 'read_through').map((f) => f.api_name)),
+    () => new Set(fieldsOf('opportunities').filter((f) => f.value_mode === 'read_through').map((f) => f.api_name)),
     []
   )
 
   const advanceWithinLeads = useMutation({
     mutationFn: async () => {
       const now = new Date().toISOString()
-      const patch: Values = { modified_date: now, modified_by: CURRENT_USER_ID }
+      const patch: Values = { modified_date: now, modified_by: currentUserId() }
       patch.project_stage = stageKeyOf(target) ?? target
       patch.probability_pct = probabilityMidpoint(target) ?? values.probability_pct ?? null
       if (isSkip) patch.stage_skip_reason = reason.trim()
@@ -105,7 +105,7 @@ export function LeadAdvanceDialog({
         reason: reasonRequired ? reason.trim() : null,
         is_skip: isSkip,
         is_reversal: isReversal,
-        actor: CURRENT_USER_ID,
+        actor: currentUserId(),
         timestamp: now,
       }
       await api.post('/transitions', transition)
@@ -117,14 +117,6 @@ export function LeadAdvanceDialog({
         queryClient.invalidateQueries({ queryKey: ['collection', 'leads'] }),
         queryClient.invalidateQueries({ queryKey: ['list', 'transitions'] }),
       ])
-      void logAutomation({
-        type: 'record_update',
-        target: leadId,
-        module: 'leads',
-        detail: `${leadId} advanced Stage ${currentStage} → Stage ${target}${
-          reason.trim() ? ` — ${reason.trim()}` : ''
-        }`,
-      })
       onAdvancedWithinLeads(target)
       handleClose()
     },
@@ -144,9 +136,9 @@ export function LeadAdvanceDialog({
       oppPayload.probability_pct = probabilityMidpoint(target)
       oppPayload.lead_status = 'OPEN'
       oppPayload.created_date = now
-      oppPayload.created_by = CURRENT_USER_ID
+      oppPayload.created_by = currentUserId()
       oppPayload.modified_date = now
-      oppPayload.modified_by = CURRENT_USER_ID
+      oppPayload.modified_by = currentUserId()
 
       const createdOpp = await api.post<Record<string, unknown>>('/opportunities', oppPayload)
       const opportunityId = String(createdOpp.data.id)
@@ -154,7 +146,7 @@ export function LeadAdvanceDialog({
       await api.put(`/leads/${leadId}`, {
         lead_status: 'CONVERTED',
         modified_date: now,
-        modified_by: CURRENT_USER_ID,
+        modified_by: currentUserId(),
       })
 
       const copiedFields = Object.keys(oppPayload).filter(
@@ -166,7 +158,7 @@ export function LeadAdvanceDialog({
         source_id: leadId,
         target_module: 'opportunities',
         target_id: opportunityId,
-        actor: CURRENT_USER_ID,
+        actor: currentUserId(),
         timestamp: now,
         copied_fields: copiedFields,
         note: isSkip
@@ -174,18 +166,6 @@ export function LeadAdvanceDialog({
           : `${leadId} moved to Opportunities from Stage ${currentStage}.`,
       })
 
-      void logAutomation({
-        type: 'record_update',
-        target: opportunityId,
-        module: 'opportunities',
-        detail: `${opportunityId} created at Stage ${target} by moving ${leadId} to the Opportunities module`,
-      })
-      void logAutomation({
-        type: 'record_update',
-        target: leadId,
-        module: 'leads',
-        detail: `${leadId} moved to ${opportunityId} — now read-only`,
-      })
 
       return opportunityId
     },

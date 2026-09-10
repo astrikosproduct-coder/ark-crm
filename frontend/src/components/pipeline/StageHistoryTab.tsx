@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { Badge } from '@/components/ui/badge'
 import { StageChip } from '@/components/leads/StageChip'
 import { api } from '@/lib/api'
 import { date as fmtDate } from '@/lib/format'
@@ -42,7 +41,7 @@ export function StageHistoryTab({
   return (
     <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
-        <thead className="bg-muted/50">
+        <thead className="bg-muted/50 text-label">
           <tr>
             <th className="px-3 py-2 text-left font-medium">When</th>
             <th className="px-3 py-2 text-left font-medium">From</th>
@@ -60,16 +59,8 @@ export function StageHistoryTab({
               </td>
               <td className="px-3 py-2">
                 <StageChip value={t.to} />
-                {t.is_skip && (
-                  <Badge variant="warning" className="ml-1">
-                    skip
-                  </Badge>
-                )}
-                {t.is_reversal && (
-                  <Badge variant="warning" className="ml-1">
-                    reversal
-                  </Badge>
-                )}
+                {t.is_skip && <span className="text-muted-foreground"> · skip</span>}
+                {t.is_reversal && <span className="text-muted-foreground"> · reversal</span>}
               </td>
               <td className="px-3 py-2">{nameOf(t.actor)}</td>
               <td className="px-3 py-2 text-muted-foreground">{t.reason ?? '—'}</td>

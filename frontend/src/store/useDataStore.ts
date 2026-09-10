@@ -25,7 +25,6 @@ const ID_PREFIXES: Record<string, { prefix: string; pad: number }> = {
   // GATE-0091's four digits; confirm it in the register correction pass.
   conflicts: { prefix: 'CONF', pad: 4 },
   transitions: { prefix: 'TRN', pad: 4 },
-  automationLog: { prefix: 'LOG', pad: 5 },
   comments: { prefix: 'CMT', pad: 4 },
   // The 14-stage-review pipeline split. OPP- matches LEAD-/DEAL- at five
   // digits. CONV- has no stated convention either — four digits follows

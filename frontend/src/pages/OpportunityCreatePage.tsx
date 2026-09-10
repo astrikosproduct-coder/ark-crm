@@ -1,19 +1,16 @@
+import { currentUserId } from '@/lib/currentUser'
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { PageLayout } from '@/components/layout/PageLayout'
 import { RecordEditor } from '@/components/record/RecordEditor'
-import { UnsavedBadge } from '@/components/record/UnsavedBadge'
-import { NEW_RECORD_ID } from '@/hooks/useRecordForm'
 import {
-  CURRENT_USER_ID,
   probabilityMidpoint,
   sectionForStage,
   stageKeyOf,
   stagesFor,
 } from '@/lib/pipeline'
 import type { Values } from '@/lib/spec/conditions'
-import { useDiscardToken } from '@/store/useDraftStore'
 
 const MODULE = 'opportunities'
 const COLLECTION = 'opportunities'
@@ -35,7 +32,6 @@ export function OpportunityCreatePage() {
   const navigate = useNavigate()
   const firstStage = stagesFor(MODULE)[0]?.stage ?? 4
   const section = sectionForStage(MODULE, firstStage)
-  const discardToken = useDiscardToken(MODULE, NEW_RECORD_ID)
 
   const initialValues = useMemo<Values>(
     () => ({
@@ -45,12 +41,18 @@ export function OpportunityCreatePage() {
     [firstStage]
   )
 
+  // The record is created AT this stage, so a per-stage answer given on this
+  // form belongs to it — see the same note on LeadCreatePage.
+  const stageScope = useMemo(
+    () => ({ stage: firstStage, currentStage: firstStage }),
+    [firstStage]
+  )
+
   return (
     <PageLayout
       title={
         <>
           New opportunity
-          <UnsavedBadge module={MODULE} recordId={NEW_RECORD_ID} />
         </>
       }
       subtitle={`Stage ${firstStage} — normally reached by converting a Lead, not created directly.`}
@@ -60,17 +62,17 @@ export function OpportunityCreatePage() {
           label: 'Details',
           content: (
             <RecordEditor
-              key={discardToken}
               module={MODULE}
               collection={COLLECTION}
               initialValues={initialValues}
               sections={section ? [section] : undefined}
+              stageScope={stageScope}
               saveLabel="Create opportunity"
               stamp={{
                 created_date: new Date().toISOString(),
-                created_by: CURRENT_USER_ID,
+                created_by: currentUserId(),
                 modified_date: new Date().toISOString(),
-                modified_by: CURRENT_USER_ID,
+                modified_by: currentUserId(),
               }}
               onSaved={(id) => navigate(`/opportunities/${id}`, { replace: true })}
               onCancel={() => navigate('/opportunities')}

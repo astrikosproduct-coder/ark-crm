@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { FieldControl } from '@/components/form/FieldControl'
 import { useRecordForm } from '@/hooks/useRecordForm'
+import { spansFullWidth } from '@/lib/spec/anchors'
 import { childSpecFor } from '@/lib/spec/childSpec'
 import { cn } from '@/lib/utils'
 import type { FieldSpec } from '@/types/field'
@@ -11,12 +12,19 @@ import type { FieldSpec } from '@/types/field'
 interface Props {
   field: FieldSpec
   onCreateNew?: (field: FieldSpec) => void
+  /**
+   * Grid placement supplied by the caller, when the caller knows better than
+   * the field's type does. FormSection passes the cell's span; an anchored
+   * field stacked inside another field's cell passes nothing, because it has
+   * that cell's width already. See lib/spec/anchors.ts.
+   */
+  className?: string
 }
 
 /** Types that own the full width of the section grid. */
 export const FULL_WIDTH = new Set(['childlist', 'richtext', 'longtext'])
 
-export function FieldRow({ field, onCreateNew }: Props) {
+export function FieldRow({ field, onCreateNew, className }: Props) {
   const form = useRecordForm()
   const id = `${field.module}.${field.api_name}`
   const error = form.visibleErrors[field.api_name]
@@ -34,7 +42,17 @@ export function FieldRow({ field, onCreateNew }: Props) {
   const proposed = childSpec?.origin === 'inferred' ? childSpec : null
 
   return (
-    <div className={cn('flex flex-col gap-1.5', FULL_WIDTH.has(field.type) && 'md:col-span-2')}>
+    <div
+      className={cn(
+        'flex flex-col gap-1.5',
+        // The placement's own layout_span wins over the type's natural width —
+        // 'half' asks a longtext reason to take one column, 'full' asks a
+        // picklist to take both. Null, which is almost every field, defers to
+        // the type exactly as it always did.
+        spansFullWidth(field, FULL_WIDTH) && 'md:col-span-2',
+        className
+      )}
+    >
       <div className="flex items-center gap-1.5">
         <Label htmlFor={id} className="text-foreground">
           {field.label}
@@ -74,7 +92,7 @@ export function FieldRow({ field, onCreateNew }: Props) {
 
         {unruled && (
           <Tooltip>
-            <TooltipTrigger type="button" className="cursor-help text-amber-600 dark:text-amber-400">
+            <TooltipTrigger type="button" className="cursor-help text-warning">
               <span className="text-xs">conditional?</span>
             </TooltipTrigger>
             <TooltipContent className="max-w-xs">
@@ -86,10 +104,7 @@ export function FieldRow({ field, onCreateNew }: Props) {
 
         {proposed && (
           <Tooltip>
-            <TooltipTrigger
-              type="button"
-              className="cursor-help rounded border border-amber-500/50 bg-amber-500/10 px-1.5 py-0.5 text-[11px] leading-none text-amber-700 dark:text-amber-400"
-            >
+            <TooltipTrigger type="button" className="text-muted-foreground cursor-help text-xs">
               proposed shape
             </TooltipTrigger>
             <TooltipContent className="max-w-sm">

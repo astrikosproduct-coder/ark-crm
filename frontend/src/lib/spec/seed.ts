@@ -237,7 +237,6 @@ export function buildSeedData(now = new Date()): Record<string, unknown> {
     'deals',
     'gates',
     'transitions',
-    'automationLog',
     'comments',
     // partners CONFLICT ADJUDICATION. The register defines the record; §6.2
     // describes when one arises; the workbook seeds none.

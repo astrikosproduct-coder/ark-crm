@@ -3,19 +3,15 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Building2Icon, PencilIcon, PlusIcon } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { RecordForm } from '@/components/form/RecordForm'
 import { RecordEditor } from '@/components/record/RecordEditor'
 import { RecordListView } from '@/components/list/RecordListView'
-import { UnsavedBadge } from '@/components/record/UnsavedBadge'
 import { contactListCell } from '@/components/contacts/contactListCell'
 import { registrationListCell } from '@/components/partners/registrationListCell'
-import { NEW_RECORD_ID } from '@/hooks/useRecordForm'
 import { api } from '@/lib/api'
 import { displayNameOf, isPartnerAccount, labelForValue, withRecordId } from '@/lib/spec'
-import { useDiscardToken } from '@/store/useDraftStore'
 
 // A partner IS an account. Both of these say accounts on purpose — there is no
 // partners collection, because a second organisation record is exactly what
@@ -27,8 +23,6 @@ export function PartnerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
-  const draftId = id ?? NEW_RECORD_ID
-  const discardToken = useDiscardToken(MODULE, draftId)
 
   const { data, isLoading, isError, dataUpdatedAt } = useQuery({
     queryKey: ['record', COLLECTION, id],
@@ -89,12 +83,9 @@ export function PartnerDetailPage() {
       title={
         <>
           {values ? displayNameOf(values) : (id ?? '')}
-          {types.map((t) => (
-            <Badge key={t} variant="secondary">
-              {labelForValue('accounts__account_type', t)}
-            </Badge>
-          ))}
-          <UnsavedBadge module={MODULE} recordId={draftId} />
+          <span className="text-muted-foreground text-sm font-normal">
+            {types.map((t) => labelForValue('accounts__account_type', t)).join(' · ')}
+          </span>
         </>
       }
       subtitle={id}
@@ -124,7 +115,7 @@ export function PartnerDetailPage() {
                 <p className="py-6 text-sm text-muted-foreground">Loading…</p>
               ) : editing ? (
                 <RecordEditor
-                  key={`edit:${id}:${dataUpdatedAt}:${discardToken}`}
+                  key={`edit:${id}:${dataUpdatedAt}`}
                   module={MODULE}
                   collection={COLLECTION}
                   recordId={id}

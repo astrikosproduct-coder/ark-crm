@@ -1,27 +1,18 @@
 import { AlertTriangleIcon } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { date as fmtDate } from '@/lib/format'
-import { daysRemainingText, type ExclusivityState, type RegistrationState } from '@/lib/partners'
+import { daysRemainingText, type RegistrationState } from '@/lib/partners'
 import { cn } from '@/lib/utils'
 
 /**
  * Active / Expiring / Expired / Superseded, derived from the exclusivity dates.
  *
- * The colour follows the derived state, not registration_status, because the
- * two can disagree — see registrationState(). When they do, the chip carries a
- * warning triangle and the tooltip says which way.
+ * The state follows the dates, not registration_status, because the two can
+ * disagree — see registrationState(). When they do, the text carries a warning
+ * triangle and the tooltip says which way. There used to be a colour per state
+ * on a tinted pill; it reads as plain text now, like every other value.
  */
-const STATE_STYLE: Record<ExclusivityState, string> = {
-  active: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  expiring: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
-  expired: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300',
-  superseded: 'border-slate-500/40 bg-slate-500/10 text-slate-700 dark:text-slate-300',
-  rejected: 'border-slate-500/40 bg-slate-500/10 text-slate-700 dark:text-slate-300',
-  unacknowledged: 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300',
-}
-
 export function RegistrationStatusChip({
   state,
   showDays = false,
@@ -35,11 +26,11 @@ export function RegistrationStatusChip({
   const disagrees = state.storedStatusDisagrees
 
   const chip = (
-    <Badge variant="outline" className={cn('gap-1', STATE_STYLE[state.state], className)}>
-      {disagrees && <AlertTriangleIcon className="size-3" />}
+    <span className={cn('inline-flex items-center gap-1 whitespace-nowrap', className)}>
+      {disagrees && <AlertTriangleIcon className="size-3.5" />}
       {state.label}
       {showDays && state.daysRemaining !== null && ` · ${daysRemainingText(state)}`}
-    </Badge>
+    </span>
   )
 
   const explain = disagrees

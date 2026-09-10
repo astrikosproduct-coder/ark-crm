@@ -156,6 +156,34 @@ export interface FieldExtension {
   unexpressed?: string
   /** A judgement call made while translating prose, recorded for review. */
   note?: string
+  /**
+   * Overrides the register's own `type` for this field — a deliberate BUILD
+   * decision layered on top of the workbook, not a register correction (those
+   * go in module_split.json's register_corrections instead). fields.json is
+   * never hand-edited, so this is the only legitimate way to change how a
+   * register field renders: every upload-style field became a link (url)
+   * field prototype-wide, since there is nowhere for an uploaded file to go.
+   *
+   * Named `type_override`, not `type` — FieldSpec already inherits a
+   * mandatory `type` from RawFieldSpec, and TypeScript refuses to extend two
+   * interfaces that declare the same member differently. Applied explicitly
+   * in lib/spec/index.ts's merge, not by the generic ext spread.
+   */
+  type_override?: FieldType
+  /** Overrides the register's own label, same reasoning and same explicit
+   * application as `type_override` above (RawFieldSpec.label is mandatory
+   * too) — e.g. "RFP Document" becoming "RFP Document Link" alongside
+   * file -> url. */
+  label_override?: string
+  /**
+   * PHASE-1 FREEZE: the field's lookup_target is a Round-5 table (products,
+   * quotes, poc, bid, gates) with no records to resolve against yet. Renders
+   * disabled with a "coming soon" tooltip instead of a combobox with nothing
+   * in it — see LockedField in FieldControl.tsx. The register's own type is
+   * untouched; this only changes how it renders, same as type_override.
+   * Drop the flag once the target table ships and the lookup works for real.
+   */
+  phase1_locked?: boolean
 }
 
 /** Exactly the columns build_spec.py emits. Do not add to this interface. */
@@ -184,26 +212,102 @@ export interface RawFieldSpec {
   visibility_condition: string | null
   condition: string | null
   computed_formula: string | null
+
+  // ---------------------------------------------------------------
+  // RESOLVED FROM field_placements. Present on every row since Round 7.
+  //
+  // These used to be computed in the browser by src/lib/spec/moduleSplit.ts,
+  // which re-homed fields by capture stage and added the shared, own-instance
+  // and read-through copies. They are columns now, so the projection is gone
+  // and there is one authority for where a field appears: the database.
+  // ---------------------------------------------------------------
+
+  /** How this module's copy of the value behaves. See ValueMode. */
+  value_mode: ValueMode
+  /** May a carried value diverge from its source afterwards? */
+  value_locked: boolean
+  /** False for read_through, which renders read-only. */
+  editable: boolean
+  /**
+   * The module a read-through value is resolved from — the nearest ancestor
+   * that actually HOLDS it, past any that merely read it through. Null unless
+   * the value comes from somewhere else.
+   */
+  read_through_from: string | null
+  /** The lookup field on THIS record holding that ancestor's id. */
+  read_through_via: string | null
+  /**
+   * The module the field's canonical definition originated on. `leads` for
+   * every Stage 4-7 pipeline field, which is what keeps a sidecar key written
+   * as `leads.rfp_received_date` resolving after the field's placement moved
+   * to Opportunities.
+   */
+  register_module: string | null
+  /** This placement's own order. Kept for Spec Health's duplicate report. */
+  register_order: number | null
+
+  /**
+   * WHERE THIS FIELD DRAWS, as against what kind of field it is.
+   *
+   * `section` says what kind of field this is — CROSS-CUTTING, SYSTEM, RECORD
+   * STATE. `anchor_field` says where it goes: the api_name on this module
+   * beside which it renders, wherever that field happens to be, including in a
+   * section this field does not belong to. Null is the ordinary case and means
+   * "in my own section's list, in `order`" — the behaviour every field had
+   * before anchors existed.
+   *
+   * This is what lets a conditional field work at all. Its visibility_condition
+   * is evaluated against LIVE form state, so it has to be inside the same
+   * RecordForm as the field that triggers it; otherwise the reveal cannot
+   * happen until after a save, and the user pays two saves for one answer.
+   */
+  anchor_field: string | null
+  /**
+   * 'after'  — a new row directly beneath the anchor, sharing its grid cell.
+   * 'beside' — the adjacent grid cell: spliced into the section's flat field
+   *            list immediately after the anchor.
+   * Null exactly when anchor_field is.
+   */
+  anchor_position: 'after' | 'beside' | null
+  /**
+   * How much of the two-column form grid this field takes. Null means
+   * "whatever this field type takes on its own" — see FULL_WIDTH in
+   * FieldRow.tsx — which is what every field carried before anchors existed.
+   */
+  layout_span: 'full' | 'half' | null
 }
 
 /**
- * How a field came to be on the module it is on, after spec/module_split.json
- * has been applied.
+ * How a field's VALUE behaves on the module it is on.
  *
- *   own            the register writes it on this module and it stayed
- *   moved          reassigned by capture stage — a Stage 5 field is an
- *                  Opportunity field wherever the register happened to file it
- *   shared         a CROSS-CUTTING or SYSTEM field placed on all three modules
- *   own_instance   per-record state each module keeps its own copy of
- *   read_through   resolved from the parent record and never stored here
- *   new            declared in extensions.json new_fields
+ * Read straight off field_placements.value_mode — this is data now, not
+ * something the loader works out. Three modes, and the two a field is not are
+ * what define the one it is:
+ *
+ *   own            this module stores the value in its own table. Absorbs the
+ *                  old `own`, `moved`, `shared` and `own_instance`, which all
+ *                  meant exactly this and differed only in how the old loader
+ *                  picked the field and which section the copy landed in.
+ *   read_through   never stored here; resolved from the parent every time it
+ *                  is read, so the same End Client cannot exist in three
+ *                  places and drift. Rendered read-only.
+ *   carry_forward  copied from the parent ONCE when the record is created,
+ *                  and owned from then on. A Deal opens at the Opportunity's
+ *                  figure and may renegotiate it.
  */
-export type FieldCarry = 'own' | 'moved' | 'shared' | 'own_instance' | 'read_through' | 'new'
+export type ValueMode = 'own' | 'read_through' | 'carry_forward'
 
-/** A raw field with its sidecar entry merged on top. What components consume. */
+/**
+ * A raw field with its sidecar entry merged on top. What components consume.
+ *
+ * Since Round 7 the module, section and order in RawFieldSpec are already the
+ * ones the field renders under — spec/fields.json is generated from
+ * field_placements, one row per module a field appears on. Nothing is
+ * re-homed at load time any more.
+ */
 export interface FieldSpec extends RawFieldSpec, FieldExtension {
   /**
-   * "<module>.<api_name>" — the short sidecar key. NOT unique: nine api_names
+   * "<module>.<api_name>" — the short sidecar key. NOT unique: ten api_names
    * are defined in two sections of one module. Use it to look a field up only
    * through fieldByRef, which refuses to resolve an ambiguous one.
    */
@@ -214,23 +318,6 @@ export interface FieldSpec extends RawFieldSpec, FieldExtension {
    * definition of a duplicated name.
    */
   qref: string
-  /** How this field arrived on this module. See FieldCarry. */
-  carry?: FieldCarry
-  /**
-   * The module the register itself writes this field on, when the split moved
-   * or copied it somewhere else. `leads` for every Stage 4-7 field.
-   */
-  register_module?: string
-  /** The register's own `order`, before the split renumbered the module. */
-  register_order?: number
-  /**
-   * The module this field's value is resolved from, for a read_through field.
-   * The value is NEVER stored on this record — carrying it by reference is what
-   * stops the same End Client existing in three places and drifting.
-   */
-  read_through_from?: string
-  /** The lookup field on THIS record holding the parent's id. */
-  read_through_via?: string
 }
 
 /** A module's list-screen column set. Declared in spec/extensions.json. */

@@ -1,32 +1,34 @@
 import { useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { PencilIcon } from 'lucide-react'
+import { PencilIcon, RotateCcwIcon, Trash2Icon } from 'lucide-react'
 
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { RecordForm } from '@/components/form/RecordForm'
 import { RecordEditor } from '@/components/record/RecordEditor'
-import { UnsavedBadge } from '@/components/record/UnsavedBadge'
+import { DeleteRecordDialog } from '@/components/record/DeleteRecordDialog'
+import { CONTACT_REFERRERS } from '@/lib/referrers'
+import { useSetRecordActive } from '@/lib/recordLifecycle'
 import {
   ConfidentialChip,
   ContactRoleBadge,
   isConfidentialContact,
 } from '@/components/contacts/ContactRoleBadge'
-import { NEW_RECORD_ID } from '@/hooks/useRecordForm'
 import { api } from '@/lib/api'
 import { displayNameOf, withRecordId } from '@/lib/spec'
+import { cn } from '@/lib/utils'
 import { ComingSoon } from '@/pages/ComingSoon'
-import { useDiscardToken } from '@/store/useDraftStore'
 
 const MODULE = 'contacts'
 const COLLECTION = 'contacts'
 
 export function ContactDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
-  const draftId = id ?? NEW_RECORD_ID
-  const discardToken = useDiscardToken(MODULE, draftId)
+  const [deleting, setDeleting] = useState(false)
 
   const { data, isLoading, isError, dataUpdatedAt } = useQuery({
     queryKey: ['record', COLLECTION, id],
@@ -35,6 +37,12 @@ export function ContactDetailPage() {
   })
 
   const values = useMemo(() => (data ? withRecordId(MODULE, data) : undefined), [data])
+  const inactive = values?.active === false
+
+  const setActive = useSetRecordActive(COLLECTION, id ?? '', {
+    noun: 'contact',
+    recordName: values ? displayNameOf(values) : (id ?? ''),
+  })
 
   // Resolved for the subtitle only. The form engine renders the lookup itself.
   const { data: account } = useQuery({
@@ -60,13 +68,22 @@ export function ContactDetailPage() {
   }
 
   return (
+    <>
     <PageLayout
       title={
         <>
-          {values ? displayNameOf(values) : (id ?? '')}
+          {/* Dimmed, not struck through: a strikethrough reads as deleted,
+              and this record is retired but very much still here. */}
+          <span className={cn(inactive && 'text-muted-foreground')}>
+            {values ? displayNameOf(values) : (id ?? '')}
+          </span>
           {values && <ContactRoleBadge value={values.contact_role} />}
           {values && isConfidentialContact(values) && <ConfidentialChip />}
-          <UnsavedBadge module={MODULE} recordId={draftId} />
+          {inactive && (
+            <Badge variant="outline" className="text-muted-foreground">
+              Inactive
+            </Badge>
+          )}
         </>
       }
       subtitle={
@@ -87,10 +104,31 @@ export function ContactDetailPage() {
       }
       actions={
         !editing && (
-          <Button variant="outline" onClick={() => setEditing(true)} disabled={isLoading}>
-            <PencilIcon className="size-4" />
-            Edit
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => setEditing(true)} disabled={isLoading}>
+              <PencilIcon className="size-4" />
+              Edit
+            </Button>
+            {inactive && (
+              <Button
+                variant="outline"
+                onClick={() => setActive.mutate(true)}
+                disabled={setActive.isPending}
+              >
+                <RotateCcwIcon className="size-4" />
+                {setActive.isPending ? 'Reactivating…' : 'Reactivate'}
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => setDeleting(true)}
+              disabled={isLoading || !values}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2Icon className="size-4" />
+              Delete
+            </Button>
+          </>
         )
       }
       tabs={[
@@ -102,7 +140,7 @@ export function ContactDetailPage() {
           ) : editing ? (
             // Keyed on the fetch, not just the id — see AccountDetailPage.
             <RecordEditor
-              key={`edit:${id}:${dataUpdatedAt}:${discardToken}`}
+              key={`edit:${id}:${dataUpdatedAt}`}
               module={MODULE}
               collection={COLLECTION}
               recordId={id}
@@ -124,5 +162,35 @@ export function ContactDetailPage() {
         { key: 'activity', label: 'Activity', content: <ComingSoon label="Activity" /> },
       ]}
     />
+
+    {values && (
+      <DeleteRecordDialog
+        open={deleting}
+        onOpenChange={setDeleting}
+        collection={COLLECTION}
+        recordId={id ?? ''}
+        recordName={displayNameOf(values)}
+        noun="contact"
+        active={!inactive}
+        lookupTarget="contact"
+        referrers={CONTACT_REFERRERS}
+        onDeleted={() => navigate('/contacts')}
+        guidance={
+          <div className="space-y-2 text-muted-foreground">
+            <p>
+              <strong className="text-foreground">Deactivate</strong> keeps this person
+              on file. They stay on every record that already names them, and simply
+              stop appearing in the list when someone adds a new one.
+            </p>
+            <p>
+              <strong className="text-foreground">Delete permanently</strong> removes
+              them for good, and it cannot be undone. Deactivating is the safer choice
+              unless this person was added by mistake.
+            </p>
+          </div>
+        }
+      />
+    )}
+    </>
   )
 }

@@ -15,7 +15,7 @@ export function SpecStartupError({ errors }: { errors: string[] }) {
         <p className="text-destructive text-sm font-semibold tracking-wide uppercase">
           Spec did not load
         </p>
-        <h1 className="mt-1 text-xl font-semibold">
+        <h1 className="text-page-title mt-1 font-bold">
           {errors.length} reference{errors.length === 1 ? '' : 's'} in spec/extensions.json cannot
           be resolved
         </h1>

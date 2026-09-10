@@ -6,6 +6,7 @@ import { StageChip } from '@/components/leads/StageChip'
 import { useResolvedRecord } from '@/hooks/useResolvedRecord'
 import { api } from '@/lib/api'
 import { collectionFor, displayNameOf, idOf } from '@/lib/spec'
+import { carriedListValue } from '@/lib/stageScope'
 import type { FieldSpec } from '@/types/field'
 
 /**
@@ -75,8 +76,12 @@ export function opportunityListCell(field: FieldSpec, row: ListRow): ReactNode |
     return <StageChip value={row.project_stage} />
   }
 
-  if (field.api_name === 'probability_pct') {
-    const v = row.probability_pct
+  // Both are per-stage now: the plain api_name holds the CURRENT stage's
+  // number, and a record that predates the strip — or one whose Progression has
+  // never been typed into — falls back through the newest stage it does have to
+  // the positional default. See lib/stageScope.ts.
+  if (field.api_name === 'probability_pct' || field.api_name === 'progression_pct') {
+    const v = carriedListValue('opportunities', field.api_name, row)
     if (v === null || v === undefined || v === '') return <span className="text-muted-foreground">—</span>
     return <span className="tabular-nums">{String(v)}%</span>
   }

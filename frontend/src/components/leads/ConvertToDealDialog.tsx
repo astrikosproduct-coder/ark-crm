@@ -1,3 +1,4 @@
+import { currentUserId } from '@/lib/currentUser'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -14,9 +15,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { api } from '@/lib/api'
-import { logAutomation } from '@/lib/automation'
 import { date as fmtDate, money } from '@/lib/format'
-import { CURRENT_USER_ID, dealStageKeyOf } from '@/lib/pipeline'
+import { dealStageKeyOf } from '@/lib/pipeline'
 import { displayNameOf, toPicklistKey } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
 
@@ -82,7 +82,7 @@ export function ConvertToDealDialog({ open, leadId, values, onClose }: Props) {
         end_client: values.end_client ?? null,
         customer_partner_si: values.customer_partner_si ?? null,
         deal_stage: dealStageKeyOf(8),
-        delivery_pm: CURRENT_USER_ID,
+        delivery_pm: currentUserId(),
         order_booked: true,
         booking_date: now.slice(0, 10),
         po_loi_reference: values.po_number ?? '',
@@ -101,7 +101,7 @@ export function ConvertToDealDialog({ open, leadId, values, onClose }: Props) {
       await api.put(`/leads/${leadId}`, {
         lead_status: 'CONVERTED',
         modified_date: now,
-        modified_by: CURRENT_USER_ID,
+        modified_by: currentUserId(),
       })
 
       // Recorded, not written. The two account fields this used to set were
@@ -112,14 +112,6 @@ export function ConvertToDealDialog({ open, leadId, values, onClose }: Props) {
       if (partnerId) {
         const until = format(addDays(new Date(), PROTECTION_DAYS), 'yyyy-MM-dd')
         protection = { accountId: partnerId, until }
-        void logAutomation({
-          type: 'record_update',
-          target: partnerId,
-          detail:
-            `Would set post-award protection on ${partnerId} until ${until} (${PROTECTION_DAYS} days). ` +
-            'No field holds it — accounts.post_award_protection and accounts.protected_until were removed from the register.',
-          module: 'accounts',
-        })
       }
 
       const regs = (
@@ -132,27 +124,10 @@ export function ConvertToDealDialog({ open, leadId, values, onClose }: Props) {
         await api.put(`/registrations/${r.id}`, { registration_status: 'SUPERSEDED' })
       }
 
+      // The threshold rule is real and still worth surfacing; what is NOT real
+      // is anything happening as a result. Nothing raises a task, and nobody is
+      // told — a person has to send the welcome letter. The UI says so.
       const welcomeLetter = tcv > WELCOME_LETTER_TCV_THRESHOLD
-      if (welcomeLetter) {
-        void logAutomation({
-          type: 'task',
-          target: dealId,
-          module: 'deals',
-          detail: `Welcome-letter task raised for ${dealId} — TCV $${money(tcv)} exceeds $${money(WELCOME_LETTER_TCV_THRESHOLD)}`,
-        })
-      }
-      void logAutomation({
-        type: 'record_update',
-        target: dealId,
-        module: 'deals',
-        detail: `${dealId} created by converting ${leadId}`,
-      })
-      void logAutomation({
-        type: 'record_update',
-        target: leadId,
-        module: 'leads',
-        detail: `${leadId} converted to ${dealId} — now read-only`,
-      })
 
       return {
         dealId,
@@ -210,9 +185,9 @@ export function ConvertToDealDialog({ open, leadId, values, onClose }: Props) {
               </Effect>
               <Effect>Any active deal registration linked to this lead is marked Superseded.</Effect>
               <Effect>
-                Above ${money(WELCOME_LETTER_TCV_THRESHOLD)} TCV, a welcome-letter task is raised —
-                this lead's TCV is ${money(tcv)}, so a task {willRaiseWelcomeLetter ? 'WILL' : 'will NOT'}{' '}
-                be raised.
+                Above ${money(WELCOME_LETTER_TCV_THRESHOLD)} TCV a welcome letter is required —
+                this lead's TCV is ${money(tcv)}, so one{' '}
+                {willRaiseWelcomeLetter ? 'IS' : 'is NOT'} required. Sending it is a manual step.
               </Effect>
             </ul>
 
@@ -267,9 +242,10 @@ export function ConvertToDealDialog({ open, leadId, values, onClose }: Props) {
                 <ResultRow done={false}>No active registration was linked to this lead.</ResultRow>
               )}
               {result.welcomeLetter ? (
-                <ResultRow done>
-                  Welcome-letter task raised — TCV ${money(result.tcv)} exceeds $
-                  {money(WELCOME_LETTER_TCV_THRESHOLD)}.
+                <ResultRow done={false}>
+                  Welcome letter required — TCV ${money(result.tcv)} exceeds $
+                  {money(WELCOME_LETTER_TCV_THRESHOLD)}. Send it manually; nothing is raised
+                  automatically.
                 </ResultRow>
               ) : (
                 <ResultRow done={false}>

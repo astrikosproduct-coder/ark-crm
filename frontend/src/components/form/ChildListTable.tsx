@@ -89,7 +89,7 @@ export function ChildListTable({ field }: Props) {
             {!readOnly && <col style={{ width: '48px' }} />}
           </colgroup>
 
-          <thead className="bg-muted/50">
+          <thead className="bg-muted/50 text-label">
             <tr>
               {columns.map((c) => (
                 <th key={c.key} className="px-3 py-2 text-left font-medium whitespace-nowrap">

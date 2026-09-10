@@ -3,7 +3,6 @@ import { useQuery, type QueryClient } from '@tanstack/react-query'
 
 import { useRecordForm } from '@/hooks/useRecordForm'
 import { api } from '@/lib/api'
-import { logAutomation } from '@/lib/automation'
 import type { Values } from '@/lib/spec/conditions'
 
 /**
@@ -13,12 +12,13 @@ import type { Values } from '@/lib/spec/conditions'
  *
  * Segment is the only one left. Sub-Segment was deleted at the Country /
  * Theme / ROB-gap pass (its picklist deactivated, not removed — see
- * spec/picklists.json). Region — accounts.region and leads.region, both
- * renamed from *.country and both pointed at the same India/MEA/APAC/Americas
- * picklist — is NOT in this list either: the rename unified the picklist, not
- * the values. Nobody has asked for the two to mirror each other, so this
- * stays at Segment alone until they do; sharing a picklist now makes that a
- * one-line addition rather than a redesign.
+ * spec/picklists.json). Region was never in this list — accounts.region and
+ * leads.region shared the India/MEA/APAC/Americas picklist but not their
+ * values — and leads.region no longer exists at all: it was retired on 02 Sep
+ * 2026 in favour of Destination Region and Booking Region, which say which
+ * region delivers the work and which books the revenue. accounts.region is
+ * untouched, and nothing on the Lead side is a candidate to mirror it now.
+ * This stays at Segment alone until somebody asks otherwise
  */
 const MIRRORED_FIELDS = ['segment'] as const
 
@@ -75,7 +75,7 @@ export async function backfillAccountFieldsFromLead(
   const endClientId = typeof record.end_client === 'string' ? record.end_client : undefined
   if (!endClientId) return
 
-  // Same rule as logAutomation: a gap-fill onto a linked record is a
+  // A gap-fill onto a linked record is a
   // nice-to-have this save must never fail over, so a network hiccup here is
   // swallowed rather than surfaced as a broken save.
   try {
@@ -93,14 +93,6 @@ export async function backfillAccountFieldsFromLead(
       queryClient.invalidateQueries({ queryKey: ['list', 'accounts'] }),
       queryClient.invalidateQueries({ queryKey: ['collection', 'accounts'] }),
     ])
-    void logAutomation({
-      type: 'record_update',
-      target: endClientId,
-      module: 'accounts',
-      detail:
-        `${Object.keys(patch).join(', ')} backfilled on ${endClientId} from ${String(record.id ?? 'its Lead')} ` +
-        '— the account had none set.',
-    })
   } catch (error) {
     console.error('[account-field-sync] could not backfill account fields', error)
   }

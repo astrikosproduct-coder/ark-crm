@@ -14,13 +14,10 @@ import { Button } from '@/components/ui/button'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { RecordForm } from '@/components/form/RecordForm'
 import { RecordEditor } from '@/components/record/RecordEditor'
-import { UnsavedBadge } from '@/components/record/UnsavedBadge'
 import { AcknowledgeDialog } from '@/components/partners/AcknowledgeDialog'
 import { ConflictPanel } from '@/components/partners/ConflictPanel'
 import { RegistrationStatusChip } from '@/components/partners/RegistrationStatusChip'
-import { NEW_RECORD_ID } from '@/hooks/useRecordForm'
 import { api } from '@/lib/api'
-import { logAutomation } from '@/lib/automation'
 import { date as fmtDate, money } from '@/lib/format'
 import {
   ACK_SLA_DAYS,
@@ -31,7 +28,6 @@ import {
 } from '@/lib/partners'
 import { displayNameOf, idOf, withRecordId } from '@/lib/spec'
 import { cn } from '@/lib/utils'
-import { useDiscardToken } from '@/store/useDraftStore'
 
 const MODULE = 'partners'
 const COLLECTION = 'registrations'
@@ -53,8 +49,6 @@ export function RegistrationDetailPage() {
    */
   const [tab, setTab] = useState('registration')
 
-  const draftId = id ?? NEW_RECORD_ID
-  const discardToken = useDiscardToken(MODULE, draftId)
 
   const { data, isLoading, isError, dataUpdatedAt } = useQuery({
     queryKey: ['record', COLLECTION, id],
@@ -135,14 +129,6 @@ export function RegistrationDetailPage() {
         queryClient.invalidateQueries({ queryKey: ['list', 'leads'] }),
         queryClient.invalidateQueries({ queryKey: ['collection', 'leads'] }),
       ])
-      void logAutomation({
-        type: 'record_update',
-        target: leadId,
-        module: 'leads',
-        detail: `Lead ${leadId} created from registration ${id} — partner-sourced, exclusivity to ${fmtDate(
-          state.expiry
-        )}`,
-      })
       navigate(`/leads/${leadId}`)
     },
   })
@@ -172,7 +158,6 @@ export function RegistrationDetailPage() {
         <>
           {String(values?.project_name ?? id ?? '')}
           <RegistrationStatusChip state={state} showDays />
-          <UnsavedBadge module={MODULE} recordId={draftId} />
         </>
       }
       subtitle={
@@ -244,7 +229,7 @@ export function RegistrationDetailPage() {
 
               {editing ? (
                 <RecordEditor
-                  key={`edit:${id}:${dataUpdatedAt}:${discardToken}`}
+                  key={`edit:${id}:${dataUpdatedAt}`}
                   module={MODULE}
                   collection={COLLECTION}
                   recordId={id}

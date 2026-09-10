@@ -1,6 +1,6 @@
 {
- "$schema_note": "The sole authority on which pipeline module owns which stage, and therefore which module a field lands on. Applied by src/lib/spec/moduleSplit.ts AFTER spec/extensions.json has been merged onto spec/fields.json, so a sidecar entry keyed on the register's own module still finds its field. fields.json is NOT edited by this - it stays generated from the workbook. Target placement matches ARK_CRM_Field_Register_Split_v1.xlsx: 71 Leads rows, 86 Opportunities, 94 Deals.",
- "version": 1,
+ "$schema_note": "STRUCTURE ONLY. Which pipeline module owns which stage, and which module is whose parent. Generated from `modules` and `stages` in PostgreSQL -- see app/module_split.py::split_config. It no longer decides where a field goes: since Round 7 that is field_placements, and spec/fields.json is generated from it already placed. The blocks that used to describe field placement (`own`, `shared`, `read_through.fields`, `relocated_fields`, `section_order`) were removed so this file cannot be mistaken for a second authority. src/lib/spec/moduleSplit.ts reads only the blocks below.",
+ "version": 2,
  "ranges": {
   "$note": "Inclusive stage bounds. applies_to in spec/stages.json is now WRONG - it still says stages 4 to 7 are 'lead'. It is ignored, and a register-correction row on the Spec Health page asks for the workbook to be regenerated. Nothing reads applies_to any more.",
   "leads": [
@@ -38,60 +38,13 @@
    "4": "opportunities",
    "5": "opportunities",
    "6": "opportunities",
-   "7": "deals"
-  }
- },
- "shared": {
-  "$note": "Sections that appear on ALL THREE pipeline modules rather than on Leads alone. A skip reason, an on-hold reason and a days-in-stage count are as true of an Opportunity as of a Lead.",
-  "source_module": "leads",
-  "sections": [
-   "CROSS-CUTTING",
-   "SYSTEM"
-  ],
-  "equivalence": [
-   {
-    "shared": "leads.created_date",
-    "existing": "deals.created_by_date",
-    "note": "The same concept under two names. The Deals sheet calls the record's creation timestamp created_by_date, which reads like a lookup and is not one. Declared here so the pair is known to be one thing; NOT silently collapsed, because dropping either row would hide a register inconsistency that the workbook should fix. Raised as a register correction on Spec Health."
-   },
-   {
-    "shared": "leads.modified_date",
-    "existing": "deals.modified_by_date",
-    "note": "Same pair, modification side."
-   }
-  ]
- },
- "own": {
-  "$note": "Per-record state. Each module needs its OWN instance of these - an Opportunity at Stage 5 and the Lead it came from at Stage 3 are two different stages, and neither is a copy of the other. These are NOT read through the parent and NOT copied at conversion. On Opportunities and Deals they are grouped into their own section rather than left in STAGE 0 - CONNECT, which is a Leads section.",
-  "section": "RECORD STATE — each module keeps its own instance",
-  "fields": {
-   "project_stage": {
-    "reason": "Each module stores its own stage. Leads 0-3, Opportunities 4-6, Deals 7-9.",
-    "exclude": [
-     "deals"
-    ],
-    "exclude_reason": "Deals already declares deal_stage in the register. Adding project_stage would give one record two stage fields.",
-    "relabel": {
-     "opportunities": "Opportunity Stage"
-    },
-    "relabel_note": "The register labels this field 'Lead Stage'. On an Opportunity that is simply the wrong word - the record is not a Lead and its stage is not a Lead's stage. Label only; the api_name stays project_stage."
-   },
-   "probability_pct": {
-    "reason": "Probability is a judgement about the live record, not a property inherited from the parent."
-   },
-   "lead_status": {
-    "reason": "Open / On Hold / Closed Lost / Converted applies to each record separately.",
-    "relabel": {
-     "opportunities": "Opportunity Status",
-     "deals": "Deal Status"
-    },
-    "relabel_note": "Label only. The api_name stays lead_status on all three modules so one condition, one picklist and one seed normalisation cover all of them."
-   }
+   "7": "deals",
+   "8": "deals",
+   "9": "deals"
   }
  },
  "read_through": {
-  "$note": "Identity. These are READ THROUGH THE PARENT and rendered read-only - never copied, so the same value cannot drift in two places. They must appear in fieldsOf(module) even though the record does not store them: compileFor() checks every identifier in a computed_expr, a visibility_condition and a condition against the module's api_name set, so a criterion or formula naming a parent field would otherwise stop compiling. sub_segment removed and country, theme, lighthouse_project, gorilla_flag added at the Country/Theme/ROB-gap pass — see spec/extensions.json open_questions.",
-  "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
+  "$note": "Identity. These are READ THROUGH THE PARENT and rendered read-only - never copied, so the same value cannot drift in two places. They must appear in fieldsOf(module) even though the record does not store them: compileFor() checks every identifier in a computed_expr, a visibility_condition and a condition against the module's api_name set, so a criterion or formula naming a parent field would otherwise stop compiling. sub_segment removed and country, theme, lighthouse_project, gorilla_flag added at the Country/Theme/ROB-gap pass — see spec/extensions.json open_questions. country, city_state, destination_region and booking_region added at the geography pass (02 Sep 2026): region was already read-through, and geography is identity of the pursuit - copying it onto the Opportunity and again onto the Deal is the two-places-to-drift bug this mechanism exists to prevent. region REMOVED at the geography pass follow-up (02 Sep 2026): leads.region was retired from the register in favour of destination_region and booking_region, so there is no parent field left to read through.",
   "parent_of": {
    "opportunities": "leads",
    "deals": "opportunities"
@@ -99,45 +52,7 @@
   "parent_link": {
    "opportunities": "parent_lead",
    "deals": "parent_opportunity"
-  },
-  "source_module": "leads",
-  "skip_when_declared": true,
-  "skip_note": "A field the target module already declares in the register is left as its own - deals.end_client and deals.customer_partner_si are register rows on the Deals sheet, so Deals takes 18 of these 20 rather than all 20. Whether those two register rows SHOULD be read-through instead is an open question recorded in extensions.json.",
-  "fields": [
-   "opportunity_name",
-   "end_client",
-   "customer_partner_si",
-   "pre_bid_alliance_partner",
-   "primary_contact",
-   "partner_deal_registration",
-   "segment",
-   "theme",
-   "sap_solution_suite",
-   "suite_demonstrated",
-   "currency",
-   "total_project_value",
-   "probable_award_date",
-   "deal_source",
-   "opportunity_type",
-   "alliance_structure",
-   "bd_owner",
-   "sales_owner",
-   "presales_owner",
-   "consultant_specifier",
-   "region",
-   "lighthouse_project",
-   "gorilla_flag"
-  ]
- },
- "section_order": {
-  "$note": "Rank used to order the sections of a split module. Register order is preserved WITHIN a section; only the sequence of sections is decided here. A stage section ranks at 10 + its stage number.",
-  "HEADER": 0,
-  "RECORD STATE": 1,
-  "stage_offset": 10,
-  "unstaged": 90,
-  "READ THROUGH THE PARENT": 95,
-  "CROSS-CUTTING": 97,
-  "SYSTEM": 98
+  }
  },
  "register_corrections": [
   {
@@ -155,38 +70,14 @@
   {
    "ref": "deals.created_by_date",
    "detail": "The Deals sheet names the record's creation timestamp created_by_date and its modification timestamp modified_by_date, where every other sheet uses created_date / modified_date plus a separate created_by lookup. The shared SYSTEM section therefore lands a near-duplicate pair on Deals. Declared in shared.equivalence above; rename in the workbook rather than in a sidecar."
+  },
+  {
+   "ref": "deals.created_by_date / deals.modified_by_date",
+   "detail": "The Deals sheet names the record's creation timestamp created_by_date and its modification timestamp modified_by_date, where every other sheet uses created_date / modified_date plus a separate created_by lookup. The SYSTEM section is placed on all three pipeline modules, so Deals ends up with a near-duplicate pair: leads.created_date and deals.created_by_date are the same concept under two names, as are leads.modified_date and deals.modified_by_date. NOT collapsed -- dropping either row would hide the inconsistency behind a loader. Rename in the workbook. (Previously declared in this file's `shared.equivalence` block, which Round 7 removed along with the rest of the placement blocks.)"
+  },
+  {
+   "ref": "leads.payment_milestones and its four milestone row-columns",
+   "detail": "The register captures payment_milestones at Stage 7; this build places it at Stage 6 -- payment milestones are the payment SCHEDULE and belong to the commercial terms negotiated during Commercial Evaluation, not to the paperwork closed out afterwards. It therefore renders on Opportunities, not Deals, and its four row columns (milestone planned / actual / invoice / payment received date) travel with it. A deliberate product decision, not a register defect. It used to be an override in this file's `relocated_fields` block; since Round 7 the placement simply HAS capture_stage 6 and there is nothing to override, so it is recorded here instead. Confirm the register should be corrected to match."
   }
- ],
- "relocated_fields": {
-  "$note": "Individual fields the register places at one stage, but which this build relocates to another as a deliberate product decision — not a register error, so this is a separate mechanism from register_corrections below. Keyed on \"<register_module>.<api_name>\", checked in moduleSplit.ts placementsFor() BEFORE the normal stage-based reassign, so the field routes to whichever module owns the override stage instead of its own capture_stage. mandatory_from/blocks_transition are overridden alongside capture_stage so validateForTransition gates the RIGHT hop — leaving capture_stage=6 in place while still blocking \"7 → Deal\" would check a transition this field can no longer be near.",
-  "leads.payment_milestones": {
-   "capture_stage": 6,
-   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-   "mandatory_from": 6,
-   "blocks_transition": "6 → 7",
-   "reason": "Payment milestones are the payment SCHEDULE — they belong to the commercial terms negotiated during Commercial Evaluation, not to the paperwork closed out afterward. Register capture_stage was 7."
-  },
-  "leads.milestone_—_planned_date": {
-   "capture_stage": 6,
-   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-   "mandatory_from": 6,
-   "blocks_transition": "6 → 7",
-   "reason": "Row column of payment_milestones — travels with the table it belongs to. Register capture_stage was 7."
-  },
-  "leads.milestone_—_actual_date": {
-   "capture_stage": 6,
-   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-   "reason": "Row column of payment_milestones. Conditional in the register, not stage-gated, so only capture_stage/section move."
-  },
-  "leads.milestone_—_invoice_date": {
-   "capture_stage": 6,
-   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-   "reason": "Row column of payment_milestones. Conditional in the register, not stage-gated, so only capture_stage/section move."
-  },
-  "leads.milestone_—_payment_received_date": {
-   "capture_stage": 6,
-   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-   "reason": "Row column of payment_milestones. Conditional in the register, not stage-gated, so only capture_stage/section move."
-  }
- }
+ ]
 }

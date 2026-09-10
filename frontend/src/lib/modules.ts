@@ -34,11 +34,37 @@ export const MODULES: ModuleDef[] = [
   { key: 'partners', label: 'Partners', icon: Network, built: true },
   { key: 'products', label: 'Products', icon: Package, built: false },
   { key: 'quotes', label: 'Quotes', icon: FileText, built: false },
-  { key: 'gates', label: 'Gates', icon: ShieldCheck, built: false },
+  { key: 'bids_pocs', label: 'Bids & POCs', icon: ShieldCheck, built: false },
   { key: 'approvals', label: 'Approvals', icon: ClipboardCheck, built: false },
   { key: 'activities_docs', label: 'Activities & Documents', icon: Paperclip, built: false },
-  { key: 'administration', label: 'Administration', icon: Settings, built: false },
+  { key: 'administration', label: 'Administration', icon: Settings, built: true },
 ]
+
+/**
+ * How the sidebar groups those modules — ARK_brand_UI.md §5a.1, where the
+ * reference nav is collapsible groups rather than one flat list.
+ *
+ * Grouping only. Routes, keys and labels are unchanged, and every module in
+ * MODULES appears exactly once: `dashboard` and `administration` sit outside
+ * the groups, as Home and Setup do in the reference.
+ */
+export interface ModuleGroup {
+  label: string
+  keys: string[]
+}
+
+export const SIDEBAR_TOP: string[] = ['dashboard']
+
+export const MODULE_GROUPS: ModuleGroup[] = [
+  {
+    label: 'Sales',
+    keys: ['leads', 'opportunities', 'deals', 'accounts', 'contacts', 'partners'],
+  },
+  { label: 'Commercial', keys: ['products', 'quotes', 'approvals'] },
+  { label: 'Delivery', keys: ['bids_pocs', 'activities_docs'] },
+]
+
+export const SIDEBAR_BOTTOM: string[] = ['administration']
 
 // Prototype instrumentation rather than product surface: the form engine
 // harness and the field-register worklist.

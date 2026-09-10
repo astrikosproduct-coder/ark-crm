@@ -11,7 +11,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { api } from '@/lib/api'
-import { logAutomation } from '@/lib/automation'
 import { date as fmtDate } from '@/lib/format'
 import {
   ACK_SLA_DAYS,
@@ -53,20 +52,12 @@ export function AcknowledgeDialog({ open, registration, partnerName, clientName,
       const patch = acknowledgementPatch(registration)
       return (await api.put<Values>(`/registrations/${id}`, patch)).data
     },
-    onSuccess: async (record) => {
+    onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['record', 'registrations'] }),
         queryClient.invalidateQueries({ queryKey: ['list', 'registrations'] }),
         queryClient.invalidateQueries({ queryKey: ['collection', 'registrations'] }),
       ])
-      void logAutomation({
-        type: 'email',
-        target: id,
-        module: 'partners',
-        detail: `Registration acknowledged — ${partnerName} confirmed exclusive on "${String(
-          registration.project_name ?? ''
-        )}" at ${clientName} until ${fmtDate(record.exclusivity_expiry_date)}`,
-      })
       onClose()
     },
   })

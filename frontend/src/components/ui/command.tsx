@@ -20,7 +20,10 @@ function CommandInput({ className, ...props }: React.ComponentProps<typeof Comma
       <SearchIcon className="size-4 shrink-0 opacity-50" />
       <CommandPrimitive.Input
         className={cn(
-          'flex h-9 w-full bg-transparent py-3 text-sm outline-hidden placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50',
+          // No focus ring in here: the field that owns this dropdown wears it
+          // while the dropdown is open, so the ring stays on the thing the user
+          // is filling in rather than jumping inside the popover.
+          'flex h-9 w-full bg-transparent py-3 text-sm outline-hidden focus-visible:shadow-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50',
           className
         )}
         {...props}

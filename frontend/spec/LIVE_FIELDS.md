@@ -4,7 +4,7 @@
 
 Partners · Accounts · Contacts · Leads · Opportunities · Deals — every field the prototype renders today, with its type, its picklist options and, for a child list, every column of one row.
 
-Generated on 2026-08-27 by running the application's own spec loader, not a copy of it — `npm run spec:fields`. The workbook remains the source; `spec/fields.json` is never hand-edited.
+Generated on 2026-09-02 by running the application's own spec loader, not a copy of it — `npm run spec:fields`. The workbook remains the source; `spec/fields.json` is never hand-edited.
 
 **What "live" means here.** A field is listed if the form engine puts it on a screen. Four rules shape the list:
 
@@ -28,14 +28,14 @@ Generated on 2026-08-27 by running the application's own spec loader, not a copy
 
 | Module | Stages | Live record fields | Child lists | Child-list columns | Sections |
 |---|---|---|---|---|---|
-| **Partners** | — | 34 | 0 | 0 | 3 |
-| **Accounts** | — | 19 | 0 | 0 | 4 |
+| **Partners** | — | 33 | 0 | 0 | 3 |
+| **Accounts** | — | 18 | 0 | 0 | 4 |
 | **Contacts** | — | 15 | 0 | 0 | 2 |
-| **Leads** | 0–3 | 77 | 2 | 8 | 8 |
-| **Opportunities** | 4–6 | 95 | 1 | 8 | 9 |
-| **Deals** | 7–9 | 88 | 3 | 15 | 10 |
+| **Leads** | 0–3 | 80 | 2 | 8 | 8 |
+| **Opportunities** | 4–6 | 101 | 1 | 8 | 9 |
+| **Deals** | 7–9 | 90 | 2 | 11 | 10 |
 
-Row counts match the target placement in `ARK_CRM_Field_Register_Split_v1.xlsx`: Leads 77, Opportunities 99, Deals 95 — counting every row on the sheet, including the child-column rows the form engine folds into their table.
+Row counts match the target placement in `ARK_CRM_Field_Register_Split_v1.xlsx`: Leads 80, Opportunities 105, Deals 97 — counting every row on the sheet, including the child-column rows the form engine folds into their table.
 
 ---
 
@@ -87,7 +87,6 @@ Row counts match the target placement in `ARK_CRM_Field_Register_Split_v1.xlsx`:
 | Conversion Rate to Stage 4+ | `conversion_rate_to_stage_4+` | computed | Computed | — | **no formula in the register** |
 | Revenue Closed | `revenue_closed` | computed | Computed | — | **no formula in the register** |
 | Partner Satisfaction Score | `partner_satisfaction_score` | number | **Mandatory** | — | — |
-| Platform Depth | `platform_depth` | multi-select | Optional | — | **No value set named in the register** — see Spec Health |
 | QBR Date | `qbr_date` | date | Optional | — | — |
 
 ---
@@ -121,7 +120,6 @@ Row counts match the target placement in `ARK_CRM_Field_Register_Split_v1.xlsx`:
 |---|---|---|---|---|---|
 | Partner Tier | `partner_tier` | picklist | Conditional | — | `accounts__partner_tier` — Tier 1 Strategic · Tier 2 Commercial · Registered · Not a partner |
 | Partner Type | `partner_type` | picklist | Conditional | — | `accounts__partner_type` — Strategic MSI · Systems Integrator · OEM / Technology · Sector Specialist |
-| Platform Depth | `platform_depth` | multi-select | Optional | — | **No value set named in the register** — see Spec Health |
 | Partner Satisfaction Score | `partner_satisfaction_score` | number | Optional | — | — |
 | Engagement Cadence | `engagement_cadence` | picklist | Conditional | — | `accounts__engagement_cadence` — Monthly · Bi-monthly · Deal-specific only |
 
@@ -172,7 +170,7 @@ Stages 0–3.
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
-| Progression % | `progression_pct` | computed | Computed | any | resolved by `progression` — see lib/spec/resolvers.ts<br>0 · 11 · 22 · 33 · 44 · 56 · 67 · 78 · 89 · 100 | NEW |
+| Progression % | `progression_pct` | number | Optional | any | 0 · 11 · 22 · 33 · 44 · 56 · 67 · 78 · 89 · 100 | NEW |
 
 ### STAGE 0 — CONNECT
 
@@ -180,7 +178,10 @@ Stages 0–3.
 |---|---|---|---|---|---|---|
 | Lead ID | `lead_id` | autonumber | System | 0 | LEAD-00001 | — |
 | Opportunity Name | `opportunity_name` | text | **Mandatory** | 0 | max 150<br>Format: [Project Name] — [Client] | — |
-| Region | `region` | picklist | **Mandatory** | 0 | `region` — India · MEA · APAC · Americas | — |
+| Country | `country` | text | Optional | 0 | max 120 | NEW |
+| City / State | `city_state` | text | Optional | 0 | max 120 | NEW |
+| Destination Region | `destination_region` | picklist | Optional | 0 | `region` — India · MEA · APAC · Americas<br>Same value set as Region | NEW |
+| Booking Region | `booking_region` | picklist | Optional | 0 | `region` — India · MEA · APAC · Americas<br>Same value set as Region | NEW |
 | End Client | `end_client` | lookup | **Mandatory** | 0 | → `account`, filtered: _Account Type must include End Client_<br>Account Type must include End Client | — |
 | Customer (Partner / SI) | `customer_partner_si` | lookup | **Mandatory** | 0 | → `account`, filtered: _Account Type must include Partner / SI_<br>Account Type must include Partner / SI | — |
 | BD Owner | `bd_owner` | lookup | **Mandatory** | 0 | → `user`, filtered: _Role must include BD Owner_<br>Role must include BD Owner | — |
@@ -195,7 +196,7 @@ Stages 0–3.
 | Lead Status | `lead_status` | picklist | **Mandatory** | 0 | `leads__lead_status` — Open · On Hold · Closed Lost · Converted | — |
 | Probability (%) | `probability_pct` | number | **Mandatory** | 0 | Must sit in the band for the current stage | — |
 | Expected Close Month | `expected_close_month` | date | **Mandatory** | 0 | — | — |
-| Currency | `currency` | picklist | **Mandatory** | 0 | `leads__currency` — USD · AED · SAR · QAR · OMR · KWD · BHD | — |
+| Currency | `currency` | picklist | **Mandatory** | 0 | `leads__currency` — USD · AED · SAR · QAR · OMR · KWD · BHD · INR | — |
 | FX Rate at Entry | `fx_rate_at_entry` | number | System | 0 | Rate to USD | — |
 | Estimated Value | `estimated_value` | currency | **Mandatory** | 0 | — | — |
 | Is Primary Pursuit | `is_primary_pursuit` | checkbox | **Mandatory** | 0 | Default true | — |
@@ -219,7 +220,7 @@ Stages 0–3.
 | Demo Attendees | `demo_attendees` | child list | **Mandatory** | 1 | row shape in the child-list table below | — |
 | Interest Level | `interest_level` | picklist | **Mandatory** | 1 | `leads__interest_level` — High · Medium · Low | — |
 | Agreed Next Step | `agreed_next_step` | picklist | **Mandatory** | 1 | `leads__agreed_next_step` — POC scoping · Prescription · RFP · Implementation · None | — |
-| Data / Site Access Confirmation Document | `data_site_access_confirmation_document` | file | Conditional | 1 | required when `agreed_next_step == 'POC scoping'`<br>shown when `agreed_next_step == 'POC scoping'` | — |
+| Data / Site Access Confirmation Document Link | `data_site_access_confirmation_document` | url | Conditional | 1 | required when `agreed_next_step == 'POC scoping'`<br>shown when `agreed_next_step == 'POC scoping'` | — |
 | Pilot Commercial Model | `pilot_commercial_model` | picklist | Conditional | 1 | `leads__pilot_commercial_model` — Free · Paid<br>required when `agreed_next_step == 'POC scoping'`<br>shown when `agreed_next_step == 'POC scoping'` | — |
 | Pilot Fee | `pilot_fee` | currency | Conditional | 1 | required when `agreed_next_step == 'POC scoping' && pilot_commercial_model == 'Paid'`<br>shown when `agreed_next_step == 'POC scoping' && pilot_commercial_model == 'Paid'` | — |
 | Client Feedback | `client_feedback` | long text | **Mandatory** | 1 | — | — |
@@ -333,7 +334,7 @@ Stages 4–6. Holds `parent_lead`; identity is read through the parent `leads` a
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
-| Progression % | `progression_pct` | computed | Computed | any | resolved by `progression` — see lib/spec/resolvers.ts<br>0 · 11 · 22 · 33 · 44 · 56 · 67 · 78 · 89 · 100 | NEW |
+| Progression % | `progression_pct` | number | Optional | any | 0 · 11 · 22 · 33 · 44 · 56 · 67 · 78 · 89 · 100 | NEW |
 
 ### RECORD STATE — each module keeps its own instance
 
@@ -349,7 +350,7 @@ Stages 4–6. Holds `parent_lead`; identity is read through the parent `leads` a
 |---|---|---|---|---|---|---|
 | RFP Type | `rfp_type` | picklist | **Mandatory** | 4 | `leads__rfp_type` — RFP · RFI · Tender · EOI | moved from `leads` |
 | RFP Received Date | `rfp_received_date` | date | **Mandatory** | 4 | — | moved from `leads` |
-| RFP Document | `rfp_document` | file | **Mandatory** | 4 | — | moved from `leads` |
+| RFP Document Link | `rfp_document` | url | **Mandatory** | 4 | — | moved from `leads` |
 | Submission Deadline | `submission_deadline` | date-time | **Mandatory** | 4 | — | moved from `leads` |
 | ARR (Annual Recurring) | `arr_annual_recurring` | currency | **Mandatory** | 4 | — | moved from `leads` |
 | One-Time Revenue | `one_time_revenue` | currency | **Mandatory** | 4 | — | moved from `leads` |
@@ -369,7 +370,7 @@ Stages 4–6. Holds `parent_lead`; identity is read through the parent `leads` a
 | Third-Party Cost | `third_party_cost` | currency | Conditional | 4 | — | moved from `leads` |
 | Total Cost | `total_cost` | computed | Computed | 4 | `services_and_implementation_cost + third_party_cost`<br>Services & Implementation Cost + Third-Party Cost | moved from `leads` |
 | Third-Party % of TCV | `third_party_pct_of_tcv` | computed | Computed | 4 | `(3rd_party_one_time + 3rd_party_recurring_per_year * contract_years) / total_value_tcv`<br>(3rd-Party One-Time + 3rd-Party Recurring × Years) / Total Value (TCV) | moved from `leads` |
-| Cost Model (RCM) Document | `cost_model_rcm_document` | file | **Mandatory** | 4 | — | moved from `leads` |
+| Cost Model (RCM) Document Link | `cost_model_rcm_document` | url | **Mandatory** | 4 | — | moved from `leads` |
 | Licence Model | `licence_model` | picklist | **Mandatory** | 4 | `leads__licence_model` — Subscription · Perpetual | moved from `leads` |
 | Perpetual Licence Fee | `perpetual_licence_fee` | currency | Conditional | 4 | shown when `licence_model == 'Perpetual'` | moved from `leads` |
 | Client Tender Reference | `client_tender_reference` | text | Optional | 4 | max 60 | moved from `leads` |
@@ -419,14 +420,20 @@ Stages 4–6. Holds `parent_lead`; identity is read through the parent `leads` a
 | Overall RAG | `overall_rag` | picklist | Optional | any | `overall_rag` — Green · Amber · Red | NEW |
 | Next Milestone | `next_milestone` | text | Optional | any | max 200 | NEW |
 | Next Milestone Date | `next_milestone_date` | date | Optional | any | — | NEW |
-| Pipeline Rank | `pipeline_rank` | number | Optional | any | — | NEW |
+| Low Hanging | `is_low_hanging` | checkbox | Optional | any | — | NEW |
+| Low Hanging Rank | `low_hanging_rank` | number | Optional | any | — | NEW |
+| Top 10 | `is_top_10` | checkbox | Optional | any | — | NEW |
+| Top 10 Rank | `top_10_rank` | number | Optional | any | — | NEW |
 
 ### READ THROUGH THE PARENT — resolved from the parent, never stored here
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
 | Opportunity Name | `opportunity_name` | text | **Mandatory** | 0 | max 150<br>Format: [Project Name] — [Client] | read-through from `leads` via `parent_lead` |
-| Region | `region` | picklist | **Mandatory** | 0 | `region` — India · MEA · APAC · Americas | read-through from `leads` via `parent_lead` |
+| Country | `country` | text | Optional | 0 | max 120 | read-through from `leads` via `parent_lead` |
+| City / State | `city_state` | text | Optional | 0 | max 120 | read-through from `leads` via `parent_lead` |
+| Destination Region | `destination_region` | picklist | Optional | 0 | `region` — India · MEA · APAC · Americas<br>Same value set as Region | read-through from `leads` via `parent_lead` |
+| Booking Region | `booking_region` | picklist | Optional | 0 | `region` — India · MEA · APAC · Americas<br>Same value set as Region | read-through from `leads` via `parent_lead` |
 | End Client | `end_client` | lookup | **Mandatory** | 0 | → `account`, filtered: _Account Type must include End Client_<br>Account Type must include End Client | read-through from `leads` via `parent_lead` |
 | Customer (Partner / SI) | `customer_partner_si` | lookup | **Mandatory** | 0 | → `account`, filtered: _Account Type must include Partner / SI_<br>Account Type must include Partner / SI | read-through from `leads` via `parent_lead` |
 | BD Owner | `bd_owner` | lookup | **Mandatory** | 0 | → `user`, filtered: _Role must include BD Owner_<br>Role must include BD Owner | read-through from `leads` via `parent_lead` |
@@ -437,7 +444,7 @@ Stages 4–6. Holds `parent_lead`; identity is read through the parent `leads` a
 | Segment | `segment` | picklist | **Mandatory** | 0 | `segment` — Infrastructure · Industry · Power · Mobility | read-through from `leads` via `parent_lead` |
 | Theme | `theme` | picklist | **Mandatory** | 0 | `theme` — Smart Cities · Energy Utilities & Critical Infrastructure · Smart Buildings & Campuses · Industry 4.0 & Manufacturing · Data Centers · Defence & Protected Markets · Smart Transport & Infrastructure | read-through from `leads` via `parent_lead` |
 | S!aP Solution Suite | `sap_solution_suite` | lookup | **Mandatory** | 0 | → `product`, filtered: _Suite Type must be Primary suite_<br>Suite Type must be Primary suite | read-through from `leads` via `parent_lead` |
-| Currency | `currency` | picklist | **Mandatory** | 0 | `leads__currency` — USD · AED · SAR · QAR · OMR · KWD · BHD | read-through from `leads` via `parent_lead` |
+| Currency | `currency` | picklist | **Mandatory** | 0 | `leads__currency` — USD · AED · SAR · QAR · OMR · KWD · BHD · INR | read-through from `leads` via `parent_lead` |
 | Lighthouse Project | `lighthouse_project` | checkbox | Optional | 0 | — | read-through from `leads` via `parent_lead` |
 | Gorilla Flag | `gorilla_flag` | checkbox | Optional | 0 | — | read-through from `leads` via `parent_lead` |
 | Suite Demonstrated | `suite_demonstrated` | lookup | **Mandatory** | 1 | → `product` | read-through from `leads` via `parent_lead` |
@@ -568,7 +575,7 @@ Stages 7–9. Holds `parent_opportunity`; identity is read through the parent `o
 | CSAT Score | `csat_score` | number | **Mandatory** | 8 | — | — |
 | CSAT Date | `csat_date` | date | **Mandatory** | 8 | — | — |
 | Reference Status | `reference_status` | picklist | **Mandatory** | 8 | `deals__reference_status` — Secured · In progress · Declined · Not requested | — |
-| Reference Document | `reference_document` | file | Optional | 8 | — | — |
+| Reference Document Link | `reference_document` | url | Optional | 8 | — | — |
 | Re-engagement 30-Day Date | `re_engagement_30_day_date` | date | Advisory | 8 | — | — |
 | Re-engagement 90-Day Date | `re_engagement_90_day_date` | date | Advisory | 8 | — | — |
 | Expansion Use Cases | `expansion_use_cases` | child list | **Mandatory** | 8 | row shape in the child-list table below | — |
@@ -582,7 +589,6 @@ Stages 7–9. Holds `parent_opportunity`; identity is read through the parent `o
 | Contract Expiry Date | `contract_expiry_date` | date | **Mandatory** | 9 | — | — |
 | Renewal Status | `renewal_status` | picklist | **Mandatory** | 9 | `deals__renewal_status` — Not started · In progress · Signed · Lapsed | — |
 | Renewal Signed Date | `renewal_signed_date` | date | Advisory | 9 | — | — |
-| Linked Expansion Leads | `linked_expansion_leads` | child list | **Mandatory** | 9 | row shape in the child-list table below | — |
 
 ### __header
 
@@ -597,7 +603,10 @@ Stages 7–9. Holds `parent_opportunity`; identity is read through the parent `o
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
 | Opportunity Name | `opportunity_name` | text | **Mandatory** | 0 | max 150<br>Format: [Project Name] — [Client] | read-through from `opportunities` via `parent_opportunity` |
-| Region | `region` | picklist | **Mandatory** | 0 | `region` — India · MEA · APAC · Americas | read-through from `opportunities` via `parent_opportunity` |
+| Country | `country` | text | Optional | 0 | max 120 | read-through from `opportunities` via `parent_opportunity` |
+| City / State | `city_state` | text | Optional | 0 | max 120 | read-through from `opportunities` via `parent_opportunity` |
+| Destination Region | `destination_region` | picklist | Optional | 0 | `region` — India · MEA · APAC · Americas<br>Same value set as Region | read-through from `opportunities` via `parent_opportunity` |
+| Booking Region | `booking_region` | picklist | Optional | 0 | `region` — India · MEA · APAC · Americas<br>Same value set as Region | read-through from `opportunities` via `parent_opportunity` |
 | BD Owner | `bd_owner` | lookup | **Mandatory** | 0 | → `user`, filtered: _Role must include BD Owner_<br>Role must include BD Owner | read-through from `opportunities` via `parent_opportunity` |
 | Primary Contact | `primary_contact` | lookup | Optional | 0 | → `contact` | read-through from `opportunities` via `parent_opportunity` |
 | Deal Source | `deal_source` | picklist | **Mandatory** | 0 | `leads__deal_source` — Partner-sourced · Direct | read-through from `opportunities` via `parent_opportunity` |
@@ -606,7 +615,7 @@ Stages 7–9. Holds `parent_opportunity`; identity is read through the parent `o
 | Segment | `segment` | picklist | **Mandatory** | 0 | `segment` — Infrastructure · Industry · Power · Mobility | read-through from `opportunities` via `parent_opportunity` |
 | Theme | `theme` | picklist | **Mandatory** | 0 | `theme` — Smart Cities · Energy Utilities & Critical Infrastructure · Smart Buildings & Campuses · Industry 4.0 & Manufacturing · Data Centers · Defence & Protected Markets · Smart Transport & Infrastructure | read-through from `opportunities` via `parent_opportunity` |
 | S!aP Solution Suite | `sap_solution_suite` | lookup | **Mandatory** | 0 | → `product`, filtered: _Suite Type must be Primary suite_<br>Suite Type must be Primary suite | read-through from `opportunities` via `parent_opportunity` |
-| Currency | `currency` | picklist | **Mandatory** | 0 | `leads__currency` — USD · AED · SAR · QAR · OMR · KWD · BHD | read-through from `opportunities` via `parent_opportunity` |
+| Currency | `currency` | picklist | **Mandatory** | 0 | `leads__currency` — USD · AED · SAR · QAR · OMR · KWD · BHD · INR | read-through from `opportunities` via `parent_opportunity` |
 | Lighthouse Project | `lighthouse_project` | checkbox | Optional | 0 | — | read-through from `opportunities` via `parent_opportunity` |
 | Gorilla Flag | `gorilla_flag` | checkbox | Optional | 0 | — | read-through from `opportunities` via `parent_opportunity` |
 | Suite Demonstrated | `suite_demonstrated` | lookup | **Mandatory** | 1 | → `product` | read-through from `opportunities` via `parent_opportunity` |
@@ -680,23 +689,6 @@ Row shape: _inferred_.
 <details><summary><b>Why these columns</b> — the register states no row shape, so this one was derived. Correct it here or in the register.</summary>
 
 Mapped onto the POC USE CASE (children) section of the bids_pocs sheet - use_case_no, use_case_description, use_case_status - which is the register's only stated shape for a use case, and onto its bids_pocs__use_case_status picklist. POC use cases and expansion use cases are NOT the same thing: one is evidence during a pilot, the other is a revenue opportunity found during delivery, and Demonstrated / Not demonstrated reads oddly for the second. This is a borrowed shape, not a stated one. Estimated Value is new and has no register column; without it exit criterion X8.3 and deals.incremental_value at Stage 9 have nothing to add up.
-
-</details>
-
-#### `linked_expansion_leads` — Linked Expansion Leads
-
-Row shape: _inferred_ · rows are records of `leads` · read-only.
-
-| Column | api_name | Type | Row requirement | Options / target / formula | Where the column comes from |
-|---|---|---|---|---|---|
-| Lead ID | `lead_id` | autonumber | optional | LEAD-00001 | register field `leads.lead_id` |
-| Opportunity Name | `opportunity_name` | text | optional | max 150<br>Format: [Project Name] — [Client] | register field `leads.opportunity_name` |
-| Lead Stage | `project_stage` | picklist | optional | **Derived from the module range, not from `leads_stage`** — 0 Connect · 1 Demo Presentation · 2 POC / Pilot · 3 Prescription | register field `leads.project_stage` |
-| Estimated Value | `estimated_value` | currency | optional | — | register field `leads.estimated_value` |
-
-<details><summary><b>Why these columns</b> — the register states no row shape, so this one was derived. Correct it here or in the register.</summary>
-
-A linked-record list rather than an editable child - expansion leads are Lead records in their own right, so the rows are displayed and never typed into. The register does not say which lead columns to show; these four are the identifying ones and three of them are also the leading columns of list_views.leads. Estimated Value is used rather than total_value_tcv because a freshly created expansion lead has no financials yet.
 
 </details>
 
@@ -921,7 +913,7 @@ The **key** is what the store holds and what a condition compares against; the *
 | `DEFERRED` | Deferred |
 | `NO_BID` | No bid |
 
-**`leads__currency`** — 7 options
+**`leads__currency`** — 8 options
 
 | key | label |
 |---|---|
@@ -932,6 +924,7 @@ The **key** is what the store holds and what a condition compares against; the *
 | `OMR` | OMR |
 | `KWD` | KWD |
 | `BHD` | BHD |
+| `INR` | INR |
 
 **`leads__deal_source`** — 2 options
 
@@ -1095,12 +1088,12 @@ The three-module pipeline agreed at the 14-stage review is applied to the **spec
 
 ### Fields the register does not carry
 
-Declared in `spec/extensions.json` `new_fields`, so `spec/fields.json` stays generated. 10 gap-fix fields and 2 structural links — the parent lookups carry-forward-by-reference runs on, counted apart because plumbing is not an invented requirement.
+Declared in `spec/extensions.json` `new_fields`, so `spec/fields.json` stays generated. 17 gap-fix fields and 2 structural links — the parent lookups carry-forward-by-reference runs on, counted apart because plumbing is not an invented requirement.
 
 | Field | api_name | Type | Module | Stage | Kind |
 |---|---|---|---|---|---|
-| Progression % | `progression_pct` | computed | `leads` | header | gap fix |
-| Progression % | `progression_pct` | computed | `opportunities` | header | gap fix |
+| Progression % | `progression_pct` | number | `leads` | header | gap fix |
+| Progression % | `progression_pct` | number | `opportunities` | header | gap fix |
 | Progression % | `progression_pct` | computed | `deals` | header | gap fix |
 | Nomination Bid | `nomination_bid` | checkbox | `opportunities` | 4 | gap fix |
 | Incumbent Only | `incumbent_only` | checkbox | `opportunities` | 4 | gap fix |
@@ -1118,13 +1111,20 @@ Declared in `spec/extensions.json` `new_fields`, so `spec/fields.json` stays gen
 | Overall RAG | `overall_rag` | picklist | `deals` | header | gap fix |
 | Next Milestone | `next_milestone` | text | `deals` | header | gap fix |
 | Next Milestone Date | `next_milestone_date` | date | `deals` | header | gap fix |
-| Pipeline Rank | `pipeline_rank` | number | `opportunities` | header | gap fix |
+| Low Hanging | `is_low_hanging` | checkbox | `opportunities` | header | gap fix |
+| Low Hanging Rank | `low_hanging_rank` | number | `opportunities` | header | gap fix |
+| Top 10 | `is_top_10` | checkbox | `opportunities` | header | gap fix |
+| Top 10 Rank | `top_10_rank` | number | `opportunities` | header | gap fix |
+| Country | `country` | text | `leads` | 0 | gap fix |
+| City / State | `city_state` | text | `leads` | 0 | gap fix |
+| Destination Region | `destination_region` | picklist | `leads` | 0 | gap fix |
+| Booking Region | `booking_region` | picklist | `leads` | 0 | gap fix |
 
 ### Identity is carried by reference
 
-An Opportunity holds `parent_lead`; a Deal holds `parent_opportunity`. The 23 identity fields below are **read through that link and rendered read-only** — never copied, so the same value cannot drift in two places. They appear in `fieldsOf(module)` because a criterion or a formula naming a parent field would otherwise stop compiling; carrying them made one previously-broken expression compile again (`deals.incremental_value`, whose visibility rule reads `opportunity_type`).
+An Opportunity holds `parent_lead`; a Deal holds `parent_opportunity`. The 26 identity fields below are **read through that link and rendered read-only** — never copied, so the same value cannot drift in two places. They appear in `fieldsOf(module)` because a criterion or a formula naming a parent field would otherwise stop compiling; carrying them made one previously-broken expression compile again (`deals.incremental_value`, whose visibility rule reads `opportunity_type`).
 
-`opportunity_name` · `end_client` · `customer_partner_si` · `pre_bid_alliance_partner` · `primary_contact` · `partner_deal_registration` · `segment` · `theme` · `sap_solution_suite` · `suite_demonstrated` · `currency` · `total_project_value` · `probable_award_date` · `deal_source` · `opportunity_type` · `alliance_structure` · `bd_owner` · `sales_owner` · `presales_owner` · `consultant_specifier` · `region` · `lighthouse_project` · `gorilla_flag`
+`opportunity_name` · `end_client` · `customer_partner_si` · `pre_bid_alliance_partner` · `primary_contact` · `partner_deal_registration` · `segment` · `theme` · `sap_solution_suite` · `suite_demonstrated` · `currency` · `total_project_value` · `probable_award_date` · `deal_source` · `opportunity_type` · `alliance_structure` · `bd_owner` · `sales_owner` · `presales_owner` · `consultant_specifier` · `lighthouse_project` · `gorilla_flag` · `country` · `city_state` · `destination_region` · `booking_region`
 
 Deals takes 18 of the 20: the Deals sheet declares `end_client` and `customer_partner_si` itself. Whether those two register rows should be read-through instead is an open question on Spec Health, not something the loader decided.
 
@@ -1139,10 +1139,12 @@ Stage options are derived from the module range plus `spec/stages.json`, never f
 
 ### Refs still written the old way
 
-13 sidecar refs name a module their field has left. Every one still resolves — the loader keeps a `movedRefs` fall-through, so the split needed no hand-editing of `extensions.json` — and every one is listed on Spec Health rather than silently rewritten.
+15 sidecar refs name a module their field has left. Every one still resolves — the loader keeps a `movedRefs` fall-through, so the split needed no hand-editing of `extensions.json` — and every one is listed on Spec Health rather than silently rewritten.
 
 | Written as | Now lives at | Where |
 |---|---|---|
+| `leads.rfp_document` | `opportunities.rfp_document` | extensions.json fields |
+| `leads.cost_model_rcm_document` | `opportunities.cost_model_rcm_document` | extensions.json fields |
 | `leads.total_value_tcv` | `opportunities.total_value_tcv` | extensions.json fields |
 | `leads.gross_margin_pct` | `opportunities.gross_margin_pct` | extensions.json fields |
 | `leads.submitted_on_time` | `opportunities.submitted_on_time` | extensions.json fields |

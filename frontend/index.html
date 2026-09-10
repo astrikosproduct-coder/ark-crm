@@ -5,10 +5,18 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>arkcrm</title>
+    <!-- Lato: Zoho's own fallback for the proprietary Puvi face — see
+         ARK_brand_UI.md §1.2. Openly licensed, so it can ship. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,400&display=swap"
+      rel="stylesheet"
+    />
     <script>
       (function () {
         var stored = localStorage.getItem('theme');
-        var dark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var dark = stored ? stored === 'dark' : true;
         document.documentElement.classList.toggle('dark', dark);
       })();
     </script>

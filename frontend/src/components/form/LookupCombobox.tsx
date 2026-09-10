@@ -59,8 +59,23 @@ export function LookupCombobox({ field, value, onChange, onCreateNew, disabled, 
 
   const rows = useMemo(() => {
     const all = Array.isArray(data) ? data : []
-    return applyLookupFilter(all, field.lookup_filter_expr)
-  }, [data, field.lookup_filter_expr])
+    const filtered = applyLookupFilter(all, field.lookup_filter_expr)
+
+    /**
+     * A deactivated record is history, not a choice.
+     *
+     * `active` is a lifecycle flag on users, accounts and contacts: the record
+     * stays in the database and keeps resolving its name everywhere it is
+     * already referenced, but it must not be offered when someone is filling in
+     * a NEW record. That is the entire difference between deactivating and
+     * deleting — deleting would break the old references too.
+     *
+     * The value already selected is the one exception. It stays in the list
+     * even when inactive, so opening an existing record does not silently blank
+     * a field, and saving does not quietly drop the value.
+     */
+    return filtered.filter((row) => row.active !== false || idOf(row) === value)
+  }, [data, field.lookup_filter_expr, value])
 
   const selectedLabel = useMemo(() => {
     if (!value) return ''
@@ -86,7 +101,7 @@ export function LookupCombobox({ field, value, onChange, onCreateNew, disabled, 
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className={cn('h-9 w-full justify-between font-normal', !value && 'text-muted-foreground')}
+          className={cn('bg-input-bg data-[state=open]:border-ring data-[state=open]:ring-ring/50 data-[state=open]:ring-[3px] h-9 w-full justify-between font-normal', !value && 'text-muted-foreground')}
         >
           <span className="truncate">{value ? selectedLabel : `Search ${field.lookup_target}…`}</span>
           <ChevronsUpDownIcon className="ml-2 size-4 shrink-0 opacity-50" />

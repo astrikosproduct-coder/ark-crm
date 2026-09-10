@@ -14,7 +14,6 @@ import { FieldRow } from '@/components/form/FieldRow'
 import { RecordFormProvider, useRecordForm, visibleFieldsOf } from '@/hooks/useRecordForm'
 import { api } from '@/lib/api'
 import { collectionFor, quickCreateExtraFieldsFor, sectionsFor } from '@/lib/spec'
-import { useDraftStore } from '@/store/useDraftStore'
 import type { FieldSpec } from '@/types/field'
 
 /**
@@ -47,25 +46,15 @@ export function CreateNewDialog({ field, onClose, onCreated }: Props) {
   const module = MODULE_OF[target]
   const collection = collectionFor(target)
 
-  // Namespaced per originating field, not just "new" — otherwise creating an
-  // account here while /accounts/new also has an open draft would have the
-  // two stomp on the same draft-store key.
+  // Namespaced per originating field, not just "new" — two forms for the same
+  // module can be open at once (this dialog over /accounts/new), and they are
+  // different records.
   const recordId = field ? `new@${field.qref}` : ''
-
-  // The Cancel button and a successful create both already call onClose;
-  // ESC / overlay-click reach it through Dialog's onOpenChange instead, which
-  // is wired on this outer component rather than inside the RecordFormProvider
-  // below. Clearing here, once, covers all three paths without threading a
-  // form reference through each of them.
-  const closeAndClearDraft = () => {
-    if (module) useDraftStore.getState().clearDraft(module, recordId)
-    onClose()
-  }
 
   if (!field) return null
 
   return (
-    <Dialog open onOpenChange={(open) => !open && closeAndClearDraft()}>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>New {target.replace(/_/g, ' ')}</DialogTitle>
@@ -80,7 +69,7 @@ export function CreateNewDialog({ field, onClose, onCreated }: Props) {
             <CreateNewBody
               module={module}
               collection={collection}
-              onClose={closeAndClearDraft}
+              onClose={onClose}
               onCreated={onCreated}
             />
           </RecordFormProvider>
@@ -124,7 +113,7 @@ function CreateNewBody({
       void queryClient.invalidateQueries({ queryKey: ['collection', collection] })
       const id = record.id ?? record.sku ?? record.code
       if (typeof id === 'string') onCreated(id)
-      // onClose clears the draft (see closeAndClearDraft above) — a created
+      // onClose clears the draft (see onClose above) — a created
       // record must not leave one behind to resurrect on the next "+ Create
       // new" from this same field.
       onClose()

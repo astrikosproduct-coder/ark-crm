@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { RecordForm } from '@/components/form/RecordForm'
 import { RecordEditor } from '@/components/record/RecordEditor'
 import { api } from '@/lib/api'
-import { logAutomation } from '@/lib/automation'
 import { date as fmtDate } from '@/lib/format'
 import { adjudicationFor, adjudicationLoser, adjudicationWinner } from '@/lib/partners'
 import { fieldsInSet, partnerRegistration } from '@/lib/spec'
@@ -222,12 +221,6 @@ function AdjudicationCard({
         queryClient.invalidateQueries({ queryKey: ['record', 'registrations'] }),
         queryClient.invalidateQueries({ queryKey: ['list', 'registrations'] }),
       ])
-      void logAutomation({
-        type: 'record_update',
-        target: String(loser),
-        detail: `Marked ${loser} Superseded following adjudication ${String(existing?.id ?? '')}`,
-        module: 'partners',
-      })
       onRecorded()
     },
   })
@@ -326,14 +319,6 @@ function AdjudicationCard({
             saveLabel={existing ? 'Save adjudication' : 'Record adjudication'}
             onSaved={() => {
               setEditing(false)
-              void logAutomation({
-                type: 'notification',
-                target: `${String(a.id)} / ${String(b.id)}`,
-                detail: `Would notify both partners of the adjudication outcome for "${String(
-                  a.project_name ?? ''
-                )}"`,
-                module: 'partners',
-              })
               onRecorded()
             }}
             onCancel={() => setEditing(false)}

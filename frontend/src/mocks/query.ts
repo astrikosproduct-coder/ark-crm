@@ -29,20 +29,32 @@ type Item = Record<string, unknown>
 
 const RESERVED = new Set(['_page', '_limit', '_sort', '_order', '_search', 'q'])
 
+/** Lookup targets served by the real backend rather than by the store. */
+type Remote = Partial<Record<string, Item[]>>
+
 export interface ListResult {
   rows: Item[]
   total: number
 }
 
-/** id → display name for every lookup field of a module. */
-function lookupLabels(module: string): Map<string, Map<string, string>> {
+/**
+ * id → display name for every lookup field of a module.
+ *
+ * Most targets resolve out of the store. `users` and `accounts` do not — they
+ * are real database resources, and their rows are fetched by the handler and
+ * passed in. See src/mocks/userDirectory.ts.
+ */
+function lookupLabels(
+  module: string,
+  remote: Remote
+): Map<string, Map<string, string>> {
   const out = new Map<string, Map<string, string>>()
 
   for (const field of fieldsOf(module)) {
     if (field.type !== 'lookup') continue
     const target = collectionFor(field.lookup_target)
     if (!target) continue
-    const rows = useDataStore.getState().list(target)
+    const rows = remote[target] ?? useDataStore.getState().list(target)
     if (!Array.isArray(rows)) continue
 
     const names = new Map<string, string>()
@@ -116,7 +128,13 @@ function matchesFilter(value: unknown, wanted: string[]): boolean {
   return wanted.includes(String(value ?? ''))
 }
 
-export function runListQuery(collection: string, all: Item[], url: URL): ListResult {
+export function runListQuery(
+  collection: string,
+  all: Item[],
+  url: URL,
+  /** Backend-served collections, already fetched by the handler. */
+  remote: Remote = {}
+): ListResult {
   const module = moduleForCollection(collection)
   const params = url.searchParams
 
@@ -136,7 +154,9 @@ export function runListQuery(collection: string, all: Item[], url: URL): ListRes
     rows = rows.filter((row) => matchesFilter(row[key], wanted))
   }
 
-  const labels = module ? lookupLabels(module) : new Map<string, Map<string, string>>()
+  const labels = module
+    ? lookupLabels(module, remote)
+    : new Map<string, Map<string, string>>()
 
   // 2. free-text search, over the fields the caller names or every field of the
   //    module when it names none

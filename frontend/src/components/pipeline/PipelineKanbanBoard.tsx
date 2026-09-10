@@ -78,10 +78,15 @@ export function PipelineKanbanBoard({
           ? `${stage.prob_min}–${stage.prob_max}% · `
           : ''
         return (
-          <div key={stage.stage} className="w-64 shrink-0 rounded-lg border bg-muted/30">
+          <div key={stage.stage} className="w-64 shrink-0 rounded-lg border bg-muted">
             <div className="border-b px-3 py-2">
-              <p className="text-sm font-semibold">
-                {stage.stage} · {stage.name}
+              <p className="flex items-center gap-2 text-sm font-semibold">
+                <span className="truncate">
+                  {stage.stage} · {stage.name}
+                </span>
+                <span className="text-muted-foreground ml-auto text-xs tabular-nums">
+                  {rows.length}
+                </span>
               </p>
               <p className="text-xs text-muted-foreground">
                 {band}
@@ -95,7 +100,7 @@ export function PipelineKanbanBoard({
                   key={String(row.id)}
                   type="button"
                   onClick={() => navigate(`${basePath}/${row.id}`)}
-                  className="block w-full rounded-md border bg-background p-2.5 text-left text-sm hover:bg-accent"
+                  className="bg-raised block w-full rounded-lg border p-3 text-left text-sm hover:bg-accent"
                 >
                   {renderCard(row)}
                 </button>

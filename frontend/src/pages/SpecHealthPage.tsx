@@ -12,7 +12,7 @@ export function SpecHealthPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-6">
-      <h1 className="text-xl font-semibold">Spec health</h1>
+      <h1 className="text-page-title font-bold">Spec health</h1>
       <p className="mt-0.5 text-sm text-muted-foreground">
         {total} things the field register does not currently say. Each one is a question for the
         register correction pass — the engine does not guess at any of them.
@@ -31,7 +31,7 @@ export function SpecHealthPage() {
 
           <div className="overflow-x-auto rounded-lg border">
             <table className="w-full text-sm">
-              <thead className="bg-muted/50">
+              <thead className="bg-muted/50 text-label">
                 <tr>
                   <th className="px-3 py-2 text-left font-medium">Module</th>
                   <th className="px-3 py-2 text-left font-medium">Field</th>

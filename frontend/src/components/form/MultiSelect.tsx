@@ -43,7 +43,7 @@ export function MultiSelect({ id, options, value, onChange, disabled, placeholde
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className="h-auto min-h-9 w-full justify-between font-normal"
+          className="bg-input-bg data-[state=open]:border-ring data-[state=open]:ring-ring/50 data-[state=open]:ring-[3px] h-auto min-h-9 w-full justify-between font-normal"
         >
           <span className="flex flex-wrap gap-1 py-1">
             {value.length === 0 && (

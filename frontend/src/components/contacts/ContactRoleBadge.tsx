@@ -1,26 +1,20 @@
 import { EyeOffIcon } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { labelForValue, optionsFor } from '@/lib/spec'
 import { cn } from '@/lib/utils'
 
 /**
- * The five contact roles, coloured.
+ * The contact's role, read as text.
  *
  * The codes are not written here — they are the leading token of each key in
  * the `contacts__contact_role` picklist (DECM_DECISION_MAKER → DECM), which is
  * how CLAUDE.md and the register both refer to them. A sixth role added to the
- * picklist appears immediately, in the neutral style, rather than disappearing.
+ * picklist appears immediately rather than disappearing.
+ *
+ * There used to be a colour per role, on a tinted pill. Gone: a role is a
+ * field value, and it now reads like every other one.
  */
-const ROLE_STYLE: Record<string, string> = {
-  DECM: 'border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-300',
-  RECM: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  INFL: 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300',
-  INTEL: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
-  GENL: 'border-slate-500/40 bg-slate-500/10 text-slate-700 dark:text-slate-300',
-}
-
 const PICKLIST = 'contacts__contact_role'
 
 /** The short code of a contact_role value, e.g. DECM_DECISION_MAKER → DECM. */
@@ -49,9 +43,7 @@ export function ContactRoleBadge({ value, className }: { value: unknown; classNa
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Badge variant="outline" className={cn(ROLE_STYLE[code] ?? '', className)}>
-          {code}
-        </Badge>
+        <span className={cn('whitespace-nowrap', className)}>{code}</span>
       </TooltipTrigger>
       <TooltipContent>{rest || label}</TooltipContent>
     </Tooltip>
@@ -67,10 +59,10 @@ export function ConfidentialChip({ className }: { className?: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Badge variant="warning" className={cn('gap-1', className)}>
-          <EyeOffIcon className="size-3" />
+        <span className={cn('inline-flex items-center gap-1 whitespace-nowrap', className)}>
+          <EyeOffIcon className="size-3.5" />
           Confidential
-        </Badge>
+        </span>
       </TooltipTrigger>
       <TooltipContent className="max-w-xs">
         Intel provider. Do not name this contact in anything that leaves Astrikos.

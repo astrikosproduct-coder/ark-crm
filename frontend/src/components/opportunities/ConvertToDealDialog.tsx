@@ -1,3 +1,4 @@
+import { currentUserId } from '@/lib/currentUser'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -13,8 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { api } from '@/lib/api'
-import { logAutomation } from '@/lib/automation'
-import { CURRENT_USER_ID, dealStageKeyOf } from '@/lib/pipeline'
+import { dealStageKeyOf } from '@/lib/pipeline'
 import { displayNameOf, fieldsOf } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
 
@@ -39,7 +39,7 @@ export function ConvertToDealDialog({ open, opportunityId, values, onClose }: Pr
 
   const readThrough = new Set(
     fieldsOf('deals')
-      .filter((field) => field.carry === 'read_through')
+      .filter((field) => field.value_mode === 'read_through')
       .map((field) => field.api_name)
   )
 
@@ -58,7 +58,7 @@ export function ConvertToDealDialog({ open, opportunityId, values, onClose }: Pr
       dealPayload.parent_opportunity = opportunityId
       dealPayload.deal_stage = dealStageKeyOf(OPENING_STAGE)
       dealPayload.contract_value = tcv
-      dealPayload.delivery_pm = CURRENT_USER_ID
+      dealPayload.delivery_pm = currentUserId()
       dealPayload.order_booked = true
       dealPayload.booking_date = now.slice(0, 10)
       dealPayload.created_by_date = now
@@ -70,7 +70,7 @@ export function ConvertToDealDialog({ open, opportunityId, values, onClose }: Pr
       await api.put(`/opportunities/${opportunityId}`, {
         lead_status: 'CONVERTED',
         modified_date: now,
-        modified_by: CURRENT_USER_ID,
+        modified_by: currentUserId(),
       })
 
       const copiedFields = Object.keys(dealPayload).filter(
@@ -81,24 +81,12 @@ export function ConvertToDealDialog({ open, opportunityId, values, onClose }: Pr
         source_id: opportunityId,
         target_module: 'deals',
         target_id: dealId,
-        actor: CURRENT_USER_ID,
+        actor: currentUserId(),
         timestamp: now,
         copied_fields: copiedFields,
         note: `${opportunityId} moved to Deals from its Stage 6 detail page.`,
       })
 
-      void logAutomation({
-        type: 'record_update',
-        target: dealId,
-        module: 'deals',
-        detail: `${dealId} created by moving ${opportunityId} to the Deals module`,
-      })
-      void logAutomation({
-        type: 'record_update',
-        target: opportunityId,
-        module: 'opportunities',
-        detail: `${opportunityId} moved to ${dealId} — now read-only`,
-      })
 
       return { dealId, copiedFieldCount: copiedFields.length }
     },

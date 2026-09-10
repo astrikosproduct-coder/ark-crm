@@ -1,13 +1,22 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 
 import { Button } from '@/components/ui/button'
 import { CreateNewDialog } from '@/components/form/CreateNewDialog'
 import { FormSection } from '@/components/form/RecordForm'
-import { RecordFormProvider, useRecordForm, visibleFieldsOf } from '@/hooks/useRecordForm'
+import {
+  markFormSaved,
+  requestDiscard,
+  useUnsavedChangesStore,
+} from '@/store/useUnsavedChangesStore'
+import {
+  RecordFormProvider,
+  useRecordForm,
+  visibleFieldsOf,
+  type StageScope,
+} from '@/hooks/useRecordForm'
 import { api } from '@/lib/api'
-import { logAutomation } from '@/lib/automation'
 import { fieldOf, fieldsOf, idOf, sectionsFor } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
 import type { ResolvedRecord } from '@/lib/spec/resolveRecord'
@@ -25,6 +34,19 @@ export interface RecordEditorProps {
   saveLabel?: string
   /** Render only these sections, in this order. Defaults to all of them. */
   sections?: string[]
+  /**
+   * api_names the SCREEN draws elsewhere and this editor must not draw twice —
+   * a pipeline record's per-stage strip and sticky panel. See visibleFieldsOf.
+   * They are excluded from the on-screen error scoping too, so this editor
+   * never reports a field it is not showing.
+   */
+  hiddenFields?: ReadonlySet<string>
+  /**
+   * This editor is editing ONE STAGE of a pipeline record. Fields the spec
+   * records per stage then read and write `<api_name>__s<stage>` instead of the
+   * plain name, without any control on screen knowing — see useRecordForm.
+   */
+  stageScope?: StageScope
   /** With a single section, render only these api_names of it. Spec-declared. */
   only?: string[]
   /** Overrides the register's section name in the header of a single section. */
@@ -74,6 +96,7 @@ export function RecordEditor(props: RecordEditorProps) {
       recordId={props.recordId}
       initialValues={props.initialValues}
       resolved={props.resolved}
+      stageScope={props.stageScope}
     >
       <EditorBody {...props} />
     </RecordFormProvider>
@@ -88,6 +111,7 @@ function EditorBody({
   onCancel,
   saveLabel,
   sections,
+  hiddenFields,
   only,
   sectionTitle,
   stamp,
@@ -133,13 +157,13 @@ function EditorBody({
     const names = new Set<string>()
     const list = sections ?? sectionsFor(module)
     for (const section of list) {
-      for (const field of visibleFieldsOf(form, module, section)) {
+      for (const field of visibleFieldsOf(form, module, section, hiddenFields)) {
         if (list.length === 1 && only && !only.includes(field.api_name)) continue
         names.add(field.api_name)
       }
     }
     return names
-  }, [form, module, sections, only])
+  }, [form, module, sections, only, hiddenFields])
 
   /**
    * Computed fields of the module that this editor does not show and that
@@ -165,6 +189,20 @@ function EditorBody({
     )
   }, [module, onScreen])
 
+  /**
+   * Publish this form's unsaved state app-wide, so the shell's guard can hold a
+   * navigation — or a tab switch — before it destroys the edits. The id names
+   * the record AND this editor's sections, since a pipeline record can have the
+   * stage editor and the details editor open at once.
+   */
+  const formId = `${module}:${recordId ?? 'new'}:${sections?.join(',') ?? 'all'}`
+  const setFormDirty = useUnsavedChangesStore((s) => s.setFormDirty)
+
+  useEffect(() => {
+    setFormDirty(formId, form.dirty)
+    return () => setFormDirty(formId, false)
+  }, [formId, form.dirty, setFormDirty])
+
   const save = useMutation({
     mutationFn: async () => {
       const payload = { ...form.toPayload(), ...stamp }
@@ -183,19 +221,14 @@ function EditorBody({
         queryClient.invalidateQueries({ queryKey: ['collection', collection] }),
         queryClient.invalidateQueries({ queryKey: ['record', collection] }),
       ])
-      void logAutomation({
-        type: 'record_update',
-        target: id,
-        detail: recordId
-          ? `Updated ${collection} ${id}`
-          : `Created ${collection} ${id}`,
-        module,
-      })
-      // What was just saved now IS the record — nothing about it is a draft
-      // anymore. A save that left the draft behind would resurrect the old
-      // values the moment this same module + id was opened again.
-      form.clearDraft()
-      // Fire-and-forget, same as logAutomation above: a gap-fill onto a linked
+      // What was just saved now IS the record. Both calls matter: markFormSaved
+      // clears the app-wide flag synchronously, because onSaved navigates in
+      // this same tick and would otherwise be held behind the "you have not
+      // saved your changes" dialog; markSaved cleans the form itself, for the
+      // case where it stays open afterwards.
+      markFormSaved(formId)
+      form.markSaved()
+      // Fire-and-forget: a gap-fill onto a linked
       // record is a nice-to-have, not something a save should ever wait on or
       // fail over.
       void afterSave?.(record, queryClient)
@@ -215,10 +248,9 @@ function EditorBody({
     save.mutate()
   }
 
-  const cancel = () => {
-    form.clearDraft()
-    onCancel()
-  }
+  // Closing the editor throws the edits away, so it asks first — the same
+  // dialog a navigation gets. With nothing unsaved it just closes.
+  const cancel = () => requestDiscard(onCancel)
 
   const split = (errors: Errors) => {
     const here: string[] = []
@@ -256,6 +288,7 @@ function EditorBody({
           key={section}
           module={module}
           section={section}
+          hiddenFields={hiddenFields}
           onCreateNew={handleCreateNew}
           only={sections?.length === 1 ? only : undefined}
           title={sections?.length === 1 ? sectionTitle : undefined}
@@ -312,7 +345,7 @@ function EditorBody({
             Currency over in Stage 0 stopped a Stage 1 save with nothing on
             screen to explain it. */}
         {elsewhereErrors.length > 0 && (
-          <p className="text-sm text-amber-700 dark:text-amber-400">
+          <p className="text-warning text-sm">
             {elsewhereErrors.length}{' '}
             {elsewhereErrors.length === 1 ? 'field has' : 'fields have'} an invalid value in another
             section and cannot be fixed here:{' '}
@@ -322,7 +355,7 @@ function EditorBody({
         )}
 
         {shape.here.length === 0 && missing.here.length === 0 && attempted && (
-          <p className="text-sm text-emerald-600 dark:text-emerald-400">
+          <p className="text-success text-sm">
             Nothing outstanding on the fields shown
             {hasStages ? ' — ready to move to the next stage.' : '.'}
           </p>

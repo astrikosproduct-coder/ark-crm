@@ -81,9 +81,8 @@
    ]
   },
   "leads": {
-   "$note": "days_since_last_update is Computed with no computed_expr in the register (see seed_normalisation.leads below and Spec Health) - the list cell derives it from modified_date/created_date directly rather than through the formula engine. lead_id is an autonumber the store never actually stores under that key - the cell reads the record id instead, same as every other autonumber column.",
+   "$note": "days_since_last_update is Computed with no computed_expr in the register (see seed_normalisation.leads below and Spec Health) - the list cell derives it from modified_date/created_date directly rather than through the formula engine. lead_id is DELIBERATELY NOT A COLUMN: a record id is addressing, not information, and the row already navigates to the record by its name. The id is still on the record page as its subtitle, and leadListCell still knows how to render lead_id if the column is ever put back - it is an autonumber the store never stores under that key, so the cell reads the record id instead.",
    "columns": [
-    "leads.lead_id",
     "leads.opportunity_name",
     "leads.end_client",
     "leads.customer_partner_si",
@@ -116,8 +115,8 @@
    "search": []
   },
   "deals": {
+   "$note": "deal_id is DELIBERATELY NOT A COLUMN, same as leads.lead_id above - the id is addressing rather than information, and the row navigates by name. dealListCell still renders it if the column is put back.",
    "columns": [
-    "deals.deal_id",
     "deals.deal_name",
     "deals.end_client",
     "deals.customer_partner_si",
@@ -332,6 +331,10 @@
     "detail": "PROTOTYPE REGISTER EDIT. Three fields REMOVED by hand from spec/fields.json at review - parent_account (CORE), post_award_protection and protected_until (PARTNER ATTRIBUTES). build_spec.py will restore all three on the next regenerate; delete them in the workbook too. Removing parent_account also removes the only way the register expressed an account hierarchy, which matters for the two-party model: a client group with several operating companies now has no way to say so."
    },
    {
+    "ref": "deals.linked_expansion_leads",
+    "detail": "PROTOTYPE REGISTER EDIT. Field REMOVED by hand from spec/fields.json at review, along with its child_spec above - nothing in the prototype ever populated it (Stage 9 does not create leads) and it was not used by the Deals backend build. build_spec.py will restore it on the next regenerate; delete it in the workbook too if it is to stay gone. Exit criterion X9.1 in spec/criteria.json still reads `linked_expansion_leads.count >= 1` as its source - with the field gone, src/lib/readiness.ts's evaluateCriterionLike fails to resolve the identifier and the check falls open to a manual 'warn' rather than a hard failure, the same fail-open posture the rest of the spec engine takes on a broken expression. Left as-is rather than rewritten, since a replacement source was not specified."
+   },
+   {
     "ref": "accounts.post_award_protection",
     "detail": "REMOVING THIS BROKE A PARTNER PLAYBOOK RULE - DECIDE WHAT REPLACES IT. Convert to Deal used to write post_award_protection = true and protected_until = booking + 365 days onto the Customer (Partner / SI) account, and the conversion dialog told the user so. With both fields gone there is nowhere to store it, so the step now writes an AUTOMATION LOG entry instead of a record (CLAUDE.md rule 6) and the dialog says as much rather than claiming an effect it no longer has. The rule itself still has no duration stated in the register - 365 days was always a prototype default, unlike the 89-day registration exclusivity window. Either restore the two fields, or state that post-award protection is not tracked."
    },
@@ -409,7 +412,7 @@
    },
    {
     "ref": "leads.region",
-    "detail": "RENAMED from leads.country to leads.region, same review pass as accounts.region above, so both land on the identical picklist (India/MEA/APAC/Americas) rather than the two diverging picklists an earlier pass deliberately kept apart. Still Own, still read through to Opportunities and Deals (spec/module_split.json read_through.fields), still not mapped to accounts.region — LeadAccountFieldSync's MIRRORED_FIELDS stays at just segment. Sharing a picklist makes a bidirectional mapping straightforward to add later, the way End Client's Segment already works, but nobody has asked for it yet. Mandatory from Stage 0, matching Segment/Theme/Opportunity Name; confirm if it should be optional instead."
+    "detail": "ACTION REQUIRED - SPEC UPDATE. DELETED FROM THE PROTOTYPE ON REQUEST, 02 Sep 2026. Region (leads.region, STAGE 0 - CONNECT order 3, Mandatory, picklist `region`) was removed from spec/fields.json by hand, one day after Destination Region and Booking Region were added beside it: three picklists over the identical four-value vocabulary on one screen is one question asked three times, and the two new ones say which region the work is DELIVERED in and which region BOOKS the revenue, which is what the single Region field was being used to mean ambiguously. Delete the Region row from the LEADS sheet of ARK_CRM_Field_Register_Workbook_v4.xlsx so a regenerate does not bring it back. Knock-on changes made here: `region` removed from spec/module_split.json read_through.fields, so Opportunities and Deals no longer inherit it (they inherit destination_region and booking_region instead); leads_stage list view never carried it. accounts.region is a DIFFERENT field on a different sheet and is untouched - it still exists and still uses the same `region` picklist. DECIDE: should one of Destination Region / Booking Region be Mandatory from Stage 0, as Region was? Both are currently Optional."
    },
    {
     "ref": "leads.sub_segment",
@@ -434,538 +437,47 @@
    {
     "ref": "leads.overall_rag",
     "detail": "CROSS-CUTTING FIELDS WITH NO CAPTURE STAGE. Overall RAG, Next Milestone and Next Milestone Date exist identically on Leads, Opportunities and Deals (section __header — the same synthetic section, one row per module, same shape as progression_pct); Pipeline Rank exists on Opportunities only and is nullable, since most records carry no rank. All four are current state rather than something a stage transition sets, editable at any time from the key-facts strip above the tabs rather than through the ordinary collapsible-section editor — see PipelineRecordPage's HeaderStrip. Carry = Own instance on every module that has them, same rule as project_stage/probability_pct/lead_status."
+   },
+   {
+    "ref": "accounts.platform_depth",
+    "detail": "DELETED FROM THE PROTOTYPE ON REQUEST, 01 Sep 2026. Platform Depth appeared twice - accounts / PARTNER ATTRIBUTES order 16, and partners / QUARTERLY SCORECARD order 33 - both from Playbook §6.3, both multiselect, and NEITHER named a picklist, so the control rendered with no options and nothing could ever be selected. Both rows were removed from spec/fields.json by hand, and the account_platform_depth table and its backend handling were dropped. ACTION REQUIRED: delete both rows from ARK_CRM_Field_Register_Workbook_v4.xlsx. spec/fields.json is GENERATED, so the next regeneration reinstates the field and re-creates the gap unless the workbook is corrected. If Platform Depth is wanted back later it needs a value set naming the S!aP suites first."
+   },
+   {
+    "ref": "accounts.active",
+    "detail": "ACTION REQUIRED - SPEC UPDATE. Add `Active` to the ACCOUNTS sheet as a SYSTEM LIFECYCLE field: type checkbox, requirement System, default TRUE. It is a real NOT NULL boolean column in PostgreSQL today (accounts.active) and is NOT rendered as a normal form field - it is set only by the Deactivate action on the record screen. Behaviour now enforced: an inactive account stays in the database and in every historical view, and keeps resolving its name wherever it is already referenced, but it is EXCLUDED from lookup and dropdown options when filling in a new record (see LookupCombobox). Hard delete is permitted only when nothing references the account; otherwise it is blocked and deactivation is the only option. Mirrors administration.active on Users, which the register already carries."
+   },
+   {
+    "ref": "contacts.active",
+    "detail": "ACTION REQUIRED - SPEC UPDATE. Add `Active` to the CONTACTS sheet on exactly the same terms as accounts.active: checkbox, System, default TRUE, real column contacts.active, not rendered as a form field, excluded from lookups when inactive, hard delete blocked while anything references the contact. Use case: a person leaves the client. The contact must stop being offered as a Primary Contact on new leads while every historical lead that already names them still resolves to their name instead of a bare CON-004."
+   },
+   {
+    "ref": "leads__currency",
+    "detail": "INR added to the leads__currency picklist on request, 02 Sep 2026 (key INR, label INR, sort 8, active). The register's own list was USD/AED/SAR/QAR/OMR/KWD/BHD - the six GCC currencies plus USD - which had no way to record an Indian booking even though India is one of the four values of the `region` picklist. products__currency already carried INR, so the two lists disagreed. Add INR to the Currency row of the LEADS sheet in the workbook. NOT ADDRESSED: nothing seeds an INR FX rate. fx_rate_at_entry is typed by hand, so an INR lead is enterable but its USD reporting figure is only as good as the rate the user types."
+   },
+   {
+    "ref": "stage_scoped",
+    "detail": "ACTION REQUIRED - SPEC UPDATE. A NEW STORAGE CONCEPT THE REGISTER HAS NO COLUMN FOR: a field whose value is recorded PER STAGE rather than once per record. Two behaviours, both declared in extensions.json stage_scoped and implemented in src/lib/stageScope.ts. (1) CARRY_FORWARD - Progression % and Probability % are shown at the top of every stage of Leads and Opportunities, editable there. Entering a stage inherits the previous stage's number as its starting point, and editing it writes a value that belongs to THAT stage; earlier stages keep what they were set to, so the record carries a probability history instead of one number that overwrites itself. (2) STICKY - a CROSS-CUTTING field (On Hold Reason, Closed Lost Reason Code, Stage Skip Reason, Stage Reversal Reason, Probability Override Justification) is captured at the stage where its condition became true and does NOT carry forward. A lead put on hold at Stage 1 and again at Stage 3 gives two separate reasons; the Stage 3 box opens empty rather than showing the Stage 1 answer. STORAGE: `<api_name>__s<stage>`, e.g. on_hold_reason__s3. The base api_name still holds the CURRENT value for a carry_forward field (so list views, the readiness engine and probability-band validation keep working unchanged) and is never written for a sticky one. The workbook needs a column - `stage_scoped: none | carry_forward | sticky` - or these five CROSS-CUTTING rows plus probability_pct and progression_pct will regenerate as ordinary single-value fields. DECIDE: Deals is deliberately excluded from the metrics strip per instruction; its Progression % / Probability % stay record-level."
    }
   ]
  },
- "$new_fields_note": "Fields the register does not carry, declared here so spec/fields.json stays generated from the workbook. Merged by src/lib/spec/index.ts as [...raw, ...new_fields] BEFORE spec/module_split.json is applied, so the ambiguity index, byQref, byModule and Spec Health all see them as ordinary fields. Every row carries origin \"gap-fix — 14-stage review\". The two marked structural: true are the parent links that carry-forward-by-reference needs — Spec Health counts them apart from the five business fields, because plumbing is not an invented requirement.",
- "new_fields": [
-  {
-   "module": "leads",
-   "section": "HEADER",
-   "order": 1,
-   "api_name": "progression_pct",
-   "label": "Progression %",
-   "type": "computed",
-   "max_length": null,
-   "picklist": null,
-   "lookup_target": null,
-   "lookup_filter": null,
-   "values_note": "0 · 11 · 22 · 33 · 44 · 56 · 67 · 78 · 89 · 100",
-   "capture_stage": null,
-   "capture_any_stage": true,
-   "mandatory_from": null,
-   "blocks_transition": null,
-   "requirement": "Computed",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "14-stage review",
-   "description": "How far through the whole 0–9 pursuit this record sits, as a percentage of stage position.",
-   "use_case": "Shown BESIDE Probability, never instead of it. Probability is a commercial judgement inside a band; Progression is a positional fact. At Stage 7 they read 78% and 90–100%, and that difference is the point. Linear-by-position is this build’s choice — the register states no progression curve, which is recorded as an open question.",
-   "required_on_skip": null,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": "Position of the current stage in the ordered 0–9 stage list ÷ (count − 1), as a percentage.",
-   "computed_by": "progression"
-  },
-  {
-   "module": "opportunities",
-   "section": "HEADER",
-   "order": 1,
-   "api_name": "progression_pct",
-   "label": "Progression %",
-   "type": "computed",
-   "max_length": null,
-   "picklist": null,
-   "lookup_target": null,
-   "lookup_filter": null,
-   "values_note": "0 · 11 · 22 · 33 · 44 · 56 · 67 · 78 · 89 · 100",
-   "capture_stage": null,
-   "capture_any_stage": true,
-   "mandatory_from": null,
-   "blocks_transition": null,
-   "requirement": "Computed",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "14-stage review",
-   "description": "How far through the whole 0–9 pursuit this record sits, as a percentage of stage position.",
-   "use_case": "Shown BESIDE Probability, never instead of it. Probability is a commercial judgement inside a band; Progression is a positional fact. At Stage 7 they read 78% and 90–100%, and that difference is the point. Linear-by-position is this build’s choice — the register states no progression curve, which is recorded as an open question.",
-   "required_on_skip": null,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": "Position of the current stage in the ordered 0–9 stage list ÷ (count − 1), as a percentage.",
-   "computed_by": "progression"
-  },
-  {
-   "module": "deals",
-   "section": "HEADER",
-   "order": 1,
-   "api_name": "progression_pct",
-   "label": "Progression %",
-   "type": "computed",
-   "max_length": null,
-   "picklist": null,
-   "lookup_target": null,
-   "lookup_filter": null,
-   "values_note": "0 · 11 · 22 · 33 · 44 · 56 · 67 · 78 · 89 · 100",
-   "capture_stage": null,
-   "capture_any_stage": true,
-   "mandatory_from": null,
-   "blocks_transition": null,
-   "requirement": "Computed",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "14-stage review",
-   "description": "How far through the whole 0–9 pursuit this record sits, as a percentage of stage position.",
-   "use_case": "Shown BESIDE Probability, never instead of it. Probability is a commercial judgement inside a band; Progression is a positional fact. At Stage 7 they read 78% and 90–100%, and that difference is the point. Linear-by-position is this build’s choice — the register states no progression curve, which is recorded as an open question.",
-   "required_on_skip": null,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": "Position of the current stage in the ordered 0–9 stage list ÷ (count − 1), as a percentage.",
-   "computed_by": "progression"
-  },
-  {
-   "module": "opportunities",
-   "section": "STAGE 4 — RFP / RFI",
-   "order": 900,
-   "api_name": "nomination_bid",
-   "label": "Nomination Bid",
-   "type": "checkbox",
-   "max_length": null,
-   "picklist": null,
-   "lookup_target": null,
-   "lookup_filter": null,
-   "values_note": null,
-   "capture_stage": 4,
-   "capture_any_stage": false,
-   "mandatory_from": null,
-   "blocks_transition": null,
-   "requirement": "Optional",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "14-stage review",
-   "description": "The client named Astrikos in the tender rather than running an open field.",
-   "use_case": "A nomination materially raises win probability. THE UPLIFT IS NOT IN spec/stages.json — every stage row carries only prob_min, prob_max, owner_role, bid_phase and applies_to. Until the register states it, the box records the fact and probability is untouched. Listed on Spec Health.",
-   "required_on_skip": null,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": null
-  },
-  {
-   "module": "opportunities",
-   "section": "STAGE 4 — RFP / RFI",
-   "order": 901,
-   "api_name": "incumbent_only",
-   "label": "Incumbent Only",
-   "type": "checkbox",
-   "max_length": null,
-   "picklist": null,
-   "lookup_target": null,
-   "lookup_filter": null,
-   "values_note": null,
-   "capture_stage": 4,
-   "capture_any_stage": false,
-   "mandatory_from": null,
-   "blocks_transition": null,
-   "requirement": "Optional",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "14-stage review",
-   "description": "Astrikos is the sitting incumbent and the tender is effectively defensive.",
-   "use_case": "Same as Nomination Bid. The playbook records incumbent advantage as a RANGE, not a number, so there is nothing to apply and no number is invented here. When either box does move probability, the existing probability_override_justification is demanded — no second justification field.",
-   "required_on_skip": null,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": null
-  },
-  {
-   "module": "opportunities",
-   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-   "order": 902,
-   "api_name": "sow_agreed_date",
-   "label": "SoW Agreed Date",
-   "type": "date",
-   "max_length": null,
-   "picklist": null,
-   "lookup_target": null,
-   "lookup_filter": null,
-   "values_note": null,
-   "capture_stage": 6,
-   "capture_any_stage": false,
-   "mandatory_from": 6,
-   "blocks_transition": "6 → 7",
-   "requirement": "Mandatory",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "14-stage review",
-   "description": "Date the client and Astrikos agreed the final scope of work.",
-   "use_case": "The scope baseline the Deal is delivered against. Without it a Stage 8 variation cannot be shown to be a variation.",
-   "required_on_skip": false,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": null
-  },
-  {
-   "module": "opportunities",
-   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-   "order": 903,
-   "api_name": "bidder_declared_date",
-   "label": "Bidder Declared Date",
-   "type": "date",
-   "max_length": null,
-   "picklist": null,
-   "lookup_target": null,
-   "lookup_filter": null,
-   "values_note": null,
-   "capture_stage": 6,
-   "capture_any_stage": false,
-   "mandatory_from": 6,
-   "blocks_transition": "6 → 7",
-   "requirement": "Mandatory",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "14-stage review",
-   "description": "Date the client formally declared the winning bidder.",
-   "use_case": "Separates the commercial decision from the paperwork. Award Type and Contract Signed Date can lag it by weeks; the gap between the two is the contracting-delay KPI.",
-   "required_on_skip": false,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": null
-  },
-  {
-   "module": "opportunities",
-   "section": "STAGE 4 — RFP / RFI",
-   "order": 904,
-   "api_name": "parent_lead",
-   "label": "Parent Lead",
-   "type": "lookup",
-   "max_length": null,
-   "picklist": null,
-   "lookup_target": "lead",
-   "lookup_filter": null,
-   "values_note": null,
-   "capture_stage": 4,
-   "capture_any_stage": false,
-   "mandatory_from": null,
-   "blocks_transition": null,
-   "requirement": "System",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "14-stage review",
-   "description": "The Lead this Opportunity was converted from. Read-only, set by the conversion.",
-   "use_case": "The spine of carry-forward-by-reference. Every identity field on this record is READ THROUGH this link rather than copied, so the same value cannot drift in two places. Plumbing, not an invented business field.",
-   "required_on_skip": null,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": null,
-   "structural": true
-  },
-  {
-   "module": "deals",
-   "section": "ON CONVERSION",
-   "order": 905,
-   "api_name": "parent_opportunity",
-   "label": "Parent Opportunity",
-   "type": "lookup",
-   "max_length": null,
-   "picklist": null,
-   "lookup_target": "opportunity",
-   "lookup_filter": null,
-   "values_note": null,
-   "capture_stage": 7,
-   "capture_any_stage": false,
-   "mandatory_from": null,
-   "blocks_transition": null,
-   "requirement": "System",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "14-stage review",
-   "description": "The Opportunity this Deal was converted from. Read-only, set by the conversion.",
-   "use_case": "Second link in the chain. deals.parent_lead is resolved THROUGH this rather than stored twice. Plumbing, not an invented business field.",
-   "required_on_skip": null,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": null,
-   "structural": true
-  },
-  {
-   "max_length": null,
-   "picklist": "value_confidence",
-   "lookup_target": null,
-   "lookup_filter": null,
-   "values_note": null,
-   "capture_stage": 4,
-   "capture_any_stage": false,
-   "mandatory_from": null,
-   "blocks_transition": null,
-   "requirement": "Optional",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "Country / Theme / ROB-gap pass",
-   "description": "How firm the value on this Opportunity is right now — a budgetary estimate or a firm number.",
-   "use_case": "PROTOTYPE REGISTER EDIT. The ROB sheet discriminates Budgetary/Firm at every stage it covers, including Lead-stage rows. Scoped to Opportunities Stage 4 only, deliberately — Lead-stage value confidence is not captured anywhere in this build. See Spec Health.",
-   "required_on_skip": null,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": null,
-   "module": "opportunities",
-   "section": "STAGE 4 — RFP / RFI",
-   "order": 906,
-   "api_name": "value_confidence",
-   "label": "Value Confidence",
-   "type": "picklist"
-  },
-  {
-   "max_length": null,
-   "picklist": "overall_rag",
-   "lookup_target": null,
-   "lookup_filter": null,
-   "values_note": null,
-   "capture_stage": null,
-   "capture_any_stage": true,
-   "mandatory_from": null,
-   "blocks_transition": null,
-   "requirement": "Optional",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "Country / Theme / ROB-gap pass",
-   "description": "Current red/amber/green health of this record, judged at any time — not tied to a stage.",
-   "use_case": "PROTOTYPE REGISTER EDIT. Cross-cutting current state, edited from the key-facts strip above the tabs rather than through a collapsible section — see PipelineRecordPage HeaderStrip.",
-   "required_on_skip": null,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": null,
-   "module": "leads",
-   "section": "__header",
-   "order": 907,
-   "api_name": "overall_rag",
-   "label": "Overall RAG",
-   "type": "picklist"
-  },
-  {
-   "max_length": 200,
-   "picklist": null,
-   "lookup_target": null,
-   "lookup_filter": null,
-   "values_note": null,
-   "capture_stage": null,
-   "capture_any_stage": true,
-   "mandatory_from": null,
-   "blocks_transition": null,
-   "requirement": "Optional",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "Country / Theme / ROB-gap pass",
-   "description": "One line naming whatever happens next on this pursuit.",
-   "use_case": "PROTOTYPE REGISTER EDIT. Cross-cutting current state — see leads.overall_rag for the shared rationale.",
-   "required_on_skip": null,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": null,
-   "module": "leads",
-   "section": "__header",
-   "order": 908,
-   "api_name": "next_milestone",
-   "label": "Next Milestone",
-   "type": "text"
-  },
-  {
-   "max_length": null,
-   "picklist": null,
-   "lookup_target": null,
-   "lookup_filter": null,
-   "values_note": null,
-   "capture_stage": null,
-   "capture_any_stage": true,
-   "mandatory_from": null,
-   "blocks_transition": null,
-   "requirement": "Optional",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "Country / Theme / ROB-gap pass",
-   "description": "When the next milestone above is due.",
-   "use_case": "PROTOTYPE REGISTER EDIT. Cross-cutting current state — see leads.overall_rag for the shared rationale.",
-   "required_on_skip": null,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": null,
-   "module": "leads",
-   "section": "__header",
-   "order": 909,
-   "api_name": "next_milestone_date",
-   "label": "Next Milestone Date",
-   "type": "date"
-  },
-  {
-   "max_length": null,
-   "picklist": "overall_rag",
-   "lookup_target": null,
-   "lookup_filter": null,
-   "values_note": null,
-   "capture_stage": null,
-   "capture_any_stage": true,
-   "mandatory_from": null,
-   "blocks_transition": null,
-   "requirement": "Optional",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "Country / Theme / ROB-gap pass",
-   "description": "Current red/amber/green health of this record, judged at any time — not tied to a stage.",
-   "use_case": "PROTOTYPE REGISTER EDIT. Cross-cutting current state, edited from the key-facts strip above the tabs rather than through a collapsible section — see PipelineRecordPage HeaderStrip.",
-   "required_on_skip": null,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": null,
-   "module": "opportunities",
-   "section": "__header",
-   "order": 910,
-   "api_name": "overall_rag",
-   "label": "Overall RAG",
-   "type": "picklist"
-  },
-  {
-   "max_length": 200,
-   "picklist": null,
-   "lookup_target": null,
-   "lookup_filter": null,
-   "values_note": null,
-   "capture_stage": null,
-   "capture_any_stage": true,
-   "mandatory_from": null,
-   "blocks_transition": null,
-   "requirement": "Optional",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "Country / Theme / ROB-gap pass",
-   "description": "One line naming whatever happens next on this pursuit.",
-   "use_case": "PROTOTYPE REGISTER EDIT. Cross-cutting current state — see leads.overall_rag for the shared rationale.",
-   "required_on_skip": null,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": null,
-   "module": "opportunities",
-   "section": "__header",
-   "order": 911,
-   "api_name": "next_milestone",
-   "label": "Next Milestone",
-   "type": "text"
-  },
-  {
-   "max_length": null,
-   "picklist": null,
-   "lookup_target": null,
-   "lookup_filter": null,
-   "values_note": null,
-   "capture_stage": null,
-   "capture_any_stage": true,
-   "mandatory_from": null,
-   "blocks_transition": null,
-   "requirement": "Optional",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "Country / Theme / ROB-gap pass",
-   "description": "When the next milestone above is due.",
-   "use_case": "PROTOTYPE REGISTER EDIT. Cross-cutting current state — see leads.overall_rag for the shared rationale.",
-   "required_on_skip": null,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": null,
-   "module": "opportunities",
-   "section": "__header",
-   "order": 912,
-   "api_name": "next_milestone_date",
-   "label": "Next Milestone Date",
-   "type": "date"
-  },
-  {
-   "max_length": null,
-   "picklist": "overall_rag",
-   "lookup_target": null,
-   "lookup_filter": null,
-   "values_note": null,
-   "capture_stage": null,
-   "capture_any_stage": true,
-   "mandatory_from": null,
-   "blocks_transition": null,
-   "requirement": "Optional",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "Country / Theme / ROB-gap pass",
-   "description": "Current red/amber/green health of this record, judged at any time — not tied to a stage.",
-   "use_case": "PROTOTYPE REGISTER EDIT. Cross-cutting current state, edited from the key-facts strip above the tabs rather than through a collapsible section — see PipelineRecordPage HeaderStrip.",
-   "required_on_skip": null,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": null,
-   "module": "deals",
-   "section": "__header",
-   "order": 913,
-   "api_name": "overall_rag",
-   "label": "Overall RAG",
-   "type": "picklist"
-  },
-  {
-   "max_length": 200,
-   "picklist": null,
-   "lookup_target": null,
-   "lookup_filter": null,
-   "values_note": null,
-   "capture_stage": null,
-   "capture_any_stage": true,
-   "mandatory_from": null,
-   "blocks_transition": null,
-   "requirement": "Optional",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "Country / Theme / ROB-gap pass",
-   "description": "One line naming whatever happens next on this pursuit.",
-   "use_case": "PROTOTYPE REGISTER EDIT. Cross-cutting current state — see leads.overall_rag for the shared rationale.",
-   "required_on_skip": null,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": null,
-   "module": "deals",
-   "section": "__header",
-   "order": 914,
-   "api_name": "next_milestone",
-   "label": "Next Milestone",
-   "type": "text"
-  },
-  {
-   "max_length": null,
-   "picklist": null,
-   "lookup_target": null,
-   "lookup_filter": null,
-   "values_note": null,
-   "capture_stage": null,
-   "capture_any_stage": true,
-   "mandatory_from": null,
-   "blocks_transition": null,
-   "requirement": "Optional",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "Country / Theme / ROB-gap pass",
-   "description": "When the next milestone above is due.",
-   "use_case": "PROTOTYPE REGISTER EDIT. Cross-cutting current state — see leads.overall_rag for the shared rationale.",
-   "required_on_skip": null,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": null,
-   "module": "deals",
-   "section": "__header",
-   "order": 915,
-   "api_name": "next_milestone_date",
-   "label": "Next Milestone Date",
-   "type": "date"
-  },
-  {
-   "max_length": null,
-   "picklist": null,
-   "lookup_target": null,
-   "lookup_filter": null,
-   "values_note": null,
-   "capture_stage": null,
-   "capture_any_stage": true,
-   "mandatory_from": null,
-   "blocks_transition": null,
-   "requirement": "Optional",
-   "origin": "gap-fix — 14-stage review",
-   "source_ref": "Country / Theme / ROB-gap pass",
-   "description": "This Opportunity's rank in the pipeline, when one has been assigned.",
-   "use_case": "PROTOTYPE REGISTER EDIT. Nullable — most records carry no rank. Opportunities only, unlike the other three header-strip fields.",
-   "required_on_skip": null,
-   "visibility_condition": null,
-   "condition": null,
-   "computed_formula": null,
-   "module": "opportunities",
-   "section": "__header",
-   "order": 916,
-   "api_name": "pipeline_rank",
-   "label": "Pipeline Rank",
-   "type": "number"
-  }
- ],
  "fields": {
+  "$upload_to_link_note": "File-upload fields became link (url) fields prototype-wide — there is no server for an uploaded file to land on, and a pasted link is the honest equivalent. Applied only on the four that actually render on a live screen (Leads/Opportunities/Deals); the register's other file fields (bids_pocs POC workspace, administration audit-log sections) are unbuilt and left untouched. See FieldExtension.type_override/.label_override in src/types/field.ts for the override mechanism — fields.json itself is never hand-edited.",
+  "leads.data_site_access_confirmation_document": {
+   "type_override": "url",
+   "label_override": "Data / Site Access Confirmation Document Link"
+  },
+  "leads.rfp_document": {
+   "type_override": "url",
+   "label_override": "RFP Document Link"
+  },
+  "leads.cost_model_rcm_document": {
+   "type_override": "url",
+   "label_override": "Cost Model (RCM) Document Link"
+  },
+  "deals.reference_document": {
+   "type_override": "url",
+   "label_override": "Reference Document Link"
+  },
   "leads.contracting_party": {
    "computed_expr": "deal_source == 'Partner-sourced' ? customer_partner_si : end_client"
   },
@@ -1076,20 +588,51 @@
    "lookup_filter_expr": "account_type includes 'PARTNER_SI'"
   },
   "leads.bd_owner": {
-   "lookup_filter_expr": "roles includes 'BD Owner'"
+   "unexpressed": "SUSPENDED, not missing. The register's 'Role must include BD Owner' was expressed and working as `roles includes 'BD Owner'` against the real user directory. It is switched off on request: every user lookup in the application currently offers every user in the database, so that role assignment and lookup behaviour can be reviewed independently. Restore by replacing this note with that lookup_filter_expr - nothing else has to change."
   },
   "leads.sales_owner": {
-   "lookup_filter_expr": "roles includes 'Sales Owner'"
+   "unexpressed": "SUSPENDED, not missing - see leads.bd_owner. Was `roles includes 'Sales Owner'`."
   },
   "leads.presales_owner": {
-   "lookup_filter_expr": "roles includes 'Presales Owner'"
+   "unexpressed": "SUSPENDED, not missing - see leads.bd_owner. Was `roles includes 'Presales Owner'`."
   },
   "leads.primary_quote": {
-   "lookup_filter_expr": "status == 'Sent'"
+   "lookup_filter_expr": "status == 'Sent'",
+   "phase1_locked": true,
+   "note": "PHASE-1 FREEZE, 03 Sep 2026: Quotes is a Round-5 table whose fields are not yet frozen, so there is no real record for this lookup to resolve against. Rendered locked (disabled, hover explains why) rather than as a working combobox against nothing. Revert phase1_locked once Quotes ships - see the Round-5 dependency plan."
   },
   "leads.sap_solution_suite": {
    "lookup_filter_expr": "category == 'Segment Library'",
-   "note": "READ AS the register's own filter, 'Suite Type must be Primary suite'. There is still no suite_type field on a product - the catalogue's keys are sku, name, description, category, charge_type, pricing_basis - so 'Primary suite' is mapped onto catalogue_category = Segment Library, which is the category the five original suites already sat in and where the two added at review were put. The filter names `category` rather than `catalogue_category` because a lookup_filter_expr runs against the SEED rows of the target collection, not against register api_names, and seed/products.json spells it `category`. This closes the unexpressed gap with a working expression but does not close the register question - see open_questions."
+   "type_override": "text",
+   "note": "READ AS the register's own filter, 'Suite Type must be Primary suite'. There is still no suite_type field on a product - the catalogue's keys are sku, name, description, category, charge_type, pricing_basis - so 'Primary suite' is mapped onto catalogue_category = Segment Library, which is the category the five original suites already sat in and where the two added at review were put. The filter names `category` rather than `catalogue_category` because a lookup_filter_expr runs against the SEED rows of the target collection, not against register api_names, and seed/products.json spells it `category`. This closes the unexpressed gap with a working expression but does not close the register question - see open_questions. PHASE-1 FREEZE, 03 Sep 2026: type_override to text until Products ships - the lookup_filter_expr above becomes live again on revert, nothing else has to change."
+  },
+  "leads.suite_demonstrated": {
+   "type_override": "text",
+   "note": "PHASE-1 FREEZE, 03 Sep 2026: Products is a Round-5 table with no frozen fields yet, so there is nothing for this lookup to resolve against. Free text until Products ships, then revert to lookup - see the Round-5 dependency plan."
+  },
+  "leads.secondary_sap_suites": {
+   "type_override": "text",
+   "note": "PHASE-1 FREEZE, 03 Sep 2026: was a multiselect of product ids (backed by the lead_secondary_suites junction table); Products is a Round-5 table with no frozen fields yet, so there is nothing for the picker to offer. Free text until Products ships, then revert to multiselect."
+  },
+  "leads.poc_record": {
+   "phase1_locked": true,
+   "note": "PHASE-1 FREEZE, 03 Sep 2026: POC is a Round-5 table with no frozen fields yet. Rendered locked rather than a lookup with nothing to search. Revert once POC ships."
+  },
+  "leads.poc_brief_gate": {
+   "phase1_locked": true,
+   "note": "PHASE-1 FREEZE, 03 Sep 2026: Gates' checklist items read poc.* fields (see gates.json POC-01/02/03/06), so this cannot resolve or evaluate until both Gates and POC ship. Rendered locked. Revert once both are live."
+  },
+  "leads.ctb_gate": {
+   "phase1_locked": true,
+   "note": "PHASE-1 FREEZE, 03 Sep 2026: Gates is a Round-5 table with no frozen fields yet. Rendered locked rather than a lookup with nothing to search. Revert once Gates ships."
+  },
+  "leads.bid_record": {
+   "phase1_locked": true,
+   "note": "PHASE-1 FREEZE, 03 Sep 2026: Bid is a Round-5 table with no frozen fields yet. Rendered locked rather than a lookup with nothing to search. Revert once Bid ships."
+  },
+  "leads.commercial_gate": {
+   "phase1_locked": true,
+   "note": "PHASE-1 FREEZE, 03 Sep 2026: Gates is a Round-5 table with no frozen fields yet. Rendered locked rather than a lookup with nothing to search. Revert once Gates ships."
   },
   "$child_spec_note": "SIX childlist fields exist, all in leads and deals; accounts, contacts and partners declare none. NOT ONE of the six is origin: 'stated'. The bids_pocs sheet proves the register knows how to state a row shape - it carries BID CHECKLIST ITEM (child), TBE QUERY (child), POC SUCCESS CRITERION (child) and POC USE CASE (children) as explicit child sections with their own columns. No leads or deals childlist got the same treatment. Every shape below is therefore a proposal: it renders a working table so the screen can be reviewed, it wears a 'proposed shape' chip beside its label, and it stays on the Spec Health page until the register defines the row itself. Do not flip one to 'stated' because the table works.",
   "leads.project_stage": {
@@ -1099,6 +642,10 @@
   "deals.deal_stage": {
    "transition_owned": true,
    "note": "Same rule as leads.project_stage, enforced through DealAdvanceStageDialog."
+  },
+  "deals.expansion_suites": {
+   "type_override": "text",
+   "note": "PHASE-1 FREEZE, 03 Sep 2026: was a multiselect of product ids (backed by the deal_expansion_suites junction table); Products is a Round-5 table with no frozen fields yet, so there is nothing for the picker to offer. Free text until Products ships, then revert to multiselect."
   },
   "leads.demo_debrief_notes": {
    "placeholder": "What resonated with the client, what did not, technical questions raised, and anything else worth recording."
@@ -1158,7 +705,7 @@
   "leads.feature_gaps_logged": {
    "child_spec": {
     "origin": "inferred",
-    "basis": "Derived from the description ('Capability gaps surfaced during the demo') and use_case ('the product feedback loop; each gap is a roadmap candidate'). Gap is free text because the register carries no gap taxonomy. Suite / Module is a products lookup, matching leads.suite_demonstrated one row above it. Impact reuses administration__impact - that picklist is the RISK register's impact scale, borrowed here because no gap-severity set exists; if a gap severity is meant to be its own vocabulary the register must say so. A Roadmap Candidate flag was proposed and REMOVED at review: the use_case already says every gap is a roadmap candidate, so a per-row flag asked the user to re-state something that is true of the whole table. If roadmap TRIAGE needs recording it is a status, not a yes/no - say which values.",
+    "basis": "Derived from the description ('Capability gaps surfaced during the demo') and use_case ('the product feedback loop; each gap is a roadmap candidate'). Gap is free text because the register carries no gap taxonomy. Suite / Module was a products lookup, matching leads.suite_demonstrated one row above it, until the PHASE-1 FREEZE below. Impact reuses administration__impact - that picklist is the RISK register's impact scale, borrowed here because no gap-severity set exists; if a gap severity is meant to be its own vocabulary the register must say so. A Roadmap Candidate flag was proposed and REMOVED at review: the use_case already says every gap is a roadmap candidate, so a per-row flag asked the user to re-state something that is true of the whole table. If roadmap TRIAGE needs recording it is a status, not a yes/no - say which values.",
     "add_label": "Add gap",
     "row_noun": "gap",
     "columns": [
@@ -1172,9 +719,9 @@
      {
       "api_name": "suite_module",
       "label": "Suite / Module",
-      "type": "lookup",
-      "lookup_target": "product",
-      "width": 200
+      "type": "text",
+      "width": 200,
+      "description": "PHASE-1 FREEZE, 03 Sep 2026: was a products lookup; Products is a Round-5 table with no frozen fields yet, so free text until it ships, then revert."
      },
      {
       "api_name": "impact",
@@ -1297,21 +844,55 @@
     ]
    }
   },
-  "deals.linked_expansion_leads": {
-   "child_spec": {
-    "origin": "inferred",
-    "child_module": "leads",
-    "readonly": true,
-    "basis": "A linked-record list rather than an editable child - expansion leads are Lead records in their own right, so the rows are displayed and never typed into. The register does not say which lead columns to show; these four are the identifying ones and three of them are also the leading columns of list_views.leads. Estimated Value is used rather than total_value_tcv because a freshly created expansion lead has no financials yet.",
-    "row_noun": "linked lead",
-    "columns": [
-     "leads.lead_id",
-     "leads.opportunity_name",
-     "leads.project_stage",
-     "leads.estimated_value"
-    ]
-   },
-   "note": "Nothing in the prototype populates this yet - Stage 9 does not create leads. The table renders empty and read-only, which is honest."
+  "opportunities.parent_lead": {
+   "structural": true,
+   "note": "The parent link carry-forward-by-reference and read-through both resolve through. Plumbing, not a business field."
+  },
+  "deals.parent_opportunity": {
+   "structural": true,
+   "note": "The parent link carry-forward-by-reference and read-through both resolve through. Plumbing, not a business field."
   }
- }
+ },
+ "stage_scoped": {
+  "$note": "Fields recorded PER STAGE rather than once per record. Read by src/lib/stageScope.ts; see the `stage_scoped` row in open_questions for why the register cannot express this yet. Values live under `<api_name>__s<stage>`.",
+  "modules": [
+   "leads",
+   "opportunities",
+   "deals"
+  ],
+  "carry_forward": {
+   "$note": "Shown in the metrics strip at the top of every stage, editable there. A stage with no value of its own inherits the nearest EARLIER stage that has one, falling back to the base api_name. Editing the CURRENT stage also writes the base api_name, so list columns, the readiness panel and the probability-band check keep reading one number. `default_by` names a resolver in src/lib/spec/resolvers.ts used ONLY when no stage and no base value has ever been set - it seeds the box, it does not own it.",
+   "fields": [
+    {
+     "api_name": "progression_pct",
+     "default_by": "progression"
+    },
+    {
+     "api_name": "probability_pct"
+    }
+   ]
+  },
+  "sticky": {
+   "$note": "Shown inline underneath the stage's own fields, at the stage where the condition became true, and never carried forward. Only a CROSS-CUTTING field that actually HAS a visibility_condition qualifies, plus whatever `extra` names below. That deliberately leaves out Stage Skip Reason and Stage Reversal Reason - both are written by the Advance / Change stage dialog as part of the transition, so offering a second box for them here would be two places to write one answer - and every computed row (Days in Current Stage, Days Since Last Update, Close Date Pushback Count), which is record-level state and stays on the Details tab.",
+   "sections": [
+    "CROSS-CUTTING"
+   ],
+   "require_condition": true,
+   "extra": [
+    {
+     "api_name": "probability_override_justification",
+     "when": "probability_out_of_band",
+     "$note": "The register gives this row no visibility_condition, because until Probability became editable per stage there was no moment at which to ask. There is now: the box appears the instant the number typed in the stage strip falls outside the band spec/stages.json gives that stage, which is exactly what Playbook 3.1 says must be justified in writing. `when` names a predicate in src/lib/stageScope.ts - the same escape hatch as computed_by, for a condition the expression language cannot reach because the band is not a field of any record."
+    }
+   ]
+  },
+  "history_only": {
+   "$note": "Reason fields the record KEEPS but no form ASKS for. Both are written by the Advance / Change stage dialog as part of recording the transition - and both were ALSO rendering as ordinary editable boxes in CROSS-CUTTING on the Details tab, which is the two-places-to-write-one-answer the sticky note above says must not happen and which nothing was actually enforcing. They are hidden from every form now and read back in the Reasons & Justifications panel, which points at the History tab where the transition that wrote them lives. Record-level rather than per-stage: the transitions table is what carries one reason per move.",
+   "fields": [
+    "stage_skip_reason",
+    "stage_reversal_reason"
+   ]
+  }
+ },
+ "$new_fields_retired_note": "RETIRED at Round 7. The 27 rows that lived here are now field_definitions rows in PostgreSQL and arrive in spec/fields.json like every other field, so Administration can see and edit them -- previously it could not, because bootstrap_metadata.py deliberately did not import them and they existed in no database table at all. They are still identifiable by origin ('gap-fix -- 14-stage review'), which is what src/lib/spec/index.ts filters on and all that ever distinguished them. The two `structural` flags moved into `fields` above: opportunities.parent_lead, deals.parent_opportunity. `computed_by` on deals.progression_pct was dropped -- D4 settled that the field is a plain editable Number and nothing derives it."
 }

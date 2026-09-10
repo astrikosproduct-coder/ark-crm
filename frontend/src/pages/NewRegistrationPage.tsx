@@ -3,13 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { PageLayout } from '@/components/layout/PageLayout'
 import { RecordEditor } from '@/components/record/RecordEditor'
-import { UnsavedBadge } from '@/components/record/UnsavedBadge'
-import { NEW_RECORD_ID } from '@/hooks/useRecordForm'
 import { ACK_SLA_DAYS, EXCLUSIVITY_DAYS, isoDate, today } from '@/lib/partners'
 import { fieldOf, partnerRegistration } from '@/lib/spec'
-import { logAutomation } from '@/lib/automation'
 import type { Values } from '@/lib/spec/conditions'
-import { useDiscardToken } from '@/store/useDraftStore'
 
 const MODULE = 'partners'
 const COLLECTION = 'registrations'
@@ -40,14 +36,12 @@ export function NewRegistrationPage() {
     return values
   }, [search])
 
-  const discardToken = useDiscardToken(MODULE, NEW_RECORD_ID)
 
   return (
     <PageLayout
       title={
         <>
           New deal registration
-          <UnsavedBadge module={MODULE} recordId={NEW_RECORD_ID} />
         </>
       }
       subtitle={`Saving records the claim. It does not start exclusivity — that begins when Astrikos acknowledges, which is due within ${ACK_SLA_DAYS} days and then runs for ${EXCLUSIVITY_DAYS} days inclusive of the start day.`}
@@ -57,7 +51,6 @@ export function NewRegistrationPage() {
           label: 'Registration',
           content: (
             <RecordEditor
-              key={discardToken}
               module={MODULE}
               collection={COLLECTION}
               initialValues={initialValues}
@@ -68,15 +61,7 @@ export function NewRegistrationPage() {
               // Astrikos has not yet agreed to protect it.
               stamp={{ registration_status: 'SUBMITTED' }}
               saveLabel="Register deal"
-              onSaved={(id, record) => {
-                void logAutomation({
-                  type: 'notification',
-                  target: id,
-                  module: MODULE,
-                  detail: `Deal registration ${id} received for "${String(
-                    record.project_name ?? ''
-                  )}" — acknowledgement due within ${ACK_SLA_DAYS} days`,
-                })
+              onSaved={(id) => {
                 navigate(`/partners/registrations/${id}`, { replace: true })
               }}
               onCancel={() => navigate('/partners')}

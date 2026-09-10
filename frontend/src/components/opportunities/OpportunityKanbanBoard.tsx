@@ -2,6 +2,7 @@ import type { ListRow } from '@/components/list/ListCell'
 import { ReadThroughLookup, ReadThroughText } from '@/components/opportunities/opportunityListCell'
 import { PipelineKanbanBoard } from '@/components/pipeline/PipelineKanbanBoard'
 import { money } from '@/lib/format'
+import { carriedListValue } from '@/lib/stageScope'
 import { fieldOf } from '@/lib/spec'
 
 const END_CLIENT_TARGET = fieldOf('opportunities', 'end_client')?.lookup_target ?? null
@@ -28,7 +29,12 @@ function OpportunityCard({ row }: { row: ListRow }) {
           {typeof row.submission_deadline === 'string' && row.submission_deadline ? row.submission_deadline : '—'}
         </span>
         <span className="tabular-nums">
-          {typeof row.progression_pct === 'number' ? `${row.progression_pct}% through` : '—'}
+          {/* Progression is editable per stage now, so a record with none of
+              its own falls back to the positional default — see stageScope. */}
+          {(() => {
+            const p = carriedListValue('opportunities', 'progression_pct', row)
+            return typeof p === 'number' ? `${p}% through` : '—'
+          })()}
         </span>
       </div>
     </>

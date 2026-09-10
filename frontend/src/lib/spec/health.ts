@@ -12,8 +12,6 @@ import {
   orphanedListColumns,
   precisionLimits,
   registerCorrections,
-  relocatedFields,
-  sharedEquivalence,
 } from './index'
 import { seedMismatches } from './seed'
 import type { FieldSpec } from '@/types/field'
@@ -61,9 +59,21 @@ function childListDetail(f: FieldSpec): string {
  * A `moved` field is included — it exists exactly once, just not where the
  * workbook filed it.
  */
-const registerRows = fields.filter(
-  (f) => !f.carry || f.carry === 'own' || f.carry === 'moved' || f.carry === 'new'
-)
+const seenDefinitions = new Set<string>()
+const registerRows = fields.filter((f) => {
+  // One row per FIELD DEFINITION, not per placement. A field placed on three
+  // modules is one register row seen three times, and counting it three times
+  // would inflate every gap total on this page.
+  //
+  // A read-through copy is never the definition — it stores nothing and exists
+  // to make the parent's value visible. Everything else is deduped on the
+  // module the definition originated on.
+  if (f.value_mode === 'read_through') return false
+  const key = `${f.register_module ?? f.module}.${f.api_name}`
+  if (seenDefinitions.has(key)) return false
+  seenDefinitions.add(key)
+  return true
+})
 
 function row(f: FieldSpec, detail: string): HealthRow {
   return {
@@ -300,13 +310,15 @@ export function specHealth(): HealthGroup[] {
   // 14b. Fields the register does not carry at all.
   const business = newFields.filter((f) => !f.structural)
   const structural = newFields.filter((f) => f.structural)
+  // `structural` now arrives through the ordinary field sidecar rather than
+  // inline on a new_fields row — see spec/extensions.json.
   groups.push({
     id: 'new-fields',
     title: `Fields added outside the register — ${
       new Set(business.map((f) => f.api_name)).size
     } gap-fix fields and ${structural.length} structural links`,
     ask:
-      'Declared in spec/extensions.json new_fields, not in the workbook, so a regenerate of fields.json cannot lose them and cannot silently adopt them either. The gap-fix fields are business fields agreed at the 14-stage review and need a register row each. The structural ones are the parent links carry-forward-by-reference runs on — plumbing, listed apart so nobody is asked to approve a lookup as though it were a new requirement.',
+      'Added outside the workbook and identified by origin. Until Round 7 these lived in spec/extensions.json new_fields and were deliberately NOT imported, so 27 fields rendered in the CRM and existed in no database table — Administration could not see or edit one of them. They are ordinary field_definitions rows now. The gap-fix fields are business fields agreed at the 14-stage review and need a register row each. The structural ones are the parent links carry-forward-by-reference runs on — plumbing, listed apart so nobody is asked to approve a lookup as though it were a new requirement.',
     rows: newFields.map((f) => ({
       ref: `${f.module}.${f.api_name}`,
       module: f.module,
@@ -351,47 +363,14 @@ export function specHealth(): HealthGroup[] {
       })),
   })
 
-  // 14e. One concept, two names, because two sheets named it separately.
-  groups.push({
-    id: 'shared-equivalence',
-    title: 'Shared fields the Deals sheet names differently',
-    ask: 'The CROSS-CUTTING and SYSTEM sections are placed on all three pipeline modules. Where the Deals sheet already carries the same concept under another name, the pair is declared rather than collapsed — dropping either row would hide a register inconsistency behind a loader. Rename in the workbook.',
-    rows: sharedEquivalence.map((e, i) => ({
-      ref: `${e.shared}#${i}`,
-      module: e.existing.split('.')[0],
-      api_name: e.existing.split('.').slice(1).join('.'),
-      label: fieldByRef(e.existing)?.label ?? '',
-      type: 'duplicate concept',
-      detail: `${e.shared} and ${e.existing} are the same thing. ${e.note}`,
-    })),
-  })
-
-  // 14f. Fields placed at a different stage than the register captures them
-  //      at — a product decision, not a register defect, so kept apart from
-  //      register-corrections above.
-  //
-  //      fieldByRef(ref) resolves the REGISTER ref through the same movedRefs
-  //      fall-through every other moved field uses, landing on the field as
-  //      IT NOW SITS — capture_stage already overridden. It is looked up only
-  //      for module/label/api_name; the placement reasoning comes from the
-  //      relocation record itself, not from re-deriving the register's
-  //      original stage here.
-  groups.push({
-    id: 'relocated-fields',
-    title: 'Fields relocated to a different stage than the register captures',
-    ask: 'Not a register error — a deliberate placement decision, recorded in spec/module_split.json relocated_fields so it stays visible rather than buried in a diff. Confirm the register should be corrected to match, or that this stays a build-only override.',
-    rows: Object.entries(relocatedFields).map(([ref, r]) => {
-      const f = fieldByRef(ref)
-      return {
-        ref,
-        module: f?.module ?? ref.split('.')[0],
-        api_name: ref.split('.').slice(1).join('.'),
-        label: f?.label ?? '',
-        type: 'relocated field',
-        detail: `Placed at Stage ${r.capture_stage} (${r.section}). ${r.reason}`,
-      }
-    }),
-  })
+  // 14e / 14f. The shared-equivalence and relocated-field groups used to be
+  //            built from spec/module_split.json's `shared.equivalence` and
+  //            `relocated_fields` blocks. Round 7 removed both: a relocated
+  //            field simply HAS the stage and section it has, so there is no
+  //            override left to report, and the equivalence pair is a register
+  //            inconsistency rather than a placement rule. Neither observation
+  //            was lost — both are now register_corrections entries and are
+  //            rendered by the group above.
 
   // 13. Not gaps. Things the register's types cannot carry, stated so no screen
   //     is later read as claiming precision the data does not have.

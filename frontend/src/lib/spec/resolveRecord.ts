@@ -98,7 +98,7 @@ export function resolveRecord(
   parents: ParentRecords = {}
 ): ResolvedRecord {
   const own: Values = { ...(record ?? {}) }
-  const readThrough = fieldsOf(module).filter((f) => f.carry === 'read_through')
+  const readThrough = fieldsOf(module).filter((f) => f.value_mode === 'read_through')
 
   if (!readThrough.length) {
     return { values: own, inherited: new Set(), sources: {}, chain: [], unresolved: [] }

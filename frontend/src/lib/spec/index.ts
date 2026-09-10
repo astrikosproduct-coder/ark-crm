@@ -1,7 +1,6 @@
 import fieldsData from '../../../spec/fields.json'
 import picklistsData from '../../../spec/picklists.json'
 import extensionsData from '../../../spec/extensions.json'
-import { applyModuleSplit } from './moduleSplit'
 import type {
   FieldExtension,
   FieldSetSpec,
@@ -36,20 +35,30 @@ const extensions = extensionsFile.fields
 export const picklists = picklistsData as unknown as PicklistMap
 
 /**
- * Fields the register does not carry, declared in extensions.json new_fields.
+ * The origin string the 27 gap-fix rows carry. Spec Health groups on it.
  *
- * Merged into the raw list BEFORE anything else runs, so the ambiguity index,
- * byQref, byModule and every Spec Health check see them as ordinary fields —
- * there is no second code path for a field that came from the sidecar. What
- * keeps them distinguishable is `origin`, not a different mechanism.
+ * They used to live in extensions.json `new_fields` and be appended to the
+ * register list here, which meant Administration could not see them at all —
+ * bootstrap_metadata.py said so in as many words: "extensions.json's
+ * new_fields rows are NOT imported". 27 fields rendered in the CRM and existed
+ * in no database table. Round 7 absorbed them into field_definitions, so they
+ * arrive in fields.json like every other field and are administrable like
+ * every other field. What still distinguishes them is `origin`, which is all
+ * that ever should have.
  */
-export const newFields: NewFieldSpec[] = extensionsFile.new_fields ?? []
-
-/** The origin string every new_fields row carries. Spec Health groups on it. */
 export const NEW_FIELD_ORIGIN = 'gap-fix — 14-stage review'
 
-const registerFields = fieldsData as unknown as RawFieldSpec[]
-const raw: RawFieldSpec[] = [...registerFields, ...newFields]
+/**
+ * Every field, already placed.
+ *
+ * spec/fields.json is generated from field_placements: one row per module a
+ * field appears on, carrying the section, order, label and value behaviour it
+ * has THERE. Nothing is re-homed here — see ./moduleSplit.ts for what that
+ * file used to do and why it no longer does it.
+ */
+const raw: RawFieldSpec[] = fieldsData as unknown as RawFieldSpec[]
+
+
 
 /**
  * The split's own vocabulary, re-exported so a component reaches for one spec
@@ -63,14 +72,21 @@ export {
   parentModuleOf,
   rangeOf,
   registerCorrections,
-  relocatedFields,
-  sharedEquivalence,
   stageFieldOf,
 } from './moduleSplit'
 
 /** True when this field's value lives on the parent record, not on this one. */
 export function isReadThrough(field: FieldSpec): boolean {
-  return field.carry === 'read_through'
+  return field.value_mode === 'read_through'
+}
+
+/**
+ * True when this field's opening value is copied from the parent at creation
+ * and owned afterwards. Seeded by the API, not by the form — see
+ * backend/app/carry_forward.py.
+ */
+export function isCarriedForward(field: FieldSpec): boolean {
+  return field.value_mode === 'carry_forward'
 }
 
 // ----------------------------------------------------------- ambiguous names
@@ -103,11 +119,36 @@ function qrefOf(f: { module: string; section: string; api_name: string }): strin
  * index further down serves everything else.
  *
  * They agree everywhere it matters: none of the nine duplicated api_names is on
- * a pipeline module, and applyModuleSplit asserts that the split introduces no
- * new duplicate.
+ * a pipeline module, and PostgreSQL's uq_field_placements_qname constraint
+ * refuses to store one.
  */
+/**
+ * The alias index a SIDECAR KEY is written against.
+ *
+ * spec/extensions.json is hand-maintained and its 58 field keys were written
+ * against the register's own modules — `leads.rfp_received_date` for a field
+ * that renders on Opportunities. `register_module` carries that original
+ * module on every row, so the sidecar still finds its field without anyone
+ * rewriting a single key. 57 of the 58 resolve this way; the one that does not
+ * names a field that has been deleted, and Spec Health reports it.
+ *
+ * A definition-level sidecar entry lands on EVERY placement of that field,
+ * which is correct: computed_expr, child_spec and type_override describe the
+ * field, not the module it is being shown on.
+ */
+function sidecarKeysFor(f: RawFieldSpec): string[] {
+  const own = `${f.module}.${f.api_name}`
+  const register = f.register_module ? `${f.register_module}.${f.api_name}` : null
+  return register && register !== own ? [own, register] : [own]
+}
+
 const preSplitByAlias = new Map<string, RawFieldSpec[]>()
 for (const f of raw) {
+  // Only a field on its OWN module counts towards ambiguity. A field copied
+  // onto three modules is one definition seen three times, not three
+  // definitions — the duplicated api_names the register really does carry are
+  // all in non-pipeline modules, where module and register_module agree.
+  if (f.register_module && f.register_module !== f.module) continue
   const alias = `${f.module}.${f.api_name}`
   preSplitByAlias.set(alias, [...(preSplitByAlias.get(alias) ?? []), f])
 }
@@ -189,41 +230,72 @@ for (const key of extensionKeys) checkRef(key, 'spec/extensions.json fields')
 const mergedFields: FieldSpec[] = raw.map((f) => {
   const ref = `${f.module}.${f.api_name}`
   const qref = qrefOf(f)
-  const ext = extensions[qref] ?? (preSplitAmbiguous.has(ref) ? undefined : extensions[ref])
-  return { ...f, ...(ext ?? {}), ref, qref }
+  const aliases = sidecarKeysFor(f)
+  const ext =
+    extensions[qref] ??
+    aliases.map((key) => (preSplitAmbiguous.has(key) ? undefined : extensions[key])).find(Boolean)
+  return {
+    ...f,
+    ...(ext ?? {}),
+    ref,
+    qref,
+    // Applied explicitly, not by the spread above: RawFieldSpec.type and
+    // .label are mandatory, so the sidecar carries these under different
+    // names (type_override/label_override) rather than clashing with them —
+    // see FieldExtension's own comment.
+    ...(ext?.type_override ? { type: ext.type_override } : {}),
+    ...(ext?.label_override ? { label: ext.label_override } : {}),
+  }
 })
 
+export const fields: FieldSpec[] = mergedFields
+
 /**
- * The three-module pipeline split, applied LAST.
+ * Refs written against a field's ORIGINAL module that now name it elsewhere.
  *
- * Order matters and is the whole reason this is a separate step rather than
- * something build_spec.py could have done: the sidecar merge above keys on the
- * register's modules, so it has to finish before a Stage 5 field stops being a
- * Leads field. See spec/module_split.json and ./moduleSplit.ts.
+ * `leads.total_value_tcv` -> `opportunities.total_value_tcv`. Every sidecar
+ * key, list_views column, child_spec column ref and seed_normalisation entry
+ * written before the pipeline was split still resolves through this.
+ *
+ * Derived from the data rather than declared: a row whose register_module
+ * differs from its module contributes one entry, and only when nothing on the
+ * original module already answers to that name — a field that is genuinely on
+ * Leads AND Opportunities needs no fall-through, because the direct lookup
+ * already finds the Leads one. The debt is not hidden: Spec Health lists every
+ * entry so the sidecar can be rewritten deliberately rather than silently.
  */
-const splitResult = applyModuleSplit(
-  mergedFields,
-  new Set(newFields.map((f) => `${f.module}.${f.section}.${f.api_name}`))
+const liveAliases = new Set(mergedFields.map((f) => `${f.module}.${f.api_name}`))
+const derivedMovedRefs = new Map<string, string>()
+for (const f of mergedFields) {
+  if (!f.register_module || f.register_module === f.module) continue
+  const from = `${f.register_module}.${f.api_name}`
+  if (liveAliases.has(from) || derivedMovedRefs.has(from)) continue
+  derivedMovedRefs.set(from, `${f.module}.${f.api_name}`)
+}
+
+export const movedRefs: ReadonlyMap<string, string> = derivedMovedRefs
+
+/**
+ * The gap-fix rows, for Spec Health. Ordinary fields in every other respect.
+ *
+ * Taken from the MERGED list so the sidecar is already on them — `structural`
+ * marks the two parent links, and it lives in spec/extensions.json `fields`
+ * now rather than inline on a new_fields row.
+ */
+export const newFields: FieldSpec[] = mergedFields.filter(
+  (f) => f.origin === NEW_FIELD_ORIGIN
 )
 
-export const fields: FieldSpec[] = splitResult.fields
-
 /**
- * Refs that named a field on its register module and now name one elsewhere.
- *
- * Every sidecar key, list_views column, child_spec column ref and
- * seed_normalisation entry written before the split still resolves through
- * this, so nothing had to be rewritten in extensions.json by hand. The debt is
- * listed on the Spec Health page rather than being silently absorbed.
+ * Placements that would put two different fields on one module under one
+ * api_name. Enforced in PostgreSQL now — uq_field_placements_qname — so this
+ * stays empty; it is kept because a generated file could still be stale.
  */
-export const movedRefs: ReadonlyMap<string, string> = splitResult.movedRefs
-
-/** Placements module_split.json asks for that the field list cannot satisfy. */
-export const splitErrors: string[] = splitResult.errors
+export const splitErrors: string[] = []
 
 specRefErrors.push(...splitErrors)
 
-// ------------------------------------------------- the post-split index
+// ------------------------------------------------------------- the index
 
 const definitionsByAlias = new Map<string, FieldSpec[]>()
 for (const f of fields) {

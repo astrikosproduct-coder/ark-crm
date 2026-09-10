@@ -1,3 +1,4 @@
+import { currentUserId } from '@/lib/currentUser'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRightIcon, SparklesIcon } from 'lucide-react'
@@ -9,9 +10,7 @@ import { PipelineRecordPage } from '@/components/pipeline/PipelineRecordPage'
 import type { PipelineModuleSpec, PipelineRecordContext } from '@/components/pipeline/types'
 import { api } from '@/lib/api'
 import { money } from '@/lib/format'
-import { logAutomation } from '@/lib/automation'
 import {
-  CURRENT_USER_ID,
   dealStageKeyOf,
   probabilityMidpoint,
   stageKeyOf,
@@ -107,9 +106,9 @@ function useCreateExpansionLead(ctx: PipelineRecordContext) {
         demo_attendees: Array.isArray(parentLead.demo_attendees) ? parentLead.demo_attendees : [],
         stage_skip_reason: reason,
         created_date: now,
-        created_by: CURRENT_USER_ID,
+        created_by: currentUserId(),
         modified_date: now,
-        modified_by: CURRENT_USER_ID,
+        modified_by: currentUserId(),
       }
 
       const created = await api.post<Record<string, unknown>>('/leads', payload)
@@ -123,17 +122,11 @@ function useCreateExpansionLead(ctx: PipelineRecordContext) {
         reason,
         is_skip: true,
         is_reversal: false,
-        actor: CURRENT_USER_ID,
+        actor: currentUserId(),
         timestamp: now,
       }
       await api.post('/transitions', transition)
 
-      void logAutomation({
-        type: 'record_update',
-        target: newId,
-        module: 'leads',
-        detail: `Created expansion lead ${newId} from ${ctx.id}, entering at Stage ${EXPANSION_ENTRY_STAGE}`,
-      })
 
       return newId
     },

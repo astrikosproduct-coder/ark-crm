@@ -7,6 +7,7 @@ import { PageLayout } from '@/components/layout/PageLayout'
 import { RecordListView } from '@/components/list/RecordListView'
 import { OpportunityKanbanBoard } from '@/components/opportunities/OpportunityKanbanBoard'
 import { opportunityListCell } from '@/components/opportunities/opportunityListCell'
+import { RankedOpportunityList } from '@/components/opportunities/RankedOpportunityList'
 import { stageKeyOf, stagesFor } from '@/lib/pipeline'
 import { PlusIcon } from 'lucide-react'
 
@@ -82,6 +83,16 @@ export function OpportunitiesPage() {
           ),
         },
         { key: 'pipeline', label: 'Pipeline', content: <OpportunityKanbanBoard /> },
+        {
+          key: 'low-hanging',
+          label: 'Low Hanging',
+          content: <RankedOpportunityList flagField="is_low_hanging" rankField="low_hanging_rank" cap={5} />,
+        },
+        {
+          key: 'top-10',
+          label: 'Top 10',
+          content: <RankedOpportunityList flagField="is_top_10" rankField="top_10_rank" cap={10} />,
+        },
       ]}
     />
   )

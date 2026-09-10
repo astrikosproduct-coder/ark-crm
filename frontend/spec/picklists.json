@@ -227,6 +227,12 @@
    "label": "BHD",
    "sort": 7,
    "active": true
+  },
+  {
+   "key": "INR",
+   "label": "INR",
+   "sort": 8,
+   "active": true
   }
  ],
  "leads__interest_level": [

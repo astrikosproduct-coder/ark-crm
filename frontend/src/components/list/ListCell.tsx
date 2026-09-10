@@ -1,6 +1,5 @@
 import { CheckIcon } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
 import { date as fmtDate, dateTime as fmtDateTime, money, number, percent } from '@/lib/format'
 import { labelForValue } from '@/lib/spec'
 import type { FieldSpec } from '@/types/field'
@@ -31,13 +30,13 @@ export function ListCell({ field, row }: { field: FieldSpec; row: ListRow }) {
       return <span>{row.__labels?.[field.api_name] ?? String(value)}</span>
 
     case 'multiselect':
+      // Comma-separated text, not a row of filled chips: several values are
+      // still one field, and they read as one sentence.
       return (
-        <span className="flex flex-wrap gap-1">
-          {(Array.isArray(value) ? value : [value]).map((v) => (
-            <Badge key={String(v)} variant="secondary">
-              {labelForValue(field.picklist, v)}
-            </Badge>
-          ))}
+        <span>
+          {(Array.isArray(value) ? value : [value])
+            .map((v) => labelForValue(field.picklist, v))
+            .join(', ')}
         </span>
       )
 

@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon, SearchIcon } from 'lucide-react'
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronsUpDownIcon,
+  SearchIcon,
+} from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -152,7 +159,7 @@ export function RecordListView({
 
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
-          <thead className="bg-muted/50">
+          <thead className="bg-muted/50 text-label">
             <tr>
               {columns.map((f) => (
                 <th key={f.qref} className="p-0 text-left font-medium whitespace-nowrap">
@@ -196,10 +203,20 @@ export function RecordListView({
               </tr>
             )}
 
+            {/* An empty module explains itself rather than saying "no records"
+                — ARK_brand_UI.md §5a.4. The explanation is the caller's
+                emptyMessage, so each screen says what its entity is. */}
             {!isLoading && !isError && rows.length === 0 && (
               <tr>
-                <td colSpan={columns.length} className="px-3 py-6 text-center text-muted-foreground">
-                  {q ? `Nothing matches “${q}”` : (emptyMessage ?? 'No records yet')}
+                <td colSpan={columns.length} className="px-6 py-12 text-center">
+                  <p className="text-section text-foreground font-bold">
+                    {q ? 'No matches' : `No ${module.replace(/_/g, ' ')} yet`}
+                  </p>
+                  <p className="text-muted-foreground mx-auto mt-1.5 max-w-md">
+                    {q
+                      ? `Nothing matches “${q}”.`
+                      : (emptyMessage ?? 'Nothing has been recorded here yet.')}
+                  </p>
                 </td>
               </tr>
             )}
@@ -215,14 +232,23 @@ export function RecordListView({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') navigate(`${basePath}/${id}`)
                   }}
-                  className="cursor-pointer border-t outline-none hover:bg-muted/40 focus-visible:bg-muted/40"
+                  className={cn(
+                    'cursor-pointer border-t outline-none hover:bg-accent focus-visible:bg-accent',
+                    // A deactivated record is still listed — it is history, not
+                    // a deletion — but it reads as retired rather than current.
+                    row.active === false && 'text-muted-foreground opacity-60'
+                  )}
                 >
-                  {columns.map((f) => (
+                  {columns.map((f, i) => (
                     <td
                       key={f.qref}
                       className={cn(
-                        'px-3 py-2 align-middle',
-                        NUMERIC_TYPES.has(f.type) && 'text-right'
+                        'px-3 py-2.5 align-middle',
+                        NUMERIC_TYPES.has(f.type) && 'text-right',
+                        // The list view's first column is the record's name —
+                        // it reads as the link into the record, as it does on
+                        // every CRM list screen.
+                        i === 0 && 'text-link font-medium'
                       )}
                     >
                       {renderCell?.(f, row) ?? <ListCell field={f} row={row} />}
@@ -235,9 +261,11 @@ export function RecordListView({
         </table>
       </div>
 
+      {/* Footer reads as the reference's does — "Total Records N" left, the
+          shown range and chevrons right (§5a.3). */}
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
         <span>
-          {first}–{last} of {total}
+          Total Records <span className="text-foreground font-medium">{total}</span>
         </span>
 
         <div className="flex items-center gap-2">
@@ -260,26 +288,28 @@ export function RecordListView({
             </SelectContent>
           </Select>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            Previous
-          </Button>
           <span className="tabular-nums">
-            {page} / {lastPage}
+            {first} to {last}
           </span>
           <Button
             type="button"
-            variant="outline"
-            size="sm"
+            variant="ghost"
+            size="icon"
+            aria-label="Previous page"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            <ChevronLeftIcon className="size-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Next page"
             disabled={page >= lastPage}
             onClick={() => setPage((p) => p + 1)}
           >
-            Next
+            <ChevronRightIcon className="size-4" />
           </Button>
         </div>
       </div>

@@ -31,7 +31,7 @@ export function FormEnginePage() {
     <div className="mx-auto max-w-5xl px-6 py-6">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Form engine</h1>
+          <h1 className="text-page-title font-bold">Form engine</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
             Every field, section and rule below is read from spec/fields.json and
             spec/extensions.json. Nothing here is hardcoded.

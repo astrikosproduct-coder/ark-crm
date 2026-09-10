@@ -1,3 +1,4 @@
+import { currentUserId } from '@/lib/currentUser'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -14,7 +15,7 @@ import type { PipelineModuleSpec, PipelineRecordContext } from '@/components/pip
 import { ComingSoon } from '@/pages/ComingSoon'
 import { api } from '@/lib/api'
 import { date as fmtDate, money } from '@/lib/format'
-import { CURRENT_USER_ID, stageKeyOf, stagesFor } from '@/lib/pipeline'
+import { stageKeyOf, stagesFor } from '@/lib/pipeline'
 import { displayNameOf } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
 
@@ -241,7 +242,7 @@ export const leadsPipeline: PipelineModuleSpec = {
   writesProbability: true,
   skipReasonField: 'stage_skip_reason',
   reversalReasonField: 'stage_reversal_reason',
-  stamp: () => ({ modified_date: new Date().toISOString(), modified_by: CURRENT_USER_ID }),
+  stamp: () => ({ modified_date: new Date().toISOString(), modified_by: currentUserId() }),
   detailsHeading: 'Cross-cutting and system fields',
   showProbabilityBand: true,
   tabs: ['current', 'details', 'history', 'related'],

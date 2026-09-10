@@ -106,12 +106,16 @@ export function isUserEditable(field: FieldSpec): boolean {
     // A read-through field's value lives on the parent record and is rendered
     // read-only here. Holding this record to it would demand something the user
     // cannot enter on this screen — and the parent already demanded it at the
-    // stage that captures it. See spec/module_split.json read_through.
-    field.carry !== 'read_through' &&
+    // stage that captures it. See field_placements.value_mode.
+    field.value_mode !== 'read_through' &&
     // A field that only exists to define a child-list column is entered per
     // ROW, never on the record, so the record cannot be held to it. Its
     // requirement is enforced by validateChildRows instead.
-    !isChildColumnOnly(field)
+    !isChildColumnOnly(field) &&
+    // A locked Round-5 lookup is disabled — nobody can type a value into it —
+    // so holding a record to it would make its blocks_transition stage
+    // permanently unreachable. See LockedField in FieldControl.tsx.
+    !field.phase1_locked
   )
 }
 

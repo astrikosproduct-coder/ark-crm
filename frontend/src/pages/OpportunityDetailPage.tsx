@@ -1,3 +1,4 @@
+import { currentUserId } from '@/lib/currentUser'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -7,7 +8,7 @@ import { ArrowRightIcon } from 'lucide-react'
 import { ConvertToDealDialog } from '@/components/opportunities/ConvertToDealDialog'
 import { PipelineRecordPage } from '@/components/pipeline/PipelineRecordPage'
 import type { PipelineModuleSpec, PipelineRecordContext } from '@/components/pipeline/types'
-import { CURRENT_USER_ID, stageKeyOf, stagesFor } from '@/lib/pipeline'
+import { stageKeyOf, stagesFor } from '@/lib/pipeline'
 import { api } from '@/lib/api'
 import { money } from '@/lib/format'
 import type { Values } from '@/lib/spec/conditions'
@@ -103,7 +104,7 @@ export const opportunitiesPipeline: PipelineModuleSpec = {
   writesProbability: true,
   skipReasonField: 'stage_skip_reason',
   reversalReasonField: 'stage_reversal_reason',
-  stamp: () => ({ modified_date: new Date().toISOString(), modified_by: CURRENT_USER_ID }),
+  stamp: () => ({ modified_date: new Date().toISOString(), modified_by: currentUserId() }),
   detailsHeading: 'Cross-cutting, system and parent-linked fields',
   showProbabilityBand: true,
   tabs: ['current', 'details', 'history'],

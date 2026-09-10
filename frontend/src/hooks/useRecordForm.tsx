@@ -2,13 +2,17 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useReducer,
-  useRef,
   type ReactNode,
 } from 'react'
 
+import { homeSectionOf } from '@/lib/spec/anchors'
+import {
+  isStageScoped,
+  stageScopedPatch,
+  stageScopedValue,
+} from '@/lib/stageScope'
 import { isChildColumnOnly } from '@/lib/spec/childSpec'
 import { isVisible, requirementOf, type Values } from '@/lib/spec/conditions'
 import { computeAll, type Children } from '@/lib/spec/formula'
@@ -21,19 +25,16 @@ import {
   type ChildErrors,
   type Errors,
 } from '@/lib/spec/validation'
-import { draftFor, useDraftStore } from '@/store/useDraftStore'
 import type { FieldSpec } from '@/types/field'
 
 export type FormMode = 'view' | 'edit'
 
-/** Unsaved-record drafts key on this rather than a real id — see useDraftStore. */
+/** A record that does not exist yet keys on this rather than a real id. */
 export const NEW_RECORD_ID = 'new'
 
 /** Stable empties, so a form with no parent chain never re-renders on identity. */
 const EMPTY_VALUES: Values = {}
 const EMPTY_NAMES: Set<string> = new Set()
-
-const DRAFT_DEBOUNCE_MS = 300
 
 interface State {
   values: Values
@@ -45,6 +46,12 @@ interface State {
 
 type Action =
   | { t: 'set'; api_name: string; value: unknown }
+  // One edit that lands on MORE THAN ONE key. A per-stage field writes
+  // `probability_pct__s3`, and — when the stage being edited is the one the
+  // record is at — the plain `probability_pct` as well, so list columns and
+  // the band check keep reading one number. `touch` is the field's plain
+  // api_name, because that is what every error and required map is keyed on.
+  | { t: 'patch'; touch: string; values: Values }
   | { t: 'setChild'; api_name: string; rows: Values[] }
   | { t: 'reset'; values: Values; children: Children }
   | { t: 'clean' }
@@ -58,6 +65,14 @@ function reducer(state: State, action: Action): State {
         ...state,
         values: { ...state.values, [action.api_name]: action.value },
         touched: { ...state.touched, [action.api_name]: true },
+        dirty: true,
+      }
+
+    case 'patch':
+      return {
+        ...state,
+        values: { ...state.values, ...action.values },
+        touched: { ...state.touched, [action.touch]: true },
         dirty: true,
       }
 
@@ -78,44 +93,15 @@ function reducer(state: State, action: Action): State {
         submitted: false,
       }
 
-    // Keeps the values, drops the "unsaved" state. What a successful save or an
-    // explicit cancel leaves behind: the values on screen are the record now,
-    // so nothing here is a draft anymore. Without this the unmount flush below
-    // rewrites the draft the save just cleared, and the ghost is replayed over
-    // the record the next time the form opens.
+    // Keeps the values, drops the "unsaved" state. What a successful save
+    // leaves behind: the values on screen ARE the record now, so there is
+    // nothing left for the leave-page guard to warn about.
     case 'clean':
       return { ...state, touched: {}, dirty: false }
 
     case 'submitted':
       return { ...state, submitted: true }
   }
-}
-
-/**
- * The subset of a form's state that is actually unsaved.
- *
- * A draft must hold ONLY what the user touched — never a snapshot of the whole
- * record. state.values starts life as a copy of the record, so persisting it
- * wholesale meant a draft carried every field the user never went near, and
- * hydrating it replayed those stale values over a record that had moved on
- * since. That is how editing Prescription fields could drag a lead back to
- * Connect: a draft captured while the lead sat at Stage 0 still held
- * project_stage = "0_CONNECT", and the next save wrote it back.
- *
- * Restricting the draft to touched keys makes the replay harmless by
- * construction: the only values that can override a fresher record are ones the
- * user really did type and really has not saved.
- */
-function touchedOnly(state: State): { values: Values; children: Children } {
-  const values: Values = {}
-  const children: Children = {}
-
-  for (const key of Object.keys(state.touched)) {
-    if (key in state.children) children[key] = state.children[key]
-    else if (key in state.values) values[key] = state.values[key]
-  }
-
-  return { values, children }
 }
 
 /**
@@ -147,12 +133,13 @@ function splitChildren(module: string, initial: Values | undefined): { values: V
 export interface RecordForm {
   module: string
   mode: FormMode
-  /** module + this is the draft store's key. See useDraftStore. */
+  /** The record being edited, NEW_RECORD_ID for one not saved yet. */
   recordId: string
   values: Values
   children: Children
-  /** True from the moment a field is touched, OR from mount when a persisted
-   * draft was found — either way, "there is something here that isn't saved". */
+  /** True from the moment a field is touched until the next successful save —
+   * "there is something on screen that isn't saved". The leave-page guard
+   * reads this. */
   dirty: boolean
   /** Errors for fields the user has touched, plus everything once submitted. */
   visibleErrors: Errors
@@ -180,13 +167,9 @@ export interface RecordForm {
   sourceOf: (apiName: string) => InheritedSource | undefined
   /** read_through fields the chain could not resolve — see ResolvedRecord. */
   unresolvedInherited: Set<string>
-  /** Removes the persisted draft, leaving in-memory state untouched. Call this
-   * once a save has succeeded — the values just written now match the record,
-   * so nothing about them is unsaved anymore. */
-  clearDraft: () => void
-  /** Removes the persisted draft AND reverts in-memory state back to what this
-   * form was opened with. Call this for an explicit Discard action. */
-  discardDraft: () => void
+  /** Drops the unsaved flag, keeping the values. Call this once a save has
+   * succeeded — what was written now matches the record. */
+  markSaved: () => void
 }
 
 const Ctx = createContext<RecordForm | null>(null)
@@ -215,7 +198,30 @@ export interface RecordFormProviderProps {
    * except Opportunities and Deals.
    */
   resolved?: ResolvedRecord
+  /**
+   * This form is editing ONE STAGE of a pipeline record.
+   *
+   * Without it, a stage-scoped field rendered in an ordinary form would read
+   * and write the plain api_name and there would be one On Hold Reason per
+   * record — the exact thing lib/stageScope.ts exists to prevent. With it, the
+   * form reads `<api_name>__s<stage>` and writes it back, while every control,
+   * condition, formula and error map above still sees the plain api_name.
+   *
+   * Absent for every non-pipeline form, and for the create page: a record that
+   * does not exist yet is not at a stage.
+   */
+  stageScope?: StageScope
   children: ReactNode
+}
+
+/** Which stage a form is editing, and which one its record is actually at. */
+export interface StageScope {
+  /** The stage on screen. May be an earlier one the user selected on the rail. */
+  stage: number
+  /** The stage the record is at, which decides whether a carried value is
+   * ALSO written to the plain api_name. Correcting history must not become
+   * the record's current probability — see stageScopedPatch. */
+  currentStage: number
 }
 
 /**
@@ -225,21 +231,12 @@ export interface RecordFormProviderProps {
  * second RecordForm over the first, and a child-list row is a third — a single
  * store keyed by api_name would have them overwriting each other.
  *
- * Drafts: an edit-mode form hydrates from useDraftStore on mount (merged over
- * initialValues, since the draft is the more recent thing) and writes back to
- * it, debounced, on every change — so navigating away, switching tabs or
- * refreshing the browser no longer loses what was typed. A view-mode form
- * never reads or writes a draft: it shows the saved record, not a draft of it.
- * Computed fields are never part of what gets persisted — only state.values,
- * the raw entered values — so a formula edited later still recomputes fresh
- * instead of replaying a stale snapshot.
- *
- * A draft holds ONLY the fields the user touched — see touchedOnly. The record
- * underneath a draft can change while the draft sits there (a stage advance is
- * a PUT of its own), and a draft that carried untouched fields would replay
- * them over the newer record on the next save. `touched` is therefore seeded
- * from a resumed draft's own keys, so a draft that survives a reload keeps
- * writing back exactly the fields it already holds.
+ * Nothing here is persisted. A form holds what the user has typed for as long
+ * as it is on screen, and `dirty` says whether any of it is unsaved — which is
+ * what the leave-page guard reads before letting a navigation through. Closing
+ * the form without saving discards the edits, deliberately: an edit that was
+ * never saved is not a record, and a half-typed value quietly resurrected days
+ * later over a record that has moved on is worse than losing it.
  */
 export function RecordFormProvider({
   module,
@@ -248,29 +245,19 @@ export function RecordFormProvider({
   initialValues,
   initialChildren,
   resolved,
+  stageScope,
   children,
 }: RecordFormProviderProps) {
   const [state, dispatch] = useReducer(
     reducer,
     undefined,
     (): State => {
-      const draft = mode === 'edit' ? draftFor(module, recordId) : undefined
       const initial = splitChildren(module, initialValues)
       return {
-        values: { ...initial.values, ...(draft?.values ?? {}) },
-        children: { ...initial.children, ...(initialChildren ?? {}), ...(draft?.children ?? {}) },
-        // Seeded from the draft, not left empty: these ARE the unsaved fields,
-        // and without this the first flush would persist an empty draft over
-        // the real one and lose everything the user typed before the reload.
-        touched: Object.fromEntries(
-          [...Object.keys(draft?.values ?? {}), ...Object.keys(draft?.children ?? {})].map((k) => [
-            k,
-            true as const,
-          ])
-        ),
-        // A resumed draft reads as unsaved from the moment it appears, before
-        // the user has touched anything this session.
-        dirty: Boolean(draft),
+        values: initial.values,
+        children: { ...initial.children, ...(initialChildren ?? {}) },
+        touched: {},
+        dirty: false,
         submitted: false,
       }
     }
@@ -303,6 +290,38 @@ export function RecordFormProvider({
     [resolved]
   )
 
+  /**
+   * Fields of this module that are recorded PER STAGE — see lib/stageScope.ts.
+   *
+   * Empty unless the form was given a stage, which is what keeps every other
+   * form in the app (accounts, contacts, the create pages, the quick-create
+   * dialogs) on exactly the code path it was on before.
+   */
+  const scopedFields = useMemo(
+    () => (stageScope ? fieldsOf(module).filter((f) => isStageScoped(module, f)) : []),
+    [module, stageScope]
+  )
+
+  /**
+   * THE PROJECTION. `on_hold_reason__s3` read back out under `on_hold_reason`.
+   *
+   * This is the whole trick, and it is deliberately one map rather than a
+   * change to every reader. FieldRow, FieldControl, every condition, every
+   * formula, validateForSave and missingRequired all go on asking for the
+   * plain api_name and know nothing about stages; only this layer and
+   * setValue below have to. A sticky field projects THIS stage's answer and
+   * nothing else, so a reason given at Stage 1 never pre-fills the Stage 3
+   * box — which is what makes the second hold get its own reason.
+   */
+  const stageProjection = useMemo(() => {
+    if (!stageScope || scopedFields.length === 0) return EMPTY_VALUES
+    const out: Values = {}
+    for (const field of scopedFields) {
+      out[field.api_name] = stageScopedValue(module, field, state.values, stageScope.stage)
+    }
+    return out
+  }, [module, stageScope, scopedFields, state.values])
+
   // Computed fields are derived here, never stored in state, so editing a
   // formula in the sidecar changes existing records on the next render instead
   // of leaving a stale snapshot behind. Inherited values are part of the input:
@@ -319,8 +338,16 @@ export function RecordFormProvider({
    * one. state.children stays the editable copy, and is what sum() is handed.
    */
   const values = useMemo(
-    () => ({ ...state.values, ...inheritedValues, ...state.children, ...computed }),
-    [state.values, inheritedValues, state.children, computed]
+    () => ({
+      ...state.values,
+      ...inheritedValues,
+      ...state.children,
+      ...computed,
+      // Last, so a per-stage answer wins over a legacy record-level one left
+      // behind by a save from before this mechanism existed.
+      ...stageProjection,
+    }),
+    [state.values, inheritedValues, state.children, computed, stageProjection]
   )
 
   const allErrors = useMemo(() => validateForSave(module, values), [module, values])
@@ -364,9 +391,26 @@ export function RecordFormProvider({
     [showAllRequired, gate, allRequired]
   )
 
-  const setValue = useCallback((apiName: string, value: unknown) => {
-    dispatch({ t: 'set', api_name: apiName, value })
-  }, [])
+  const setValue = useCallback(
+    (apiName: string, value: unknown) => {
+      // A per-stage field is stored under the stage's own key. The control that
+      // called this passed the plain api_name and is none the wiser, which is
+      // the point: one input, one place, whatever the storage underneath.
+      const scoped = stageScope
+        ? scopedFields.find((f) => f.api_name === apiName)
+        : undefined
+      if (scoped && stageScope) {
+        dispatch({
+          t: 'patch',
+          touch: apiName,
+          values: stageScopedPatch(scoped, stageScope.stage, stageScope.currentStage, value),
+        })
+        return
+      }
+      dispatch({ t: 'set', api_name: apiName, value })
+    },
+    [scopedFields, stageScope]
+  )
 
   const setChildRows = useCallback((apiName: string, rows: Values[]) => {
     dispatch({ t: 'setChild', api_name: apiName, rows })
@@ -405,64 +449,21 @@ export function RecordFormProvider({
     // Spec-driven rather than driven by what actually resolved: a chain that
     // failed to load must not become a licence to start storing identity.
     for (const field of fieldsOf(module)) {
-      if (field.carry === 'read_through') delete payload[field.api_name]
+      if (field.value_mode === 'read_through') delete payload[field.api_name]
     }
 
     return payload
   }, [module, recordId, state.values, state.children, computed])
 
   /**
-   * Set the moment a save or a cancel succeeds, and never unset.
-   *
-   * A ref rather than reducer state because the caller closes the editor in the
-   * same commit — the provider unmounts, so a dispatched 'clean' is thrown away
-   * before the unmount flush below ever reads it, and the flush would rewrite
-   * the draft the save just deleted. A ref is written synchronously and
-   * survives into the cleanup function.
+   * What was just saved IS the record now, so the form stops reading as
+   * unsaved. Called by the editor on a successful save — including the case
+   * where the form stays open afterwards, which is why it is a dispatch rather
+   * than something the caller could get away with skipping.
    */
-  const settled = useRef(false)
-
-  const clearDraft = useCallback(() => {
-    settled.current = true
-    useDraftStore.getState().clearDraft(module, recordId)
-    // Also clean the reducer, for the case where the form STAYS mounted after
-    // saving — the badge and the dirty flag have to stop showing there too.
+  const markSaved = useCallback(() => {
     dispatch({ t: 'clean' })
-  }, [module, recordId])
-
-  const discardDraft = useCallback(() => {
-    useDraftStore.getState().discardDraft(module, recordId)
-    dispatch({ t: 'reset', values: initialValues ?? {}, children: initialChildren ?? {} })
-  }, [module, recordId, initialValues, initialChildren])
-
-  // Debounced draft persistence. Only ever the TOUCHED raw values/children —
-  // never `values`, which has computed fields merged in, and never the
-  // untouched rest of the record. See touchedOnly.
-  const latest = useRef(state)
-  latest.current = state
-
-  useEffect(() => {
-    if (mode !== 'edit' || !state.dirty || settled.current) return
-    const timer = setTimeout(() => {
-      const draft = touchedOnly(state)
-      useDraftStore.getState().setDraft(module, recordId, draft.values, draft.children)
-    }, DRAFT_DEBOUNCE_MS)
-    return () => clearTimeout(timer)
-  }, [module, recordId, mode, state])
-
-  // Flush immediately on unmount, so a route change or tab switch inside the
-  // debounce window doesn't lose the last edit to it. Runs after the effect
-  // above on every render, so this only ever fires the redundant "same value
-  // again" write unless the form is actually being torn down mid-debounce.
-  useEffect(() => {
-    return () => {
-      if (mode === 'edit' && latest.current.dirty && !settled.current) {
-        const draft = touchedOnly(latest.current)
-        useDraftStore.getState().setDraft(module, recordId, draft.values, draft.children)
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [module, recordId, mode])
+  }, [])
 
   const api = useMemo<RecordForm>(
     () => ({
@@ -488,8 +489,7 @@ export function RecordFormProvider({
       inherited: resolved?.inherited ?? EMPTY_NAMES,
       sourceOf: (apiName: string) => resolved?.sources[apiName],
       unresolvedInherited: unresolvedInherited,
-      clearDraft,
-      discardDraft,
+      markSaved,
     }),
     [
       module,
@@ -510,18 +510,37 @@ export function RecordFormProvider({
       reset,
       markSubmitted,
       toPayload,
-      clearDraft,
-      discardDraft,
+      markSaved,
     ]
   )
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>
 }
 
-/** Fields of a section that should be rendered, given mode and visibility. */
-export function visibleFieldsOf(form: RecordForm, module: string, section: string): FieldSpec[] {
+/**
+ * Fields of a section that should be rendered, given mode and visibility.
+ *
+ * `hidden` names api_names this SCREEN renders somewhere else — the per-stage
+ * strip and the sticky panel on a pipeline record take Probability, Progression
+ * and the CROSS-CUTTING reasons out of the ordinary sections and draw them
+ * themselves. It is a rendering decision of one screen, never a property of the
+ * field, which is why it arrives as an argument and not as a spec flag: the same
+ * field still renders normally on the create page, where there is no stage strip
+ * to put it in.
+ */
+export function visibleFieldsOf(
+  form: RecordForm,
+  module: string,
+  section: string,
+  hidden?: ReadonlySet<string>
+): FieldSpec[] {
   return fieldsOf(module)
-    .filter((f) => f.section === section)
+    // homeSectionOf, not f.section: an anchored field draws in the section its
+    // ANCHOR is in, which is the whole point — On Hold Reason is filed under
+    // CROSS-CUTTING and rendered inside STAGE 0 — CONNECT, beside the Lead
+    // Status that reveals it. Every filter below then applies to it unchanged.
+    .filter((f) => homeSectionOf(module, f) === section)
+    .filter((f) => !hidden?.has(f.api_name))
     // The register writes some child-row columns as loose fields in the same
     // section as their table — the milestone_—_* dates beside Payment
     // Milestones. They belong to the row, so they render only as columns.

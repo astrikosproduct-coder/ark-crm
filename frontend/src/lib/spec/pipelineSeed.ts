@@ -1,6 +1,6 @@
 import { fieldsOf, toPicklistKey } from './index'
 import { nextId } from '@/lib/idGen'
-import { CURRENT_USER_ID, moduleForStage, stageKeyOf, stageNumberOf } from '@/lib/pipeline'
+import { SEED_ACTOR_ID, moduleForStage, stageKeyOf, stageNumberOf } from '@/lib/pipeline'
 
 type Item = Record<string, unknown>
 
@@ -18,7 +18,7 @@ const FROZEN_LEAD_STAGE = 3
  */
 function readThroughApiNames(module: string): string[] {
   return fieldsOf(module)
-    .filter((f) => f.carry === 'read_through')
+    .filter((f) => f.value_mode === 'read_through')
     .map((f) => f.api_name)
 }
 
@@ -52,7 +52,7 @@ function normalizeOpportunityRecord(record: Item): Item {
  * every field that is not read-through, because read-through fields have
  * nowhere to be copied TO; they are resolved from the frozen Lead by
  * useResolvedRecord instead. A `conversions` row records what happened, with
- * actor "seed" rather than CURRENT_USER_ID, so it reads honestly as something
+ * actor "seed" rather than SEED_ACTOR_ID, so it reads honestly as something
  * that happened at load time and not a decision a person made.
  *
  * ONE function, called from two places, deliberately:
@@ -123,7 +123,7 @@ export function deriveOpportunitiesFromLeads(data: Record<string, unknown>): Rec
       project_stage: stageKeyOf(FROZEN_LEAD_STAGE) ?? lead.project_stage,
       lead_status: 'CONVERTED',
       modified_date: now,
-      modified_by: CURRENT_USER_ID,
+      modified_by: SEED_ACTOR_ID,
     }
   })
 

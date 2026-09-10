@@ -1,6 +1,15 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import {
+  createBrowserRouter,
+  createRoutesFromElements,
+  Navigate,
+  Route,
+  RouterProvider,
+} from 'react-router-dom'
 
 import { AppShell } from '@/components/layout/AppShell'
+import { AuthProvider, useAuth } from '@/lib/auth'
+import { PendingAccessPage, SignInPage } from '@/pages/SignInPage'
+import { AdministrationPage } from '@/pages/AdministrationPage'
 import { AccountDetailPage } from '@/pages/AccountDetailPage'
 import { AccountsPage } from '@/pages/AccountsPage'
 import { ContactDetailPage } from '@/pages/ContactDetailPage'
@@ -24,15 +33,25 @@ import { RecordCreatePage } from '@/pages/RecordCreatePage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { SpecHealthPage } from '@/pages/SpecHealthPage'
 
-function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<AppShell />}>
+
+/**
+ * A DATA router, not <BrowserRouter>.
+ *
+ * The routes themselves are unchanged — createRoutesFromElements takes the same
+ * JSX. What the data router adds is useBlocker, which is how an editor with
+ * unsaved changes holds a navigation until the user answers for it. The plain
+ * router has no way to interrupt a navigation at all.
+ */
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route element={<AppShell />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="form-engine" element={<FormEnginePage />} />
           <Route path="spec-health" element={<SpecHealthPage />} />
           <Route path="settings" element={<SettingsPage />} />
+
+          {/* The one module served by FastAPI + PostgreSQL rather than MSW. */}
+          <Route path="administration" element={<AdministrationPage />} />
 
           <Route path="leads" element={<LeadsPage />} />
           <Route path="leads/new" element={<LeadCreatePage />} />
@@ -84,11 +103,47 @@ function App() {
 
           {/* Everything not built yet still resolves, through the generic
               spec-driven screens. */}
-          <Route path=":module" element={<ModulePage />} />
-          <Route path=":module/:id" element={<ModuleDetailPage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+      <Route path=":module" element={<ModulePage />} />
+      <Route path=":module/:id" element={<ModuleDetailPage />} />
+    </Route>
+  )
+)
+
+/**
+ * The gate.
+ *
+ * Nothing behind it renders until identity is known, which is why this sits
+ * outside the router rather than inside a route: a signed-out visitor must not
+ * reach a screen that would immediately fire data requests, and a user whose
+ * access is still pending must not see the shell of an application they cannot
+ * use.
+ *
+ * This is the courtesy layer, NOT the security boundary — that lives on the API
+ * (see backend/app/main.py, where every data router carries require_access).
+ * Hiding a screen protects nobody on its own.
+ */
+function AuthGate() {
+  const { state } = useAuth()
+
+  if (state.status === 'loading') {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">
+        Signing you in…
+      </div>
+    )
+  }
+
+  if (state.status === 'signed-out') return <SignInPage />
+  if (state.user.pending) return <PendingAccessPage />
+
+  return <RouterProvider router={router} />
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
   )
 }
 

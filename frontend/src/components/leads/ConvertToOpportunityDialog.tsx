@@ -1,3 +1,4 @@
+import { currentUserId } from '@/lib/currentUser'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -13,8 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { api } from '@/lib/api'
-import { logAutomation } from '@/lib/automation'
-import { CURRENT_USER_ID, probabilityMidpoint, stageKeyOf } from '@/lib/pipeline'
+import { probabilityMidpoint, stageKeyOf } from '@/lib/pipeline'
 import { displayNameOf, fieldsOf } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
 
@@ -55,7 +55,7 @@ export function ConvertToOpportunityDialog({ open, leadId, values, onClose }: Pr
 
   const readThrough = new Set(
     fieldsOf('opportunities')
-      .filter((f) => f.carry === 'read_through')
+      .filter((f) => f.value_mode === 'read_through')
       .map((f) => f.api_name)
   )
 
@@ -73,9 +73,9 @@ export function ConvertToOpportunityDialog({ open, leadId, values, onClose }: Pr
       oppPayload.probability_pct = probabilityMidpoint(OPENING_STAGE)
       oppPayload.lead_status = 'OPEN'
       oppPayload.created_date = now
-      oppPayload.created_by = CURRENT_USER_ID
+      oppPayload.created_by = currentUserId()
       oppPayload.modified_date = now
-      oppPayload.modified_by = CURRENT_USER_ID
+      oppPayload.modified_by = currentUserId()
 
       const createdOpp = await api.post<Record<string, unknown>>('/opportunities', oppPayload)
       const opportunityId = String(createdOpp.data.id)
@@ -83,7 +83,7 @@ export function ConvertToOpportunityDialog({ open, leadId, values, onClose }: Pr
       await api.put(`/leads/${leadId}`, {
         lead_status: 'CONVERTED',
         modified_date: now,
-        modified_by: CURRENT_USER_ID,
+        modified_by: currentUserId(),
       })
 
       const copiedFields = Object.keys(oppPayload).filter(
@@ -95,24 +95,12 @@ export function ConvertToOpportunityDialog({ open, leadId, values, onClose }: Pr
         source_id: leadId,
         target_module: 'opportunities',
         target_id: opportunityId,
-        actor: CURRENT_USER_ID,
+        actor: currentUserId(),
         timestamp: now,
         copied_fields: copiedFields,
         note: `${leadId} moved to Opportunities from its Stage 3 detail page.`,
       })
 
-      void logAutomation({
-        type: 'record_update',
-        target: opportunityId,
-        module: 'opportunities',
-        detail: `${opportunityId} created by moving ${leadId} to the Opportunities module`,
-      })
-      void logAutomation({
-        type: 'record_update',
-        target: leadId,
-        module: 'leads',
-        detail: `${leadId} moved to ${opportunityId} — now read-only`,
-      })
 
       return { opportunityId, copiedFieldCount: copiedFields.length }
     },

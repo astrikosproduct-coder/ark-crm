@@ -7,19 +7,18 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RecordForm } from '@/components/form/RecordForm'
 import { RecordEditor } from '@/components/record/RecordEditor'
-import { UnsavedBadge } from '@/components/record/UnsavedBadge'
 import { ReadinessPanel } from '@/components/leads/ReadinessPanel'
 import { StageChip } from '@/components/leads/StageChip'
 import { StageRail } from '@/components/leads/StageRail'
 import { AdvanceStageDialog } from '@/components/pipeline/AdvanceStageDialog'
 import { HEADER_STRIP_SECTION, HeaderStrip } from '@/components/pipeline/HeaderStrip'
 import { StageHistoryTab } from '@/components/pipeline/StageHistoryTab'
+import { ReasonsPanel, StageMetricsStrip } from '@/components/pipeline/StageScopedFields'
 import type {
   PipelineModuleSpec,
   PipelineRecordContext,
   PipelineTab,
 } from '@/components/pipeline/types'
-import { NEW_RECORD_ID } from '@/hooks/useRecordForm'
 import { useResolvedRecord } from '@/hooks/useResolvedRecord'
 import { api } from '@/lib/api'
 import {
@@ -31,8 +30,9 @@ import {
   type Transition,
 } from '@/lib/pipeline'
 import { displayNameOf, sectionsFor, withRecordId } from '@/lib/spec'
-import type { Values } from '@/lib/spec/conditions'
-import { useDiscardToken } from '@/store/useDraftStore'
+import { requestDiscard } from '@/store/useUnsavedChangesStore'
+import { type Values } from '@/lib/spec/conditions'
+import { hiddenFromFormNamesOf, isStageScopedModule } from '@/lib/stageScope'
 
 const TAB_LABEL: Record<PipelineTab, string> = {
   current: 'Current stage',
@@ -72,9 +72,6 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
   const [editingDetails, setEditingDetails] = useState(false)
   const [advanceOpen, setAdvanceOpen] = useState(false)
   const [selectedStage, setSelectedStage] = useState<number | null>(null)
-
-  const draftId = id ?? NEW_RECORD_ID
-  const currentDiscardToken = useDiscardToken(spec.module, draftId)
 
   const { data, isLoading, isError, dataUpdatedAt } = useQuery({
     queryKey: ['record', spec.collection, id],
@@ -136,6 +133,50 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
   const stageSections = sectionsForStage(spec.module, stageToShow)
   const stageSpec = stageOf(stageToShow)
 
+  /**
+   * api_names the FORM must not draw, because another surface on this screen
+   * draws them — see lib/stageScope.ts.
+   *
+   * This used to be every stage-scoped name. Two of them come back off the list
+   * in Phase A2: On Hold Reason and Closed Lost Reason Code are anchored to the
+   * status field and rendered by the ordinary RecordForm now, in the same form
+   * as the picklist that reveals them, which is the only way a condition can
+   * fire before a save. What stays hidden is what genuinely has its own
+   * surface — the two metrics and the probability justification in the strip —
+   * plus the two reasons the Advance dialog writes, which no form should offer
+   * a second box for.
+   */
+  const hiddenFields = useMemo(
+    () => (isStageScopedModule(spec.module) ? hiddenFromFormNamesOf(spec.module) : undefined),
+    [spec.module]
+  )
+
+  /**
+   * Which stage a form's per-stage fields read and write.
+   *
+   * The stage tab edits the stage on the rail. The Details tab edits the stage
+   * the record is AT: a reason typed there is being given now, so it belongs to
+   * now. Without this the inline reason box would read and write the plain
+   * api_name and there would be one On Hold Reason per record — the thing
+   * lib/stageScope.ts exists to prevent.
+   */
+  // Memoised, and not for tidiness: a new object each render would make the
+  // form's scoped-field list, its per-stage projection and therefore its whole
+  // `values` map recompute on every keystroke, dragging validation and every
+  // formula along with them.
+  const stageScope = useMemo(
+    () =>
+      isStageScopedModule(spec.module) ? { stage: stageToShow, currentStage } : undefined,
+    [spec.module, stageToShow, currentStage]
+  )
+  const detailsStageScope = useMemo(
+    () =>
+      isStageScopedModule(spec.module)
+        ? { stage: currentStage, currentStage }
+        : undefined,
+    [spec.module, currentStage]
+  )
+
   const ctx: PipelineRecordContext = {
     spec,
     id: id ?? '',
@@ -148,12 +189,15 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
     endClient,
     partner,
     transitions,
-    openAdvance: () => setAdvanceOpen(true),
-    selectStage: (stage) => {
-      setSelectedStage(stage)
-      setActiveTab('current')
-    },
-    setActiveTab,
+    // Each of these unmounts or re-keys an open editor, so each asks first
+    // when something is unsaved — see useUnsavedChangesStore.
+    openAdvance: () => requestDiscard(() => setAdvanceOpen(true)),
+    selectStage: (stage) =>
+      requestDiscard(() => {
+        setSelectedStage(stage)
+        setActiveTab('current')
+      }),
+    setActiveTab: (tab) => requestDiscard(() => setActiveTab(tab)),
   }
 
   if (isError) {
@@ -172,12 +216,11 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
     <div className="mx-auto max-w-7xl px-6 py-6">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold">
+          <h1 className="text-record-title flex flex-wrap items-center gap-2 font-bold">
             {values ? displayNameOf(values) : (id ?? '')}
             <StageChip value={currentStage} />
-            <UnsavedBadge module={spec.module} recordId={draftId} />
           </h1>
-          <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <div className="text-muted-foreground text-meta mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
             <span>{id}</span>
             {endClient && <span>Client: {displayNameOf(endClient)}</span>}
             {partner && <span>Partner: {displayNameOf(partner)}</span>}
@@ -231,7 +274,10 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
-        <Tabs value={activeTab} onValueChange={(t) => setActiveTab(t as PipelineTab)}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(t) => requestDiscard(() => setActiveTab(t as PipelineTab))}
+        >
           <TabsList>
             {spec.tabs.map((tab) => (
               <TabsTrigger key={tab} value={tab}>
@@ -258,16 +304,31 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
                   )}
                 </div>
 
+                {/* Above the stage's own fields on EVERY stage, and editable
+                    there — a stage inherits the previous stage's numbers as a
+                    starting point rather than overwriting them. */}
+                <StageMetricsStrip
+                  module={spec.module}
+                  collection={spec.collection}
+                  recordId={id ?? ''}
+                  values={values}
+                  stage={stageToShow}
+                  currentStage={currentStage}
+                  readOnly={readOnly}
+                />
+
                 {stageSections.length > 0 ? (
                   editingCurrent && !readOnly ? (
                     <RecordEditor
-                      key={`edit:${id}:${stageToShow}:${dataUpdatedAt}:${currentDiscardToken}`}
+                      key={`edit:${id}:${stageToShow}:${dataUpdatedAt}`}
                       module={spec.module}
                       collection={spec.collection}
                       recordId={id}
                       initialValues={values}
                       resolved={resolved}
                       sections={stageSections}
+                      hiddenFields={hiddenFields}
+                      stageScope={stageScope}
                       stamp={spec.stamp()}
                       sideEffects={spec.sideEffectsForStage?.(stageToShow)}
                       afterSave={spec.afterSaveForStage?.(stageToShow)}
@@ -282,6 +343,8 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
                       values={values}
                       resolved={resolved}
                       sections={stageSections}
+                      hiddenFields={hiddenFields}
+                      stageScope={stageScope}
                     />
                   )
                 ) : (
@@ -289,6 +352,11 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
                     No fields registered for this stage.
                   </p>
                 )}
+
+                {/* The reasons this stage calls for are IN the form above now,
+                    beside the field that asks for them — see
+                    lib/spec/anchors.ts. What every stage answered is on the
+                    Details tab, read-only, in ReasonsPanel. */}
               </div>
             )}
           </TabsContent>
@@ -310,13 +378,15 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
 
                 {editingDetails && !readOnly ? (
                   <RecordEditor
-                    key={`edit:${id}:details:${dataUpdatedAt}:${currentDiscardToken}`}
+                    key={`edit:${id}:details:${dataUpdatedAt}`}
                     module={spec.module}
                     collection={spec.collection}
                     recordId={id}
                     initialValues={values}
                     resolved={resolved}
                     sections={detailSections}
+                    hiddenFields={hiddenFields}
+                    stageScope={detailsStageScope}
                     stamp={spec.stamp()}
                     onSaved={() => setEditingDetails(false)}
                     onCancel={() => setEditingDetails(false)}
@@ -329,6 +399,20 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
                     values={values}
                     resolved={resolved}
                     sections={detailSections}
+                    hiddenFields={hiddenFields}
+                    stageScope={detailsStageScope}
+                  />
+                )}
+
+                {/* Every reason the record has given, at every stage it gave
+                    one. Read-only on purpose: the boxes are inline, this is
+                    the record of what went into them. */}
+                {isStageScopedModule(spec.module) && (
+                  <ReasonsPanel
+                    module={spec.module}
+                    values={values}
+                    onOpenStage={ctx.selectStage}
+                    onOpenHistory={() => ctx.setActiveTab('history')}
                   />
                 )}
               </div>
@@ -353,8 +437,10 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
               from={currentStage}
               to={Math.min(currentStage + 1, lastStage)}
               onJumpToField={(field) => {
-                if (field.capture_stage !== null) setSelectedStage(field.capture_stage)
-                setActiveTab(field.capture_stage !== null ? 'current' : 'details')
+                requestDiscard(() => {
+                  if (field.capture_stage !== null) setSelectedStage(field.capture_stage)
+                  setActiveTab(field.capture_stage !== null ? 'current' : 'details')
+                })
               }}
             />
           )}

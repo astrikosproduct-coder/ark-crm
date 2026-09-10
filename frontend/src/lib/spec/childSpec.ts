@@ -122,6 +122,22 @@ function childColumnAsField(parent: FieldSpec, column: ChildColumn): FieldSpec {
     module: parent.module,
     section,
     order: 0,
+    // A child column is not a placement — it is a column of a row inside one
+    // field. It stores its value on the child row, is editable, and inherits
+    // nothing, so the resolved keys take the values that say exactly that.
+    value_mode: 'own',
+    value_locked: false,
+    editable: true,
+    read_through_from: null,
+    read_through_via: null,
+    register_module: parent.register_module ?? parent.module,
+    register_order: null,
+    // A column draws where its table draws. There is no cell of the section
+    // grid for it to be anchored into, so anchoring is not a thing a column
+    // can carry — see lib/spec/anchors.ts.
+    anchor_field: null,
+    anchor_position: null,
+    layout_span: null,
     api_name: column.api_name,
     label: column.label,
     type: column.type,

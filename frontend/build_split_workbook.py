@@ -204,11 +204,28 @@ for m in PIPELINE:
            use_case="Cross-cutting current state - see Overall RAG for the shared rationale."),
     ]
 
-NEW_FIELDS.append(nf(
-    module="opportunities", section="__header", api_name="pipeline_rank", label="Pipeline Rank",
-    type="number", capture_any_stage=True, requirement="Optional",
-    description="This Opportunity's rank in the pipeline, when one has been assigned.",
-    use_case="Nullable - most records carry no rank. Opportunities only, unlike the other three header-strip fields."))
+NEW_FIELDS += [
+    nf(module="opportunities", section="__header", api_name="is_low_hanging", label="Low Hanging",
+       type="checkbox", capture_any_stage=True, requirement="Optional",
+       description="Ticked when this Opportunity is judged one of the 5 easiest active pursuits to close.",
+       use_case="Capped at 5 across all Opportunities, enforced server-side. Picking it asks the user to choose "
+                "its rank from whichever of 1-5 are still open - see low_hanging_rank. Mutually exclusive with is_top_10."),
+    nf(module="opportunities", section="__header", api_name="low_hanging_rank", label="Low Hanging Rank",
+       type="number", capture_any_stage=True, requirement="Optional",
+       description="This Opportunity's position, 1-5, among the current Low Hanging picks.",
+       use_case="Chosen by the user from the ranks still open when is_low_hanging is ticked, cleared when it is "
+                "unticked. Rendered as one rank-picker control together with the checkbox, never its own input."),
+    nf(module="opportunities", section="__header", api_name="is_top_10", label="Top 10",
+       type="checkbox", capture_any_stage=True, requirement="Optional",
+       description="Ticked when this Opportunity is judged one of the 10 highest-priority pursuits in the pipeline.",
+       use_case="Capped at 10 across all Opportunities, enforced server-side. Picking it asks the user to choose "
+                "its rank from whichever of 1-10 are still open - see top_10_rank. Mutually exclusive with is_low_hanging."),
+    nf(module="opportunities", section="__header", api_name="top_10_rank", label="Top 10 Rank",
+       type="number", capture_any_stage=True, requirement="Optional",
+       description="This Opportunity's position, 1-10, among the current Top 10 picks.",
+       use_case="Chosen by the user from the ranks still open when is_top_10 is ticked, cleared when it is "
+                "unticked. Rendered as one rank-picker control together with the checkbox, never its own input."),
+]
 
 # These repeat per module and are each module's OWN COPY of current state,
 # not plumbing and not a register field carried through a parent - flagged
@@ -217,7 +234,10 @@ HEADER_STRIP_OWN_INSTANCE = {
     "overall_rag": "Current RAG status is a judgement about the live record, not inherited from a parent.",
     "next_milestone": "What happens next is a property of the live record, not inherited from a parent.",
     "next_milestone_date": "Same as Next Milestone - each module's own copy.",
-    "pipeline_rank": "Opportunities' own ranking - there is nothing to inherit, this field exists only there.",
+    "is_low_hanging": "Opportunities' own pick - there is nothing to inherit, this field exists only there.",
+    "low_hanging_rank": "Opportunities' own ranking - there is nothing to inherit, this field exists only there.",
+    "is_top_10": "Opportunities' own pick - there is nothing to inherit, this field exists only there.",
+    "top_10_rank": "Opportunities' own ranking - there is nothing to inherit, this field exists only there.",
 }
 
 # --------------------------------------------------------------------------

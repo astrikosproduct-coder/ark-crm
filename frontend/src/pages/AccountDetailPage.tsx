@@ -1,21 +1,21 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { NetworkIcon, PencilIcon, PlusIcon } from 'lucide-react'
+import { NetworkIcon, PencilIcon, PlusIcon, RotateCcwIcon, Trash2Icon } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { RecordForm } from '@/components/form/RecordForm'
 import { RecordEditor } from '@/components/record/RecordEditor'
 import { RecordListView } from '@/components/list/RecordListView'
-import { UnsavedBadge } from '@/components/record/UnsavedBadge'
+import { DeleteRecordDialog } from '@/components/record/DeleteRecordDialog'
+import { ACCOUNT_REFERRERS } from '@/lib/referrers'
+import { useSetRecordActive } from '@/lib/recordLifecycle'
 import { contactListCell } from '@/components/contacts/contactListCell'
-import { NEW_RECORD_ID } from '@/hooks/useRecordForm'
 import { api } from '@/lib/api'
 import { displayNameOf, isPartnerAccount, labelForValue, withRecordId } from '@/lib/spec'
 import { ComingSoon } from '@/pages/ComingSoon'
-import { useDiscardToken } from '@/store/useDraftStore'
+import { cn } from '@/lib/utils'
 
 const MODULE = 'accounts'
 const COLLECTION = 'accounts'
@@ -24,11 +24,10 @@ export function AccountDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
-  const draftId = id ?? NEW_RECORD_ID
+  const [deleting, setDeleting] = useState(false)
   // Bumped only by an explicit Discard in the header badge — folded into the
   // editor's key so Discard reverts the open form even while it's mounted,
   // without this page needing to reach into RecordFormProvider's state.
-  const discardToken = useDiscardToken(MODULE, draftId)
 
   const { data, isLoading, isError, dataUpdatedAt } = useQuery({
     queryKey: ['record', COLLECTION, id],
@@ -41,6 +40,12 @@ export function AccountDetailPage() {
 
   const rawTypes = values?.account_type
   const types = Array.isArray(rawTypes) ? (rawTypes as string[]) : []
+  const inactive = values?.active === false
+
+  const setActive = useSetRecordActive(COLLECTION, id ?? '', {
+    noun: 'account',
+    recordName: values ? displayNameOf(values) : (id ?? ''),
+  })
 
   if (isError) {
     return (
@@ -58,18 +63,21 @@ export function AccountDetailPage() {
   }
 
   return (
+    <>
     <PageLayout
       title={
         <>
-          {values ? displayNameOf(values) : (id ?? '')}
+          {/* Dimmed, not struck through: a strikethrough reads as deleted,
+              and this record is retired but very much still here. */}
+          <span className={cn(inactive && 'text-muted-foreground')}>
+            {values ? displayNameOf(values) : (id ?? '')}
+          </span>
           {/* Two-party accounts: an organisation can be End Client and Partner
               at once, so the header shows every type rather than one. */}
-          {types.map((t) => (
-            <Badge key={t} variant="secondary">
-              {labelForValue('accounts__account_type', t)}
-            </Badge>
-          ))}
-          <UnsavedBadge module={MODULE} recordId={draftId} />
+          <span className="text-muted-foreground text-sm font-normal">
+            {types.map((t) => labelForValue('accounts__account_type', t)).join(' · ')}
+          </span>
+          {inactive && <span className="text-muted-foreground text-sm font-normal">Inactive</span>}
         </>
       }
       subtitle={id}
@@ -84,10 +92,33 @@ export function AccountDetailPage() {
             </Button>
           )}
           {!editing && (
-            <Button variant="outline" onClick={() => setEditing(true)} disabled={isLoading}>
-              <PencilIcon className="size-4" />
-              Edit
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setEditing(true)} disabled={isLoading}>
+                <PencilIcon className="size-4" />
+                Edit
+              </Button>
+              {/* Reactivating is the safe, reversible action, so it sits in
+                  plain sight next to Edit rather than inside a Delete dialog. */}
+              {inactive && (
+                <Button
+                  variant="outline"
+                  onClick={() => setActive.mutate(true)}
+                  disabled={setActive.isPending}
+                >
+                  <RotateCcwIcon className="size-4" />
+                  {setActive.isPending ? 'Reactivating…' : 'Reactivate'}
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={() => setDeleting(true)}
+                disabled={isLoading || !values}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2Icon className="size-4" />
+                Delete
+              </Button>
+            </>
           )}
         </>
       }
@@ -102,7 +133,7 @@ export function AccountDetailPage() {
             // the fetch that produced their values — otherwise a save would
             // leave the screen showing what was there before it.
             <RecordEditor
-              key={`edit:${id}:${dataUpdatedAt}:${discardToken}`}
+              key={`edit:${id}:${dataUpdatedAt}`}
               module={MODULE}
               collection={COLLECTION}
               recordId={id}
@@ -156,5 +187,21 @@ export function AccountDetailPage() {
         { key: 'activity', label: 'Activity', content: <ComingSoon label="Activity" /> },
       ]}
     />
+
+    {values && (
+      <DeleteRecordDialog
+        open={deleting}
+        onOpenChange={setDeleting}
+        collection={COLLECTION}
+        recordId={id ?? ''}
+        recordName={displayNameOf(values)}
+        noun="account"
+        active={!inactive}
+        lookupTarget="account"
+        referrers={ACCOUNT_REFERRERS}
+        onDeleted={() => navigate('/accounts')}
+      />
+    )}
+    </>
   )
 }

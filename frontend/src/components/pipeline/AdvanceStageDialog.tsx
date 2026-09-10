@@ -1,3 +1,4 @@
+import { currentUserId } from '@/lib/currentUser'
 import { useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowRightIcon } from 'lucide-react'
@@ -16,8 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ReadinessPanel } from '@/components/leads/ReadinessPanel'
 import type { PipelineModuleSpec } from '@/components/pipeline/types'
 import { api } from '@/lib/api'
-import { logAutomation } from '@/lib/automation'
-import { CURRENT_USER_ID, probabilityMidpoint, stageFieldOf, type Transition } from '@/lib/pipeline'
+import { probabilityMidpoint, stageFieldOf, type Transition } from '@/lib/pipeline'
+import { isStageScopedModule, stageScopedKey } from '@/lib/stageScope'
 import type { Values } from '@/lib/spec/conditions'
 
 interface Props {
@@ -77,7 +78,17 @@ export function AdvanceStageDialog({
       const patch: Values = { ...spec.stamp() }
       if (stageField) patch[stageField] = spec.stageKeyOf(target) ?? target
       if (spec.writesProbability) {
-        patch.probability_pct = probabilityMidpoint(target) ?? values.probability_pct ?? null
+        const midpoint = probabilityMidpoint(target) ?? values.probability_pct ?? null
+        patch.probability_pct = midpoint
+        // Probability is recorded per stage now (lib/stageScope.ts), so the
+        // midpoint has to be stamped ON the stage being entered as well as on
+        // the record. Without this the new stage would find no value of its own
+        // and carry the OLD stage's number forward, silently shadowing the
+        // midpoint this transition just decided — and the record would then
+        // show a Stage 2 probability sitting outside the Stage 2 band.
+        if (isStageScopedModule(spec.module)) {
+          patch[stageScopedKey('probability_pct', target)] = midpoint
+        }
       }
       if (isSkip && spec.skipReasonField) patch[spec.skipReasonField] = reason.trim()
       if (isReversal && spec.reversalReasonField) patch[spec.reversalReasonField] = reason.trim()
@@ -92,7 +103,7 @@ export function AdvanceStageDialog({
         reason: reasonRequired ? reason.trim() : null,
         is_skip: isSkip,
         is_reversal: isReversal,
-        actor: CURRENT_USER_ID,
+        actor: currentUserId(),
         timestamp: new Date().toISOString(),
       }
       await api.post('/transitions', transition)
@@ -104,14 +115,6 @@ export function AdvanceStageDialog({
         queryClient.invalidateQueries({ queryKey: ['collection', spec.collection] }),
         queryClient.invalidateQueries({ queryKey: ['list', 'transitions'] }),
       ])
-      void logAutomation({
-        type: 'record_update',
-        target: recordId,
-        module: spec.module,
-        detail: `${recordId} advanced Stage ${currentStage} → Stage ${target}${
-          reason.trim() ? ` — ${reason.trim()}` : ''
-        }`,
-      })
       onAdvanced?.(target)
       setReason('')
       onClose()

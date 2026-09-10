@@ -12,22 +12,97 @@ industrial clients.
 Its purpose is to find gaps in the field list and the business rules **before** the real
 product is built. It is shown to BD and management as if it were a real product.
 
-**It is not the real product.** There is no backend, no database, no authentication and no
-workflow automation. Do not add any.
+**It is not the real product.** There is no authentication and no workflow automation — do
+not add either. It is *mostly* browser-only: Round 1 moved users, accounts and contacts onto
+a real FastAPI + PostgreSQL backend, and every other module is still MSW over `localStorage`.
+See hard rule 1 for exactly which is which.
 
 ## Hard rules — do not break these
 
-1. **No backend.** Never add Express, Next API routes, Prisma, or any server. Data lives in
-   the browser.
-2. **All data access goes through MSW.** Components call `/api/...` with Axios exactly as they
-   will in production. MSW intercepts and answers from the store. This is what makes the
-   prototype reusable as the Phase 1 frontend — never bypass it by reading the store directly
-   from a component.
+1. **Browser-only, except the modules migrated to PostgreSQL.** Never add Express, Next
+   API routes or Prisma. Most modules' data lives in the browser, but these are real,
+   persistent data behind FastAPI + SQLAlchemy + PostgreSQL in `backend/`:
+   | Migrated (Round 1) | Tables | Served at |
+   |---|---|---|
+   | Users, roles | `users`, `roles`, `user_roles` | `/api/admin/*`, `/api/users` |
+   | Accounts (incl. Partners) | `accounts`, `account_types` | `/api/accounts` |
+   | Contacts | `contacts` | `/api/contacts` |
+
+   | Migrated (Phase 1) | Tables | Served at |
+   |---|---|---|
+   | Leads | `leads`, `lead_demo_attendees`, `lead_feature_gaps` | `/api/leads` |
+   | Opportunities | `opportunities`, `opportunity_payment_milestones` | `/api/opportunities` |
+   | Deals | `deals`, `deal_bid_commitments`, `deal_expansion_use_cases` | `/api/deals` |
+
+   Phase 1 completes the six committed modules — Leads, Opportunities, Deals,
+   Accounts, Contacts and Partners are all real, persistent PostgreSQL data now.
+   Only `leads` carried seed data across (`migrate_leads.py`, 3 of 6 seed rows —
+   two sit past the Leads stage range and one names a missing Account);
+   Opportunities and Deals start empty and fill from real pipeline use.
+
+   | Migrated (Round 6) | Tables | Served at |
+   |---|---|---|
+   | The field register itself | `modules`, `sections`, `field_metadata`, `picklists`, `picklist_values`, `stages`, `metadata_versions` | `/api/admin/metadata/*` |
+   | Dynamic admin-field values | `custom_fields` JSONB on accounts, contacts, leads, opportunities, deals | the module's own endpoint |
+   Round 1 is complete. Do not delete them, and do not migrate another module without
+   being asked.
+   **Round 6 stores metadata, not business data.** Those seven tables define what a record
+   may contain; they never hold a lead, an account or a quote. Deleting a field there is a
+   logical delete — `field_metadata.status = 'deleted'` — and **never** a `DROP COLUMN`:
+   the business column and every value in it survive, which is what makes restore real.
+   Administration must never issue schema DDL against a business table.
+   **Two storage modes, and `field_metadata.storage` says which.** A register field has a
+   typed column and keeps it (`storage='column'`). A field created in Administration has no
+   column and is never getting one — its values live in that table's `custom_fields` JSONB,
+   keyed by api_name (`storage='custom_fields'`). Never infer the mode from `origin` or from
+   a key looking unfamiliar; read the column. An unknown key is not data and is not stored.
+   **`opportunities` is a real module row** (Round-6 gap closure), even though the register
+   has no such sheet. `modules.is_pipeline` / `stage_field` / `parent_module` / `parent_link`
+   and `stages.owner_module` hold the pipeline structure, and `spec/module_split.json`'s
+   structural blocks are generated from them. Opportunity FIELD rows are deliberately not
+   materialised — they are projections of Leads rows, and storing them would duplicate the
+   register. See `app/module_split.py`.
+   **Their seed files were removed** — `spec/seed/users.json`, `accounts.json` and
+   `contacts.json` no longer exist; PostgreSQL is the source of truth. Everything else
+   still seeds from `spec/seed/*.json`.
+   **Users are internal ARK employees; Contacts are external people at an Account.**
+   Never mix them: an `engagement_owner` is a user, a `primary_contact` is a contact.
+   **Partners is a view over `accounts`**, not a table. An account is a Partner when its
+   `account_type` includes a partner type. Never create a partners table.
+2. **All data access goes through the Axios client in `src/lib/api.ts`.** Components call
+   `/api/...` exactly as they will in production. MSW intercepts and answers from the store.
+   This is what makes the prototype reusable as the Phase 1 frontend — never bypass it by
+   reading the store directly from a component, and never add a second Axios instance.
+   **These paths pass through to FastAPI** — `/api/admin/*`, `/api/users`,
+   `/api/accounts` and `/api/contacts` (each with its `/*` form). Round 6's
+   `/api/admin/metadata/*` needed no new entry anywhere: the `/api/admin/*` wildcard already
+   matches it in both places, which is exactly why it was mounted under that prefix.
+   Their handlers at the top of
+   `src/mocks/handlers.ts` must stay FIRST, or the catch-alls below will swallow them.
+   Each also needs an entry in `vite.config.ts`'s `server.proxy`, or the passthrough lands
+   on Vite's HTML fallback. **Both, or it silently returns HTML.**
+   Every other `/api/*` collection is still answered by MSW from the store.
+   A migrated collection must also be listed in `src/mocks/userDirectory.ts`, so MSW can
+   still join its display names onto other modules' list rows.
 3. **Never hardcode a field.** Every form renders from `spec/fields.json`. If a field is
    missing from a screen, the fix is in the spec, not in a component.
-4. **Never hardcode a picklist.** Options come from `spec/picklists.json`.
+   *Two documented exceptions, both in Administration:*
+   - `src/components/admin/UserDialog.tsx` is hand-built. The register models Roles as a
+     `multiselect` picklist, but the real thing is a junction-table relation (`user_roles`)
+     saved through its own endpoint, which the form engine has no vocabulary for. The engine
+     is deliberately left unchanged; see the docstring in that file.
+   - `src/components/admin/metadata/*` is hand-built, because it is the UI that **edits**
+     the register. Rendering the field editor from the field register would mean the
+     register describing itself, and a broken row would take away the screen needed to fix
+     it. The exception is scoped to that folder; see `shared.tsx`.
+4. **Never hardcode a picklist.** Options come from `spec/picklists.json`. Administration's
+   roles are seeded into PostgreSQL *from* those same keys, so the two agree. Since Round 6
+   `picklists.json` is itself generated from the `picklists` / `picklist_values` tables —
+   change a dropdown in Administration and publish, never by editing the file.
 5. **Every screen carries the prototype watermark.** A persistent banner:
    `PROTOTYPE — data is stored in this browser only. Not a live system.`
+   Suppressed on Administration only, where the sentence would be false — see
+   `src/components/layout/PrototypeBanner.tsx`.
 6. **Automation is simulated, never real.** No emails, no webhooks, no timers that act. Write
    an entry to the automation log instead.
 7. **Price screens carry a second watermark:** `Price book rev4 · snapshot · do not quote from this.`
@@ -42,16 +117,37 @@ framework other than Tailwind.
 
 ## Where the truth lives
 
-| File | Contains |
-|---|---|
-| `spec/fields.json` | Every field: module, api_name, label, type, section, order, capture stage, requirement, condition, visibility condition, blocks transition, computed formula, help text |
-| `spec/picklists.json` | Every dropdown and its values |
-| `spec/stages.json` | The ten stages, probability bands, owner roles |
-| `spec/criteria.json` | Entry and exit criteria per stage, with enforcement |
-| `spec/gates.json` | The three gates and their checklist items |
-| `spec/seed/*.json` | Accounts, contacts, users, products, price matrix, leads |
+**Editable metadata source of truth: PostgreSQL.**
+**Phase-1 frontend representation: the generated `spec/*.json` files.**
+**Supported direction: PostgreSQL → generated JSON. Unsupported: JSON → PostgreSQL.**
 
-Generated from `ARK_CRM_Field_Register_Workbook_v4.xlsx`. **Regenerate rather than hand-edit.**
+Since Round 6, fields, picklists and stages are rows in PostgreSQL, edited in Administration
+and written out by publishing. The frontend still *reads* the JSON — that is a deliberate
+Phase-1 transitional arrangement, not a permanent one (see the note below the table).
+
+| File | Contains | Where it comes from |
+|---|---|---|
+| `spec/fields.json` | Every field: module, api_name, label, type, section, order, capture stage, requirement, condition, visibility condition, blocks transition, computed formula, help text | **Generated from PostgreSQL** — `field_metadata`, on publish |
+| `spec/picklists.json` | Every dropdown and its values | **Generated from PostgreSQL** — `picklists`, `picklist_values` |
+| `spec/stages.json` | The ten stages, probability bands, owner roles | **Generated from PostgreSQL** — `stages` |
+| `spec/extensions.json` | The sidecar: computed expressions, child-list shapes, list views, overrides | Hand-maintained. **Not** generated, not in the database |
+| `spec/module_split.json` | The pipeline split | **Part generated.** `pipeline`, `ranges`, `stage_field`, `reassign` and `read_through.parent_of`/`parent_link` come from PostgreSQL; the per-field judgement blocks stay hand-authored |
+| `spec/criteria.json` | Entry and exit criteria per stage, with enforcement | Still generated from the workbook |
+| `spec/gates.json` | The three gates and their checklist items | Still generated from the workbook |
+| `spec/seed/*.json` | Products, price matrix, leads, registrations. **Not users, accounts or contacts** — those live in PostgreSQL; see `backend/seed.py` and `backend/migrate_*.py` | Still generated from the workbook |
+
+The three generated-from-PostgreSQL files are **build artefacts. Never hand-edit them.** An
+edit there has no path back into the database and the next publish overwrites it. To change
+the register, change it in Administration and publish. `criteria.json`, `gates.json` and the
+seed files are still workbook output — **regenerate rather than hand-edit** those too.
+
+**Phase 2 may drop the JSON hop** and serve metadata straight from an API to the frontend, at
+which point these three files disappear. Nothing should be written that assumes the JSON
+layer is permanent.
+
+```
+Administration UI → PostgreSQL → publish → regenerate → spec/*.json → frontend
+```
 
 ## The domain in one page
 

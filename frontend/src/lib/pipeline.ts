@@ -179,11 +179,17 @@ export function gateOfType(gateType: string | null | undefined): Gate | undefine
 }
 
 /**
- * No login exists in this prototype. CLAUDE.md is explicit that today the CEO
- * holds every commercial role, so every action in the walkthrough — including
- * a stage transition's actor — is attributed to that one seeded user.
+ * The actor stamped on SEED-DERIVED rows only — not the signed-in user.
+ *
+ * This used to be `CURRENT_USER_ID`, read from 39 places as the identity of
+ * whoever was using the application. It is not that any more: real identity
+ * comes from Microsoft Entra via `currentUserId()` in @/lib/currentUser. The
+ * one remaining caller is lib/spec/pipelineSeed.ts, which runs at seed time
+ * before anybody has signed in and therefore has no real actor to name.
+ *
+ * Renamed deliberately, so nothing imports it again believing it means "me".
  */
-export const CURRENT_USER_ID = 'USR-001'
+export const SEED_ACTOR_ID = 'USR-001'
 
 /**
  * Stages a transition jumped clean over — evidence of an actual skip, as

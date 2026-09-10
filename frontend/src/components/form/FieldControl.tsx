@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowUpRightIcon, PaperclipIcon } from 'lucide-react'
+import { ArrowUpRightIcon, LockIcon, PaperclipIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -14,13 +14,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ChildListTable } from '@/components/form/ChildListTable'
 import { LookupCombobox } from '@/components/form/LookupCombobox'
 import { MultiSelect } from '@/components/form/MultiSelect'
 import { useRecordForm, type FormMode } from '@/hooks/useRecordForm'
 import { api } from '@/lib/api'
-import { logAutomation } from '@/lib/automation'
 import { date as fmtDate, dateTime as fmtDateTime, money, number, percent } from '@/lib/format'
 import { computedGap } from '@/lib/spec/formula'
 import { collectionFor, displayNameOf, fieldOf, idOf, labelForValue, optionsFor } from '@/lib/spec'
@@ -63,6 +62,11 @@ export function FieldControl({ field, onCreateNew, scope }: Props) {
 
   if (field.type === 'childlist') return <ChildListTable field={field} />
 
+  // Round-5 lookup (products, quotes, poc, bid, gates) with no records to
+  // resolve against yet — see phase1_locked in types/field.ts. Locked
+  // whatever the mode; there is nothing a view screen could show either.
+  if (field.phase1_locked) return <LockedField field={field} id={id} />
+
   // Identity belongs to the record the pursuit started as. An Opportunity shows
   // its End Client and never stores it — see read_through in
   // spec/module_split.json, and toPayload, which strips these on the way out.
@@ -70,7 +74,7 @@ export function FieldControl({ field, onCreateNew, scope }: Props) {
   // Same shape as transition_owned below: read-only whatever the mode, with the
   // reason stated underneath rather than left for the user to infer from a box
   // that will not accept typing.
-  if (field.carry === 'read_through' && !scope) {
+  if (field.value_mode === 'read_through' && !scope) {
     return <InheritedValue field={field} value={value} mode={mode} />
   }
 
@@ -261,7 +265,7 @@ export function FieldControl({ field, onCreateNew, scope }: Props) {
       )
 
     case 'file':
-      return <FileStub field={field} value={value} onChange={set} id={id} />
+      return <FileStub value={value} onChange={set} id={id} />
 
     case 'email':
       return (
@@ -302,16 +306,14 @@ export function FieldControl({ field, onCreateNew, scope }: Props) {
 }
 
 /**
- * File fields store a filename and nothing else. Real upload is out of scope
- * (CLAUDE.md), so picking a file records the automation that would have run.
+ * File fields store a filename and nothing else — there is nowhere for an
+ * uploaded file to go, and picking one neither uploads nor notifies anything.
  */
 function FileStub({
-  field,
   value,
   onChange,
   id,
 }: {
-  field: FieldSpec
   value: unknown
   onChange: (v: unknown) => void
   id: string
@@ -329,13 +331,6 @@ function FileStub({
           const file = e.target.files?.[0]
           if (!file) return
           onChange(file.name)
-          void logAutomation({
-            type: 'file_upload',
-            target: file.name,
-            detail: `Would upload "${file.name}" and attach it to ${field.label}`,
-            module: field.module,
-            api_name: field.api_name,
-          })
           // Let the same file be picked again after a clear.
           e.target.value = ''
         }}
@@ -355,6 +350,41 @@ function FileStub({
         <span className="text-sm text-muted-foreground">No file</span>
       )}
     </div>
+  )
+}
+
+/**
+ * A lookup into a Round-5 table (products, quotes, poc, bid, gates) that has
+ * no frozen fields — and so no real records — yet. Same disabled, muted
+ * treatment as the Navbar's own search box (TopBar.tsx): a real control the
+ * prototype is not pretending works, rather than a combobox that would only
+ * ever offer an empty list. The hover message repeats the field's own
+ * description (the same text the label's info icon shows) and says why it is
+ * locked, so the reason travels with the field rather than living only in
+ * spec/extensions.json's phase1_locked note.
+ */
+function LockedField({ field, id }: { field: FieldSpec; id: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="relative">
+          <LockIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            id={id}
+            type="text"
+            disabled
+            placeholder={`${field.label} — not available yet`}
+            className="h-9 w-full rounded-md border border-input bg-input-bg pl-9 pr-3 text-sm text-input-text outline-none placeholder:text-placeholder disabled:cursor-not-allowed"
+          />
+        </div>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs">
+        {field.description}
+        {field.description && ' '}
+        This lookup will be applicable soon — it switches back on once its module is built and
+        frozen in a later phase.
+      </TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -440,15 +470,13 @@ export function ReadOnlyValue({ field, value }: { field: FieldSpec; value: unkno
     return <LookupValue field={field} value={value} />
   }
 
+  // Comma-separated text rather than a row of filled chips — a multiselect is
+  // one field with several values, and it reads as one line.
   if (Array.isArray(value)) {
     return (
-      <div className="flex flex-wrap gap-1 py-1.5">
-        {value.map((v) => (
-          <Badge key={String(v)} variant="secondary">
-            {labelForValue(field.picklist, v)}
-          </Badge>
-        ))}
-      </div>
+      <p className="px-1 py-2 text-sm">
+        {value.map((v) => labelForValue(field.picklist, v)).join(', ')}
+      </p>
     )
   }
 

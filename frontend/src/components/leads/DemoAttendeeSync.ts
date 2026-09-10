@@ -1,7 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query'
 
 import { api } from '@/lib/api'
-import { logAutomation } from '@/lib/automation'
 import { childFieldSyncFor } from '@/lib/spec/childSpec'
 import { fieldOf } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
@@ -51,14 +50,6 @@ export async function backfillContactsFromDemoAttendees(
 
       await api.put(`/${sync.target_module}/${contactId}`, patch)
       touchedContacts.add(contactId)
-      void logAutomation({
-        type: 'record_update',
-        target: contactId,
-        module: sync.target_module,
-        detail:
-          `${Object.keys(patch).join(', ')} backfilled on ${contactId} from ${String(record.id ?? 'its Lead')}'s ` +
-          'demo attendees — the contact had none set.',
-      })
     } catch (error) {
       console.error('[demo-attendee-sync] could not backfill contact fields', error)
     }

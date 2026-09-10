@@ -145,6 +145,12 @@ export interface RequirementState {
 export function requirementOf(field: FieldSpec, values: Values): RequirementState {
   if (!isVisible(field, values)) return { required: false }
 
+  // A phase1_locked field is disabled — nobody can type a value into it — so
+  // the register's Mandatory can no longer be demanded of the user without
+  // making the stage it blocks_transition on permanently unreachable. See
+  // LockedField in FieldControl.tsx and phase1_locked in types/field.ts.
+  if (field.phase1_locked) return { required: false }
+
   switch (field.requirement) {
     case 'Mandatory':
       return { required: true }

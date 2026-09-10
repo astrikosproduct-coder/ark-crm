@@ -1,14 +1,12 @@
+import { currentUserId } from '@/lib/currentUser'
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { PageLayout } from '@/components/layout/PageLayout'
 import { LeadAccountFieldSync, backfillAccountFieldsFromLead } from '@/components/leads/LeadAccountFieldSync'
 import { RecordEditor } from '@/components/record/RecordEditor'
-import { UnsavedBadge } from '@/components/record/UnsavedBadge'
-import { NEW_RECORD_ID } from '@/hooks/useRecordForm'
-import { CURRENT_USER_ID, probabilityMidpoint, sectionForStage, stageKeyOf } from '@/lib/pipeline'
+import { probabilityMidpoint, sectionForStage, stageKeyOf } from '@/lib/pipeline'
 import type { Values } from '@/lib/spec/conditions'
-import { useDiscardToken } from '@/store/useDraftStore'
 
 const MODULE = 'leads'
 const COLLECTION = 'leads'
@@ -19,10 +17,12 @@ const COLLECTION = 'leads'
  * its own detail page — not offered up front, which is what letting
  * RecordCreatePage render every section of a 120-field module would do.
  */
+/** A lead opens at Stage 0. Module-level so it is one stable object. */
+const CREATE_STAGE = { stage: 0, currentStage: 0 }
+
 export function LeadCreatePage() {
   const navigate = useNavigate()
   const section = sectionForStage(MODULE, 0)
-  const discardToken = useDiscardToken(MODULE, NEW_RECORD_ID)
 
   const initialValues = useMemo<Values>(
     () => ({
@@ -37,7 +37,6 @@ export function LeadCreatePage() {
       title={
         <>
           New lead
-          <UnsavedBadge module={MODULE} recordId={NEW_RECORD_ID} />
         </>
       }
       subtitle="Stage 0 — Connect. Later stages fill in as the lead advances."
@@ -47,19 +46,23 @@ export function LeadCreatePage() {
           label: 'Connect',
           content: (
             <RecordEditor
-              key={discardToken}
               module={MODULE}
               collection={COLLECTION}
               initialValues={initialValues}
               sections={section ? [section] : undefined}
+              // A lead is created AT Stage 0, so a per-stage answer given on
+              // this form belongs to Stage 0. Without this the inline On Hold
+              // Reason would write the plain api_name here and the record page
+              // — which reads the per-stage key — would show nothing.
+              stageScope={CREATE_STAGE}
               sideEffects={<LeadAccountFieldSync />}
               afterSave={backfillAccountFieldsFromLead}
               saveLabel="Create lead"
               stamp={{
                 created_date: new Date().toISOString(),
-                created_by: CURRENT_USER_ID,
+                created_by: currentUserId(),
                 modified_date: new Date().toISOString(),
-                modified_by: CURRENT_USER_ID,
+                modified_by: currentUserId(),
               }}
               onSaved={(id) => navigate(`/leads/${id}`, { replace: true })}
               onCancel={() => navigate('/leads')}

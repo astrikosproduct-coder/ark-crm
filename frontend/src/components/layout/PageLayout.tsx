@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { requestDiscard } from '@/store/useUnsavedChangesStore'
 import { cn } from '@/lib/utils'
 
 export interface PageTab {
@@ -35,21 +36,32 @@ export function PageLayout({
   activeTab,
   onTabChange,
 }: PageLayoutProps) {
+  /**
+   * Tabs are always controlled here, even when the caller does not care which
+   * one is open. Radix would otherwise switch on its own and unmount whatever
+   * editor was in the old tab — with unsaved edits in it — before anything had
+   * a chance to ask.
+   */
+  const [internalTab, setInternalTab] = useState(() => tabs[0]?.key)
+  const currentTab = activeTab ?? internalTab
+
+  const changeTab = (key: string) =>
+    requestDiscard(() => {
+      setInternalTab(key)
+      onTabChange?.(key)
+    })
+
   return (
     <div className={cn('mx-auto px-6 py-6', wide ? 'max-w-7xl' : 'max-w-5xl')}>
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold">{title}</h1>
-          {subtitle && <div className="text-muted-foreground mt-0.5 text-sm">{subtitle}</div>}
+          <h1 className="text-page-title flex flex-wrap items-center gap-2 font-bold">{title}</h1>
+          {subtitle && <div className="text-muted-foreground text-label mt-0.5">{subtitle}</div>}
         </div>
         {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
       </div>
 
-      <Tabs
-        defaultValue={tabs[0]?.key}
-        value={activeTab}
-        onValueChange={onTabChange}
-      >
+      <Tabs value={currentTab} onValueChange={changeTab}>
         <TabsList>
           {tabs.map((tab) => (
             <TabsTrigger key={tab.key} value={tab.key}>
