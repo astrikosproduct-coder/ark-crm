@@ -43,7 +43,7 @@ See hard rule 1 for exactly which is which.
    | Migrated (Round 6) | Tables | Served at |
    |---|---|---|
    | The field register itself | `modules`, `sections`, `field_metadata`, `picklists`, `picklist_values`, `stages`, `metadata_versions` | `/api/admin/metadata/*` |
-   | Dynamic admin-field values | `custom_fields` JSONB on accounts, contacts, leads, opportunities, deals | the module's own endpoint |
+   | Dynamic admin-field values **and per-stage values** | `custom_fields` JSONB on accounts, contacts, leads, opportunities, deals | the module's own endpoint |
    Round 1 is complete. Do not delete them, and do not migrate another module without
    being asked.
    **Round 6 stores metadata, not business data.** Those seven tables define what a record
@@ -56,6 +56,18 @@ See hard rule 1 for exactly which is which.
    column and is never getting one — its values live in that table's `custom_fields` JSONB,
    keyed by api_name (`storage='custom_fields'`). Never infer the mode from `origin` or from
    a key looking unfamiliar; read the column. An unknown key is not data and is not stored.
+   **`custom_fields` also holds per-stage values** — `<api_name>__s<stage>`, as in
+   `on_hold_reason__s3` or `probability_pct__s1`. A reason is captured at the stage it
+   was given and must not carry forward: a lead put on hold at Stage 1 and again at
+   Stage 3 has two different answers, and one column per record cannot hold both.
+   Twenty columns per field is not a schema, so they live in the same JSONB, admitted
+   by the same rule as everything else: **only if the BASE name is an active placement
+   on that module.** `on_hold_reason__s3` is storable because `on_hold_reason` is a
+   field there; `rfp_documnet__s3` and `on_hold_reason__sx` are still refused. Before
+   10 Sep 2026 `resolve_write` dropped these keys silently — they are not columns and
+   not Administration-created fields — so from the moment Leads, Opportunities and
+   Deals moved to PostgreSQL, no per-stage value ever persisted. See
+   `app/custom_fields.py` and `src/lib/stageScope.ts`.
    **`opportunities` is a real module row** (Round-6 gap closure), even though the register
    has no such sheet. `modules.is_pipeline` / `stage_field` / `parent_module` / `parent_link`
    and `stages.owner_module` hold the pipeline structure, and `spec/module_split.json`'s

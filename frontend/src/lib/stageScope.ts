@@ -159,7 +159,17 @@ export function carryForwardFieldsOf(module: string): FieldSpec[] {
  * lists every stage that ever answered and is not driven by conditions at all.
  */
 
-/** True when this field is rendered per stage and must not appear on Details. */
+/**
+ * True when this field's VALUE is recorded per stage — `<api_name>__s<n>`.
+ *
+ * A STORAGE question, not a rendering one, and the two stopped being the same
+ * question in Phase A2. Before anchors, every stage-scoped field was drawn by
+ * a surface of its own and hidden from the form, so one predicate answered
+ * both; an anchored reason is still stored per stage and is now drawn by the
+ * ordinary RecordForm. Ask hiddenFromFormNamesOf() what a form must not draw —
+ * it is derived from this, minus the anchored ones, plus the transition-written
+ * ones. Do not use this one to decide visibility.
+ */
 export function isStageScoped(module: string, field: FieldSpec): boolean {
   if (!isStageScopedModule(module)) return false
   if (spec.carry_forward.fields.some((f) => f.api_name === field.api_name)) return true
