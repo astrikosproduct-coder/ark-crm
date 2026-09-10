@@ -102,6 +102,57 @@ APPROVED_DEFINITION_CHANGES: dict[tuple[str, str], object] = {
     ("progression_pct", "requirement"): "Optional",
 }
 
+# ---------------------------------------------------------------- Phase A
+#
+# WHY THESE ARE APPROVALS AND NOT A RE-FREEZE
+#
+# parity_baseline.json records what the CRM rendered BEFORE the cutover. It is
+# frozen once, at the last moment that state was still computable from the
+# repository, and re-writing it would record today's layout as yesterday's —
+# destroying the only fixed reference this test has. So a deliberate layout
+# change is declared here, with its reason, exactly like D1/D3/D4 above.
+# Undeclared drift still fails.
+
+RECORD_STATE = "RECORD STATE — each module keeps its own instance"
+STAGE_0 = "STAGE 0 — CONNECT"
+
+# A1. Leads gained its own RECORD STATE section, so that changing the status of
+# a Stage 1 lead no longer means clicking back to the Stage 0 tab. Opportunities
+# and Deals already had one; Leads was the odd module out. capture_stage goes
+# NULL with the move — see leads_record_state.py for why keeping 0 would have
+# rendered the section on the Stage 0 tab AND the Details tab at once.
+APPROVED_RELOCATIONS: dict[tuple[str, str], tuple[str, str]] = {
+    ("leads", "project_stage"): (STAGE_0, RECORD_STATE),
+    ("leads", "lead_status"): (STAGE_0, RECORD_STATE),
+    ("leads", "probability_pct"): (STAGE_0, RECORD_STATE),
+}
+
+# A2. The six reason placements were Conditional in the register while stating
+# no `condition`, so requirementOf() returned {required: false, unruled: true}:
+# the box appeared and let the user save straight past it. The condition is the
+# same expression as the visibility_condition, deliberately — "when is it
+# SHOWN" and "when is it DEMANDED" are different questions with the same answer
+# here. See anchor_reasons.py.
+APPROVED_CONDITIONS: dict[tuple[str, str], str] = {
+    ("leads", "on_hold_reason"): "lead_status == 'On Hold'",
+    ("leads", "closed_lost_reason_code"): "lead_status == 'Closed Lost'",
+    ("opportunities", "on_hold_reason"): "lead_status == 'On Hold'",
+    ("opportunities", "closed_lost_reason_code"): "lead_status == 'Closed Lost'",
+    ("deals", "on_hold_reason"): "lead_status == 'On Hold'",
+    ("deals", "closed_lost_reason_code"): "lead_status == 'Closed Lost'",
+}
+
+# Modules whose ABSOLUTE sort_order may differ from the baseline because a
+# relocation renumbered them. spec/fields.json numbers placements in one
+# sequence across the module, so inserting a section shifts every field after
+# it — sixteen differences from one decision, none of them meaning anything.
+#
+# The absolute number is waived; the RELATIVE order within each section is not,
+# and is checked separately below. That is the invariant that actually matters:
+# a field is allowed to renumber, and is not allowed to move past its
+# neighbours.
+RENUMBERED_MODULES = {"leads"}
+
 failures: list[str] = []
 
 
@@ -142,6 +193,17 @@ def main() -> int:
     lost = sorted(before.keys() - after.keys())
     gained = sorted(after.keys() - before.keys())
 
+    # An approved relocation shows up as a lost key and a gained key for the
+    # same field. Pair them off first, so a genuine loss is still a failure.
+    relocations: list[str] = []
+    for (module, api_name), (from_section, to_section) in APPROVED_RELOCATIONS.items():
+        old_key = (module, from_section, api_name)
+        new_key = (module, to_section, api_name)
+        if old_key in lost and new_key in gained:
+            lost.remove(old_key)
+            gained.remove(new_key)
+            relocations.append(f"{module}.{api_name}: {from_section} -> {to_section}")
+
     for key in lost:
         fail(f"FIELD LOST — {'.'.join(key)} rendered before the rebuild and does not now")
     for key in gained:
@@ -150,11 +212,28 @@ def main() -> int:
     # ------------------------------------------------------- 2. every key
     value_changes: list[str] = []
     definition_changes: list[str] = []
+    renumbered: list[str] = []
+    ruled: list[str] = []
     for key in sorted(before.keys() & after.keys()):
         b, a = before[key], after[key]
         for column in COMPARED:
             if b.get(column) == a.get(column):
                 continue
+
+            # Absolute position, waived only for a module a relocation
+            # renumbered. Relative order is checked in section 2b below.
+            if column == "order" and key[0] in RENUMBERED_MODULES:
+                renumbered.append(
+                    f"{'.'.join(key)}: order {b.get(column)} -> {a.get(column)}"
+                )
+                continue
+
+            if column == "condition" and APPROVED_CONDITIONS.get(
+                (key[0], key[2])
+            ) == a.get(column):
+                ruled.append(f"{key[0]}.{key[2]}: {a.get(column)!r}")
+                continue
+
             sentinel = object()
             approved = APPROVED_DEFINITION_CHANGES.get((key[2], column), sentinel)
             if approved is not sentinel and a.get(column) == approved:
@@ -177,6 +256,55 @@ def main() -> int:
                 fail(
                     f"UNAPPROVED VALUE CHANGE — {'.'.join(key)}.value_mode "
                     f"{b['value_mode']!r} -> {a['value_mode']!r}"
+                )
+
+    # ------------------------------ 2b. relative order inside every section
+    #
+    # The point of waiving absolute `order` for a renumbered module is that the
+    # numbers shifted, not that the layout is now unreviewed. A field may take
+    # a new number; it may not overtake the field next to it. Relocated fields
+    # are dropped from their old section's sequence before comparing, because
+    # leaving is what they were approved to do.
+    for module in sorted(RENUMBERED_MODULES):
+        moved_out = {
+            (m, api): from_section
+            for (m, api), (from_section, _to) in APPROVED_RELOCATIONS.items()
+            if m == module
+        }
+
+        def sequence(rows: dict, section: str) -> list[str]:
+            names = [
+                r["api_name"]
+                for k, r in rows.items()
+                if k[0] == module and k[1] == section
+            ]
+            ordered = sorted(
+                (r for k, r in rows.items() if k[0] == module and k[1] == section),
+                key=lambda r: r["order"],
+            )
+            assert len(names) == len(ordered)
+            return [
+                r["api_name"]
+                for r in ordered
+                if moved_out.get((module, r["api_name"])) != section
+            ]
+
+        sections = {k[1] for k in before if k[0] == module} | {
+            k[1] for k in after if k[0] == module
+        }
+        for section in sorted(sections):
+            # A section with nothing in the baseline is new. There is no
+            # previous sequence to preserve, and anything arriving in it that
+            # was not an approved relocation has already failed as a FIELD
+            # APPEARED above — so comparing [] against its contents would
+            # report the relocation a second time under a worse name.
+            if not any(k[0] == module and k[1] == section for k in before):
+                continue
+            was, now = sequence(before, section), sequence(after, section)
+            if was != now:
+                fail(
+                    f"RELATIVE ORDER CHANGED — {module}.{section}: "
+                    f"{was} -> {now}"
                 )
 
     # ------------------------------------------------ 3. per-module counts
@@ -208,6 +336,26 @@ def main() -> int:
             "approved carry-forward changes that did NOT happen: "
             + ", ".join(f"{m}.{a}" for m, a in sorted(missing))
         )
+
+    # Phase A. Printed rather than passed over in silence: an approval is only
+    # worth having if somebody reading the output can see what was approved.
+    print(f"\n  approved relocations (Phase A): {len(relocations)}")
+    for line in sorted(relocations):
+        print(f"    {line}")
+    if len(relocations) != len(APPROVED_RELOCATIONS):
+        fail(
+            f"{len(APPROVED_RELOCATIONS)} relocations are approved but "
+            f"{len(relocations)} happened — the approval list is stale"
+        )
+
+    print(f"\n  conditions added to unruled Conditional rows (A2): {len(ruled)}")
+    for line in sorted(ruled):
+        print(f"    {line}")
+
+    print(f"\n  renumbered by a relocation, relative order unchanged: {len(renumbered)}")
+    if renumbered:
+        modules = sorted({line.split(".")[0] for line in renumbered})
+        print(f"    {len(renumbered)} placements across {', '.join(modules)}")
 
     # ------------------------------------------------------------ verdict
     print()

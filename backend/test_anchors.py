@@ -5,7 +5,8 @@ Phase A — field anchors: position as a property of the placement.
 
 WHAT IS BEING PROVED
 --------------------
-    1   the A2 configuration      the six reason placements, anchored and ruled
+    1   the anchor configuration  every anchored placement, A2's six reasons
+        and Leads Stage 1's three, anchored and ruled
     2   the resolver              carries anchors into fields.json
     3   setting an anchor         works, and defaults its position sensibly
     4   the four refusals         self, cross-module, bad position, orphan
@@ -87,15 +88,43 @@ db = SessionLocal()
 # 1  the A2 configuration
 # =====================================================================
 
-head("1  the six reason placements are anchored — Phase A2")
+head("1  every anchored placement is where Phase A put it")
 
+# (module, api_name) -> (anchor, span, section it stays filed under)
+#
+# Two groups, set by two scripts, asserted together because what matters is
+# the WHOLE anchored set: a count that only knows about one group cannot tell
+# a new anchor apart from a drifted one.
+#
+#   anchor_reasons.py   the six reason placements  (A2)
+#   anchor_stage1.py    Leads Stage 1's three conditionals
+#
+# The Stage 1 three are the case that proves the model generalises: they are
+# ordinary register fields in an ordinary STAGE section, not CROSS-CUTTING
+# strays, and they were anchored because sort_order had already let one of
+# them drift ABOVE the field that reveals it.
 ANCHORED = {
-    ("leads", "on_hold_reason"): "full",
-    ("leads", "closed_lost_reason_code"): "half",
-    ("opportunities", "on_hold_reason"): "full",
-    ("opportunities", "closed_lost_reason_code"): "half",
-    ("deals", "on_hold_reason"): "full",
-    ("deals", "closed_lost_reason_code"): "half",
+    ("leads", "on_hold_reason"): ("lead_status", "full", "CROSS-CUTTING"),
+    ("leads", "closed_lost_reason_code"): ("lead_status", "half", "CROSS-CUTTING"),
+    ("opportunities", "on_hold_reason"): ("lead_status", "full", "CROSS-CUTTING"),
+    ("opportunities", "closed_lost_reason_code"): ("lead_status", "half", "CROSS-CUTTING"),
+    ("deals", "on_hold_reason"): ("lead_status", "full", "CROSS-CUTTING"),
+    ("deals", "closed_lost_reason_code"): ("lead_status", "half", "CROSS-CUTTING"),
+    ("leads", "data_site_access_confirmation_document"): (
+        "agreed_next_step",
+        "full",
+        "STAGE 1 — DEMO PRESENTATION",
+    ),
+    ("leads", "pilot_commercial_model"): (
+        "agreed_next_step",
+        "half",
+        "STAGE 1 — DEMO PRESENTATION",
+    ),
+    ("leads", "pilot_fee"): (
+        "agreed_next_step",
+        "half",
+        "STAGE 1 — DEMO PRESENTATION",
+    ),
 }
 
 total_anchored = db.scalar(
@@ -104,34 +133,39 @@ total_anchored = db.scalar(
     )
 )
 check(
-    "exactly six active placements are anchored, and no others drifted",
+    f"exactly {len(ANCHORED)} active placements are anchored, and no others drifted",
     total_anchored == len(ANCHORED),
     f"{total_anchored} anchored",
 )
 
-for (module, api_name), span in ANCHORED.items():
+for (module, api_name), (anchor, span, section_label) in ANCHORED.items():
     p = placement(db, module, api_name)
     if p is None:
         check(f"{module}.{api_name} exists", False, "no active placement")
         continue
     check(
-        f"{module}.{api_name} — anchored to lead_status, after, span {span}",
-        p.anchor_field == "lead_status"
+        f"{module}.{api_name} — anchored to {anchor}, after, span {span}",
+        p.anchor_field == anchor
         and p.anchor_position == "after"
         and p.layout_span == span,
         f"{p.anchor_field}/{p.anchor_position}/{p.layout_span}",
     )
-    # The gap the plan missed. Both rows are Conditional in the register and
-    # carried only a visibility_condition; requirementOf reads `condition`, so
-    # without this the box appears and lets the user save straight past it.
+    # The gap the plan missed. A Conditional row carrying only a
+    # visibility_condition appears and then lets the user save straight past
+    # it, because requirementOf reads `condition`, not visibility_condition.
+    # The six reasons had to be given one; the Stage 1 three already had one,
+    # and are the only rows in the register that did.
     check(
         f"{module}.{api_name} — states the condition that DEMANDS it",
-        bool(p.condition) and "lead_status" in (p.condition or ""),
+        bool(p.condition) and anchor in (p.condition or ""),
         repr(p.condition),
     )
+    # Section says what KIND of field this is; anchor says where it draws.
+    # The reasons stay CROSS-CUTTING while rendering next to a status field
+    # in another section — that disagreement is the whole design.
     check(
-        f"{module}.{api_name} — still filed under CROSS-CUTTING",
-        p.section.label == "CROSS-CUTTING",
+        f"{module}.{api_name} — still filed under {section_label}",
+        p.section.label == section_label,
         p.section.label,
     )
 
@@ -456,8 +490,9 @@ finally:
     print(f"\n  restore — {still} anchored placement(s), expected {len(ANCHORED)}")
     if not ok:
         FAILED.append(
-            f"the A2 configuration was not restored — {still} anchored, "
-            f"expected {len(ANCHORED)}. Re-run: python anchor_reasons.py --apply"
+            f"the anchor configuration was not restored — {still} anchored, "
+            f"expected {len(ANCHORED)}. Re-run BOTH: python anchor_reasons.py "
+            f"--apply && python anchor_stage1.py --apply"
         )
     db.close()
 
@@ -467,4 +502,4 @@ if FAILED:
     for line in FAILED:
         print(f"    {line}")
     sys.exit(1)
-print(f"{PASSED} passed. Anchors are wired end to end and the A2 six are in place.")
+print(f"{PASSED} passed. Anchors are wired end to end and all {len(ANCHORED)} are in place.")

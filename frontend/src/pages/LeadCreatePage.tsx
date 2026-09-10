@@ -24,9 +24,25 @@ export function LeadCreatePage() {
   const navigate = useNavigate()
   const section = sectionForStage(MODULE, 0)
 
+  /**
+   * The three RECORD STATE fields, seeded rather than asked for.
+   *
+   * All three used to sit in `STAGE 0 — CONNECT` and render on this form;
+   * they moved to Leads' own RECORD STATE section so that changing the status
+   * of a Stage 1 lead no longer means clicking back to the Stage 0 tab. This
+   * page renders one section — sectionForStage(leads, 0) — so they are not on
+   * it any more, and `lead_status` is Mandatory: without a value here the
+   * form would refuse to save a field it never showed.
+   *
+   * Seeding is the right answer rather than a workaround. A lead being
+   * created is Open, at Stage 0, by definition — there is no second option to
+   * offer, and the page's own subtitle already says which stage this is. The
+   * status becomes editable the moment the record exists, on its Details tab.
+   */
   const initialValues = useMemo<Values>(
     () => ({
       project_stage: stageKeyOf(0),
+      lead_status: 'OPEN',
       probability_pct: probabilityMidpoint(0),
     }),
     []
