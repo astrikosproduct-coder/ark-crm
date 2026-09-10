@@ -367,6 +367,42 @@ body {
   }
 }
 
+/*
+ * Native <select> drop-downs.
+ *
+ * The open list is painted by the BROWSER, not by this stylesheet, and
+ * Chromium takes its surface from the select's own computed background-color.
+ * Ours is `--input-bg`, which is `transparent` on purpose — fields here are
+ * outlined rather than filled — and transparent resolves to white in the
+ * popup. The result was a white panel with grey text hanging over a near-black
+ * app, on all fourteen native selects at once.
+ *
+ * `color-scheme: dark` on .dark is not enough on its own: an explicit
+ * background-color on the control wins over the scheme's default for the list.
+ * So the options are painted explicitly, from the same tokens every other
+ * popover surface uses. The CLOSED control is untouched and stays outlined —
+ * only the list and its rows get a surface.
+ *
+ * Not scoped to .dark: a light theme that inherits the popup's own white would
+ * be right by luck, and the next token change would break it silently.
+ */
+@layer base {
+  select option,
+  select optgroup {
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+  }
+
+  /* The "— none —" and "— pick one —" rows read as placeholders, not values. */
+  select option[value=''] {
+    color: var(--muted-foreground);
+  }
+
+  select option:disabled {
+    color: var(--muted-foreground);
+  }
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
