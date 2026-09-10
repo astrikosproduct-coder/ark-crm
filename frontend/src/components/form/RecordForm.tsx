@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ChevronDownIcon, GripVerticalIcon } from 'lucide-react'
+import { ChevronDownIcon } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import {
@@ -24,7 +24,6 @@ import {
 import type { Values } from '@/lib/spec/conditions'
 import type { Children } from '@/lib/spec/formula'
 import type { ResolvedRecord } from '@/lib/spec/resolveRecord'
-import { applyFieldOrder, useFieldLayoutStore, useFieldOrder } from '@/store/useFieldLayoutStore'
 import { cn } from '@/lib/utils'
 import type { FieldSpec } from '@/types/field'
 
@@ -116,6 +115,28 @@ function RecordFormBody({
   )
 }
 
+/**
+ * One section of the register, rendered as a two-column grid of fields.
+ *
+ * FIELD ORDER COMES FROM THE REGISTER, AND ONLY FROM THERE (B1)
+ * -------------------------------------------------------------
+ * This component used to let a user drag fields around, and stored the result
+ * in localStorage under `arkcrm-field-layout`, keyed `module::section`. It was
+ * layered ON TOP of the register's own order, so the two disagreed by design:
+ * Administration's reorder writes `field_placements.sort_order` through
+ * POST /placements/reorder and is real, shared and published, and a stray drag
+ * on one record screen silently outranked it — in that one browser, invisibly
+ * to everyone else, including whoever had just done the reorder properly.
+ *
+ * Two places to arrange one form is the same defect as two places to write one
+ * answer, which extensions.json already documents rejecting for Stage Skip
+ * Reason. Reordering is an administrative act; it belongs on the screen whose
+ * job that is, where it can be reviewed and published.
+ *
+ * The store is deleted rather than disabled. Its own `clearAll()` claimed to
+ * keep "Reset demo data" from leaving a stale order behind and was called by
+ * nothing, so a reset already left one.
+ */
 export function FormSection({
   module,
   section,
@@ -143,53 +164,22 @@ export function FormSection({
 }) {
   const form = useRecordForm()
   const [open, setOpen] = useState(defaultOpen)
-  const storedOrder = useFieldOrder(module, section)
-  const setStoredOrder = useFieldLayoutStore((s) => s.setOrder)
-  const [dragIndex, setDragIndex] = useState<number | null>(null)
-  const [overIndex, setOverIndex] = useState<number | null>(null)
 
   const all = visibleFieldsOf(form, module, section, hiddenFields)
-  const naturalFields = only
+  const fields = only
     ? only.map((name) => all.find((f) => f.api_name === name)).filter((f): f is FieldSpec => Boolean(f))
     : all
-  // `only` names an explicit subset in an explicit order (a quick-create
-  // dialog's handful of fields) — the drag preference is for a real section,
-  // so it is skipped there rather than fighting that order.
-  const fields = only ? naturalFields : applyFieldOrder(naturalFields, storedOrder)
   // Anchored fields draw next to the field they answer rather than at their own
   // position in this list — see lib/spec/anchors.ts. `only` stays flat: it names
-  // an explicit order, and an anchor rearranging it would be fighting the
-  // caller. Roots keep the position `fields` gave them, drag order included.
+  // an explicit order (a quick-create dialog's handful of fields), and an anchor
+  // rearranging it would be fighting the caller.
   const nodes = only
-    ? naturalFields.map((field) => ({ field, under: [] }) as FormNode)
+    ? fields.map((field) => ({ field, under: [] }) as FormNode)
     : arrangeAnchored(module, fields)
   const errorCount = fields.filter((f) => form.visibleErrors[f.api_name]).length
-  // Dragging reorders CELLS, which needs at least two to mean anything, and
-  // never leaves this section — the drop handler only ever permutes `nodes`,
-  // the same array the section already renders. An anchored field is not a
-  // cell of its own; it travels with the field it is anchored to, which is
-  // what an anchor means.
-  const draggable = !only && nodes.length > 1
 
   // A section with nothing to show in view mode is not worth a header.
   if (nodes.length === 0 && form.mode === 'view') return null
-
-  const dropOn = (index: number) => {
-    if (dragIndex === null || dragIndex === index) {
-      setDragIndex(null)
-      setOverIndex(null)
-      return
-    }
-    const next = [...nodes]
-    const [moved] = next.splice(dragIndex, 1)
-    next.splice(index, 0, moved)
-    // Only the cells' own fields are stored. Anchored children are left for
-    // applyFieldOrder to append and for arrangeAnchored to put back under
-    // their anchor, so a drag can never separate a reason from its question.
-    setStoredOrder(module, section, next.map((n) => n.field.api_name))
-    setDragIndex(null)
-    setOverIndex(null)
-  }
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="rounded-lg border">
@@ -220,59 +210,14 @@ export function FormSection({
               visibility condition or shown elsewhere on this screen.
             </p>
           ) : (
-            nodes.map((node, index) =>
-              draggable ? (
-                <div
-                  key={node.field.qref}
-                  className={cn(
-                    'group flex items-start gap-1 rounded-md transition-shadow',
-                    nodeSpansFullWidth(node, FULL_WIDTH) && 'md:col-span-2',
-                    overIndex === index && dragIndex !== null && dragIndex !== index &&
-                      'shadow-[inset_0_0_0_2px] shadow-primary/50'
-                  )}
-                  onDragOver={(e) => {
-                    e.preventDefault()
-                    e.dataTransfer.dropEffect = 'move'
-                    if (overIndex !== index) setOverIndex(index)
-                  }}
-                  onDragLeave={() => setOverIndex((cur) => (cur === index ? null : cur))}
-                  onDrop={(e) => {
-                    e.preventDefault()
-                    dropOn(index)
-                  }}
-                >
-                  <button
-                    type="button"
-                    draggable
-                    onDragStart={(e) => {
-                      setDragIndex(index)
-                      e.dataTransfer.effectAllowed = 'move'
-                      // Firefox drops a drag with no data attached.
-                      e.dataTransfer.setData('text/plain', node.field.api_name)
-                    }}
-                    onDragEnd={() => {
-                      setDragIndex(null)
-                      setOverIndex(null)
-                    }}
-                    className="mt-1.5 shrink-0 cursor-grab touch-none text-muted-foreground/30 opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 active:cursor-grabbing"
-                    title="Drag to reorder within this section"
-                    aria-label={`Reorder ${node.field.label}`}
-                  >
-                    <GripVerticalIcon className="size-4" />
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <AnchorCell node={node} onCreateNew={onCreateNew} />
-                  </div>
-                </div>
-              ) : (
-                <AnchorCell
-                  key={node.field.qref}
-                  node={node}
-                  className={cn(nodeSpansFullWidth(node, FULL_WIDTH) && 'md:col-span-2')}
-                  onCreateNew={onCreateNew}
-                />
-              )
-            )
+            nodes.map((node) => (
+              <AnchorCell
+                key={node.field.qref}
+                node={node}
+                className={cn(nodeSpansFullWidth(node, FULL_WIDTH) && 'md:col-span-2')}
+                onCreateNew={onCreateNew}
+              />
+            ))
           )}
         </div>
       </CollapsibleContent>
