@@ -17,7 +17,11 @@ import { errorMessage } from '@/lib/admin'
 import {
   FIELD_TYPES,
   REQUIREMENTS,
+  useAddPlacement,
   useCreateField,
+  useMetadataField,
+  useMetadataFields,
+  useMetadataModules,
   useMetadataPicklists,
   useMetadataSections,
   useUpdateField,
@@ -40,6 +44,20 @@ import {
  * and changing it would orphan all of that data while appearing to work. The
  * API refuses them too — FieldUpdate does not carry either — so this is not the
  * only thing standing between a rename and the data.
+ *
+ * WHAT B3 ADDED, AND WHY IT MATTERS MORE THAN IT LOOKS
+ * ----------------------------------------------------
+ * Six properties the placement model has carried since Round 7 and this form
+ * never offered: the anchor trio, value_mode/value_locked, and stage_scoped —
+ * plus computed_expr on the definition. Every one of them was set by a script
+ * instead (anchor_reasons.py, anchor_stage1.py, absorb_sidecar.py), which is
+ * the difference between a CRM you configure and a CRM somebody configures for
+ * you. Those three scripts should be deleted now.
+ *
+ * `storage` is shown and NOT editable, on purpose. A register field keeps its
+ * typed column; a field created here lives in custom_fields JSONB and is never
+ * getting a column, because that would be an ALTER TABLE issued from an admin
+ * screen. It is a fact about the field, not a choice — so it reads as one.
  */
 
 interface Props {
@@ -67,9 +85,18 @@ interface FormState {
   visibility_condition: string
   condition: string
   computed_formula: string
+  computed_expr: string
   description: string
   use_case: string
   capture_any_stage: boolean
+  // ---- where it draws
+  anchor_field: string
+  anchor_position: 'after' | 'beside'
+  layout_span: '' | 'full' | 'half'
+  // ---- how its value behaves
+  value_mode: 'own' | 'read_through' | 'carry_forward'
+  value_locked: boolean
+  stage_scoped: 'none' | 'carry_forward' | 'sticky'
 }
 
 const EMPTY: FormState = {
@@ -87,9 +114,16 @@ const EMPTY: FormState = {
   visibility_condition: '',
   condition: '',
   computed_formula: '',
+  computed_expr: '',
   description: '',
   use_case: '',
   capture_any_stage: false,
+  anchor_field: '',
+  anchor_position: 'after',
+  layout_span: '',
+  value_mode: 'own',
+  value_locked: false,
+  stage_scoped: 'none',
 }
 
 /** '' means "not set" on the wire, which is null rather than an empty string. */
@@ -107,6 +141,69 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
 
   const [form, setForm] = useState<FormState>(EMPTY)
   const [error, setError] = useState<string | null>(null)
+  const [applyToAll, setApplyToAll] = useState(false)
+
+  /**
+   * Every placement of this field, so "apply to all" has something to apply to.
+   *
+   * Only fetched while editing a field that is on more than one module — the
+   * common case is one placement and one request would be waste.
+   */
+  const shared = Boolean(field && field.module_count > 1)
+  const { data: detail } = useMetadataField(
+    shared ? field?.definition_id : undefined
+  )
+
+  /**
+   * Candidate anchors: the other active fields on THIS module.
+   *
+   * Cross-module anchors are refused by the API — a field cannot draw beside
+   * something that is not on the same form — so offering one would be offering
+   * an error.
+   */
+  const { data: moduleFields = [] } = useMetadataFields(moduleKey)
+  const anchorCandidates = moduleFields.filter(
+    (f) => f.api_name !== field?.api_name && f.status === 'active'
+  )
+
+  /**
+   * "Also show on…" — a second PLACEMENT of the same field on another module.
+   *
+   * Never a second definition. One-Time Revenue is ONE field that appears on
+   * Opportunities and Deals; creating a second definition with the same
+   * api_name would give it two labels, two types and two rows to keep in step,
+   * which is the confusion the placement model exists to remove. The endpoint
+   * has existed since Round 7 and useAddPlacement was written for it; until B3
+   * nothing called either, so the only way to put a field on a second module
+   * was to write it there by hand.
+   */
+  const { data: modules = [] } = useMetadataModules()
+  const addPlacement = useAddPlacement()
+  const [alsoModule, setAlsoModule] = useState('')
+  const { data: alsoSections = [] } = useMetadataSections(alsoModule || undefined)
+  const [alsoSectionId, setAlsoSectionId] = useState<number | null>(null)
+
+  const placedOn = new Set(
+    (detail?.placements ?? []).filter((p) => p.status === 'active').map((p) => p.module_key)
+  )
+  const alsoCandidates = modules.filter(
+    (m) => m.active && m.module_key !== moduleKey && !placedOn.has(m.module_key)
+  )
+
+  const addAlso = async () => {
+    if (!field || !alsoModule || alsoSectionId === null) return
+    setError(null)
+    try {
+      await addPlacement.mutateAsync({
+        definitionId: field.definition_id,
+        input: { module_key: alsoModule, section_id: alsoSectionId },
+      })
+      setAlsoModule('')
+      setAlsoSectionId(null)
+    } catch (err) {
+      setError(errorMessage(err))
+    }
+  }
 
   useEffect(() => {
     if (!open) return
@@ -127,13 +224,24 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
         visibility_condition: field.visibility_condition ?? '',
         condition: field.condition ?? '',
         computed_formula: field.computed_formula ?? '',
+        computed_expr: field.computed_expr ?? '',
         description: field.description ?? '',
         use_case: field.use_case ?? '',
         capture_any_stage: field.capture_any_stage,
+        anchor_field: field.anchor_field ?? '',
+        anchor_position: field.anchor_position ?? 'after',
+        layout_span: field.layout_span ?? '',
+        value_mode: field.value_mode,
+        value_locked: field.value_locked,
+        stage_scoped: field.stage_scoped,
       })
+      setApplyToAll(false)
     } else {
       setForm({ ...EMPTY, section_id: sectionId ?? sections[0]?.id ?? null })
+      setApplyToAll(false)
     }
+    setAlsoModule('')
+    setAlsoSectionId(null)
   }, [open, field, sectionId, sections])
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
@@ -172,6 +280,7 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
     visibility_condition: orNull(form.visibility_condition),
     condition: orNull(form.condition),
     computed_formula: orNull(form.computed_formula),
+    computed_expr: orNull(form.computed_expr),
     description: form.description,
     use_case: form.use_case,
   }
@@ -192,11 +301,24 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
     lookup_target: payload.lookup_target,
     max_length: payload.max_length,
     computed_formula: payload.computed_formula,
+    computed_expr: payload.computed_expr,
     description: payload.description,
     use_case: payload.use_case,
   }
 
-  const placementPatch = {
+  /**
+   * Placement properties that mean the same thing on every module.
+   *
+   * "Apply to all placements" sends exactly this set to each of them. The
+   * anchor is in here deliberately and is the reason the toggle exists: a
+   * CROSS-CUTTING field is replicated across Leads, Opportunities and Deals, so
+   * anchoring On Hold Reason under Lead Status was six edits, not two — and
+   * without this an admin fixes Leads, publishes, and finds Deals still wrong.
+   * The API validates the anchor per module and refuses one that names a field
+   * that module does not carry, so a bad apply fails loudly rather than
+   * half-landing.
+   */
+  const sharedPlacementPatch = {
     requirement: payload.requirement,
     capture_stage: payload.capture_stage,
     capture_any_stage: payload.capture_any_stage,
@@ -204,6 +326,28 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
     blocks_transition: payload.blocks_transition,
     visibility_condition: payload.visibility_condition,
     condition: payload.condition,
+    anchor_field: orNull(form.anchor_field),
+    // Sent only alongside an anchor: a bare position with nothing to be a
+    // position against is refused, which is the API being right.
+    ...(orNull(form.anchor_field) ? { anchor_position: form.anchor_position } : {}),
+    layout_span: form.layout_span === '' ? null : form.layout_span,
+    value_mode: form.value_mode,
+    ...(form.value_mode === 'carry_forward' ? { value_locked: form.value_locked } : {}),
+    stage_scoped: form.stage_scoped,
+  }
+
+  /**
+   * That set plus what belongs to THIS module alone.
+   *
+   * section_id is the whole list: a section id names a row of one module's
+   * section table, so sending it to another module's placement would move the
+   * field into a section that is not theirs. It was in neither patch until B3,
+   * which meant the Section dropdown on this dialog silently did nothing when
+   * editing an existing field.
+   */
+  const placementPatch = {
+    ...sharedPlacementPatch,
+    section_id: payload.section_id,
   }
 
   const submit = async () => {
@@ -221,6 +365,19 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
           placementId: field.placement_id,
           patch: placementPatch,
         })
+        if (applyToAll) {
+          // This module's placement is already done, and section_id is left
+          // out of the others on purpose — see sharedPlacementPatch.
+          const others = (detail?.placements ?? []).filter(
+            (p) => p.placement_id !== field.placement_id && p.status === 'active'
+          )
+          for (const other of others) {
+            await updatePlacement.mutateAsync({
+              placementId: other.placement_id,
+              patch: sharedPlacementPatch,
+            })
+          }
+        }
       } else {
         await createField.mutateAsync({
           ...payload,
@@ -442,6 +599,242 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
             />
           </div>
 
+
+          {form.field_type === 'computed' && (
+            <div className="grid gap-1.5">
+              <Label htmlFor="computed_expr">Expression</Label>
+              <Input
+                id="computed_expr"
+                value={form.computed_expr}
+                placeholder="one_time_cost + annual_recurring * 3"
+                onChange={(e) => set('computed_expr', e.target.value)}
+              />
+              <p className="text-muted-foreground text-xs">
+                What the engine evaluates. The <strong>Formula</strong> box above is the
+                register&rsquo;s sentence about the same rule, shown to the user as help
+                text &mdash; both appear on the field, and where they disagree the reviewer
+                sees it. A computed field with no expression renders a blank row forever.
+              </p>
+            </div>
+          )}
+
+          {/* ---- WHERE IT DRAWS ------------------------------------------ */}
+          <div className="grid gap-3 rounded-md border p-3">
+            <p className="text-section text-xs font-bold tracking-wide">WHERE IT DRAWS</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="anchor_field">Anchor to</Label>
+                <select
+                  id="anchor_field"
+                  className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
+                  value={form.anchor_field}
+                  onChange={(e) => set('anchor_field', e.target.value)}
+                >
+                  <option value="">&mdash; its own section, in order &mdash;</option>
+                  {anchorCandidates.map((f) => (
+                    <option key={f.placement_id} value={f.api_name}>
+                      {f.label} ({f.api_name})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="anchor_position">Position</Label>
+                <select
+                  id="anchor_position"
+                  className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
+                  disabled={form.anchor_field === ''}
+                  value={form.anchor_position}
+                  onChange={(e) =>
+                    set('anchor_position', e.target.value as FormState['anchor_position'])
+                  }
+                >
+                  <option value="after">after &mdash; directly beneath it</option>
+                  <option value="beside">beside &mdash; the next grid cell</option>
+                </select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="layout_span">Width</Label>
+                <select
+                  id="layout_span"
+                  className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
+                  value={form.layout_span}
+                  onChange={(e) => set('layout_span', e.target.value as FormState['layout_span'])}
+                >
+                  <option value="">auto &mdash; whatever the type takes</option>
+                  <option value="half">half row</option>
+                  <option value="full">full row</option>
+                </select>
+              </div>
+            </div>
+            <p className="text-muted-foreground text-xs">
+              Section says what <em>kind</em> of field this is. An anchor says where it goes
+              &mdash; beside the question it answers, wherever that question happens to be,
+              even in another section. A conditional field has to be in the same form as its
+              trigger, or the box cannot appear until after a save.
+            </p>
+          </div>
+
+          {/* ---- HOW ITS VALUE BEHAVES ----------------------------------- */}
+          <div className="grid gap-3 rounded-md border p-3">
+            <p className="text-section text-xs font-bold tracking-wide">
+              HOW ITS VALUE BEHAVES
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="value_mode">Opening value</Label>
+                <select
+                  id="value_mode"
+                  className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
+                  value={form.value_mode}
+                  onChange={(e) => set('value_mode', e.target.value as FormState['value_mode'])}
+                >
+                  <option value="own">own &mdash; starts empty</option>
+                  <option value="carry_forward">
+                    carry forward &mdash; seeded from the parent
+                  </option>
+                  <option value="read_through">read through &mdash; never stored here</option>
+                </select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="stage_scoped">Recorded</Label>
+                <select
+                  id="stage_scoped"
+                  className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
+                  value={form.stage_scoped}
+                  onChange={(e) =>
+                    set('stage_scoped', e.target.value as FormState['stage_scoped'])
+                  }
+                >
+                  <option value="none">once per record</option>
+                  <option value="carry_forward">per stage, inheriting the last answer</option>
+                  <option value="sticky">per stage, never carried</option>
+                </select>
+              </div>
+            </div>
+
+            {form.value_mode === 'carry_forward' && (
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={form.value_locked}
+                  onCheckedChange={(v) => set('value_locked', v === true)}
+                />
+                Locked &mdash; the carried value may not be changed afterwards
+              </label>
+            )}
+
+            {form.stage_scoped !== 'none' && (
+              <p className="text-muted-foreground text-xs">
+                Per-stage values are stored as{' '}
+                <code>{(form.api_name || 'api_name') + '__s3'}</code>, one key per stage.{' '}
+                {form.stage_scoped === 'sticky'
+                  ? 'Never carried: a lead put on hold at Stage 1 and again at Stage 3 gives two different reasons, and the Stage 3 box opens empty.'
+                  : 'A stage with no answer of its own shows the nearest earlier one, and the plain name keeps holding the current answer for list columns.'}{' '}
+                Only pipeline modules have stages &mdash; the API refuses this elsewhere.
+              </p>
+            )}
+
+            {isEdit && (
+              <p className="text-muted-foreground text-xs">
+                <strong>Stored in:</strong>{' '}
+                {field?.storage === 'column'
+                  ? 'its own typed column — a register field keeps the column it has'
+                  : field?.storage === 'custom_fields'
+                    ? 'the custom_fields JSONB store — a field added here never gets a column, because that would be an ALTER TABLE issued from an admin screen'
+                    : 'nothing — a read-through field stores no value of its own'}
+                . Not a choice; a fact about the field.
+              </p>
+            )}
+          </div>
+
+          {isEdit && shared && (
+            <label className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-sm">
+              <Checkbox
+                className="mt-0.5"
+                checked={applyToAll}
+                onCheckedChange={(v) => setApplyToAll(v === true)}
+              />
+              <span>
+                Apply these to all {field?.module_count} placements of this field
+                <span className="text-muted-foreground block text-xs">
+                  {(detail?.placements ?? [])
+                    .filter((p) => p.status === 'active')
+                    .map((p) => p.module_key)
+                    .join(', ') || 'loading…'}
+                  . Everything above except <strong>Section</strong>, which names a row of
+                  one module&rsquo;s own section list.
+                </span>
+              </span>
+            </label>
+          )}
+
+
+          {isEdit && (
+            <div className="grid gap-2 rounded-md border p-3">
+              <p className="text-section text-xs font-bold tracking-wide">
+                ALSO SHOW ON
+              </p>
+              {alsoCandidates.length === 0 ? (
+                <p className="text-muted-foreground text-xs">
+                  Already placed on every module that could carry it.
+                </p>
+              ) : (
+                <div className="flex flex-wrap items-end gap-2">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="also_module">Module</Label>
+                    <select
+                      id="also_module"
+                      className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
+                      value={alsoModule}
+                      onChange={(e) => {
+                        setAlsoModule(e.target.value)
+                        setAlsoSectionId(null)
+                      }}
+                    >
+                      <option value="">&mdash; pick one &mdash;</option>
+                      {alsoCandidates.map((m) => (
+                        <option key={m.module_key} value={m.module_key}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="also_section">Section</Label>
+                    <select
+                      id="also_section"
+                      className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
+                      disabled={alsoModule === ''}
+                      value={alsoSectionId ?? ''}
+                      onChange={(e) => setAlsoSectionId(Number(e.target.value))}
+                    >
+                      <option value="">&mdash; pick one &mdash;</option>
+                      {alsoSections.map((sec) => (
+                        <option key={sec.id} value={sec.id}>
+                          {sec.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <Button
+                    variant="outline"
+                    disabled={
+                      alsoModule === '' || alsoSectionId === null || addPlacement.isPending
+                    }
+                    onClick={addAlso}
+                  >
+                    {addPlacement.isPending ? 'Adding…' : 'Add placement'}
+                  </Button>
+                </div>
+              )}
+              <p className="text-muted-foreground text-xs">
+                The same field on another module &mdash; one definition, a second placement.
+                Its label, type and picklist stay shared; section, stage, conditions and
+                value behaviour are that module&rsquo;s own. Added immediately, not on Save.
+              </p>
+            </div>
+          )}
+
           <div className="grid gap-1.5">
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -464,10 +857,12 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
 
           {field?.has_extension && (
             <p className="text-muted-foreground rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs">
-              This field has an entry in <code>spec/extensions.json</code> — a computed
-              expression, a child-list shape or a type override. That file is hand-maintained
-              and is <strong>not</strong> regenerated, so changing the type here will not
-              update it.
+              This field has an entry in <code>spec/extensions.json</code> &mdash; a
+              child-list shape, a lookup filter, or a recorded departure from the register
+              such as a type override. That file is hand-maintained and is{' '}
+              <strong>not</strong> regenerated, so changing the type here will not update it.
+              (Computed expressions moved out of that file and into the register in B2 &mdash;
+              the <strong>Expression</strong> box above is the one that counts.)
             </p>
           )}
 

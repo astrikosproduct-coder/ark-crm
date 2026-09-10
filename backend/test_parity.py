@@ -160,7 +160,8 @@ APPROVED_DELETIONS: dict[tuple[str, str], str] = {
 # the box appeared and let the user save straight past it. The condition is the
 # same expression as the visibility_condition, deliberately — "when is it
 # SHOWN" and "when is it DEMANDED" are different questions with the same answer
-# here. See anchor_reasons.py.
+# here. Set by anchor_reasons.py, which B3 deleted once the field editor grew
+# the control; this table is now the only record of what it approved.
 APPROVED_CONDITIONS: dict[tuple[str, str], str] = {
     ("leads", "on_hold_reason"): "lead_status == 'On Hold'",
     ("leads", "closed_lost_reason_code"): "lead_status == 'Closed Lost'",

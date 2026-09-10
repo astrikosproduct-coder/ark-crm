@@ -10,8 +10,11 @@ Two vocabulary gaps, both of which made an admin ask me to edit a file.
     field_definitions.computed_expr   the expression the engine evaluates
 
 Nothing moves here. Both columns land NULL/'none' on every existing row; the
-values are backfilled from spec/extensions.json by absorb_sidecar.py, which is
-data and goes through the API's own validation the way anchor_reasons.py did.
+values were backfilled from spec/extensions.json by absorb_sidecar.py, which
+was data and went through the API's own validation the way anchor_reasons.py
+did. That script is deleted as of B3 — the field editor sets both properties
+now, which is what it said should end it. What it wrote is in the register, in
+every published snapshot, and in git.
 
 1. stage_scoped
 ---------------

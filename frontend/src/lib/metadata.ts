@@ -110,6 +110,21 @@ export interface MetadataField {
   value_source_module: string | null
   /** 'column', 'custom_fields', or null for read_through, which stores nothing. */
   storage: 'column' | 'custom_fields' | null
+  /** One value per record, or one per stage. See StageScoped in types/field.ts. */
+  stage_scoped: 'none' | 'carry_forward' | 'sticky'
+
+  // ---- where it draws, as against what kind of field it is
+  /** The api_name on this module this placement renders next to, or null. */
+  anchor_field: string | null
+  anchor_position: 'after' | 'beside' | null
+  layout_span: 'full' | 'half' | null
+
+  /**
+   * The expression the engine evaluates. NOT computed_formula, which is the
+   * register's English sentence about the same rule — both are shown to the
+   * user, because where they disagree that is a finding.
+   */
+  computed_expr: string | null
 
   // ---- reach
   /** How many modules this field is live on. 1 unless it is shared. */
@@ -342,6 +357,7 @@ export type DefinitionInput = Partial<{
   lookup_target: string | null
   lookup_filter: string | null
   computed_formula: string | null
+  computed_expr: string | null
   values_note: string | null
   description: string
   use_case: string
@@ -366,6 +382,11 @@ export type PlacementInput = Partial<{
   value_locked: boolean
   editable: boolean
   storage: 'column' | 'custom_fields'
+  stage_scoped: 'none' | 'carry_forward' | 'sticky'
+  /** null clears the anchor and returns the field to its own section's list. */
+  anchor_field: string | null
+  anchor_position: 'after' | 'beside' | null
+  layout_span: 'full' | 'half' | null
 }>
 
 /** One canonical field and every module it appears on. */
@@ -380,6 +401,7 @@ export interface MetadataFieldDetail {
   lookup_target: string | null
   lookup_filter: string | null
   computed_formula: string | null
+  computed_expr: string | null
   values_note: string | null
   description: string
   use_case: string

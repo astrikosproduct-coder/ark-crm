@@ -1259,6 +1259,15 @@ def restore_snapshot(db: Session, snapshot: dict[str, Any]) -> list[str]:
         definition.lookup_target = row["lookup_target"]
         definition.lookup_filter = row["lookup_filter"]
         definition.computed_formula = row["computed_formula"]
+        # PRESERVED, not restored-to-null, when the key is absent — and that is
+        # the opposite of how anchors are handled below, deliberately.
+        # anchor_field has been a column since 0013, so a snapshot taken before
+        # it genuinely described a register with no anchors. computed_expr was
+        # not missing before 0015: it was in spec/extensions.json, which a
+        # rollback does not touch and which was still in force. Restoring null
+        # here would leave every computed field on the screen with nothing to
+        # compute, which no published configuration ever meant.
+        definition.computed_expr = row.get("computed_expr", definition.computed_expr)
         definition.values_note = row["values_note"]
         definition.description = row["description"]
         definition.use_case = row["use_case"]
@@ -1325,6 +1334,13 @@ def restore_snapshot(db: Session, snapshot: dict[str, Any]) -> list[str]:
         placement.anchor_field = row.get("anchor_field")
         placement.anchor_position = row.get("anchor_position")
         placement.layout_span = row.get("layout_span")
+        # Per-stage behaviour travels too, and is PRESERVED when absent for the
+        # same reason computed_expr is: before 0015 it lived in
+        # spec/extensions.json stage_scoped, which a rollback does not revert.
+        # Reading a pre-B2 snapshot as "nothing was per-stage" would turn every
+        # On Hold Reason back into a single value that the second hold
+        # overwrites — silently, and only on rollback.
+        placement.stage_scoped = row.get("stage_scoped", placement.stage_scoped)
         if placement.provenance is None:
             placement.provenance = extra.get("provenance")
 

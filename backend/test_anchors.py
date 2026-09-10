@@ -13,7 +13,8 @@ WHAT IS BEING PROVED
     5   cycles                    refused; chains are not
     6   database integrity        the CHECK constraints refuse what they must
     7   delete releases           dependents return to their own section
-    8   rollback carries it       a snapshot restores WHERE a field drew
+    8   rollback carries it       a snapshot restores WHERE a field drew, and
+                                  stage_scoped / computed_expr with it
     9   per-stage values PERSIST   the bug A2 would otherwise have walked into
 
 Assertions are made against PostgreSQL and against the resolver rather than
@@ -98,12 +99,17 @@ head("1  every anchored placement is where Phase A put it")
 
 # (module, api_name) -> (anchor, span, section it stays filed under)
 #
-# Two groups, set by two scripts, asserted together because what matters is
-# the WHOLE anchored set: a count that only knows about one group cannot tell
-# a new anchor apart from a drifted one.
+# Two groups, asserted together because what matters is the WHOLE anchored
+# set: a count that only knows about one group cannot tell a new anchor apart
+# from a drifted one.
 #
-#   anchor_reasons.py   the six reason placements  (A2)
-#   anchor_stage1.py    Leads Stage 1's three conditionals
+#   the six reason placements          (A2, anchor_reasons.py)
+#   Leads Stage 1's three conditionals (A3, anchor_stage1.py)
+#
+# Both scripts are deleted as of B3. They existed because Administration had no
+# anchor control and the only way to set one was to write it; the field editor
+# has one now, which is what they each said should end them. This list is the
+# record of what they configured, and the assertion that it is still there.
 #
 # The Stage 1 three are the case that proves the model generalises: they are
 # ordinary register fields in an ordinary STAGE section, not CROSS-CUTTING
@@ -415,6 +421,48 @@ try:
         ),
     )
 
+    # B2's two columns have to travel the same way, and the round trip is
+    # asserted rather than the snapshot alone: build_snapshot reading a column
+    # proves nothing if restore_snapshot never writes it back. It did not, for
+    # exactly as long as it took to write this check — a rollback would have
+    # turned every On Hold Reason back into one value the second hold
+    # overwrites, and dropped all 28 expressions, silently.
+    check(
+        "the snapshot carries stage_scoped and computed_expr",
+        snap_row.get("stage_scoped") == "sticky"
+        and "computed_expr" in snap_row,
+        str((snap_row.get("stage_scoped"), snap_row.get("computed_expr"))),
+    )
+
+    from app.metadata_spec import restore_snapshot  # noqa: E402
+
+    reason.stage_scoped = "none"
+    db.commit()
+    restore_snapshot(db, snapshot)
+    db.commit()
+    db.refresh(reason)
+    check(
+        "restoring it puts stage_scoped back",
+        reason.stage_scoped == "sticky",
+        reason.stage_scoped,
+    )
+
+    # And the absence case, which is the one a rollback to any snapshot
+    # published before 0015 actually hits. Those rows carry no such key, and
+    # the answer is NOT "nothing was per-stage" — it was in extensions.json,
+    # which a rollback does not revert. Preserve, do not null.
+    for row in snapshot["fields"]:
+        row.pop("stage_scoped", None)
+        row.pop("computed_expr", None)
+    restore_snapshot(db, snapshot)
+    db.commit()
+    db.refresh(reason)
+    check(
+        "a pre-0015 snapshot leaves stage_scoped alone rather than clearing it",
+        reason.stage_scoped == "sticky",
+        reason.stage_scoped,
+    )
+
     # =================================================================
     # 9  per-stage values survive a save
     # =================================================================
@@ -497,8 +545,10 @@ finally:
     if not ok:
         FAILED.append(
             f"the anchor configuration was not restored — {still} anchored, "
-            f"expected {len(ANCHORED)}. Re-run BOTH: python anchor_reasons.py "
-            f"--apply && python anchor_stage1.py --apply"
+            f"expected {len(ANCHORED)}. The scripts that used to set these are "
+            f"gone (B3): roll back to the last good published version in "
+            f"Administration, or set the anchors in the field editor — "
+            f"'Anchor to' names the field each one draws beneath."
         )
     db.close()
 
