@@ -169,8 +169,21 @@ export function carryForwardFieldsOf(module: string): FieldSpec[] {
  * ordinary RecordForm. Ask hiddenFromFormNamesOf() what a form must not draw —
  * it is derived from this, minus the anchored ones, plus the transition-written
  * ones. Do not use this one to decide visibility.
+ *
+ * WHY THE NAME CHANGED (B0.2)
+ * ---------------------------
+ * It was isStageScoped(), and the Phase A review called for collapsing it into
+ * hiddenFromFormNamesOf() as two predicates answering nearly the same question.
+ * They are not: this one is asked by useRecordForm to decide which values get
+ * projected through `__s<n>`, and that one is asked by PipelineRecordPage to
+ * decide what the form must not draw. Merging them would recreate exactly the
+ * conflation A2 removed. What was actually wrong was four names in one
+ * `stageScoped*` family with only the docstrings saying which axis each sits
+ * on, so the storage pair is named for storage now and the rendering pair for
+ * rendering. isStageScopedModule() keeps its name: it answers neither
+ * question, only whether the module has stages at all.
  */
-export function isStageScoped(module: string, field: FieldSpec): boolean {
+export function isPerStageValue(module: string, field: FieldSpec): boolean {
   if (!isStageScopedModule(module)) return false
   if (spec.carry_forward.fields.some((f) => f.api_name === field.api_name)) return true
   if ((spec.sticky.extra ?? []).some((e) => e.api_name === field.api_name)) return true
@@ -182,8 +195,8 @@ export function isStageScoped(module: string, field: FieldSpec): boolean {
 }
 
 /** Every api_name this module renders per stage rather than in a section. */
-export function stageScopedNamesOf(module: string): Set<string> {
-  return new Set(fieldsOf(module).filter((f) => isStageScoped(module, f)).map((f) => f.api_name))
+export function perStageValueNamesOf(module: string): Set<string> {
+  return new Set(fieldsOf(module).filter((f) => isPerStageValue(module, f)).map((f) => f.api_name))
 }
 
 /**
@@ -314,7 +327,7 @@ export function historyOnlyNamesOf(module: string): Set<string> {
  * even though its QUESTIONS are not.
  */
 export function reasonFieldsOf(module: string): FieldSpec[] {
-  const scoped = stageScopedNamesOf(module)
+  const scoped = perStageValueNamesOf(module)
   const history = historyOnlyNamesOf(module)
   const carried = new Set(spec.carry_forward.fields.map((f) => f.api_name))
   return fieldsOf(module).filter(
@@ -334,7 +347,7 @@ export function reasonFieldsOf(module: string): FieldSpec[] {
 export function inlineStageScopedNamesOf(module: string): Set<string> {
   return new Set(
     fieldsOf(module)
-      .filter((f) => isStageScoped(module, f) && Boolean(f.anchor_field))
+      .filter((f) => isPerStageValue(module, f) && Boolean(f.anchor_field))
       .map((f) => f.api_name)
   )
 }
@@ -343,12 +356,12 @@ export function inlineStageScopedNamesOf(module: string): Set<string> {
  * What a pipeline form must not draw, because another surface draws it.
  *
  * The stage-scoped names MINUS the anchored ones, PLUS the transition-written
- * ones. Before anchors this was simply stageScopedNamesOf(); the subtraction is
- * A2 and the addition is A3.
+ * ones. Before anchors this was simply the per-stage set itself; the
+ * subtraction is A2 and the addition is A3.
  */
 export function hiddenFromFormNamesOf(module: string): Set<string> {
   const inline = inlineStageScopedNamesOf(module)
-  const hidden = new Set([...stageScopedNamesOf(module)].filter((n) => !inline.has(n)))
+  const hidden = new Set([...perStageValueNamesOf(module)].filter((n) => !inline.has(n)))
   for (const name of historyOnlyNamesOf(module)) hidden.add(name)
   return hidden
 }

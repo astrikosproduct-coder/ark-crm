@@ -9,7 +9,7 @@ import {
 
 import { homeSectionOf } from '@/lib/spec/anchors'
 import {
-  isStageScoped,
+  isPerStageValue,
   stageScopedPatch,
   stageScopedValue,
 } from '@/lib/stageScope'
@@ -298,7 +298,7 @@ export function RecordFormProvider({
    * dialogs) on exactly the code path it was on before.
    */
   const scopedFields = useMemo(
-    () => (stageScope ? fieldsOf(module).filter((f) => isStageScoped(module, f)) : []),
+    () => (stageScope ? fieldsOf(module).filter((f) => isPerStageValue(module, f)) : []),
     [module, stageScope]
   )
 
