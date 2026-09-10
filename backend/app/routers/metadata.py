@@ -52,6 +52,7 @@ from .. import metadata_resolver
 from ..models import (
     ANCHOR_POSITIONS,
     LAYOUT_SPANS,
+    STAGE_SCOPED_MODES,
     STORAGE_MODES,
     VALUE_MODES,
     FieldDefinition,
@@ -615,6 +616,7 @@ def _serialise_definition(definition: FieldDefinition) -> dict:
         "lookup_target": definition.lookup_target,
         "lookup_filter": definition.lookup_filter,
         "computed_formula": definition.computed_formula,
+        "computed_expr": definition.computed_expr,
         "values_note": definition.values_note,
         "description": definition.description,
         "use_case": definition.use_case,
@@ -676,6 +678,7 @@ def _serialise_placement(
         "anchor_field": placement.anchor_field,
         "anchor_position": placement.anchor_position,
         "layout_span": placement.layout_span,
+        "stage_scoped": placement.stage_scoped,
         # Every module this field is live on, so the screen can warn before a
         # definition-level edit without a second request per row.
         "module_count": counts.get(definition.id, 0),
@@ -786,6 +789,7 @@ def create_field(payload: FieldCreate, db: Session = Depends(get_db)):
         lookup_target=data.get("lookup_target"),
         lookup_filter=data.get("lookup_filter"),
         computed_formula=data.get("computed_formula"),
+        computed_expr=data.get("computed_expr"),
         values_note=data.get("values_note"),
         description=data.get("description") or "",
         use_case=data.get("use_case") or "",
@@ -929,6 +933,11 @@ def add_placement(
         status="active",
         provenance="admin",
     )
+    # Validated after construction rather than inline: the check needs the
+    # placement's own module and value_mode, and refusing here means the
+    # row is never committed.
+    if payload.stage_scoped is not None:
+        _apply_stage_scoped(db, placement, payload.stage_scoped)
     db.add(placement)
     db.commit()
     db.refresh(placement)
@@ -967,6 +976,7 @@ def update_field(
         "lookup_target",
         "lookup_filter",
         "computed_formula",
+        "computed_expr",
         "values_note",
         "description",
         "use_case",
@@ -1101,11 +1111,58 @@ def update_placement(
             )
         placement.storage = data["storage"]
 
+    if "stage_scoped" in data and data["stage_scoped"] is not None:
+        _apply_stage_scoped(db, placement, str(data["stage_scoped"]))
+
     db.commit()
     db.refresh(placement)
     return FieldOut(
         **_serialise_placement(db, placement, definition, placement.section.label)
     )
+
+
+def _apply_stage_scoped(db: Session, placement: FieldPlacement, mode: str) -> None:
+    """
+    Record this field once per record, or once per stage.
+
+    THE TWO CHECKS A CHECK CONSTRAINT CANNOT MAKE, for the same reason the
+    anchor checks live here: both need a join the constraint cannot reach.
+
+      1. the module actually HAS stages. `stage_scoped` on Accounts describes
+         values keyed `__s<n>` on a record that is never on a stage — not
+         corrupt, but a promise nothing can keep, and an admin who sets it
+         would see no change and no reason why.
+      2. the placement stores something. A read_through placement holds no
+         value of its own at all, so it has no per-stage values either; the
+         answer it shows comes from the ancestor that owns it.
+
+    Nothing is validated about the field's TYPE. A per-stage checkbox is odd
+    but not wrong, and the register is full of judgements this layer should not
+    be making for an admin.
+    """
+    if mode not in STAGE_SCOPED_MODES:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            f"stage_scoped must be one of: {', '.join(STAGE_SCOPED_MODES)}",
+        )
+
+    if mode != "none":
+        module = db.get(Module, placement.module_key)
+        if module is None or not module.is_pipeline:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f"{placement.module_key} has no stages, so a value cannot be "
+                f"recorded per stage on it. Only pipeline modules can.",
+            )
+        if placement.value_mode == "read_through":
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f"{placement.api_name!r} on {placement.module_key} is "
+                f"read-through and stores nothing of its own, per stage or "
+                f"otherwise. Change value_mode first.",
+            )
+
+    placement.stage_scoped = mode
 
 
 def _apply_anchor(db: Session, placement: FieldPlacement, data: dict) -> None:

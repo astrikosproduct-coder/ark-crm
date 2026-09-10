@@ -98,6 +98,11 @@ FIELD_JSON_KEYS: tuple[str, ...] = (
 #                       what kind of field it is; this says where it goes.
 #   anchor_position     'after' | 'beside', null when there is no anchor
 #   layout_span         'full' | 'half' | null for the field type's own width
+#   stage_scoped        'none' | 'carry_forward' | 'sticky' — one value per
+#                       record, or one per stage under `<api_name>__s<n>`
+#   computed_expr       the expression the engine evaluates, as distinct from
+#                       computed_formula, which is the register's English
+#                       sentence about the same rule and is shown beside it
 RESOLVED_KEYS: tuple[str, ...] = (
     "value_mode",
     "value_locked",
@@ -109,6 +114,8 @@ RESOLVED_KEYS: tuple[str, ...] = (
     "anchor_field",
     "anchor_position",
     "layout_span",
+    "stage_scoped",
+    "computed_expr",
 )
 
 
@@ -276,6 +283,8 @@ def field_row(
         "anchor_field": placement.anchor_field,
         "anchor_position": placement.anchor_position,
         "layout_span": placement.layout_span,
+        "stage_scoped": placement.stage_scoped,
+        "computed_expr": definition.computed_expr,
     }
 
 

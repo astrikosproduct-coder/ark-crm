@@ -138,6 +138,10 @@ function childColumnAsField(parent: FieldSpec, column: ChildColumn): FieldSpec {
     anchor_field: null,
     anchor_position: null,
     layout_span: null,
+    // A child row is not on a stage — the TABLE is the field, and the field is
+    // what carries a stage. Per-stage values key on the record's stage, and a
+    // milestone row has none of its own to key on.
+    stage_scoped: 'none',
     api_name: column.api_name,
     label: column.label,
     type: column.type,
@@ -159,7 +163,7 @@ function childColumnAsField(parent: FieldSpec, column: ChildColumn): FieldSpec {
     visibility_condition: null,
     condition: null,
     computed_formula: column.computed_formula ?? null,
-    computed_expr: column.computed_expr,
+    computed_expr: column.computed_expr ?? null,
     lookup_filter_expr: column.lookup_filter_expr,
     ref: `${parent.module}.${column.api_name}`,
     qref: `${parent.module}.${section}.${column.api_name}`,

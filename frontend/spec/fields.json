@@ -33,7 +33,9 @@
   "register_order": 1,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "carry_forward",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -69,7 +71,9 @@
   "register_order": 2,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -105,7 +109,9 @@
   "register_order": 3,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -141,7 +147,9 @@
   "register_order": 4,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "carry_forward",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -177,7 +185,9 @@
   "register_order": 5,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "carry_forward",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -213,7 +223,9 @@
   "register_order": 6,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -249,7 +261,9 @@
   "register_order": 7,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -285,7 +299,9 @@
   "register_order": 8,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -321,7 +337,9 @@
   "register_order": 9,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -357,7 +375,9 @@
   "register_order": 10,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -393,7 +413,9 @@
   "register_order": 11,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -429,7 +451,9 @@
   "register_order": 12,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -465,7 +489,9 @@
   "register_order": 13,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -501,7 +527,9 @@
   "register_order": 14,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -537,7 +565,9 @@
   "register_order": 15,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -573,7 +603,9 @@
   "register_order": 16,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -609,7 +641,9 @@
   "register_order": 17,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -645,7 +679,9 @@
   "register_order": 18,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -681,7 +717,9 @@
   "register_order": 19,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -717,7 +755,9 @@
   "register_order": 20,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -753,7 +793,9 @@
   "register_order": 21,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -789,7 +831,9 @@
   "register_order": 22,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -825,7 +869,9 @@
   "register_order": 23,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -861,7 +907,9 @@
   "register_order": 24,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -897,7 +945,9 @@
   "register_order": 25,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -933,7 +983,9 @@
   "register_order": 26,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -969,7 +1021,9 @@
   "register_order": 27,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1005,7 +1059,9 @@
   "register_order": 28,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1041,7 +1097,9 @@
   "register_order": 29,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "deal_source == 'Partner-sourced' ? customer_partner_si : end_client"
  },
  {
   "module": "leads",
@@ -1077,7 +1135,9 @@
   "register_order": 30,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1113,7 +1173,9 @@
   "register_order": 31,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1149,7 +1211,9 @@
   "register_order": 32,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1185,7 +1249,9 @@
   "register_order": 33,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1221,7 +1287,9 @@
   "register_order": 34,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1257,7 +1325,9 @@
   "register_order": 35,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1293,7 +1363,9 @@
   "register_order": 36,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1329,7 +1401,9 @@
   "register_order": 37,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1365,7 +1439,9 @@
   "register_order": 38,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1401,7 +1477,9 @@
   "register_order": 39,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1437,7 +1515,9 @@
   "register_order": 40,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1473,7 +1553,9 @@
   "register_order": 41,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1509,7 +1591,9 @@
   "register_order": 42,
   "anchor_field": "agreed_next_step",
   "anchor_position": "after",
-  "layout_span": "full"
+  "layout_span": "full",
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1545,7 +1629,9 @@
   "register_order": 43,
   "anchor_field": "agreed_next_step",
   "anchor_position": "after",
-  "layout_span": "half"
+  "layout_span": "half",
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1581,7 +1667,9 @@
   "register_order": 44,
   "anchor_field": "agreed_next_step",
   "anchor_position": "after",
-  "layout_span": "half"
+  "layout_span": "half",
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1617,7 +1705,9 @@
   "register_order": 45,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1653,7 +1743,9 @@
   "register_order": 46,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1689,7 +1781,9 @@
   "register_order": 47,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1725,7 +1819,9 @@
   "register_order": 48,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1761,7 +1857,9 @@
   "register_order": 49,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1797,7 +1895,9 @@
   "register_order": 50,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1833,7 +1933,9 @@
   "register_order": 51,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1869,7 +1971,9 @@
   "register_order": 52,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1905,7 +2009,9 @@
   "register_order": 53,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1941,7 +2047,9 @@
   "register_order": 54,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -1977,7 +2085,9 @@
   "register_order": 55,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2013,7 +2123,9 @@
   "register_order": 56,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2049,7 +2161,9 @@
   "register_order": 57,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2085,7 +2199,9 @@
   "register_order": 58,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2121,7 +2237,9 @@
   "register_order": 59,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2157,7 +2275,9 @@
   "register_order": 60,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2193,7 +2313,9 @@
   "register_order": 61,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2229,7 +2351,9 @@
   "register_order": 62,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2265,7 +2389,9 @@
   "register_order": 63,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2301,7 +2427,9 @@
   "register_order": 64,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2337,7 +2465,9 @@
   "register_order": 65,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2373,7 +2503,9 @@
   "register_order": 66,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2409,7 +2541,9 @@
   "register_order": 67,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2445,7 +2579,9 @@
   "register_order": 68,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2481,7 +2617,9 @@
   "register_order": 69,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2517,7 +2655,9 @@
   "register_order": 70,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "sticky",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2553,7 +2693,9 @@
   "register_order": 71,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2589,7 +2731,9 @@
   "register_order": 72,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2625,7 +2769,9 @@
   "register_order": 73,
   "anchor_field": "lead_status",
   "anchor_position": "after",
-  "layout_span": "half"
+  "layout_span": "half",
+  "stage_scoped": "sticky",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2661,7 +2807,9 @@
   "register_order": 74,
   "anchor_field": "lead_status",
   "anchor_position": "after",
-  "layout_span": "full"
+  "layout_span": "full",
+  "stage_scoped": "sticky",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2697,7 +2845,9 @@
   "register_order": 75,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2733,7 +2883,9 @@
   "register_order": 76,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2769,7 +2921,9 @@
   "register_order": 77,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2805,7 +2959,9 @@
   "register_order": 78,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2841,7 +2997,9 @@
   "register_order": 79,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "leads",
@@ -2877,7 +3035,9 @@
   "register_order": 80,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -2913,7 +3073,9 @@
   "register_order": 1,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "carry_forward",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -2949,7 +3111,9 @@
   "register_order": 2,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -2985,7 +3149,9 @@
   "register_order": 3,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3021,7 +3187,9 @@
   "register_order": 4,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "carry_forward",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3057,7 +3225,9 @@
   "register_order": 5,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "carry_forward",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3093,7 +3263,9 @@
   "register_order": 6,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3129,7 +3301,9 @@
   "register_order": 7,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3165,7 +3339,9 @@
   "register_order": 8,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3201,7 +3377,9 @@
   "register_order": 9,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3237,7 +3415,9 @@
   "register_order": 10,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3273,7 +3453,9 @@
   "register_order": 11,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3309,7 +3491,9 @@
   "register_order": 12,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3345,7 +3529,9 @@
   "register_order": 13,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3381,7 +3567,9 @@
   "register_order": 14,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "arr_annual_recurring * contract_years + perpetual_licence_fee + one_time_revenue + 3rd_party_one_time + 3rd_party_recurring_per_year * contract_years"
  },
  {
   "module": "opportunities",
@@ -3417,7 +3605,9 @@
   "register_order": 15,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "((arr_annual_recurring * contract_years + perpetual_licence_fee + one_time_revenue) - services_and_implementation_cost) / (arr_annual_recurring * contract_years + perpetual_licence_fee + one_time_revenue)"
  },
  {
   "module": "opportunities",
@@ -3453,7 +3643,9 @@
   "register_order": 16,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3489,7 +3681,9 @@
   "register_order": 17,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3525,7 +3719,9 @@
   "register_order": 18,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3561,7 +3757,9 @@
   "register_order": 19,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "bid_submission_date <= submission_deadline"
  },
  {
   "module": "opportunities",
@@ -3597,7 +3795,9 @@
   "register_order": 20,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3633,7 +3833,9 @@
   "register_order": 21,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3669,7 +3871,9 @@
   "register_order": 22,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "(platform_licence_list_price - arr_annual_recurring) / platform_licence_list_price"
  },
  {
   "module": "opportunities",
@@ -3705,7 +3909,9 @@
   "register_order": 23,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3741,7 +3947,9 @@
   "register_order": 24,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3777,7 +3985,9 @@
   "register_order": 25,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "services_and_implementation_cost + third_party_cost"
  },
  {
   "module": "opportunities",
@@ -3813,7 +4023,9 @@
   "register_order": 26,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "(3rd_party_one_time + 3rd_party_recurring_per_year * contract_years) / total_value_tcv"
  },
  {
   "module": "opportunities",
@@ -3849,7 +4061,9 @@
   "register_order": 27,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3885,7 +4099,9 @@
   "register_order": 28,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3921,7 +4137,9 @@
   "register_order": 29,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3957,7 +4175,9 @@
   "register_order": 30,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -3993,7 +4213,9 @@
   "register_order": 31,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4029,7 +4251,9 @@
   "register_order": 32,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4065,7 +4289,9 @@
   "register_order": 33,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4101,7 +4327,9 @@
   "register_order": 34,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4137,7 +4365,9 @@
   "register_order": 35,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4173,7 +4403,9 @@
   "register_order": 36,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4209,7 +4441,9 @@
   "register_order": 37,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4245,7 +4479,9 @@
   "register_order": 38,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4281,7 +4517,9 @@
   "register_order": 39,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4317,7 +4555,9 @@
   "register_order": 40,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4353,7 +4593,9 @@
   "register_order": 41,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4389,7 +4631,9 @@
   "register_order": 42,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4425,7 +4669,9 @@
   "register_order": 43,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4461,7 +4707,9 @@
   "register_order": 44,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4497,7 +4745,9 @@
   "register_order": 45,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4533,7 +4783,9 @@
   "register_order": 46,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4569,7 +4821,9 @@
   "register_order": 47,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4605,7 +4859,9 @@
   "register_order": 48,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4641,7 +4897,9 @@
   "register_order": 49,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4677,7 +4935,9 @@
   "register_order": 50,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4713,7 +4973,9 @@
   "register_order": 51,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4749,7 +5011,9 @@
   "register_order": 52,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4785,7 +5049,9 @@
   "register_order": 53,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4821,7 +5087,9 @@
   "register_order": 54,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4857,7 +5125,9 @@
   "register_order": 55,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4893,7 +5163,9 @@
   "register_order": 56,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4929,7 +5201,9 @@
   "register_order": 57,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -4965,7 +5239,9 @@
   "register_order": 58,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5001,7 +5277,9 @@
   "register_order": 59,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5037,7 +5315,9 @@
   "register_order": 60,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5073,7 +5353,9 @@
   "register_order": 61,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5109,7 +5391,9 @@
   "register_order": 62,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5145,7 +5429,9 @@
   "register_order": 63,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5181,7 +5467,9 @@
   "register_order": 64,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5217,7 +5505,9 @@
   "register_order": 65,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5253,7 +5543,9 @@
   "register_order": 66,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5289,7 +5581,9 @@
   "register_order": 67,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5325,7 +5619,9 @@
   "register_order": 68,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5361,7 +5657,9 @@
   "register_order": 69,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5397,7 +5695,9 @@
   "register_order": 70,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5433,7 +5733,9 @@
   "register_order": 71,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5469,7 +5771,9 @@
   "register_order": 72,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5505,7 +5809,9 @@
   "register_order": 73,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5541,7 +5847,9 @@
   "register_order": 74,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5577,7 +5885,9 @@
   "register_order": 75,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5613,7 +5923,9 @@
   "register_order": 76,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5649,7 +5961,9 @@
   "register_order": 77,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5685,7 +5999,9 @@
   "register_order": 78,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5721,7 +6037,9 @@
   "register_order": 79,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5757,7 +6075,9 @@
   "register_order": 80,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5793,7 +6113,9 @@
   "register_order": 81,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5829,7 +6151,9 @@
   "register_order": 82,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5865,7 +6189,9 @@
   "register_order": 83,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5901,7 +6227,9 @@
   "register_order": 84,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5937,7 +6265,9 @@
   "register_order": 85,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -5973,7 +6303,9 @@
   "register_order": 86,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6009,7 +6341,9 @@
   "register_order": 87,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6045,7 +6379,9 @@
   "register_order": 88,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6081,7 +6417,9 @@
   "register_order": 89,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6117,7 +6455,9 @@
   "register_order": 90,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6153,7 +6493,9 @@
   "register_order": 91,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6189,7 +6531,9 @@
   "register_order": 92,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6225,7 +6569,9 @@
   "register_order": 93,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6261,7 +6607,9 @@
   "register_order": 94,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6297,7 +6645,9 @@
   "register_order": 95,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "sticky",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6333,7 +6683,9 @@
   "register_order": 96,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6369,7 +6721,9 @@
   "register_order": 97,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6405,7 +6759,9 @@
   "register_order": 98,
   "anchor_field": "lead_status",
   "anchor_position": "after",
-  "layout_span": "half"
+  "layout_span": "half",
+  "stage_scoped": "sticky",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6441,7 +6797,9 @@
   "register_order": 99,
   "anchor_field": "lead_status",
   "anchor_position": "after",
-  "layout_span": "full"
+  "layout_span": "full",
+  "stage_scoped": "sticky",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6477,7 +6835,9 @@
   "register_order": 100,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6513,7 +6873,9 @@
   "register_order": 101,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6549,7 +6911,9 @@
   "register_order": 102,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6585,7 +6949,9 @@
   "register_order": 103,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6621,7 +6987,9 @@
   "register_order": 104,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "opportunities",
@@ -6657,7 +7025,9 @@
   "register_order": 105,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -6693,7 +7063,9 @@
   "register_order": 1,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "carry_forward",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -6729,7 +7101,9 @@
   "register_order": 2,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -6765,7 +7139,9 @@
   "register_order": 3,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "carry_forward",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -6801,7 +7177,9 @@
   "register_order": 4,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "carry_forward",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -6837,7 +7215,9 @@
   "register_order": 5,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -6873,7 +7253,9 @@
   "register_order": 6,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -6909,7 +7291,9 @@
   "register_order": 7,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -6945,7 +7329,9 @@
   "register_order": 8,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -6981,7 +7367,9 @@
   "register_order": 9,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7017,7 +7405,9 @@
   "register_order": 10,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7053,7 +7443,9 @@
   "register_order": 11,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7089,7 +7481,9 @@
   "register_order": 12,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7125,7 +7519,9 @@
   "register_order": 13,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7161,7 +7557,9 @@
   "register_order": 14,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7197,7 +7595,9 @@
   "register_order": 15,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7233,7 +7633,9 @@
   "register_order": 16,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7269,7 +7671,9 @@
   "register_order": 17,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7305,7 +7709,9 @@
   "register_order": 18,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7341,7 +7747,9 @@
   "register_order": 19,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7377,7 +7785,9 @@
   "register_order": 20,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7413,7 +7823,9 @@
   "register_order": 21,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7449,7 +7861,9 @@
   "register_order": 22,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7485,7 +7899,9 @@
   "register_order": 23,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7521,7 +7937,9 @@
   "register_order": 24,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7557,7 +7975,9 @@
   "register_order": 25,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7593,7 +8013,9 @@
   "register_order": 26,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7629,7 +8051,9 @@
   "register_order": 27,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7665,7 +8089,9 @@
   "register_order": 28,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7701,7 +8127,9 @@
   "register_order": 29,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7737,7 +8165,9 @@
   "register_order": 30,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7773,7 +8203,9 @@
   "register_order": 31,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "guarantee_—_value / contract_value"
  },
  {
   "module": "deals",
@@ -7809,7 +8241,9 @@
   "register_order": 32,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7845,7 +8279,9 @@
   "register_order": 33,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7881,7 +8317,9 @@
   "register_order": 34,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7917,7 +8355,9 @@
   "register_order": 35,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7953,7 +8393,9 @@
   "register_order": 36,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -7989,7 +8431,9 @@
   "register_order": 37,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8025,7 +8469,9 @@
   "register_order": 38,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8061,7 +8507,9 @@
   "register_order": 39,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8097,7 +8545,9 @@
   "register_order": 40,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8133,7 +8583,9 @@
   "register_order": 41,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8169,7 +8621,9 @@
   "register_order": 42,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8205,7 +8659,9 @@
   "register_order": 43,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8241,7 +8697,9 @@
   "register_order": 44,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8277,7 +8735,9 @@
   "register_order": 45,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8313,7 +8773,9 @@
   "register_order": 46,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8349,7 +8811,9 @@
   "register_order": 47,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8385,7 +8849,9 @@
   "register_order": 48,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8421,7 +8887,9 @@
   "register_order": 49,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8457,7 +8925,9 @@
   "register_order": 50,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8493,7 +8963,9 @@
   "register_order": 51,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8529,7 +9001,9 @@
   "register_order": 52,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8565,7 +9039,9 @@
   "register_order": 53,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8601,7 +9077,9 @@
   "register_order": 54,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8637,7 +9115,9 @@
   "register_order": 55,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8673,7 +9153,9 @@
   "register_order": 56,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8709,7 +9191,9 @@
   "register_order": 57,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8745,7 +9229,9 @@
   "register_order": 58,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8781,7 +9267,9 @@
   "register_order": 59,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8817,7 +9305,9 @@
   "register_order": 60,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8853,7 +9343,9 @@
   "register_order": 61,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8889,7 +9381,9 @@
   "register_order": 62,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8925,7 +9419,9 @@
   "register_order": 63,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8961,7 +9457,9 @@
   "register_order": 64,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -8997,7 +9495,9 @@
   "register_order": 65,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9033,7 +9533,9 @@
   "register_order": 66,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9069,7 +9571,9 @@
   "register_order": 67,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9105,7 +9609,9 @@
   "register_order": 68,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9141,7 +9647,9 @@
   "register_order": 69,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9177,7 +9685,9 @@
   "register_order": 70,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9213,7 +9723,9 @@
   "register_order": 71,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9249,7 +9761,9 @@
   "register_order": 72,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9285,7 +9799,9 @@
   "register_order": 73,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9321,7 +9837,9 @@
   "register_order": 74,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9357,7 +9875,9 @@
   "register_order": 75,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9393,7 +9913,9 @@
   "register_order": 76,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9429,7 +9951,9 @@
   "register_order": 77,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9465,7 +9989,9 @@
   "register_order": 78,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9501,7 +10027,9 @@
   "register_order": 79,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9537,7 +10065,9 @@
   "register_order": 80,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9573,7 +10103,9 @@
   "register_order": 81,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9609,7 +10141,9 @@
   "register_order": 82,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9645,7 +10179,9 @@
   "register_order": 83,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9681,7 +10217,9 @@
   "register_order": 84,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9717,7 +10255,9 @@
   "register_order": 85,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "sticky",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9753,7 +10293,9 @@
   "register_order": 86,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9789,7 +10331,9 @@
   "register_order": 87,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9825,7 +10369,9 @@
   "register_order": 88,
   "anchor_field": "lead_status",
   "anchor_position": "after",
-  "layout_span": "half"
+  "layout_span": "half",
+  "stage_scoped": "sticky",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9861,7 +10407,9 @@
   "register_order": 89,
   "anchor_field": "lead_status",
   "anchor_position": "after",
-  "layout_span": "full"
+  "layout_span": "full",
+  "stage_scoped": "sticky",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9897,7 +10445,9 @@
   "register_order": 90,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9933,7 +10483,9 @@
   "register_order": 91,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -9969,7 +10521,9 @@
   "register_order": 92,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -10005,7 +10559,9 @@
   "register_order": 93,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -10041,7 +10597,9 @@
   "register_order": 94,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -10077,7 +10635,9 @@
   "register_order": 95,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -10113,7 +10673,9 @@
   "register_order": 96,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "deals",
@@ -10149,7 +10711,9 @@
   "register_order": 97,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "accounts",
@@ -10185,7 +10749,9 @@
   "register_order": 1,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "accounts",
@@ -10221,7 +10787,9 @@
   "register_order": 2,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "accounts",
@@ -10257,7 +10825,9 @@
   "register_order": 3,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "accounts",
@@ -10293,7 +10863,9 @@
   "register_order": 5,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "accounts",
@@ -10329,7 +10901,9 @@
   "register_order": 6,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "accounts",
@@ -10365,7 +10939,9 @@
   "register_order": 7,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "accounts",
@@ -10401,7 +10977,9 @@
   "register_order": 8,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "accounts",
@@ -10437,7 +11015,9 @@
   "register_order": 9,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "accounts",
@@ -10473,7 +11053,9 @@
   "register_order": 10,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "accounts",
@@ -10509,7 +11091,9 @@
   "register_order": 12,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "accounts",
@@ -10545,7 +11129,9 @@
   "register_order": 13,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "accounts",
@@ -10581,7 +11167,9 @@
   "register_order": 14,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "accounts",
@@ -10617,7 +11205,9 @@
   "register_order": 15,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "accounts",
@@ -10653,7 +11243,9 @@
   "register_order": 17,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "accounts",
@@ -10689,7 +11281,9 @@
   "register_order": 18,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "accounts",
@@ -10725,7 +11319,9 @@
   "register_order": 21,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "accounts",
@@ -10761,7 +11357,9 @@
   "register_order": 22,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "accounts",
@@ -10797,7 +11395,9 @@
   "register_order": 23,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "contacts",
@@ -10833,7 +11433,9 @@
   "register_order": 1,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "contacts",
@@ -10869,7 +11471,9 @@
   "register_order": 2,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "contacts",
@@ -10905,7 +11509,9 @@
   "register_order": 3,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "contacts",
@@ -10941,7 +11547,9 @@
   "register_order": 4,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "contacts",
@@ -10977,7 +11585,9 @@
   "register_order": 6,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "contacts",
@@ -11013,7 +11623,9 @@
   "register_order": 7,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "contacts",
@@ -11049,7 +11661,9 @@
   "register_order": 8,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "contacts",
@@ -11085,7 +11699,9 @@
   "register_order": 9,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "contacts",
@@ -11121,7 +11737,9 @@
   "register_order": 10,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "contacts",
@@ -11157,7 +11775,9 @@
   "register_order": 11,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "contacts",
@@ -11193,7 +11813,9 @@
   "register_order": 12,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "contacts",
@@ -11229,7 +11851,9 @@
   "register_order": 15,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "contacts",
@@ -11265,7 +11889,9 @@
   "register_order": 17,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "contacts",
@@ -11301,7 +11927,9 @@
   "register_order": 18,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "contacts",
@@ -11337,7 +11965,9 @@
   "register_order": 19,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -11373,7 +12003,9 @@
   "register_order": 1,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -11409,7 +12041,9 @@
   "register_order": 2,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -11445,7 +12079,9 @@
   "register_order": 3,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -11481,7 +12117,9 @@
   "register_order": 4,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -11517,7 +12155,9 @@
   "register_order": 5,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -11553,7 +12193,9 @@
   "register_order": 6,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -11589,7 +12231,9 @@
   "register_order": 7,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -11625,7 +12269,9 @@
   "register_order": 8,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -11661,7 +12307,9 @@
   "register_order": 9,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -11697,7 +12345,9 @@
   "register_order": 10,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "acknowledged_date <= add_days(submitted_date, 2)"
  },
  {
   "module": "partners",
@@ -11733,7 +12383,9 @@
   "register_order": 11,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -11769,7 +12421,9 @@
   "register_order": 12,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "add_days(exclusivity_start_date, 89)"
  },
  {
   "module": "partners",
@@ -11805,7 +12459,9 @@
   "register_order": 13,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -11841,7 +12497,9 @@
   "register_order": 14,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -11877,7 +12535,9 @@
   "register_order": 15,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -11913,7 +12573,9 @@
   "register_order": 16,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -11949,7 +12611,9 @@
   "register_order": 17,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -11985,7 +12649,9 @@
   "register_order": 18,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -12021,7 +12687,9 @@
   "register_order": 19,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -12057,7 +12725,9 @@
   "register_order": 20,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -12093,7 +12763,9 @@
   "register_order": 21,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -12129,7 +12801,9 @@
   "register_order": 22,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -12165,7 +12839,9 @@
   "register_order": 23,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -12201,7 +12877,9 @@
   "register_order": 24,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -12237,7 +12915,9 @@
   "register_order": 25,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -12273,7 +12953,9 @@
   "register_order": 26,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -12309,7 +12991,9 @@
   "register_order": 27,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -12345,7 +13029,9 @@
   "register_order": 28,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -12381,7 +13067,9 @@
   "register_order": 29,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -12417,7 +13105,9 @@
   "register_order": 30,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -12453,7 +13143,9 @@
   "register_order": 31,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -12489,7 +13181,9 @@
   "register_order": 32,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "partners",
@@ -12525,7 +13219,9 @@
   "register_order": 34,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -12561,7 +13257,9 @@
   "register_order": 1,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -12597,7 +13295,9 @@
   "register_order": 2,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -12633,7 +13333,9 @@
   "register_order": 3,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -12669,7 +13371,9 @@
   "register_order": 4,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -12705,7 +13409,9 @@
   "register_order": 5,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -12741,7 +13447,9 @@
   "register_order": 6,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -12777,7 +13485,9 @@
   "register_order": 7,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -12813,7 +13523,9 @@
   "register_order": 8,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -12849,7 +13561,9 @@
   "register_order": 9,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -12885,7 +13599,9 @@
   "register_order": 10,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -12921,7 +13637,9 @@
   "register_order": 11,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -12957,7 +13675,9 @@
   "register_order": 12,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -12993,7 +13713,9 @@
   "register_order": 13,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13029,7 +13751,9 @@
   "register_order": 14,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13065,7 +13789,9 @@
   "register_order": 15,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13101,7 +13827,9 @@
   "register_order": 16,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13137,7 +13865,9 @@
   "register_order": 17,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13173,7 +13903,9 @@
   "register_order": 18,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "business_days(received_date, response_date)"
  },
  {
   "module": "bids_pocs",
@@ -13209,7 +13941,9 @@
   "register_order": 19,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "business_days(received_date, response_date) <= 5"
  },
  {
   "module": "bids_pocs",
@@ -13245,7 +13979,9 @@
   "register_order": 20,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13281,7 +14017,9 @@
   "register_order": 21,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13317,7 +14055,9 @@
   "register_order": 22,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13353,7 +14093,9 @@
   "register_order": 23,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13389,7 +14131,9 @@
   "register_order": 24,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13425,7 +14169,9 @@
   "register_order": 25,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13461,7 +14207,9 @@
   "register_order": 26,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13497,7 +14245,9 @@
   "register_order": 27,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13533,7 +14283,9 @@
   "register_order": 28,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13569,7 +14321,9 @@
   "register_order": 29,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13605,7 +14359,9 @@
   "register_order": 30,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13641,7 +14397,9 @@
   "register_order": 31,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13677,7 +14435,9 @@
   "register_order": 32,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13713,7 +14473,9 @@
   "register_order": 33,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13749,7 +14511,9 @@
   "register_order": 34,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13785,7 +14549,9 @@
   "register_order": 35,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13821,7 +14587,9 @@
   "register_order": 36,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13857,7 +14625,9 @@
   "register_order": 37,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13893,7 +14663,9 @@
   "register_order": 38,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13929,7 +14701,9 @@
   "register_order": 39,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -13965,7 +14739,9 @@
   "register_order": 40,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14001,7 +14777,9 @@
   "register_order": 41,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14037,7 +14815,9 @@
   "register_order": 42,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14073,7 +14853,9 @@
   "register_order": 43,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14109,7 +14891,9 @@
   "register_order": 44,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14145,7 +14929,9 @@
   "register_order": 45,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14181,7 +14967,9 @@
   "register_order": 46,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14217,7 +15005,9 @@
   "register_order": 47,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14253,7 +15043,9 @@
   "register_order": 48,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14289,7 +15081,9 @@
   "register_order": 49,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14325,7 +15119,9 @@
   "register_order": 50,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14361,7 +15157,9 @@
   "register_order": 51,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14397,7 +15195,9 @@
   "register_order": 52,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14433,7 +15233,9 @@
   "register_order": 53,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14469,7 +15271,9 @@
   "register_order": 54,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14505,7 +15309,9 @@
   "register_order": 55,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14541,7 +15347,9 @@
   "register_order": 56,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14577,7 +15385,9 @@
   "register_order": 57,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14613,7 +15423,9 @@
   "register_order": 58,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14649,7 +15461,9 @@
   "register_order": 59,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14685,7 +15499,9 @@
   "register_order": 60,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14721,7 +15537,9 @@
   "register_order": 61,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14757,7 +15575,9 @@
   "register_order": 62,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14793,7 +15613,9 @@
   "register_order": 63,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14829,7 +15651,9 @@
   "register_order": 64,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14865,7 +15689,9 @@
   "register_order": 65,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14901,7 +15727,9 @@
   "register_order": 66,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14937,7 +15765,9 @@
   "register_order": 67,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -14973,7 +15803,9 @@
   "register_order": 68,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -15009,7 +15841,9 @@
   "register_order": 69,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -15045,7 +15879,9 @@
   "register_order": 70,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -15081,7 +15917,9 @@
   "register_order": 71,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -15117,7 +15955,9 @@
   "register_order": 72,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -15153,7 +15993,9 @@
   "register_order": 73,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -15189,7 +16031,9 @@
   "register_order": 74,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -15225,7 +16069,9 @@
   "register_order": 75,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -15261,7 +16107,9 @@
   "register_order": 76,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -15297,7 +16145,9 @@
   "register_order": 77,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -15333,7 +16183,9 @@
   "register_order": 78,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -15369,7 +16221,9 @@
   "register_order": 79,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -15405,7 +16259,9 @@
   "register_order": 80,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -15441,7 +16297,9 @@
   "register_order": 81,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -15477,7 +16335,9 @@
   "register_order": 82,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -15513,7 +16373,9 @@
   "register_order": 83,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -15549,7 +16411,9 @@
   "register_order": 84,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "bids_pocs",
@@ -15585,7 +16449,9 @@
   "register_order": 85,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -15621,7 +16487,9 @@
   "register_order": 1,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -15657,7 +16525,9 @@
   "register_order": 2,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -15693,7 +16563,9 @@
   "register_order": 3,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -15729,7 +16601,9 @@
   "register_order": 4,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -15765,7 +16639,9 @@
   "register_order": 5,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -15801,7 +16677,9 @@
   "register_order": 6,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -15837,7 +16715,9 @@
   "register_order": 7,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -15873,7 +16753,9 @@
   "register_order": 8,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -15909,7 +16791,9 @@
   "register_order": 9,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -15945,7 +16829,9 @@
   "register_order": 10,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -15981,7 +16867,9 @@
   "register_order": 11,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16017,7 +16905,9 @@
   "register_order": 12,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16053,7 +16943,9 @@
   "register_order": 13,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16089,7 +16981,9 @@
   "register_order": 14,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16125,7 +17019,9 @@
   "register_order": 15,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16161,7 +17057,9 @@
   "register_order": 16,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16197,7 +17095,9 @@
   "register_order": 17,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16233,7 +17133,9 @@
   "register_order": 18,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16269,7 +17171,9 @@
   "register_order": 19,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16305,7 +17209,9 @@
   "register_order": 20,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "size == 'Unlimited'"
  },
  {
   "module": "products",
@@ -16341,7 +17247,9 @@
   "register_order": 21,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16377,7 +17285,9 @@
   "register_order": 22,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16413,7 +17323,9 @@
   "register_order": 23,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16449,7 +17361,9 @@
   "register_order": 24,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16485,7 +17399,9 @@
   "register_order": 25,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16521,7 +17437,9 @@
   "register_order": 26,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16557,7 +17475,9 @@
   "register_order": 27,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16593,7 +17513,9 @@
   "register_order": 28,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16629,7 +17551,9 @@
   "register_order": 29,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16665,7 +17589,9 @@
   "register_order": 30,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16701,7 +17627,9 @@
   "register_order": 31,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "region_pricing_pct * fx_rate_local_per_usd"
  },
  {
   "module": "products",
@@ -16737,7 +17665,9 @@
   "register_order": 32,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16773,7 +17703,9 @@
   "register_order": 33,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16809,7 +17741,9 @@
   "register_order": 34,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16845,7 +17779,9 @@
   "register_order": 35,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16881,7 +17817,9 @@
   "register_order": 36,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16917,7 +17855,9 @@
   "register_order": 37,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16953,7 +17893,9 @@
   "register_order": 38,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -16989,7 +17931,9 @@
   "register_order": 39,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -17025,7 +17969,9 @@
   "register_order": 40,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -17061,7 +18007,9 @@
   "register_order": 41,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -17097,7 +18045,9 @@
   "register_order": 42,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -17133,7 +18083,9 @@
   "register_order": 43,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -17169,7 +18121,9 @@
   "register_order": 44,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "rate_per_hour_—_offsite * onsite_premium_multiplier"
  },
  {
   "module": "products",
@@ -17205,7 +18159,9 @@
   "register_order": 45,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "rate_per_day_—_offsite * onsite_premium_multiplier"
  },
  {
   "module": "products",
@@ -17241,7 +18197,9 @@
   "register_order": 46,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -17277,7 +18235,9 @@
   "register_order": 47,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -17313,7 +18273,9 @@
   "register_order": 48,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -17349,7 +18311,9 @@
   "register_order": 49,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "products",
@@ -17385,7 +18349,9 @@
   "register_order": 50,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -17421,7 +18387,9 @@
   "register_order": 1,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -17457,7 +18425,9 @@
   "register_order": 2,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -17493,7 +18463,9 @@
   "register_order": 3,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -17529,7 +18501,9 @@
   "register_order": 4,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -17565,7 +18539,9 @@
   "register_order": 5,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -17601,7 +18577,9 @@
   "register_order": 6,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -17637,7 +18615,9 @@
   "register_order": 7,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -17673,7 +18653,9 @@
   "register_order": 8,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -17709,7 +18691,9 @@
   "register_order": 9,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -17745,7 +18729,9 @@
   "register_order": 10,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -17781,7 +18767,9 @@
   "register_order": 11,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "add_days(quote_date, validity_days)"
  },
  {
   "module": "quotes",
@@ -17817,7 +18805,9 @@
   "register_order": 12,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "concat(quote_id, '-', revision)"
  },
  {
   "module": "quotes",
@@ -17853,7 +18843,9 @@
   "register_order": 13,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -17889,7 +18881,9 @@
   "register_order": 14,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -17925,7 +18919,9 @@
   "register_order": 15,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -17961,7 +18957,9 @@
   "register_order": 16,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -17997,7 +18995,9 @@
   "register_order": 17,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18033,7 +19033,9 @@
   "register_order": 18,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18069,7 +19071,9 @@
   "register_order": 19,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18105,7 +19109,9 @@
   "register_order": 20,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18141,7 +19147,9 @@
   "register_order": 21,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18177,7 +19185,9 @@
   "register_order": 22,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18213,7 +19223,9 @@
   "register_order": 23,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "total_users_required - base_users_included"
  },
  {
   "module": "quotes",
@@ -18249,7 +19261,9 @@
   "register_order": 24,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18285,7 +19299,9 @@
   "register_order": 25,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18321,7 +19337,9 @@
   "register_order": 26,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18357,7 +19375,9 @@
   "register_order": 27,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18393,7 +19413,9 @@
   "register_order": 28,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18429,7 +19451,9 @@
   "register_order": 29,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18465,7 +19489,9 @@
   "register_order": 30,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18501,7 +19527,9 @@
   "register_order": 31,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18537,7 +19565,9 @@
   "register_order": 32,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18573,7 +19603,9 @@
   "register_order": 33,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18609,7 +19641,9 @@
   "register_order": 34,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18645,7 +19679,9 @@
   "register_order": 35,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18681,7 +19717,9 @@
   "register_order": 36,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18717,7 +19755,9 @@
   "register_order": 37,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18753,7 +19793,9 @@
   "register_order": 38,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18789,7 +19831,9 @@
   "register_order": 39,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18825,7 +19869,9 @@
   "register_order": 40,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18861,7 +19907,9 @@
   "register_order": 41,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "quantity * unit_list_price_snapshot"
  },
  {
   "module": "quotes",
@@ -18897,7 +19945,9 @@
   "register_order": 42,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -18933,7 +19983,9 @@
   "register_order": 43,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "gross_line * (1 - discount_pct_applied)"
  },
  {
   "module": "quotes",
@@ -18969,7 +20021,9 @@
   "register_order": 44,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -19005,7 +20059,9 @@
   "register_order": 45,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -19041,7 +20097,9 @@
   "register_order": 46,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -19077,7 +20135,9 @@
   "register_order": 47,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -19113,7 +20173,9 @@
   "register_order": 48,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -19149,7 +20211,9 @@
   "register_order": 49,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -19185,7 +20249,9 @@
   "register_order": 50,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -19221,7 +20287,9 @@
   "register_order": 51,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -19257,7 +20325,9 @@
   "register_order": 52,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -19293,7 +20363,9 @@
   "register_order": 53,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -19329,7 +20401,9 @@
   "register_order": 54,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "sum(lines, net_line_total, line_charge_type == 'One-Time')"
  },
  {
   "module": "quotes",
@@ -19365,7 +20439,9 @@
   "register_order": 55,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "sum(lines, net_line_total, line_charge_type == 'Annual')"
  },
  {
   "module": "quotes",
@@ -19401,7 +20477,9 @@
   "register_order": 56,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "one_time_cost + annual_recurring"
  },
  {
   "module": "quotes",
@@ -19437,7 +20515,9 @@
   "register_order": 57,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "one_time_cost + annual_recurring * subscription_years"
  },
  {
   "module": "quotes",
@@ -19473,7 +20553,9 @@
   "register_order": 58,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "one_time_cost + annual_recurring * 3"
  },
  {
   "module": "quotes",
@@ -19509,7 +20591,9 @@
   "register_order": 59,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "one_time_cost + annual_recurring * 5"
  },
  {
   "module": "quotes",
@@ -19545,7 +20629,9 @@
   "register_order": 60,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": "sum(lines, gross_line) - sum(lines, net_line_total)"
  },
  {
   "module": "quotes",
@@ -19581,7 +20667,9 @@
   "register_order": 61,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -19617,7 +20705,9 @@
   "register_order": 62,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -19653,7 +20743,9 @@
   "register_order": 63,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -19689,7 +20781,9 @@
   "register_order": 64,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -19725,7 +20819,9 @@
   "register_order": 65,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -19761,7 +20857,9 @@
   "register_order": 66,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -19797,7 +20895,9 @@
   "register_order": 67,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "quotes",
@@ -19833,7 +20933,9 @@
   "register_order": 68,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -19869,7 +20971,9 @@
   "register_order": 1,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -19905,7 +21009,9 @@
   "register_order": 2,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -19941,7 +21047,9 @@
   "register_order": 3,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -19977,7 +21085,9 @@
   "register_order": 4,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -20013,7 +21123,9 @@
   "register_order": 5,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -20049,7 +21161,9 @@
   "register_order": 6,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -20085,7 +21199,9 @@
   "register_order": 7,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -20121,7 +21237,9 @@
   "register_order": 8,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -20157,7 +21275,9 @@
   "register_order": 9,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -20193,7 +21313,9 @@
   "register_order": 10,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -20229,7 +21351,9 @@
   "register_order": 11,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -20265,7 +21389,9 @@
   "register_order": 12,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -20301,7 +21427,9 @@
   "register_order": 13,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -20337,7 +21465,9 @@
   "register_order": 14,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -20373,7 +21503,9 @@
   "register_order": 15,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -20409,7 +21541,9 @@
   "register_order": 16,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -20445,7 +21579,9 @@
   "register_order": 17,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -20481,7 +21617,9 @@
   "register_order": 18,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -20517,7 +21655,9 @@
   "register_order": 19,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -20553,7 +21693,9 @@
   "register_order": 20,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "activities_docs",
@@ -20589,7 +21731,9 @@
   "register_order": 21,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -20625,7 +21769,9 @@
   "register_order": 1,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -20661,7 +21807,9 @@
   "register_order": 2,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -20697,7 +21845,9 @@
   "register_order": 3,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -20733,7 +21883,9 @@
   "register_order": 4,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -20769,7 +21921,9 @@
   "register_order": 5,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -20805,7 +21959,9 @@
   "register_order": 6,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -20841,7 +21997,9 @@
   "register_order": 7,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -20877,7 +22035,9 @@
   "register_order": 8,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -20913,7 +22073,9 @@
   "register_order": 9,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -20949,7 +22111,9 @@
   "register_order": 10,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -20985,7 +22149,9 @@
   "register_order": 11,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21021,7 +22187,9 @@
   "register_order": 12,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21057,7 +22225,9 @@
   "register_order": 13,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21093,7 +22263,9 @@
   "register_order": 14,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21129,7 +22301,9 @@
   "register_order": 15,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21165,7 +22339,9 @@
   "register_order": 16,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21201,7 +22377,9 @@
   "register_order": 17,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21237,7 +22415,9 @@
   "register_order": 18,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21273,7 +22453,9 @@
   "register_order": 19,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21309,7 +22491,9 @@
   "register_order": 20,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21345,7 +22529,9 @@
   "register_order": 21,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21381,7 +22567,9 @@
   "register_order": 22,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21417,7 +22605,9 @@
   "register_order": 23,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21453,7 +22643,9 @@
   "register_order": 24,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21489,7 +22681,9 @@
   "register_order": 25,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21525,7 +22719,9 @@
   "register_order": 26,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21561,7 +22757,9 @@
   "register_order": 27,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21597,7 +22795,9 @@
   "register_order": 28,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21633,7 +22833,9 @@
   "register_order": 29,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21669,7 +22871,9 @@
   "register_order": 30,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21705,7 +22909,9 @@
   "register_order": 31,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21741,7 +22947,9 @@
   "register_order": 32,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21777,7 +22985,9 @@
   "register_order": 33,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21813,7 +23023,9 @@
   "register_order": 34,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21849,7 +23061,9 @@
   "register_order": 35,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21885,7 +23099,9 @@
   "register_order": 36,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21921,7 +23137,9 @@
   "register_order": 37,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21957,7 +23175,9 @@
   "register_order": 38,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -21993,7 +23213,9 @@
   "register_order": 39,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22029,7 +23251,9 @@
   "register_order": 40,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22065,7 +23289,9 @@
   "register_order": 41,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22101,7 +23327,9 @@
   "register_order": 42,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22137,7 +23365,9 @@
   "register_order": 43,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22173,7 +23403,9 @@
   "register_order": 44,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22209,7 +23441,9 @@
   "register_order": 45,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22245,7 +23479,9 @@
   "register_order": 46,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22281,7 +23517,9 @@
   "register_order": 47,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22317,7 +23555,9 @@
   "register_order": 48,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22353,7 +23593,9 @@
   "register_order": 49,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22389,7 +23631,9 @@
   "register_order": 50,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22425,7 +23669,9 @@
   "register_order": 51,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22461,7 +23707,9 @@
   "register_order": 52,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22497,7 +23745,9 @@
   "register_order": 53,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22533,7 +23783,9 @@
   "register_order": 54,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22569,7 +23821,9 @@
   "register_order": 55,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22605,7 +23859,9 @@
   "register_order": 56,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22641,7 +23897,9 @@
   "register_order": 57,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22677,7 +23935,9 @@
   "register_order": 58,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22713,7 +23973,9 @@
   "register_order": 59,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22749,7 +24011,9 @@
   "register_order": 60,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22785,7 +24049,9 @@
   "register_order": 61,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22821,7 +24087,9 @@
   "register_order": 62,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22857,7 +24125,9 @@
   "register_order": 63,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22893,7 +24163,9 @@
   "register_order": 64,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22929,7 +24201,9 @@
   "register_order": 65,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -22965,7 +24239,9 @@
   "register_order": 66,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23001,7 +24277,9 @@
   "register_order": 67,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23037,7 +24315,9 @@
   "register_order": 68,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23073,7 +24353,9 @@
   "register_order": 69,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23109,7 +24391,9 @@
   "register_order": 70,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23145,7 +24429,9 @@
   "register_order": 71,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23181,7 +24467,9 @@
   "register_order": 72,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23217,7 +24505,9 @@
   "register_order": 73,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23253,7 +24543,9 @@
   "register_order": 74,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23289,7 +24581,9 @@
   "register_order": 75,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23325,7 +24619,9 @@
   "register_order": 76,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23361,7 +24657,9 @@
   "register_order": 77,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23397,7 +24695,9 @@
   "register_order": 78,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23433,7 +24733,9 @@
   "register_order": 79,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23469,7 +24771,9 @@
   "register_order": 80,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23505,7 +24809,9 @@
   "register_order": 81,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23541,7 +24847,9 @@
   "register_order": 82,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23577,7 +24885,9 @@
   "register_order": 83,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23613,7 +24923,9 @@
   "register_order": 84,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23649,7 +24961,9 @@
   "register_order": 85,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23685,7 +24999,9 @@
   "register_order": 86,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23721,7 +25037,9 @@
   "register_order": 87,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23757,7 +25075,9 @@
   "register_order": 88,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23793,7 +25113,9 @@
   "register_order": 89,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23829,7 +25151,9 @@
   "register_order": 90,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23865,7 +25189,9 @@
   "register_order": 91,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23901,7 +25227,9 @@
   "register_order": 92,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23937,7 +25265,9 @@
   "register_order": 93,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -23973,7 +25303,9 @@
   "register_order": 94,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -24009,7 +25341,9 @@
   "register_order": 95,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -24045,7 +25379,9 @@
   "register_order": 96,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -24081,7 +25417,9 @@
   "register_order": 97,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -24117,7 +25455,9 @@
   "register_order": 98,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -24153,7 +25493,9 @@
   "register_order": 99,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  },
  {
   "module": "administration",
@@ -24189,6 +25531,8 @@
   "register_order": 100,
   "anchor_field": null,
   "anchor_position": null,
-  "layout_span": null
+  "layout_span": null,
+  "stage_scoped": "none",
+  "computed_expr": null
  }
 ]

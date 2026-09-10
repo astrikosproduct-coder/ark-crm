@@ -39,22 +39,47 @@ import type { FieldSpec } from '@/types/field'
  * there is no single "the" on-hold reason to write.
  */
 
+/**
+ * WHAT IS LEFT OF THE SIDECAR AFTER B2, AND WHY.
+ *
+ * WHICH fields are per-stage, and whether each carries forward or sticks, are
+ * register columns now — `stage_scoped` on every row of spec/fields.json. The
+ * rule that used to derive that set from sections and conditions is gone, and
+ * with it the reason an admin could not make one field sticky without editing
+ * a file that silently caught four others.
+ *
+ * These three could not go with it, because each names a FUNCTION rather than
+ * describing a field, and an admin cannot write a function:
+ *
+ *   default_by     a resolver in lib/spec/resolvers.ts, seeding an untouched
+ *                  box. Only progression_pct has one; no formula can guess a
+ *                  close month, which is why expected_close_month has none.
+ *   sticky.extra   gone entirely. It named probability_override_justification
+ *                  with `when: probability_out_of_band`, and nothing ever read
+ *                  it: StageScopedFields.tsx names that field directly and
+ *                  calls probabilityBandBreach(). Metadata describing
+ *                  behaviour nothing performs is worse than none — it reads as
+ *                  a guarantee and is a decoration.
+ *   history_only   Stage Skip / Stage Reversal Reason. NOT per-stage at all:
+ *                  the transitions table already carries one reason per move,
+ *                  and the field on the record is the latest of them. Listed
+ *                  here so no form offers a second box for one.
+ */
 interface CarryForwardField {
   api_name: string
   /** A resolver name in lib/spec/resolvers.ts. Seeds an untouched box only. */
   default_by?: string
 }
 
-interface StickyExtra {
-  api_name: string
-  /** A predicate name in PREDICATES below. Same escape hatch as computed_by. */
-  when: string
-}
-
 interface StageScopedSpec {
+  /**
+   * Which modules render the strip and the Reasons panel. A SCREEN question,
+   * not a storage one — which is why it did not move into the register with
+   * `stage_scoped`. modules.is_pipeline would answer it identically today.
+   */
   modules: string[]
+  /** Only for `default_by`. The SET is fields.json's stage_scoped now. */
   carry_forward: { fields: CarryForwardField[] }
-  sticky: { sections: string[]; require_condition?: boolean; extra?: StickyExtra[] }
   /** Written by the transition dialog; no form offers a box for them. */
   history_only?: { fields: string[] }
 }
@@ -62,7 +87,6 @@ interface StageScopedSpec {
 const spec = (extensionsData as unknown as { stage_scoped?: StageScopedSpec }).stage_scoped ?? {
   modules: [],
   carry_forward: { fields: [] },
-  sticky: { sections: [] },
 }
 
 interface StageBand {
@@ -115,8 +139,10 @@ export function probabilityBandBreach(
   return { pct, min: band.prob_min, max: band.prob_max }
 }
 
-/** Types nobody types into — a computed CROSS-CUTTING row is record-level. */
-const DERIVED = new Set(['computed', 'autonumber'])
+// DERIVED — the 'computed'/'autonumber' exclusion — lived here until B2. It
+// was part of the rule that DERIVED the sticky set from a section name; the
+// set is a column now, so the exclusion was applied once, at absorption, and
+// has nothing left to exclude on every render.
 
 /** True when this module renders the per-stage strip and the sticky panel. */
 export function isStageScopedModule(module: string): boolean {
@@ -128,13 +154,17 @@ export function stageScopedKey(apiName: string, stage: number): string {
   return `${apiName}__s${stage}`
 }
 
-/** The carry-forward fields of a module, in the order the spec lists them. */
+/**
+ * The carry-forward fields of a module, in the order the REGISTER lists them.
+ *
+ * Was the order of the sidecar's own array. Register order gives the same
+ * three in the same sequence on all three modules — Progression %,
+ * Probability %, Expected Close Month — and it is the order an admin can now
+ * change by dragging, which the array never was.
+ */
 export function carryForwardFieldsOf(module: string): FieldSpec[] {
   if (!isStageScopedModule(module)) return []
-  const byName = new Map(fieldsOf(module).map((f) => [f.api_name, f]))
-  return spec.carry_forward.fields
-    .map((entry) => byName.get(entry.api_name))
-    .filter((f): f is FieldSpec => Boolean(f))
+  return fieldsOf(module).filter((f) => f.stage_scoped === 'carry_forward')
 }
 
 /*
@@ -185,13 +215,7 @@ export function carryForwardFieldsOf(module: string): FieldSpec[] {
  */
 export function isPerStageValue(module: string, field: FieldSpec): boolean {
   if (!isStageScopedModule(module)) return false
-  if (spec.carry_forward.fields.some((f) => f.api_name === field.api_name)) return true
-  if ((spec.sticky.extra ?? []).some((e) => e.api_name === field.api_name)) return true
-  return (
-    spec.sticky.sections.includes(field.section) &&
-    !DERIVED.has(field.type) &&
-    (!spec.sticky.require_condition || Boolean(field.visibility_condition))
-  )
+  return field.stage_scoped !== 'none'
 }
 
 /** Every api_name this module renders per stage rather than in a section. */
@@ -246,7 +270,10 @@ export function stageScopedPatch(
   value: unknown
 ): Values {
   const patch: Values = { [stageScopedKey(field.api_name, stage)]: value }
-  const carried = spec.carry_forward.fields.some((f) => f.api_name === field.api_name)
+  // A carry-forward field ALSO writes the plain api_name at the record's
+  // current stage, so list columns and the readiness engine keep reading one
+  // number. A sticky field never does: there is no single "the" reason.
+  const carried = field.stage_scoped === 'carry_forward'
   if (carried && stage === currentStage) patch[field.api_name] = value
   return patch
 }
@@ -329,9 +356,10 @@ export function historyOnlyNamesOf(module: string): Set<string> {
 export function reasonFieldsOf(module: string): FieldSpec[] {
   const scoped = perStageValueNamesOf(module)
   const history = historyOnlyNamesOf(module)
-  const carried = new Set(spec.carry_forward.fields.map((f) => f.api_name))
   return fieldsOf(module).filter(
-    (f) => (scoped.has(f.api_name) && !carried.has(f.api_name)) || history.has(f.api_name)
+    (f) =>
+      (scoped.has(f.api_name) && f.stage_scoped !== 'carry_forward') ||
+      history.has(f.api_name)
   )
 }
 

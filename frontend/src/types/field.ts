@@ -111,9 +111,21 @@ export interface ChildSpec {
   row_noun?: string
 }
 
-/** The sidecar entry for one field. See spec/README.md. */
+/**
+ * The sidecar entry for one field. See spec/README.md.
+ *
+ * `computed_expr` was here until B2 and is now a register column on
+ * RawFieldSpec above — an admin can write an expression, which is the whole
+ * point, and a field cannot be marked `computed` with nothing to compute. It
+ * must NOT be redeclared here: FieldSpec extends both interfaces, and two
+ * declarations of one member is a type error rather than a merge.
+ *
+ * What is left is deliberately what an admin cannot author: names of frontend
+ * functions (`child_spec`, `lookup_filter_expr`), and the prototype's recorded
+ * departures from the register (`type_override`, `note`) — which are findings
+ * for the reviewer, not corrections to apply.
+ */
 export interface FieldExtension {
-  computed_expr?: string
   lookup_filter_expr?: string
   child_spec?: ChildSpec
   child_field_sync?: ChildFieldSync
@@ -275,7 +287,46 @@ export interface RawFieldSpec {
    * FieldRow.tsx — which is what every field carried before anchors existed.
    */
   layout_span: 'full' | 'half' | null
+
+  /**
+   * One value per RECORD, or one per STAGE. See StageScoped.
+   *
+   * A column since 0015; it was a rule in spec/extensions.json before that,
+   * which is why nobody could make a field sticky without editing a file. The
+   * rule caught fields by section and condition; this holds the answer, so an
+   * admin can change one field without silently changing four others.
+   */
+  stage_scoped: StageScoped
+
+  /**
+   * The expression the engine evaluates — `one_time_cost + annual_recurring`.
+   *
+   * NOT `computed_formula`, which is the register's own English sentence about
+   * the same rule and is rendered as help text beside it. Both are shown on
+   * purpose: where they disagree, the disagreement is a finding for the
+   * reviewer, not a bug to tidy away. See FieldRow.tsx.
+   */
+  computed_expr: string | null
 }
+
+/**
+ * How many values a field keeps, and what a new stage inherits.
+ *
+ * Values live under `<api_name>__s<stage>` — see lib/stageScope.ts.
+ *
+ *   none            one value per record. Almost every field.
+ *   carry_forward   a stage with no answer of its own shows the nearest
+ *                   earlier stage that has one. The base api_name also holds
+ *                   the current answer, so list columns and the readiness
+ *                   engine keep reading one number and know nothing about it.
+ *   sticky          answered at the stage its condition became true, and never
+ *                   carried. Two holds get two reasons. The base api_name is
+ *                   never written — there is no single "the" on-hold reason.
+ *
+ * Orthogonal to ValueMode: that says where an OPENING value comes from, this
+ * says how many values there are. expected_close_month is both.
+ */
+export type StageScoped = 'none' | 'carry_forward' | 'sticky'
 
 /**
  * How a field's VALUE behaves on the module it is on.

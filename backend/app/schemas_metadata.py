@@ -130,7 +130,11 @@ class FieldBase(BaseModel):
     required_on_skip: bool | None = None
     visibility_condition: str | None = None
     condition: str | None = None
+    # The register's English sentence about the rule, shown as help text.
     computed_formula: str | None = None
+    # The expression the engine evaluates. A separate field, not a better
+    # name for the one above — see FieldDefinition.computed_expr.
+    computed_expr: str | None = None
 
 
 class FieldCreate(FieldBase):
@@ -188,6 +192,7 @@ class FieldUpdate(BaseModel):
     visibility_condition: str | None = None
     condition: str | None = None
     computed_formula: str | None = None
+    computed_expr: str | None = None
 
 
 class RequiredUpdate(BaseModel):
@@ -255,6 +260,10 @@ class FieldOut(FieldBase):
     # 'column' for a typed column, 'custom_fields' for the JSONB store, null
     # for read_through, which stores nothing at all.
     storage: str | None = None
+    # 'none' | 'carry_forward' | 'sticky'. How MANY values this placement
+    # keeps — one per record, or one per stage. Orthogonal to value_mode,
+    # which says where an opening value comes from.
+    stage_scoped: str = "none"
 
     # ---- how many modules this field is live on. Drives "Used in 3 modules",
     # and the warning before an edit that changes all of them.
@@ -312,6 +321,7 @@ class FieldDetailOut(BaseModel):
     lookup_target: str | None = None
     lookup_filter: str | None = None
     computed_formula: str | None = None
+    computed_expr: str | None = None
     values_note: str | None = None
     description: str = ""
     use_case: str = ""
@@ -345,6 +355,7 @@ class PlacementCreate(BaseModel):
     value_mode: str | None = None
     value_locked: bool | None = None
     storage: str | None = Field(default=None, max_length=20)
+    stage_scoped: str | None = Field(default=None, max_length=20)
 
 
 class PlacementUpdate(BaseModel):
@@ -375,6 +386,9 @@ class PlacementUpdate(BaseModel):
     value_locked: bool | None = None
     editable: bool | None = None
     storage: str | None = Field(default=None, max_length=20)
+    # One value or one per stage. Per module on purpose: Deals is out of
+    # the metrics strip while Leads and Opportunities are in it.
+    stage_scoped: str | None = Field(default=None, max_length=20)
 
     # ---- position, which is data rather than a consequence of the section.
     #

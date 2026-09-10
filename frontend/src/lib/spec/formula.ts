@@ -147,7 +147,7 @@ export function validateSpecExpressions(): SpecProblem[] {
       continue
     }
 
-    check(f.qref, f.module, 'computed_expr', f.computed_expr)
+    check(f.qref, f.module, 'computed_expr', f.computed_expr ?? undefined)
     check(f.qref, f.module, 'visibility_condition', f.visibility_condition ?? undefined)
     check(f.qref, f.module, 'condition', f.condition ?? undefined)
   }

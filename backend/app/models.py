@@ -2386,6 +2386,21 @@ VALUE_MODES = ("own", "read_through", "carry_forward")
 # because it describes one table, and each module has its own.
 STORAGE_MODES = ("column", "custom_fields")
 
+# How MANY values a placement keeps: one per record, or one per stage.
+#
+#   none            one value. The default, and almost every field.
+#   carry_forward   a stage with no answer inherits the nearest earlier stage
+#                   that has one. The base api_name also holds the current
+#                   answer, so single-value readers are unaffected.
+#   sticky          answered at the stage its condition became true, never
+#                   carried, base api_name never written.
+#
+# Orthogonal to VALUE_MODES, which answers where an OPENING value comes from
+# (the parent record) rather than how many values there are. A field can be
+# both: expected_close_month carries forward from its parent AND is recorded
+# per stage. See 0015 and src/lib/stageScope.ts.
+STAGE_SCOPED_MODES = ("none", "carry_forward", "sticky")
+
 # Where an anchored placement draws relative to its anchor.
 #
 #   after    a new row directly beneath the anchor, sharing its grid cell. What
@@ -2480,7 +2495,26 @@ class FieldDefinition(Base):
     )
     lookup_target: Mapped[str | None] = mapped_column(String(60), nullable=True)
     lookup_filter: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # The register's own sentence about the rule: "One-Time + (Annual x 3)",
+    # "Start date plus 90 days". Prose, for a person, rendered as help text
+    # under the field. It is NOT evaluated and never was.
     computed_formula: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # What the engine actually runs: `one_time_cost + annual_recurring * 3`.
+    # Parsed by src/lib/spec/parser.ts, evaluated by formula.ts.
+    #
+    # TWO COLUMNS ON PURPOSE, and the pair is one of the more valuable things
+    # this prototype produces. partners.exclusivity_expiry_date says "Start
+    # date plus 90 days" and computes add_days(..., 89); FieldRow.tsx shows
+    # both, deliberately, because "a reviewer needs to see both, not be quietly
+    # shown the corrected one". Where the sentence and the expression disagree,
+    # the disagreement is the finding — collapsing them would delete it.
+    #
+    # Held here rather than on the placement because an expression describes
+    # the field, not the module it is shown on. Lived in spec/extensions.json
+    # until 0015, which is why an admin could not write one.
+    computed_expr: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # ---- documentation. One concept, one explanation.
     values_note: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -2637,6 +2671,16 @@ class FieldPlacement(Base):
             "layout_span IS NULL OR layout_span IN ('full', 'half')",
             name="ck_field_placements_layout_span",
         ),
+        # ---- PER-STAGE VALUES. See the column below and 0015.
+        # No CHECK that only a pipeline module may set this: the module is not
+        # a column this constraint can reach without a join, and a per-stage
+        # field on a module with no stages is meaningless rather than corrupt.
+        # The API refuses it where the module is known; stageScope.ts ignores
+        # it, the same way a dangling anchor is ignored.
+        CheckConstraint(
+            "stage_scoped IN ('none', 'carry_forward', 'sticky')",
+            name="ck_field_placements_stage_scoped",
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -2715,6 +2759,31 @@ class FieldPlacement(Base):
     )
     # NULL for read_through, which stores nothing. See STORAGE_MODES.
     storage: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
+    # Is this recorded once per RECORD, or once per STAGE?
+    #
+    #   none            one value. Every field, until one says otherwise.
+    #   carry_forward   a stage with no answer of its own inherits the nearest
+    #                   earlier stage that has one. Progression %, Probability
+    #                   %, Expected Close Month. The base api_name also holds
+    #                   the current answer, so list views and the readiness
+    #                   engine go on reading one number.
+    #   sticky          captured at the stage its condition became true, and
+    #                   never carried. A lead put on hold at Stage 1 and again
+    #                   at Stage 3 gives two different reasons and one column
+    #                   cannot hold both. The base api_name is never written.
+    #
+    # Values live in custom_fields as `<api_name>__s<stage>` — see
+    # app/custom_fields.py and src/lib/stageScope.ts.
+    #
+    # A PLACEMENT column, like value_mode, because the answer genuinely differs
+    # per module: Deals is deliberately out of the metrics strip while Leads
+    # and Opportunities are in it, so probability_pct is per-stage on two
+    # modules and record-level on the third. A definition-level column could
+    # not say that.
+    stage_scoped: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="none", server_default="none"
+    )
 
     # ---- logical delete, from THIS module only
     status: Mapped[str] = mapped_column(
