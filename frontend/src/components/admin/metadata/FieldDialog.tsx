@@ -13,6 +13,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { RuleBuilder } from './RuleBuilder'
 import { errorMessage } from '@/lib/admin'
 import {
   FIELD_TYPES,
@@ -142,6 +143,15 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
   const [form, setForm] = useState<FormState>(EMPTY)
   const [error, setError] = useState<string | null>(null)
   const [applyToAll, setApplyToAll] = useState(false)
+  /**
+   * Are the two rules the same rule?
+   *
+   * True whenever they match, which is every row the register has ever had —
+   * "shown" and "demanded" had the same answer in all six A2 cases. Keeping
+   * them locked together by default is what stops the next Conditional field
+   * being added with a visibility rule and no requirement rule.
+   */
+  const [demandWhenShown, setDemandWhenShown] = useState(true)
 
   /**
    * Every placement of this field, so "apply to all" has something to apply to.
@@ -236,9 +246,13 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
         stage_scoped: field.stage_scoped,
       })
       setApplyToAll(false)
+      setDemandWhenShown(
+        (field.condition ?? '') === (field.visibility_condition ?? '')
+      )
     } else {
       setForm({ ...EMPTY, section_id: sectionId ?? sections[0]?.id ?? null })
       setApplyToAll(false)
+      setDemandWhenShown(true)
     }
     setAlsoModule('')
     setAlsoSectionId(null)
@@ -580,23 +594,56 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
             Editable at any stage
           </label>
 
-          <div className="grid gap-1.5">
-            <Label htmlFor="visibility_condition">Visibility condition</Label>
-            <Input
-              id="visibility_condition"
-              value={form.visibility_condition}
-              placeholder="deal_source == 'Partner-sourced'"
-              onChange={(e) => set('visibility_condition', e.target.value)}
-            />
-          </div>
+          {/* ---- RULES ---------------------------------------------------
+              Two questions, asked together, because keeping them apart is what
+              produced six Conditional rows with no condition — shown, and
+              never demanded. See RuleBuilder's own docstring. */}
+          <div className="grid gap-3 rounded-md border p-3">
+            <p className="text-section text-xs font-bold tracking-wide">RULES</p>
 
-          <div className="grid gap-1.5">
-            <Label htmlFor="condition">Condition (when Conditional)</Label>
-            <Input
-              id="condition"
-              value={form.condition}
-              onChange={(e) => set('condition', e.target.value)}
+            <RuleBuilder
+              label="Show this field when…"
+              hint="Leave empty to always show it."
+              value={form.visibility_condition}
+              onChange={(expr) => {
+                set('visibility_condition', expr)
+                if (demandWhenShown) set('condition', expr)
+              }}
+              fields={anchorCandidates}
+              picklists={picklists}
             />
+
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={demandWhenShown}
+                onCheckedChange={(v) => {
+                  const on = v === true
+                  setDemandWhenShown(on)
+                  if (on) set('condition', form.visibility_condition)
+                }}
+              />
+              Demand it whenever it is shown
+            </label>
+
+            {!demandWhenShown && (
+              <RuleBuilder
+                label="Require an answer when…"
+                hint="A Conditional field with no rule here shows a box and lets the user save straight past it — no red asterisk, and the readiness panel does not count it."
+                value={form.condition}
+                onChange={(expr) => set('condition', expr)}
+                fields={anchorCandidates}
+                picklists={picklists}
+              />
+            )}
+
+            {form.requirement === 'Conditional' &&
+              form.condition.trim() === '' && (
+                <p className="text-destructive text-xs">
+                  This field is Conditional and nothing says when it is required. That is
+                  the exact state the six reason rows were in before Phase A: the box
+                  appears, and the form lets you save it empty.
+                </p>
+              )}
           </div>
 
 
