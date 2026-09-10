@@ -502,8 +502,25 @@ matches `^STAGE [0-9]` rather than a bare prefix.
 
 ### Tests
 
+One entry point. It copies `ark_crm` to `ark_crm_test` and runs everything
+against the copy, so a writing test can no longer reach the database the
+prototype is demonstrated from:
+
 ```bash
-./.venv/Scripts/python.exe test_metadata_round6.py   # 22 — the Round-6 lifecycle
-./.venv/Scripts/python.exe test_custom_fields.py     # 13 — dynamic-value storage
-./.venv/Scripts/python.exe test_round6_gaps.py       # 56 — the four gaps
+./.venv/Scripts/python.exe run_tests.py                    # the suite, ~50s
+./.venv/Scripts/python.exe run_tests.py test_anchors.py    # one script
+./.venv/Scripts/python.exe run_tests.py --no-refresh       # reuse the copy
 ```
+
+The copy is made by `pg_dump` inside the `postgres:17` container, so it works
+while the dev server is connected; `CREATE DATABASE ... TEMPLATE` is the
+fallback where there is no Docker, and that one needs the dev server stopped.
+See `test_db.py`.
+
+Running a writing test directly refuses, and says this instead. Only
+`test_parity.py` is read-only and safe to run on its own against the live
+register — which is a legitimate thing to want, so it is not guarded.
+
+`run_tests.py` runs parity twice: once to prove the copy is the register that
+ships, and once at the end to prove the writing tests put back everything they
+touched.

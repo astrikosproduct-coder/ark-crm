@@ -35,18 +35,26 @@ exist.
 
 WHY THE REGISTER GUARD EXISTS
 ------------------------------
-The test scripts run against the live development database — the same one the
-prototype is demonstrated from. There is no separate test database, and giving
-them one is a bigger change than it looks: bootstrap_metadata.py, seed.py and
-the migrate_* scripts all assume the one database, so a second one has to be
-built and kept in step or the tests prove nothing about the register that
-actually ships.
+A test that writes placements is one bug away from leaving the register
+damaged, and that is not hypothetical: the Phase A1 anchor fixture reset the
+placements it touched to NULL on teardown, which after A2 unanchored On Hold
+Reason and Closed Lost Reason Code on Leads. The screens went back to the
+two-save journey and nothing said so.
 
-Until that exists, this is the containment. A test that writes placements is
-one bug away from leaving the register damaged, and that is not hypothetical:
-the Phase A1 anchor fixture reset the placements it touched to NULL on
-teardown, which after A2 unanchored On Hold Reason and Closed Lost Reason Code
-on Leads. The screens went back to the two-save journey and nothing said so.
+That happened because the scripts ran against the live development database —
+the same one the prototype is demonstrated from. They no longer do: run_tests.py
+copies it and points DATABASE_URL at the copy, and every writing test calls
+test_db.require_test_database() and refuses otherwise. This docstring used to
+argue that a second database was a bigger change than it looked, because
+bootstrap_metadata.py, seed.py and the migrate_* scripts all assume one, and a
+second built from scratch would have to be kept in step. CREATE DATABASE ...
+TEMPLATE sidesteps that entirely — see test_db.py.
+
+So this class is no longer the thing standing between a test and a damaged
+demo. It is still worth having, and its job is now the narrower one: a test
+that writes the register and does not put it back is a broken test, and
+`repairs` is how you find out rather than carrying the mess into the next
+test in the same run.
 
 RegisterGuard snapshots every mutable configuration column of every placement
 on entry and restores any that differ on exit — including after an exception,

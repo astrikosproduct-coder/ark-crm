@@ -41,6 +41,12 @@ from app.database import SessionLocal, engine  # noqa: E402
 
 engine.echo = False
 
+from test_db import require_test_database  # noqa: E402
+
+# This test writes. Refuse to run against the database the prototype is
+# demonstrated from — the copy is made by run_tests.py. See test_db.py.
+require_test_database()
+
 from app import metadata_resolver as R  # noqa: E402
 from app.models import FieldPlacement  # noqa: E402
 from app.routers.metadata import _anchored_to, _apply_anchor  # noqa: E402
