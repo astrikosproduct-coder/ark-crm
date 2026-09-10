@@ -30,6 +30,7 @@ engine.echo = False
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.main import app  # noqa: E402
+from test_support import RegisterGuard, sign_in_as_admin  # noqa: E402
 from app.metadata_spec import SPEC_DIR  # noqa: E402
 from app.models import Deal, Opportunity  # noqa: E402
 from app.custom_fields import custom_field_defs  # noqa: E402
@@ -41,6 +42,13 @@ from app.module_split import (  # noqa: E402
 
 META = "/api/admin/metadata"
 client = TestClient(app)
+
+# Every route is mounted behind require_access / require_admin, which read a
+# signed-in user from the session cookie. A TestClient has none and cannot get
+# one — sign-in goes through Entra. Without this, every request here returns
+# 401 and the suite asserts nothing. See test_support.py.
+sign_in_as_admin(app)
+
 
 passed: list[str] = []
 failed: list[str] = []
@@ -405,8 +413,21 @@ def gap2() -> None:
             db.execute(
                 text(f"DELETE FROM {table} WHERE {id_field} = :id"), {"id": record_id}
             )
+            # Round 7: these rows live in field_definitions/field_placements.
+            # This teardown deleted from field_metadata until 10 Sep 2026 — the
+            # legacy Round-6 table, which has held none of them since the
+            # placement model landed. It therefore removed nothing, and ten
+            # r6g_* fields accumulated in the live register on every run. It
+            # went unnoticed because every request in this file was returning
+            # 401 and no field was being created at all; see test_support.py.
+            # Placements first: the FK to field_definitions is ON DELETE
+            # RESTRICT, exactly as the setup block above already knew.
             db.execute(
-                text("DELETE FROM field_metadata WHERE api_name IN (:a, :b)"),
+                text("DELETE FROM field_placements WHERE api_name IN (:a, :b)"),
+                {"a": api_name, "b": second},
+            )
+            db.execute(
+                text("DELETE FROM field_definitions WHERE api_name IN (:a, :b)"),
                 {"a": api_name, "b": second},
             )
             db.commit()
@@ -577,10 +598,19 @@ def gap4() -> None:
 
 def main() -> int:
     print("Round-6 gap closure\n" + "=" * 60)
-    gap1()
-    gap2()
-    gap3()
-    gap4()
+    # Belt and braces over each gap's own teardown. These tests create fields
+    # in the LIVE register — there is no separate test database — so anything
+    # a teardown misses reaches spec/fields.json at the next publish and from
+    # there onto every screen. The guard restores changed placements and
+    # removes definitions created inside the window, and reports what it had
+    # to do rather than fixing it silently. See test_support.py.
+    guard = RegisterGuard()
+    with guard:
+        gap1()
+        gap2()
+        gap3()
+        gap4()
+    guard.report()
 
     with SessionLocal() as db:
         db.execute(

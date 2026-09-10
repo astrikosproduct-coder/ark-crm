@@ -46,6 +46,7 @@ from app.database import SessionLocal, engine
 engine.echo = False
 
 from app.main import app  # noqa: E402
+from test_support import sign_in_as_admin  # noqa: E402
 from app.metadata_spec import (  # noqa: E402
     FIELDS_JSON,
     PICKLISTS_JSON,
@@ -56,6 +57,13 @@ from app.models import Opportunity  # noqa: E402
 
 BASE = "/api/admin/metadata"
 client = TestClient(app)
+
+# Every route is mounted behind require_access / require_admin, which read a
+# signed-in user from the session cookie. A TestClient has none and cannot get
+# one — sign-in goes through Entra. Without this, every request here returns
+# 401 and the suite asserts nothing. See test_support.py.
+sign_in_as_admin(app)
+
 
 passed: list[str] = []
 failed: list[str] = []

@@ -49,6 +49,7 @@ from app import carry_forward  # noqa: E402
 from app import metadata_resolver as R  # noqa: E402
 from app.custom_fields import custom_field_defs  # noqa: E402
 from app.main import app  # noqa: E402
+from test_support import sign_in_as_admin  # noqa: E402
 from app.models import (  # noqa: E402
     Deal,
     FieldDefinition,
@@ -58,6 +59,13 @@ from app.models import (  # noqa: E402
 )
 
 client = TestClient(app)
+
+# Every route is mounted behind require_access / require_admin, which read a
+# signed-in user from the session cookie. A TestClient has none and cannot get
+# one — sign-in goes through Entra. Without this, every request here returns
+# 401 and the suite asserts nothing. See test_support.py.
+sign_in_as_admin(app)
+
 
 PASSED = 0
 FAILED: list[str] = []
