@@ -125,6 +125,34 @@ APPROVED_RELOCATIONS: dict[tuple[str, str], tuple[str, str]] = {
     ("leads", "project_stage"): (STAGE_0, RECORD_STATE),
     ("leads", "lead_status"): (STAGE_0, RECORD_STATE),
     ("leads", "probability_pct"): (STAGE_0, RECORD_STATE),
+    # A4. Expected Close Month joins them. A forecast reviewed monthly was
+    # filed under the stage it was first asked at, so revising the close month
+    # of a Stage 5 pursuit meant clicking back to Stage 0 — and, worse, a
+    # capture_stage of 0 kept the placement on Leads (range 0-3) so the field
+    # did not exist on Opportunities or Deals at all. See
+    # close_month_record_state.py.
+    ("leads", "expected_close_month"): (STAGE_0, RECORD_STATE),
+}
+
+# A4, second half. Opportunities and Deals gain their own instance of it, so
+# the forecast date survives into RFP, Commercial Evaluation and Close — the
+# stages a forecast is actually read at. A gained key is otherwise a FIELD
+# APPEARED failure, which is the correct default: fields do not turn up
+# unannounced.
+APPROVED_ADDITIONS: dict[tuple[str, str], str] = {
+    ("opportunities", "expected_close_month"): RECORD_STATE,
+    ("deals", "expected_close_month"): RECORD_STATE,
+}
+
+# A4, third half. Close Date Pushback Count is deleted from the register on all
+# three modules: `computed` with an empty formula, and models.Lead's property
+# returned a hardcoded 0 with a docstring saying it needed a history of
+# expected_close_month edits that nothing persisted. Logical delete — the rows
+# stay, and there was never a business column anywhere to preserve.
+APPROVED_DELETIONS: dict[tuple[str, str], str] = {
+    ("leads", "close_date_pushback_count"): "CROSS-CUTTING",
+    ("opportunities", "close_date_pushback_count"): "CROSS-CUTTING",
+    ("deals", "close_date_pushback_count"): "CROSS-CUTTING",
 }
 
 # A2. The six reason placements were Conditional in the register while stating
@@ -151,7 +179,7 @@ APPROVED_CONDITIONS: dict[tuple[str, str], str] = {
 # and is checked separately below. That is the invariant that actually matters:
 # a field is allowed to renumber, and is not allowed to move past its
 # neighbours.
-RENUMBERED_MODULES = {"leads"}
+RENUMBERED_MODULES = {"leads", "opportunities", "deals"}
 
 failures: list[str] = []
 
@@ -203,6 +231,24 @@ def main() -> int:
             lost.remove(old_key)
             gained.remove(new_key)
             relocations.append(f"{module}.{api_name}: {from_section} -> {to_section}")
+
+    # An approved addition is a gained key with no matching loss, and an
+    # approved deletion is a lost key with no matching gain. Each is taken out
+    # of its list by name and section, so a field arriving in a section nobody
+    # approved — or vanishing from one — still fails.
+    additions: list[str] = []
+    for (module, api_name), section in APPROVED_ADDITIONS.items():
+        key = (module, section, api_name)
+        if key in gained:
+            gained.remove(key)
+            additions.append(f"{module}.{api_name} -> {section}")
+
+    deletions: list[str] = []
+    for (module, api_name), section in APPROVED_DELETIONS.items():
+        key = (module, section, api_name)
+        if key in lost:
+            lost.remove(key)
+            deletions.append(f"{module}.{api_name} (was {section})")
 
     for key in lost:
         fail(f"FIELD LOST — {'.'.join(key)} rendered before the rebuild and does not now")
@@ -272,22 +318,34 @@ def main() -> int:
             if m == module
         }
 
-        def sequence(rows: dict, section: str) -> list[str]:
-            names = [
-                r["api_name"]
-                for k, r in rows.items()
-                if k[0] == module and k[1] == section
-            ]
+        def sequence(rows: dict, section: str, *, side: str) -> list[str]:
+            """
+            The section's fields in order, minus the ones approved to be in
+            only one of the two sides.
+
+            A relocated or deleted field is dropped from the BEFORE sequence
+            and an added one from the AFTER sequence, because leaving, going
+            and arriving are what they were each approved to do. What is left
+            is the invariant this check exists for: the fields present on both
+            sides did not overtake one another.
+            """
             ordered = sorted(
                 (r for k, r in rows.items() if k[0] == module and k[1] == section),
                 key=lambda r: r["order"],
             )
-            assert len(names) == len(ordered)
-            return [
-                r["api_name"]
-                for r in ordered
-                if moved_out.get((module, r["api_name"])) != section
-            ]
+            out = []
+            for row in ordered:
+                api_name = row["api_name"]
+                if side == "before":
+                    if moved_out.get((module, api_name)) == section:
+                        continue
+                    if APPROVED_DELETIONS.get((module, api_name)) == section:
+                        continue
+                else:
+                    if APPROVED_ADDITIONS.get((module, api_name)) == section:
+                        continue
+                out.append(api_name)
+            return out
 
         sections = {k[1] for k in before if k[0] == module} | {
             k[1] for k in after if k[0] == module
@@ -300,7 +358,8 @@ def main() -> int:
             # report the relocation a second time under a worse name.
             if not any(k[0] == module and k[1] == section for k in before):
                 continue
-            was, now = sequence(before, section), sequence(after, section)
+            was = sequence(before, section, side="before")
+            now = sequence(after, section, side="after")
             if was != now:
                 fail(
                     f"RELATIVE ORDER CHANGED — {module}.{section}: "
@@ -312,12 +371,26 @@ def main() -> int:
     print(f"    {'module':22}{'before':>8}{'after':>8}")
     before_counts = Counter(r["module"] for r in before.values())
     after_counts = Counter(r["module"] for r in after.values())
+    # A module's count may move by exactly the additions and deletions declared
+    # for it above, and by nothing else. Stating the arithmetic rather than
+    # waiving the check keeps an undeclared appearance or loss a failure even
+    # on a module that has one of each.
+    declared = Counter()
+    for module, _api in APPROVED_ADDITIONS:
+        declared[module] += 1
+    for module, _api in APPROVED_DELETIONS:
+        declared[module] -= 1
+
     for module in sorted(set(before_counts) | set(after_counts)):
         b, a = before_counts[module], after_counts[module]
-        flag = "" if b == a else "   <-- DIFFERS"
+        expected = b + declared[module]
+        flag = "" if b == a else f"   <-- {a - b:+d}, declared {declared[module]:+d}"
         print(f"    {module:22}{b:>8}{a:>8}{flag}")
-        if b != a:
-            fail(f"module {module} had {b} fields and now has {a}")
+        if a != expected:
+            fail(
+                f"module {module} had {b} fields and now has {a}; "
+                f"{declared[module]:+d} was declared, so {expected} was expected"
+            )
 
     # --------------------------------------------- 4. approved differences
     print("")
@@ -342,6 +415,24 @@ def main() -> int:
     print(f"\n  approved relocations (Phase A): {len(relocations)}")
     for line in sorted(relocations):
         print(f"    {line}")
+    print(f"\n  approved additions (Phase A): {len(additions)}")
+    for line in sorted(additions):
+        print(f"    {line}")
+    if len(additions) != len(APPROVED_ADDITIONS):
+        fail(
+            f"{len(APPROVED_ADDITIONS)} additions are approved but "
+            f"{len(additions)} happened — the approval list is stale"
+        )
+
+    print(f"\n  approved deletions (Phase A): {len(deletions)}")
+    for line in sorted(deletions):
+        print(f"    {line}")
+    if len(deletions) != len(APPROVED_DELETIONS):
+        fail(
+            f"{len(APPROVED_DELETIONS)} deletions are approved but "
+            f"{len(deletions)} happened — the approval list is stale"
+        )
+
     if len(relocations) != len(APPROVED_RELOCATIONS):
         fail(
             f"{len(APPROVED_RELOCATIONS)} relocations are approved but "

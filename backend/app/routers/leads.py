@@ -77,7 +77,6 @@ def _serialise(lead: Lead, labels: dict[str, dict[str, str]]) -> dict:
         "contracting_party": lead.contracting_party,
         "days_in_current_stage": lead.days_in_current_stage,
         "days_since_last_update": lead.days_since_last_update,
-        "close_date_pushback_count": lead.close_date_pushback_count,
     }
     for name in LEAD_SCALARS:
         value = getattr(lead, name)

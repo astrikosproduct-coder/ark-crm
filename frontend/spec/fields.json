@@ -145,8 +145,44 @@
  },
  {
   "module": "leads",
-  "section": "STAGE 0 — CONNECT",
+  "section": "RECORD STATE — each module keeps its own instance",
   "order": 5,
+  "api_name": "expected_close_month",
+  "label": "Expected Close Month",
+  "type": "date",
+  "max_length": null,
+  "picklist": null,
+  "lookup_target": null,
+  "lookup_filter": null,
+  "values_note": null,
+  "capture_stage": null,
+  "capture_any_stage": true,
+  "mandatory_from": 0,
+  "blocks_transition": "0 → 1",
+  "requirement": "Mandatory",
+  "origin": "Playbook",
+  "source_ref": "§7.1",
+  "description": "The month the order is expected to book.",
+  "use_case": "§7.1 — the basis of the rolling forecast; must be reviewed monthly.",
+  "required_on_skip": false,
+  "visibility_condition": null,
+  "condition": null,
+  "computed_formula": null,
+  "value_mode": "own",
+  "value_locked": false,
+  "editable": true,
+  "read_through_from": null,
+  "read_through_via": null,
+  "register_module": "leads",
+  "register_order": 5,
+  "anchor_field": null,
+  "anchor_position": null,
+  "layout_span": null
+ },
+ {
+  "module": "leads",
+  "section": "STAGE 0 — CONNECT",
+  "order": 6,
   "api_name": "lead_id",
   "label": "Lead ID",
   "type": "autonumber",
@@ -174,7 +210,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 5,
+  "register_order": 6,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -182,7 +218,7 @@
  {
   "module": "leads",
   "section": "STAGE 0 — CONNECT",
-  "order": 6,
+  "order": 7,
   "api_name": "opportunity_name",
   "label": "Opportunity Name",
   "type": "text",
@@ -210,7 +246,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 6,
+  "register_order": 7,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -218,7 +254,7 @@
  {
   "module": "leads",
   "section": "STAGE 0 — CONNECT",
-  "order": 7,
+  "order": 8,
   "api_name": "country",
   "label": "Country",
   "type": "text",
@@ -246,7 +282,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 7,
+  "register_order": 8,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -254,7 +290,7 @@
  {
   "module": "leads",
   "section": "STAGE 0 — CONNECT",
-  "order": 8,
+  "order": 9,
   "api_name": "city_state",
   "label": "City / State",
   "type": "text",
@@ -282,7 +318,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 8,
+  "register_order": 9,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -290,7 +326,7 @@
  {
   "module": "leads",
   "section": "STAGE 0 — CONNECT",
-  "order": 9,
+  "order": 10,
   "api_name": "destination_region",
   "label": "Destination Region",
   "type": "picklist",
@@ -318,7 +354,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 9,
+  "register_order": 10,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -326,7 +362,7 @@
  {
   "module": "leads",
   "section": "STAGE 0 — CONNECT",
-  "order": 10,
+  "order": 11,
   "api_name": "booking_region",
   "label": "Booking Region",
   "type": "picklist",
@@ -354,7 +390,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 10,
+  "register_order": 11,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -362,7 +398,7 @@
  {
   "module": "leads",
   "section": "STAGE 0 — CONNECT",
-  "order": 11,
+  "order": 12,
   "api_name": "end_client",
   "label": "End Client",
   "type": "lookup",
@@ -390,7 +426,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 11,
+  "register_order": 12,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -398,7 +434,7 @@
  {
   "module": "leads",
   "section": "STAGE 0 — CONNECT",
-  "order": 12,
+  "order": 13,
   "api_name": "customer_partner_si",
   "label": "Customer (Partner / SI)",
   "type": "lookup",
@@ -426,7 +462,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 12,
+  "register_order": 13,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -434,7 +470,7 @@
  {
   "module": "leads",
   "section": "STAGE 0 — CONNECT",
-  "order": 13,
+  "order": 14,
   "api_name": "bd_owner",
   "label": "BD Owner",
   "type": "lookup",
@@ -462,7 +498,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 13,
+  "register_order": 14,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -470,7 +506,7 @@
  {
   "module": "leads",
   "section": "STAGE 0 — CONNECT",
-  "order": 14,
+  "order": 15,
   "api_name": "primary_contact",
   "label": "Primary Contact",
   "type": "lookup",
@@ -498,7 +534,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 14,
+  "register_order": 15,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -506,7 +542,7 @@
  {
   "module": "leads",
   "section": "STAGE 0 — CONNECT",
-  "order": 15,
+  "order": 16,
   "api_name": "deal_source",
   "label": "Deal Source",
   "type": "picklist",
@@ -534,7 +570,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 15,
+  "register_order": 16,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -542,7 +578,7 @@
  {
   "module": "leads",
   "section": "STAGE 0 — CONNECT",
-  "order": 16,
+  "order": 17,
   "api_name": "opportunity_type",
   "label": "Opportunity Type",
   "type": "picklist",
@@ -570,7 +606,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 16,
+  "register_order": 17,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -578,7 +614,7 @@
  {
   "module": "leads",
   "section": "STAGE 0 — CONNECT",
-  "order": 17,
+  "order": 18,
   "api_name": "partner_deal_registration",
   "label": "Partner Deal Registration",
   "type": "lookup",
@@ -606,7 +642,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 17,
+  "register_order": 18,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -614,7 +650,7 @@
  {
   "module": "leads",
   "section": "STAGE 0 — CONNECT",
-  "order": 18,
+  "order": 19,
   "api_name": "segment",
   "label": "Segment",
   "type": "picklist",
@@ -642,7 +678,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 18,
+  "register_order": 19,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -650,7 +686,7 @@
  {
   "module": "leads",
   "section": "STAGE 0 — CONNECT",
-  "order": 19,
+  "order": 20,
   "api_name": "theme",
   "label": "Theme",
   "type": "picklist",
@@ -678,7 +714,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 19,
+  "register_order": 20,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -686,7 +722,7 @@
  {
   "module": "leads",
   "section": "STAGE 0 — CONNECT",
-  "order": 20,
+  "order": 21,
   "api_name": "sap_solution_suite",
   "label": "S!aP Solution Suite",
   "type": "lookup",
@@ -704,42 +740,6 @@
   "source_ref": "§7.1",
   "description": "The primary platform entry point being sold.",
   "use_case": "§2.2 — every opportunity must map to a primary suite; anchors the platform story.",
-  "required_on_skip": false,
-  "visibility_condition": null,
-  "condition": null,
-  "computed_formula": null,
-  "value_mode": "own",
-  "value_locked": false,
-  "editable": true,
-  "read_through_from": null,
-  "read_through_via": null,
-  "register_module": "leads",
-  "register_order": 20,
-  "anchor_field": null,
-  "anchor_position": null,
-  "layout_span": null
- },
- {
-  "module": "leads",
-  "section": "STAGE 0 — CONNECT",
-  "order": 21,
-  "api_name": "expected_close_month",
-  "label": "Expected Close Month",
-  "type": "date",
-  "max_length": null,
-  "picklist": null,
-  "lookup_target": null,
-  "lookup_filter": null,
-  "values_note": null,
-  "capture_stage": 0,
-  "capture_any_stage": false,
-  "mandatory_from": 0,
-  "blocks_transition": "0 → 1",
-  "requirement": "Mandatory",
-  "origin": "Playbook",
-  "source_ref": "§7.1",
-  "description": "The month the order is expected to book.",
-  "use_case": "§7.1 — the basis of the rolling forecast; must be reviewed monthly.",
   "required_on_skip": false,
   "visibility_condition": null,
   "condition": null,
@@ -2667,42 +2667,6 @@
   "module": "leads",
   "section": "CROSS-CUTTING",
   "order": 75,
-  "api_name": "close_date_pushback_count",
-  "label": "Close Date Pushback Count",
-  "type": "computed",
-  "max_length": null,
-  "picklist": null,
-  "lookup_target": null,
-  "lookup_filter": null,
-  "values_note": null,
-  "capture_stage": null,
-  "capture_any_stage": false,
-  "mandatory_from": null,
-  "blocks_transition": null,
-  "requirement": "Computed",
-  "origin": "Playbook",
-  "source_ref": "§7.2",
-  "description": "Computed count of close-date deferrals.",
-  "use_case": "§7.2 — a second pushback triggers management discussion and re-qualification.",
-  "required_on_skip": null,
-  "visibility_condition": null,
-  "condition": null,
-  "computed_formula": "",
-  "value_mode": "own",
-  "value_locked": false,
-  "editable": true,
-  "read_through_from": null,
-  "read_through_via": null,
-  "register_module": "leads",
-  "register_order": 75,
-  "anchor_field": null,
-  "anchor_position": null,
-  "layout_span": null
- },
- {
-  "module": "leads",
-  "section": "CROSS-CUTTING",
-  "order": 76,
   "api_name": "days_in_current_stage",
   "label": "Days in Current Stage",
   "type": "computed",
@@ -2730,7 +2694,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 76,
+  "register_order": 75,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -2738,7 +2702,7 @@
  {
   "module": "leads",
   "section": "CROSS-CUTTING",
-  "order": 77,
+  "order": 76,
   "api_name": "days_since_last_update",
   "label": "Days Since Last Update",
   "type": "computed",
@@ -2766,7 +2730,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 77,
+  "register_order": 76,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -2774,7 +2738,7 @@
  {
   "module": "leads",
   "section": "SYSTEM",
-  "order": 78,
+  "order": 77,
   "api_name": "created_by",
   "label": "Created By",
   "type": "lookup",
@@ -2802,7 +2766,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 78,
+  "register_order": 77,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -2810,7 +2774,7 @@
  {
   "module": "leads",
   "section": "SYSTEM",
-  "order": 79,
+  "order": 78,
   "api_name": "created_date",
   "label": "Created Date",
   "type": "datetime",
@@ -2838,7 +2802,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 79,
+  "register_order": 78,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -2846,7 +2810,7 @@
  {
   "module": "leads",
   "section": "SYSTEM",
-  "order": 80,
+  "order": 79,
   "api_name": "modified_by",
   "label": "Modified By",
   "type": "lookup",
@@ -2874,7 +2838,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 80,
+  "register_order": 79,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -2882,7 +2846,7 @@
  {
   "module": "leads",
   "section": "SYSTEM",
-  "order": 81,
+  "order": 80,
   "api_name": "modified_date",
   "label": "Modified Date",
   "type": "datetime",
@@ -2910,7 +2874,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 81,
+  "register_order": 80,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3061,8 +3025,44 @@
  },
  {
   "module": "opportunities",
-  "section": "STAGE 4 — RFP / RFI",
+  "section": "RECORD STATE — each module keeps its own instance",
   "order": 5,
+  "api_name": "expected_close_month",
+  "label": "Expected Close Month",
+  "type": "date",
+  "max_length": null,
+  "picklist": null,
+  "lookup_target": null,
+  "lookup_filter": null,
+  "values_note": null,
+  "capture_stage": 0,
+  "capture_any_stage": false,
+  "mandatory_from": 0,
+  "blocks_transition": "0 → 1",
+  "requirement": "Mandatory",
+  "origin": "Playbook",
+  "source_ref": "§7.1",
+  "description": "The month the order is expected to book.",
+  "use_case": "§7.1 — the basis of the rolling forecast; must be reviewed monthly.",
+  "required_on_skip": false,
+  "visibility_condition": null,
+  "condition": null,
+  "computed_formula": null,
+  "value_mode": "own",
+  "value_locked": false,
+  "editable": true,
+  "read_through_from": null,
+  "read_through_via": null,
+  "register_module": "leads",
+  "register_order": 5,
+  "anchor_field": null,
+  "anchor_position": null,
+  "layout_span": null
+ },
+ {
+  "module": "opportunities",
+  "section": "STAGE 4 — RFP / RFI",
+  "order": 6,
   "api_name": "rfp_type",
   "label": "RFP Type",
   "type": "picklist",
@@ -3090,7 +3090,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 5,
+  "register_order": 6,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3098,7 +3098,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 6,
+  "order": 7,
   "api_name": "rfp_received_date",
   "label": "RFP Received Date",
   "type": "date",
@@ -3126,7 +3126,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 6,
+  "register_order": 7,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3134,7 +3134,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 7,
+  "order": 8,
   "api_name": "submission_deadline",
   "label": "Submission Deadline",
   "type": "datetime",
@@ -3162,7 +3162,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 7,
+  "register_order": 8,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3170,7 +3170,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 8,
+  "order": 9,
   "api_name": "arr_annual_recurring",
   "label": "ARR (Annual Recurring)",
   "type": "currency",
@@ -3198,7 +3198,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 8,
+  "register_order": 9,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3206,7 +3206,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 9,
+  "order": 10,
   "api_name": "one_time_revenue",
   "label": "One-Time Revenue",
   "type": "currency",
@@ -3234,7 +3234,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 9,
+  "register_order": 10,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3242,7 +3242,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 10,
+  "order": 11,
   "api_name": "3rd_party_one_time",
   "label": "3rd-Party One-Time",
   "type": "currency",
@@ -3270,7 +3270,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 10,
+  "register_order": 11,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3278,7 +3278,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 11,
+  "order": 12,
   "api_name": "3rd_party_recurring_per_year",
   "label": "3rd-Party Recurring (per year)",
   "type": "currency",
@@ -3306,7 +3306,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 11,
+  "register_order": 12,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3314,7 +3314,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 12,
+  "order": 13,
   "api_name": "contract_years",
   "label": "Contract Years",
   "type": "number",
@@ -3342,7 +3342,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 12,
+  "register_order": 13,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3350,7 +3350,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 13,
+  "order": 14,
   "api_name": "total_value_tcv",
   "label": "Total Value (TCV)",
   "type": "computed",
@@ -3378,7 +3378,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 13,
+  "register_order": 14,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3386,7 +3386,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 14,
+  "order": 15,
   "api_name": "gross_margin_pct",
   "label": "Gross Margin %",
   "type": "computed",
@@ -3414,7 +3414,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 14,
+  "register_order": 15,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3422,7 +3422,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 15,
+  "order": 16,
   "api_name": "competitors_noticed",
   "label": "Competitors Noticed",
   "type": "text",
@@ -3450,7 +3450,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 15,
+  "register_order": 16,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3458,7 +3458,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 16,
+  "order": 17,
   "api_name": "bid_record",
   "label": "Bid Record",
   "type": "lookup",
@@ -3486,7 +3486,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 16,
+  "register_order": 17,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3494,7 +3494,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 17,
+  "order": 18,
   "api_name": "bid_submission_date",
   "label": "Bid Submission Date",
   "type": "datetime",
@@ -3522,7 +3522,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 17,
+  "register_order": 18,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3530,7 +3530,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 18,
+  "order": 19,
   "api_name": "submitted_on_time",
   "label": "Submitted On Time",
   "type": "computed",
@@ -3558,7 +3558,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 18,
+  "register_order": 19,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3566,7 +3566,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 19,
+  "order": 20,
   "api_name": "debrief_requested_date",
   "label": "Debrief Requested Date",
   "type": "date",
@@ -3594,7 +3594,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 19,
+  "register_order": 20,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3602,7 +3602,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 20,
+  "order": 21,
   "api_name": "platform_licence_list_price",
   "label": "Platform Licence List Price",
   "type": "currency",
@@ -3630,7 +3630,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 20,
+  "register_order": 21,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3638,7 +3638,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 21,
+  "order": 22,
   "api_name": "licence_discount_pct",
   "label": "Licence Discount %",
   "type": "computed",
@@ -3666,7 +3666,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 21,
+  "register_order": 22,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3674,7 +3674,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 22,
+  "order": 23,
   "api_name": "services_and_implementation_cost",
   "label": "Services & Implementation Cost",
   "type": "currency",
@@ -3702,7 +3702,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 22,
+  "register_order": 23,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3710,7 +3710,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 23,
+  "order": 24,
   "api_name": "third_party_cost",
   "label": "Third-Party Cost",
   "type": "currency",
@@ -3738,7 +3738,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 23,
+  "register_order": 24,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3746,7 +3746,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 24,
+  "order": 25,
   "api_name": "total_cost",
   "label": "Total Cost",
   "type": "computed",
@@ -3774,7 +3774,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 24,
+  "register_order": 25,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3782,7 +3782,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 25,
+  "order": 26,
   "api_name": "third_party_pct_of_tcv",
   "label": "Third-Party % of TCV",
   "type": "computed",
@@ -3810,7 +3810,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 25,
+  "register_order": 26,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3818,7 +3818,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 26,
+  "order": 27,
   "api_name": "cost_model_rcm_document",
   "label": "Cost Model (RCM) Document",
   "type": "file",
@@ -3846,7 +3846,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 26,
+  "register_order": 27,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3854,7 +3854,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 27,
+  "order": 28,
   "api_name": "licence_model",
   "label": "Licence Model",
   "type": "picklist",
@@ -3882,7 +3882,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 27,
+  "register_order": 28,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3890,7 +3890,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 28,
+  "order": 29,
   "api_name": "perpetual_licence_fee",
   "label": "Perpetual Licence Fee",
   "type": "currency",
@@ -3918,7 +3918,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 28,
+  "register_order": 29,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3926,7 +3926,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 29,
+  "order": 30,
   "api_name": "client_tender_reference",
   "label": "Client Tender Reference",
   "type": "text",
@@ -3954,7 +3954,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 29,
+  "register_order": 30,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3962,7 +3962,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 30,
+  "order": 31,
   "api_name": "primary_quote",
   "label": "Primary Quote",
   "type": "lookup",
@@ -3990,7 +3990,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 30,
+  "register_order": 31,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -3998,7 +3998,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 31,
+  "order": 32,
   "api_name": "rfp_document_file",
   "label": "RFP DOCUMENT FILE",
   "type": "file",
@@ -4026,7 +4026,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 31,
+  "register_order": 32,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4034,7 +4034,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 32,
+  "order": 33,
   "api_name": "nomination_bid",
   "label": "Nomination Bid",
   "type": "checkbox",
@@ -4062,7 +4062,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "opportunities",
-  "register_order": 32,
+  "register_order": 33,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4070,7 +4070,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 33,
+  "order": 34,
   "api_name": "incumbent_only",
   "label": "Incumbent Only",
   "type": "checkbox",
@@ -4098,7 +4098,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "opportunities",
-  "register_order": 33,
+  "register_order": 34,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4106,7 +4106,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 34,
+  "order": 35,
   "api_name": "parent_lead",
   "label": "Parent Lead",
   "type": "lookup",
@@ -4134,7 +4134,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 34,
+  "register_order": 35,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4142,7 +4142,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 4 — RFP / RFI",
-  "order": 35,
+  "order": 36,
   "api_name": "value_confidence",
   "label": "Value Confidence",
   "type": "picklist",
@@ -4170,7 +4170,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "opportunities",
-  "register_order": 35,
+  "register_order": 36,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4178,7 +4178,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 5 — TECHNICAL EVALUATION",
-  "order": 36,
+  "order": 37,
   "api_name": "bid_receipt_confirmed_date",
   "label": "Bid Receipt Confirmed Date",
   "type": "date",
@@ -4206,7 +4206,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 36,
+  "register_order": 37,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4214,7 +4214,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 5 — TECHNICAL EVALUATION",
-  "order": 37,
+  "order": 38,
   "api_name": "first_tbe_received_date",
   "label": "First TBE Received Date",
   "type": "date",
@@ -4242,7 +4242,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 37,
+  "register_order": 38,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4250,7 +4250,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 5 — TECHNICAL EVALUATION",
-  "order": 38,
+  "order": 39,
   "api_name": "technical_standing",
   "label": "Technical Standing",
   "type": "picklist",
@@ -4278,7 +4278,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 38,
+  "register_order": 39,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4286,7 +4286,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 5 — TECHNICAL EVALUATION",
-  "order": 39,
+  "order": 40,
   "api_name": "technical_approval_status",
   "label": "Technical Approval Status",
   "type": "picklist",
@@ -4314,7 +4314,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 39,
+  "register_order": 40,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4322,7 +4322,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 5 — TECHNICAL EVALUATION",
-  "order": 40,
+  "order": 41,
   "api_name": "technical_approval_date",
   "label": "Technical Approval Date",
   "type": "date",
@@ -4350,7 +4350,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 40,
+  "register_order": 41,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4358,7 +4358,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 41,
+  "order": 42,
   "api_name": "commercial_proposal_submitted_date",
   "label": "Commercial Proposal Submitted Date",
   "type": "date",
@@ -4386,7 +4386,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 41,
+  "register_order": 42,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4394,7 +4394,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 42,
+  "order": 43,
   "api_name": "final_negotiated_value",
   "label": "Final Negotiated Value",
   "type": "currency",
@@ -4422,7 +4422,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 42,
+  "register_order": 43,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4430,7 +4430,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 43,
+  "order": 44,
   "api_name": "contract_review_status",
   "label": "Contract Review Status",
   "type": "picklist",
@@ -4458,7 +4458,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 43,
+  "register_order": 44,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4466,7 +4466,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 44,
+  "order": 45,
   "api_name": "contract_review_sign_off_date",
   "label": "Contract Review Sign-Off Date",
   "type": "date",
@@ -4494,7 +4494,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 44,
+  "register_order": 45,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4502,7 +4502,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 45,
+  "order": 46,
   "api_name": "contract_review_sign_off_by",
   "label": "Contract Review Sign-Off By",
   "type": "lookup",
@@ -4530,7 +4530,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 45,
+  "register_order": 46,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4538,7 +4538,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 46,
+  "order": 47,
   "api_name": "commercial_gate",
   "label": "Commercial Gate",
   "type": "lookup",
@@ -4566,7 +4566,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 46,
+  "register_order": 47,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4574,7 +4574,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 47,
+  "order": 48,
   "api_name": "award_type",
   "label": "Award Type",
   "type": "picklist",
@@ -4602,7 +4602,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 47,
+  "register_order": 48,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4610,7 +4610,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 48,
+  "order": 49,
   "api_name": "loi_received_date",
   "label": "LOI Received Date",
   "type": "date",
@@ -4638,7 +4638,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 48,
+  "register_order": 49,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4646,7 +4646,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 49,
+  "order": 50,
   "api_name": "agreed_advance_pct",
   "label": "Agreed Advance %",
   "type": "percent",
@@ -4674,7 +4674,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 49,
+  "register_order": 50,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4682,7 +4682,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 50,
+  "order": 51,
   "api_name": "agreed_credit_period_days",
   "label": "Agreed Credit Period (days)",
   "type": "number",
@@ -4710,7 +4710,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 50,
+  "register_order": 51,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4718,7 +4718,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 51,
+  "order": 52,
   "api_name": "agreed_liability_cap_pct",
   "label": "Agreed Liability Cap %",
   "type": "percent",
@@ -4746,7 +4746,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 51,
+  "register_order": 52,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4754,7 +4754,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 52,
+  "order": 53,
   "api_name": "agreed_ld_cap_pct",
   "label": "Agreed LD Cap %",
   "type": "percent",
@@ -4782,7 +4782,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 52,
+  "register_order": 53,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4790,7 +4790,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 53,
+  "order": 54,
   "api_name": "pay_when_paid",
   "label": "Pay-When-Paid",
   "type": "checkbox",
@@ -4818,7 +4818,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 53,
+  "register_order": 54,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4826,7 +4826,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 54,
+  "order": 55,
   "api_name": "payment_milestones",
   "label": "Payment Milestones",
   "type": "childlist",
@@ -4854,7 +4854,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 54,
+  "register_order": 55,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4862,7 +4862,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 55,
+  "order": 56,
   "api_name": "milestone_—_planned_date",
   "label": "Milestone — Planned Date",
   "type": "date",
@@ -4890,7 +4890,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 55,
+  "register_order": 56,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4898,7 +4898,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 56,
+  "order": 57,
   "api_name": "milestone_—_actual_date",
   "label": "Milestone — Actual Date",
   "type": "date",
@@ -4926,7 +4926,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 56,
+  "register_order": 57,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4934,7 +4934,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 57,
+  "order": 58,
   "api_name": "milestone_—_invoice_date",
   "label": "Milestone — Invoice Date",
   "type": "date",
@@ -4962,7 +4962,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 57,
+  "register_order": 58,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -4970,7 +4970,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 58,
+  "order": 59,
   "api_name": "milestone_—_payment_received_date",
   "label": "Milestone — Payment Received Date",
   "type": "date",
@@ -4998,7 +4998,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 58,
+  "register_order": 59,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5006,7 +5006,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 59,
+  "order": 60,
   "api_name": "sow_agreed_date",
   "label": "SoW Agreed Date",
   "type": "date",
@@ -5034,7 +5034,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "opportunities",
-  "register_order": 59,
+  "register_order": 60,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5042,7 +5042,7 @@
  {
   "module": "opportunities",
   "section": "STAGE 6 — COMMERCIAL EVALUATION",
-  "order": 60,
+  "order": 61,
   "api_name": "bidder_declared_date",
   "label": "Bidder Declared Date",
   "type": "date",
@@ -5070,7 +5070,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "opportunities",
-  "register_order": 60,
+  "register_order": 61,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5078,7 +5078,7 @@
  {
   "module": "opportunities",
   "section": "__header",
-  "order": 61,
+  "order": 62,
   "api_name": "overall_rag",
   "label": "Overall RAG",
   "type": "picklist",
@@ -5106,7 +5106,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 61,
+  "register_order": 62,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5114,7 +5114,7 @@
  {
   "module": "opportunities",
   "section": "__header",
-  "order": 62,
+  "order": 63,
   "api_name": "next_milestone",
   "label": "Next Milestone",
   "type": "text",
@@ -5142,7 +5142,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 62,
+  "register_order": 63,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5150,7 +5150,7 @@
  {
   "module": "opportunities",
   "section": "__header",
-  "order": 63,
+  "order": 64,
   "api_name": "next_milestone_date",
   "label": "Next Milestone Date",
   "type": "date",
@@ -5178,7 +5178,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 63,
+  "register_order": 64,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5186,7 +5186,7 @@
  {
   "module": "opportunities",
   "section": "__header",
-  "order": 64,
+  "order": 65,
   "api_name": "is_low_hanging",
   "label": "Low Hanging",
   "type": "checkbox",
@@ -5214,7 +5214,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "opportunities",
-  "register_order": 64,
+  "register_order": 65,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5222,7 +5222,7 @@
  {
   "module": "opportunities",
   "section": "__header",
-  "order": 65,
+  "order": 66,
   "api_name": "low_hanging_rank",
   "label": "Low Hanging Rank",
   "type": "number",
@@ -5250,7 +5250,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "opportunities",
-  "register_order": 65,
+  "register_order": 66,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5258,7 +5258,7 @@
  {
   "module": "opportunities",
   "section": "__header",
-  "order": 66,
+  "order": 67,
   "api_name": "is_top_10",
   "label": "Top 10",
   "type": "checkbox",
@@ -5286,7 +5286,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "opportunities",
-  "register_order": 66,
+  "register_order": 67,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5294,7 +5294,7 @@
  {
   "module": "opportunities",
   "section": "__header",
-  "order": 67,
+  "order": 68,
   "api_name": "top_10_rank",
   "label": "Top 10 Rank",
   "type": "number",
@@ -5322,7 +5322,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "opportunities",
-  "register_order": 67,
+  "register_order": 68,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5330,7 +5330,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 68,
+  "order": 69,
   "api_name": "opportunity_name",
   "label": "Opportunity Name",
   "type": "text",
@@ -5358,7 +5358,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 68,
+  "register_order": 69,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5366,7 +5366,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 69,
+  "order": 70,
   "api_name": "country",
   "label": "Country",
   "type": "text",
@@ -5394,7 +5394,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 69,
+  "register_order": 70,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5402,7 +5402,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 70,
+  "order": 71,
   "api_name": "city_state",
   "label": "City / State",
   "type": "text",
@@ -5430,7 +5430,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 70,
+  "register_order": 71,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5438,7 +5438,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 71,
+  "order": 72,
   "api_name": "destination_region",
   "label": "Destination Region",
   "type": "picklist",
@@ -5466,7 +5466,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 71,
+  "register_order": 72,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5474,7 +5474,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 72,
+  "order": 73,
   "api_name": "booking_region",
   "label": "Booking Region",
   "type": "picklist",
@@ -5502,7 +5502,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 72,
+  "register_order": 73,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5510,7 +5510,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 73,
+  "order": 74,
   "api_name": "end_client",
   "label": "End Client",
   "type": "lookup",
@@ -5538,7 +5538,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "deals",
-  "register_order": 73,
+  "register_order": 74,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5546,7 +5546,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 74,
+  "order": 75,
   "api_name": "customer_partner_si",
   "label": "Customer (Partner / SI)",
   "type": "lookup",
@@ -5574,7 +5574,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "deals",
-  "register_order": 74,
+  "register_order": 75,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5582,7 +5582,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 75,
+  "order": 76,
   "api_name": "bd_owner",
   "label": "BD Owner",
   "type": "lookup",
@@ -5610,7 +5610,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 75,
+  "register_order": 76,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5618,7 +5618,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 76,
+  "order": 77,
   "api_name": "primary_contact",
   "label": "Primary Contact",
   "type": "lookup",
@@ -5646,7 +5646,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 76,
+  "register_order": 77,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5654,7 +5654,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 77,
+  "order": 78,
   "api_name": "deal_source",
   "label": "Deal Source",
   "type": "picklist",
@@ -5682,7 +5682,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 77,
+  "register_order": 78,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5690,7 +5690,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 78,
+  "order": 79,
   "api_name": "opportunity_type",
   "label": "Opportunity Type",
   "type": "picklist",
@@ -5718,7 +5718,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 78,
+  "register_order": 79,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5726,7 +5726,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 79,
+  "order": 80,
   "api_name": "partner_deal_registration",
   "label": "Partner Deal Registration",
   "type": "lookup",
@@ -5754,7 +5754,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 79,
+  "register_order": 80,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5762,7 +5762,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 80,
+  "order": 81,
   "api_name": "segment",
   "label": "Segment",
   "type": "picklist",
@@ -5790,7 +5790,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 80,
+  "register_order": 81,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5798,7 +5798,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 81,
+  "order": 82,
   "api_name": "theme",
   "label": "Theme",
   "type": "picklist",
@@ -5826,7 +5826,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 81,
+  "register_order": 82,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5834,7 +5834,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 82,
+  "order": 83,
   "api_name": "sap_solution_suite",
   "label": "S!aP Solution Suite",
   "type": "lookup",
@@ -5862,7 +5862,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 82,
+  "register_order": 83,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5870,7 +5870,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 83,
+  "order": 84,
   "api_name": "currency",
   "label": "Currency",
   "type": "picklist",
@@ -5898,7 +5898,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 83,
+  "register_order": 84,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5906,7 +5906,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 84,
+  "order": 85,
   "api_name": "lighthouse_project",
   "label": "Lighthouse Project",
   "type": "checkbox",
@@ -5934,7 +5934,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 84,
+  "register_order": 85,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5942,7 +5942,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 85,
+  "order": 86,
   "api_name": "gorilla_flag",
   "label": "Gorilla Flag",
   "type": "checkbox",
@@ -5970,7 +5970,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 85,
+  "register_order": 86,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -5978,7 +5978,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 86,
+  "order": 87,
   "api_name": "suite_demonstrated",
   "label": "Suite Demonstrated",
   "type": "lookup",
@@ -6006,7 +6006,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 86,
+  "register_order": 87,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -6014,7 +6014,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 87,
+  "order": 88,
   "api_name": "consultant_specifier",
   "label": "Consultant / Specifier",
   "type": "lookup",
@@ -6042,7 +6042,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 87,
+  "register_order": 88,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -6050,7 +6050,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 88,
+  "order": 89,
   "api_name": "sales_owner",
   "label": "Sales Owner",
   "type": "lookup",
@@ -6078,7 +6078,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 88,
+  "register_order": 89,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -6086,7 +6086,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 89,
+  "order": 90,
   "api_name": "presales_owner",
   "label": "Presales Owner",
   "type": "lookup",
@@ -6114,7 +6114,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 89,
+  "register_order": 90,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -6122,7 +6122,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 90,
+  "order": 91,
   "api_name": "probable_award_date",
   "label": "Probable Award Date",
   "type": "date",
@@ -6150,7 +6150,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 90,
+  "register_order": 91,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -6158,7 +6158,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 91,
+  "order": 92,
   "api_name": "pre_bid_alliance_partner",
   "label": "Pre-Bid Alliance Partner",
   "type": "lookup",
@@ -6186,7 +6186,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 91,
+  "register_order": 92,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -6194,7 +6194,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 92,
+  "order": 93,
   "api_name": "alliance_structure",
   "label": "Alliance Structure",
   "type": "picklist",
@@ -6222,7 +6222,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 92,
+  "register_order": 93,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -6230,7 +6230,7 @@
  {
   "module": "opportunities",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 93,
+  "order": 94,
   "api_name": "total_project_value",
   "label": "Total Project Value",
   "type": "currency",
@@ -6258,7 +6258,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_lead",
   "register_module": "leads",
-  "register_order": 93,
+  "register_order": 94,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -6266,7 +6266,7 @@
  {
   "module": "opportunities",
   "section": "CROSS-CUTTING",
-  "order": 94,
+  "order": 95,
   "api_name": "probability_override_justification",
   "label": "Probability Override Justification",
   "type": "text",
@@ -6294,7 +6294,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 94,
+  "register_order": 95,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -6302,7 +6302,7 @@
  {
   "module": "opportunities",
   "section": "CROSS-CUTTING",
-  "order": 95,
+  "order": 96,
   "api_name": "stage_skip_reason",
   "label": "Stage Skip Reason",
   "type": "text",
@@ -6330,7 +6330,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 95,
+  "register_order": 96,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -6338,7 +6338,7 @@
  {
   "module": "opportunities",
   "section": "CROSS-CUTTING",
-  "order": 96,
+  "order": 97,
   "api_name": "stage_reversal_reason",
   "label": "Stage Reversal Reason",
   "type": "text",
@@ -6366,7 +6366,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 96,
+  "register_order": 97,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -6374,7 +6374,7 @@
  {
   "module": "opportunities",
   "section": "CROSS-CUTTING",
-  "order": 97,
+  "order": 98,
   "api_name": "closed_lost_reason_code",
   "label": "Closed Lost Reason Code",
   "type": "picklist",
@@ -6402,7 +6402,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 97,
+  "register_order": 98,
   "anchor_field": "lead_status",
   "anchor_position": "after",
   "layout_span": "half"
@@ -6410,7 +6410,7 @@
  {
   "module": "opportunities",
   "section": "CROSS-CUTTING",
-  "order": 98,
+  "order": 99,
   "api_name": "on_hold_reason",
   "label": "On Hold Reason",
   "type": "text",
@@ -6438,46 +6438,10 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 98,
+  "register_order": 99,
   "anchor_field": "lead_status",
   "anchor_position": "after",
   "layout_span": "full"
- },
- {
-  "module": "opportunities",
-  "section": "CROSS-CUTTING",
-  "order": 99,
-  "api_name": "close_date_pushback_count",
-  "label": "Close Date Pushback Count",
-  "type": "computed",
-  "max_length": null,
-  "picklist": null,
-  "lookup_target": null,
-  "lookup_filter": null,
-  "values_note": null,
-  "capture_stage": null,
-  "capture_any_stage": false,
-  "mandatory_from": null,
-  "blocks_transition": null,
-  "requirement": "Computed",
-  "origin": "Playbook",
-  "source_ref": "§7.2",
-  "description": "Computed count of close-date deferrals.",
-  "use_case": "§7.2 — a second pushback triggers management discussion and re-qualification.",
-  "required_on_skip": null,
-  "visibility_condition": null,
-  "condition": null,
-  "computed_formula": "",
-  "value_mode": "own",
-  "value_locked": false,
-  "editable": true,
-  "read_through_from": null,
-  "read_through_via": null,
-  "register_module": "leads",
-  "register_order": 99,
-  "anchor_field": null,
-  "anchor_position": null,
-  "layout_span": null
  },
  {
   "module": "opportunities",
@@ -6805,8 +6769,44 @@
  },
  {
   "module": "deals",
-  "section": "ON CONVERSION",
+  "section": "RECORD STATE — each module keeps its own instance",
   "order": 4,
+  "api_name": "expected_close_month",
+  "label": "Expected Close Month",
+  "type": "date",
+  "max_length": null,
+  "picklist": null,
+  "lookup_target": null,
+  "lookup_filter": null,
+  "values_note": null,
+  "capture_stage": 0,
+  "capture_any_stage": false,
+  "mandatory_from": 0,
+  "blocks_transition": "0 → 1",
+  "requirement": "Mandatory",
+  "origin": "Playbook",
+  "source_ref": "§7.1",
+  "description": "The month the order is expected to book.",
+  "use_case": "§7.1 — the basis of the rolling forecast; must be reviewed monthly.",
+  "required_on_skip": false,
+  "visibility_condition": null,
+  "condition": null,
+  "computed_formula": null,
+  "value_mode": "own",
+  "value_locked": false,
+  "editable": true,
+  "read_through_from": null,
+  "read_through_via": null,
+  "register_module": "leads",
+  "register_order": 4,
+  "anchor_field": null,
+  "anchor_position": null,
+  "layout_span": null
+ },
+ {
+  "module": "deals",
+  "section": "ON CONVERSION",
+  "order": 5,
   "api_name": "deal_name",
   "label": "Deal Name",
   "type": "text",
@@ -6834,7 +6834,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 4,
+  "register_order": 5,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -6842,7 +6842,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 5,
+  "order": 6,
   "api_name": "deal_id",
   "label": "Deal ID",
   "type": "autonumber",
@@ -6870,7 +6870,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 5,
+  "register_order": 6,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -6878,7 +6878,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 6,
+  "order": 7,
   "api_name": "parent_lead",
   "label": "Parent Lead",
   "type": "lookup",
@@ -6906,7 +6906,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 6,
+  "register_order": 7,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -6914,7 +6914,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 7,
+  "order": 8,
   "api_name": "end_client",
   "label": "End Client",
   "type": "lookup",
@@ -6942,7 +6942,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 7,
+  "register_order": 8,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -6950,7 +6950,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 8,
+  "order": 9,
   "api_name": "customer_partner_si",
   "label": "Customer (Partner / SI)",
   "type": "lookup",
@@ -6978,7 +6978,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 8,
+  "register_order": 9,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -6986,7 +6986,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 9,
+  "order": 10,
   "api_name": "deal_stage",
   "label": "Deal Stage",
   "type": "picklist",
@@ -7014,7 +7014,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 9,
+  "register_order": 10,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7022,7 +7022,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 10,
+  "order": 11,
   "api_name": "delivery_pm",
   "label": "Delivery PM",
   "type": "lookup",
@@ -7050,7 +7050,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 10,
+  "register_order": 11,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7058,7 +7058,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 11,
+  "order": 12,
   "api_name": "order_booked",
   "label": "Order Booked",
   "type": "checkbox",
@@ -7086,7 +7086,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 11,
+  "register_order": 12,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7094,7 +7094,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 12,
+  "order": 13,
   "api_name": "booking_date",
   "label": "Booking Date",
   "type": "date",
@@ -7122,7 +7122,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 12,
+  "register_order": 13,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7130,7 +7130,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 13,
+  "order": 14,
   "api_name": "erp_reference",
   "label": "ERP Reference",
   "type": "text",
@@ -7158,7 +7158,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 13,
+  "register_order": 14,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7166,7 +7166,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 14,
+  "order": 15,
   "api_name": "po_loi_reference",
   "label": "PO / LOI Reference",
   "type": "text",
@@ -7194,7 +7194,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 14,
+  "register_order": 15,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7202,7 +7202,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 15,
+  "order": 16,
   "api_name": "project_code",
   "label": "Project Code",
   "type": "text",
@@ -7230,7 +7230,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 15,
+  "register_order": 16,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7238,7 +7238,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 16,
+  "order": 17,
   "api_name": "contract_value",
   "label": "Contract Value",
   "type": "currency",
@@ -7266,7 +7266,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 16,
+  "register_order": 17,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7274,7 +7274,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 17,
+  "order": 18,
   "api_name": "arr_annual_recurring",
   "label": "ARR (Annual Recurring)",
   "type": "currency",
@@ -7302,7 +7302,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 17,
+  "register_order": 18,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7310,7 +7310,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 18,
+  "order": 19,
   "api_name": "one_time_revenue",
   "label": "One-Time Revenue",
   "type": "currency",
@@ -7338,7 +7338,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 18,
+  "register_order": 19,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7346,7 +7346,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 19,
+  "order": 20,
   "api_name": "3rd_party_one_time",
   "label": "3rd-Party One-Time",
   "type": "currency",
@@ -7374,7 +7374,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 19,
+  "register_order": 20,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7382,7 +7382,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 20,
+  "order": 21,
   "api_name": "3rd_party_recurring_per_year",
   "label": "3rd-Party Recurring (per year)",
   "type": "currency",
@@ -7410,7 +7410,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 20,
+  "register_order": 21,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7418,7 +7418,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 21,
+  "order": 22,
   "api_name": "contract_years",
   "label": "Contract Years",
   "type": "number",
@@ -7446,7 +7446,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 21,
+  "register_order": 22,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7454,7 +7454,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 22,
+  "order": 23,
   "api_name": "psp_completed_date",
   "label": "PSP Completed Date",
   "type": "date",
@@ -7482,7 +7482,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 22,
+  "register_order": 23,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7490,7 +7490,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 23,
+  "order": 24,
   "api_name": "handover_pack_delivered_date",
   "label": "Handover Pack Delivered Date",
   "type": "date",
@@ -7518,7 +7518,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 23,
+  "register_order": 24,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7526,7 +7526,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 24,
+  "order": 25,
   "api_name": "kickoff_meeting_date",
   "label": "Kickoff Meeting Date",
   "type": "date",
@@ -7554,7 +7554,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 24,
+  "register_order": 25,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7562,7 +7562,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 25,
+  "order": 26,
   "api_name": "cash_flow_sign_off_date",
   "label": "Cash Flow Sign-Off Date",
   "type": "date",
@@ -7590,7 +7590,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 25,
+  "register_order": 26,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7598,7 +7598,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 26,
+  "order": 27,
   "api_name": "resource_plan_sign_off_date",
   "label": "Resource Plan Sign-Off Date",
   "type": "date",
@@ -7626,7 +7626,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 26,
+  "register_order": 27,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7634,7 +7634,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 27,
+  "order": 28,
   "api_name": "bid_commitments_register",
   "label": "Bid Commitments Register",
   "type": "childlist",
@@ -7662,7 +7662,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 27,
+  "register_order": 28,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7670,7 +7670,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 28,
+  "order": 29,
   "api_name": "guarantee_—_type",
   "label": "Guarantee — Type",
   "type": "picklist",
@@ -7698,7 +7698,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 28,
+  "register_order": 29,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7706,7 +7706,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 29,
+  "order": 30,
   "api_name": "guarantee_—_value",
   "label": "Guarantee — Value",
   "type": "currency",
@@ -7734,7 +7734,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 29,
+  "register_order": 30,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7742,7 +7742,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 30,
+  "order": 31,
   "api_name": "guarantee_—_pct_of_contract_value",
   "label": "Guarantee — % of Contract Value",
   "type": "computed",
@@ -7770,7 +7770,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 30,
+  "register_order": 31,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7778,7 +7778,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 31,
+  "order": 32,
   "api_name": "guarantee_—_issue_date",
   "label": "Guarantee — Issue Date",
   "type": "date",
@@ -7806,7 +7806,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 31,
+  "register_order": 32,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7814,7 +7814,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 32,
+  "order": 33,
   "api_name": "guarantee_—_expiry_date",
   "label": "Guarantee — Expiry Date",
   "type": "date",
@@ -7842,7 +7842,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 32,
+  "register_order": 33,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7850,7 +7850,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 33,
+  "order": 34,
   "api_name": "guarantee_—_issuing_bank",
   "label": "Guarantee — Issuing Bank",
   "type": "text",
@@ -7878,7 +7878,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 33,
+  "register_order": 34,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7886,7 +7886,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 34,
+  "order": 35,
   "api_name": "guarantee_—_status",
   "label": "Guarantee — Status",
   "type": "picklist",
@@ -7914,7 +7914,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 34,
+  "register_order": 35,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7922,7 +7922,7 @@
  {
   "module": "deals",
   "section": "ON CONVERSION",
-  "order": 35,
+  "order": 36,
   "api_name": "parent_opportunity",
   "label": "Parent Opportunity",
   "type": "lookup",
@@ -7950,7 +7950,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 35,
+  "register_order": 36,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7958,7 +7958,7 @@
  {
   "module": "deals",
   "section": "STAGE 7 — CLOSE",
-  "order": 36,
+  "order": 37,
   "api_name": "po_number",
   "label": "PO Number",
   "type": "text",
@@ -7986,7 +7986,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 36,
+  "register_order": 37,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -7994,7 +7994,7 @@
  {
   "module": "deals",
   "section": "STAGE 7 — CLOSE",
-  "order": 37,
+  "order": 38,
   "api_name": "contract_signed_date",
   "label": "Contract Signed Date",
   "type": "date",
@@ -8022,7 +8022,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 37,
+  "register_order": 38,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8030,7 +8030,7 @@
  {
   "module": "deals",
   "section": "STAGE 7 — CLOSE",
-  "order": 38,
+  "order": 39,
   "api_name": "payment_schedule_confirmed",
   "label": "Payment Schedule Confirmed",
   "type": "checkbox",
@@ -8058,7 +8058,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 38,
+  "register_order": 39,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8066,7 +8066,7 @@
  {
   "module": "deals",
   "section": "STAGE 8 — PROJECT SUCCESS",
-  "order": 39,
+  "order": 40,
   "api_name": "commissioning_date",
   "label": "Commissioning Date",
   "type": "date",
@@ -8094,7 +8094,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 39,
+  "register_order": 40,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8102,7 +8102,7 @@
  {
   "module": "deals",
   "section": "STAGE 8 — PROJECT SUCCESS",
-  "order": 40,
+  "order": 41,
   "api_name": "tandc_sign_off_date",
   "label": "T&C Sign-Off Date",
   "type": "date",
@@ -8130,7 +8130,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 40,
+  "register_order": 41,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8138,7 +8138,7 @@
  {
   "module": "deals",
   "section": "STAGE 8 — PROJECT SUCCESS",
-  "order": 41,
+  "order": 42,
   "api_name": "go_live_date",
   "label": "Go-Live Date",
   "type": "date",
@@ -8166,7 +8166,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 41,
+  "register_order": 42,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8174,7 +8174,7 @@
  {
   "module": "deals",
   "section": "STAGE 8 — PROJECT SUCCESS",
-  "order": 42,
+  "order": 43,
   "api_name": "warranty_start_date",
   "label": "Warranty Start Date",
   "type": "date",
@@ -8202,7 +8202,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 42,
+  "register_order": 43,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8210,7 +8210,7 @@
  {
   "module": "deals",
   "section": "STAGE 8 — PROJECT SUCCESS",
-  "order": 43,
+  "order": 44,
   "api_name": "warranty_end_date",
   "label": "Warranty End Date",
   "type": "date",
@@ -8238,7 +8238,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 43,
+  "register_order": 44,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8246,7 +8246,7 @@
  {
   "module": "deals",
   "section": "STAGE 8 — PROJECT SUCCESS",
-  "order": 44,
+  "order": 45,
   "api_name": "contract_completion_date",
   "label": "Contract Completion Date",
   "type": "date",
@@ -8274,7 +8274,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 44,
+  "register_order": 45,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8282,7 +8282,7 @@
  {
   "module": "deals",
   "section": "STAGE 8 — PROJECT SUCCESS",
-  "order": 45,
+  "order": 46,
   "api_name": "csat_score",
   "label": "CSAT Score",
   "type": "number",
@@ -8310,7 +8310,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 45,
+  "register_order": 46,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8318,7 +8318,7 @@
  {
   "module": "deals",
   "section": "STAGE 8 — PROJECT SUCCESS",
-  "order": 46,
+  "order": 47,
   "api_name": "csat_date",
   "label": "CSAT Date",
   "type": "date",
@@ -8346,7 +8346,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 46,
+  "register_order": 47,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8354,7 +8354,7 @@
  {
   "module": "deals",
   "section": "STAGE 8 — PROJECT SUCCESS",
-  "order": 47,
+  "order": 48,
   "api_name": "reference_status",
   "label": "Reference Status",
   "type": "picklist",
@@ -8382,7 +8382,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 47,
+  "register_order": 48,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8390,7 +8390,7 @@
  {
   "module": "deals",
   "section": "STAGE 8 — PROJECT SUCCESS",
-  "order": 48,
+  "order": 49,
   "api_name": "reference_document",
   "label": "Reference Document",
   "type": "file",
@@ -8418,7 +8418,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 48,
+  "register_order": 49,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8426,7 +8426,7 @@
  {
   "module": "deals",
   "section": "STAGE 8 — PROJECT SUCCESS",
-  "order": 49,
+  "order": 50,
   "api_name": "re_engagement_30_day_date",
   "label": "Re-engagement 30-Day Date",
   "type": "date",
@@ -8454,7 +8454,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 49,
+  "register_order": 50,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8462,7 +8462,7 @@
  {
   "module": "deals",
   "section": "STAGE 8 — PROJECT SUCCESS",
-  "order": 50,
+  "order": 51,
   "api_name": "re_engagement_90_day_date",
   "label": "Re-engagement 90-Day Date",
   "type": "date",
@@ -8490,7 +8490,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 50,
+  "register_order": 51,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8498,7 +8498,7 @@
  {
   "module": "deals",
   "section": "STAGE 8 — PROJECT SUCCESS",
-  "order": 51,
+  "order": 52,
   "api_name": "expansion_use_cases",
   "label": "Expansion Use Cases",
   "type": "childlist",
@@ -8526,7 +8526,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 51,
+  "register_order": 52,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8534,7 +8534,7 @@
  {
   "module": "deals",
   "section": "STAGE 9 — EXPANSION & RENEWAL",
-  "order": 52,
+  "order": 53,
   "api_name": "expansion_suites",
   "label": "Expansion Suites",
   "type": "multiselect",
@@ -8562,7 +8562,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 52,
+  "register_order": 53,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8570,7 +8570,7 @@
  {
   "module": "deals",
   "section": "STAGE 9 — EXPANSION & RENEWAL",
-  "order": 53,
+  "order": 54,
   "api_name": "incremental_value",
   "label": "Incremental Value",
   "type": "currency",
@@ -8598,7 +8598,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 53,
+  "register_order": 54,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8606,7 +8606,7 @@
  {
   "module": "deals",
   "section": "STAGE 9 — EXPANSION & RENEWAL",
-  "order": 54,
+  "order": 55,
   "api_name": "contract_expiry_date",
   "label": "Contract Expiry Date",
   "type": "date",
@@ -8634,7 +8634,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 54,
+  "register_order": 55,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8642,7 +8642,7 @@
  {
   "module": "deals",
   "section": "STAGE 9 — EXPANSION & RENEWAL",
-  "order": 55,
+  "order": 56,
   "api_name": "renewal_signed_date",
   "label": "Renewal Signed Date",
   "type": "date",
@@ -8670,7 +8670,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 55,
+  "register_order": 56,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8678,7 +8678,7 @@
  {
   "module": "deals",
   "section": "STAGE 9 — EXPANSION & RENEWAL",
-  "order": 56,
+  "order": 57,
   "api_name": "renewal_status",
   "label": "Renewal Status",
   "type": "picklist",
@@ -8706,7 +8706,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 56,
+  "register_order": 57,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8714,7 +8714,7 @@
  {
   "module": "deals",
   "section": "__header",
-  "order": 57,
+  "order": 58,
   "api_name": "overall_rag",
   "label": "Overall RAG",
   "type": "picklist",
@@ -8742,7 +8742,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 57,
+  "register_order": 58,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8750,7 +8750,7 @@
  {
   "module": "deals",
   "section": "__header",
-  "order": 58,
+  "order": 59,
   "api_name": "next_milestone",
   "label": "Next Milestone",
   "type": "text",
@@ -8778,7 +8778,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 58,
+  "register_order": 59,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8786,7 +8786,7 @@
  {
   "module": "deals",
   "section": "__header",
-  "order": 59,
+  "order": 60,
   "api_name": "next_milestone_date",
   "label": "Next Milestone Date",
   "type": "date",
@@ -8814,7 +8814,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "deals",
-  "register_order": 59,
+  "register_order": 60,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8822,7 +8822,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 60,
+  "order": 61,
   "api_name": "opportunity_name",
   "label": "Opportunity Name",
   "type": "text",
@@ -8850,7 +8850,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 60,
+  "register_order": 61,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8858,7 +8858,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 61,
+  "order": 62,
   "api_name": "country",
   "label": "Country",
   "type": "text",
@@ -8886,7 +8886,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 61,
+  "register_order": 62,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8894,7 +8894,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 62,
+  "order": 63,
   "api_name": "city_state",
   "label": "City / State",
   "type": "text",
@@ -8922,7 +8922,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 62,
+  "register_order": 63,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8930,7 +8930,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 63,
+  "order": 64,
   "api_name": "destination_region",
   "label": "Destination Region",
   "type": "picklist",
@@ -8958,7 +8958,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 63,
+  "register_order": 64,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -8966,7 +8966,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 64,
+  "order": 65,
   "api_name": "booking_region",
   "label": "Booking Region",
   "type": "picklist",
@@ -8994,7 +8994,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 64,
+  "register_order": 65,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9002,7 +9002,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 65,
+  "order": 66,
   "api_name": "bd_owner",
   "label": "BD Owner",
   "type": "lookup",
@@ -9030,7 +9030,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 65,
+  "register_order": 66,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9038,7 +9038,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 66,
+  "order": 67,
   "api_name": "primary_contact",
   "label": "Primary Contact",
   "type": "lookup",
@@ -9066,7 +9066,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 66,
+  "register_order": 67,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9074,7 +9074,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 67,
+  "order": 68,
   "api_name": "deal_source",
   "label": "Deal Source",
   "type": "picklist",
@@ -9102,7 +9102,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 67,
+  "register_order": 68,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9110,7 +9110,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 68,
+  "order": 69,
   "api_name": "opportunity_type",
   "label": "Opportunity Type",
   "type": "picklist",
@@ -9138,7 +9138,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 68,
+  "register_order": 69,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9146,7 +9146,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 69,
+  "order": 70,
   "api_name": "partner_deal_registration",
   "label": "Partner Deal Registration",
   "type": "lookup",
@@ -9174,7 +9174,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 69,
+  "register_order": 70,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9182,7 +9182,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 70,
+  "order": 71,
   "api_name": "segment",
   "label": "Segment",
   "type": "picklist",
@@ -9210,7 +9210,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 70,
+  "register_order": 71,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9218,7 +9218,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 71,
+  "order": 72,
   "api_name": "theme",
   "label": "Theme",
   "type": "picklist",
@@ -9246,7 +9246,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 71,
+  "register_order": 72,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9254,7 +9254,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 72,
+  "order": 73,
   "api_name": "sap_solution_suite",
   "label": "S!aP Solution Suite",
   "type": "lookup",
@@ -9282,7 +9282,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 72,
+  "register_order": 73,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9290,7 +9290,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 73,
+  "order": 74,
   "api_name": "currency",
   "label": "Currency",
   "type": "picklist",
@@ -9318,7 +9318,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 73,
+  "register_order": 74,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9326,7 +9326,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 74,
+  "order": 75,
   "api_name": "lighthouse_project",
   "label": "Lighthouse Project",
   "type": "checkbox",
@@ -9354,7 +9354,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 74,
+  "register_order": 75,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9362,7 +9362,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 75,
+  "order": 76,
   "api_name": "gorilla_flag",
   "label": "Gorilla Flag",
   "type": "checkbox",
@@ -9390,7 +9390,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 75,
+  "register_order": 76,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9398,7 +9398,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 76,
+  "order": 77,
   "api_name": "suite_demonstrated",
   "label": "Suite Demonstrated",
   "type": "lookup",
@@ -9426,7 +9426,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 76,
+  "register_order": 77,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9434,7 +9434,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 77,
+  "order": 78,
   "api_name": "consultant_specifier",
   "label": "Consultant / Specifier",
   "type": "lookup",
@@ -9462,7 +9462,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 77,
+  "register_order": 78,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9470,7 +9470,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 78,
+  "order": 79,
   "api_name": "sales_owner",
   "label": "Sales Owner",
   "type": "lookup",
@@ -9498,7 +9498,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 78,
+  "register_order": 79,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9506,7 +9506,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 79,
+  "order": 80,
   "api_name": "presales_owner",
   "label": "Presales Owner",
   "type": "lookup",
@@ -9534,7 +9534,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 79,
+  "register_order": 80,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9542,7 +9542,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 80,
+  "order": 81,
   "api_name": "probable_award_date",
   "label": "Probable Award Date",
   "type": "date",
@@ -9570,7 +9570,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 80,
+  "register_order": 81,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9578,7 +9578,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 81,
+  "order": 82,
   "api_name": "pre_bid_alliance_partner",
   "label": "Pre-Bid Alliance Partner",
   "type": "lookup",
@@ -9606,7 +9606,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 81,
+  "register_order": 82,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9614,7 +9614,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 82,
+  "order": 83,
   "api_name": "alliance_structure",
   "label": "Alliance Structure",
   "type": "picklist",
@@ -9642,7 +9642,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 82,
+  "register_order": 83,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9650,7 +9650,7 @@
  {
   "module": "deals",
   "section": "READ THROUGH THE PARENT — resolved from the parent, never stored here",
-  "order": 83,
+  "order": 84,
   "api_name": "total_project_value",
   "label": "Total Project Value",
   "type": "currency",
@@ -9678,7 +9678,7 @@
   "read_through_from": "leads",
   "read_through_via": "parent_opportunity",
   "register_module": "leads",
-  "register_order": 83,
+  "register_order": 84,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9686,7 +9686,7 @@
  {
   "module": "deals",
   "section": "CROSS-CUTTING",
-  "order": 84,
+  "order": 85,
   "api_name": "probability_override_justification",
   "label": "Probability Override Justification",
   "type": "text",
@@ -9714,7 +9714,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 84,
+  "register_order": 85,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9722,7 +9722,7 @@
  {
   "module": "deals",
   "section": "CROSS-CUTTING",
-  "order": 85,
+  "order": 86,
   "api_name": "stage_skip_reason",
   "label": "Stage Skip Reason",
   "type": "text",
@@ -9750,7 +9750,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 85,
+  "register_order": 86,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9758,7 +9758,7 @@
  {
   "module": "deals",
   "section": "CROSS-CUTTING",
-  "order": 86,
+  "order": 87,
   "api_name": "stage_reversal_reason",
   "label": "Stage Reversal Reason",
   "type": "text",
@@ -9786,7 +9786,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 86,
+  "register_order": 87,
   "anchor_field": null,
   "anchor_position": null,
   "layout_span": null
@@ -9794,7 +9794,7 @@
  {
   "module": "deals",
   "section": "CROSS-CUTTING",
-  "order": 87,
+  "order": 88,
   "api_name": "closed_lost_reason_code",
   "label": "Closed Lost Reason Code",
   "type": "picklist",
@@ -9822,7 +9822,7 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 87,
+  "register_order": 88,
   "anchor_field": "lead_status",
   "anchor_position": "after",
   "layout_span": "half"
@@ -9830,7 +9830,7 @@
  {
   "module": "deals",
   "section": "CROSS-CUTTING",
-  "order": 88,
+  "order": 89,
   "api_name": "on_hold_reason",
   "label": "On Hold Reason",
   "type": "text",
@@ -9858,46 +9858,10 @@
   "read_through_from": null,
   "read_through_via": null,
   "register_module": "leads",
-  "register_order": 88,
+  "register_order": 89,
   "anchor_field": "lead_status",
   "anchor_position": "after",
   "layout_span": "full"
- },
- {
-  "module": "deals",
-  "section": "CROSS-CUTTING",
-  "order": 89,
-  "api_name": "close_date_pushback_count",
-  "label": "Close Date Pushback Count",
-  "type": "computed",
-  "max_length": null,
-  "picklist": null,
-  "lookup_target": null,
-  "lookup_filter": null,
-  "values_note": null,
-  "capture_stage": null,
-  "capture_any_stage": false,
-  "mandatory_from": null,
-  "blocks_transition": null,
-  "requirement": "Computed",
-  "origin": "Playbook",
-  "source_ref": "§7.2",
-  "description": "Computed count of close-date deferrals.",
-  "use_case": "§7.2 — a second pushback triggers management discussion and re-qualification.",
-  "required_on_skip": null,
-  "visibility_condition": null,
-  "condition": null,
-  "computed_formula": "",
-  "value_mode": "own",
-  "value_locked": false,
-  "editable": true,
-  "read_through_from": null,
-  "read_through_via": null,
-  "register_module": "leads",
-  "register_order": 89,
-  "anchor_field": null,
-  "anchor_position": null,
-  "layout_span": null
  },
  {
   "module": "deals",

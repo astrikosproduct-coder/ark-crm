@@ -130,7 +130,11 @@ def case_1_no_duplicates(db) -> None:
 def case_2_administration_sees_the_crm(db) -> None:
     head("2  Administration shows what the CRM renders")
 
-    for module, expected in (("leads", 81), ("opportunities", 105), ("deals", 97)):
+    # leads was 81 until Close Date Pushback Count was deleted from the
+    # register (close_month_record_state.py). Opportunities and Deals are
+    # unchanged at 105 and 97: each lost that same field and gained its own
+    # instance of Expected Close Month in the same change.
+    for module, expected in (("leads", 80), ("opportunities", 105), ("deals", 97)):
         resolved = len(R.resolved_fields(db, module))
         api = client.get(
             "/api/admin/metadata/fields", params={"module": module}

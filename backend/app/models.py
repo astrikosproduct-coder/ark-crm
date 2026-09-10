@@ -390,9 +390,9 @@ class Lead(Base):
     Lead names must not delete the Lead, the same rule contacts.account and
     contacts.engagement_owner already follow.
 
-    contracting_party, days_in_current_stage, days_since_last_update and
-    close_date_pushback_count are deliberately NOT columns — they are derived,
-    see the properties below and app/schemas.py LeadOut.
+    contracting_party, days_in_current_stage and days_since_last_update are
+    deliberately NOT columns — they are derived, see the properties below and
+    app/schemas.py LeadOut.
     """
 
     __tablename__ = "leads"
@@ -876,14 +876,14 @@ class Lead(Base):
     def days_since_last_update(self) -> int:
         return (datetime.now(timezone.utc).date() - self.modified_date.date()).days
 
-    @property
-    def close_date_pushback_count(self) -> int:
-        """
-        Requires a history of expected_close_month edits, which nothing
-        persists yet — that belongs to the Round 7 history tables. Always 0
-        until then; not a real count.
-        """
-        return 0
+    # close_date_pushback_count was here, returning a hardcoded 0 because it
+    # needs a history of expected_close_month edits and nothing persisted one.
+    # The field is deleted from the register (close_month_record_state.py), so
+    # the stub goes with it rather than serving a number to a screen that no
+    # longer asks. The history it wanted now exists — expected_close_month is
+    # carry_forward, so `expected_close_month__s0…s9` records what each stage
+    # was told — which is what makes a real count implementable when §7.2 is
+    # wanted back.
 
 
 class LeadDemoAttendee(Base):
@@ -1055,6 +1055,16 @@ class Opportunity(Base):
 
     lead_status: Mapped[str | None] = mapped_column(
         String(30),
+        nullable=True,
+    )
+
+    # Own instance, not read through the Lead. The month an Opportunity at
+    # Stage 5 expects to book is a live forecast that moves; the month its
+    # parent Lead was given at Connect is history. Also recorded per stage —
+    # `expected_close_month__s<stage>` in custom_fields, see stageScope.ts —
+    # and this column holds the answer for the stage the record is on now.
+    expected_close_month: Mapped[datetime | None] = mapped_column(
+        Date,
         nullable=True,
     )
 
@@ -1463,6 +1473,23 @@ class Deal(Base):
     )
 
     deal_stage: Mapped[str | None] = mapped_column(String(30), nullable=True)
+
+    # RECORD STATE, own instance. A Deal at Stage 7 is still forecasting a
+    # booking month right up until order_booked/booking_date make it a fact,
+    # and Close is the stage that number is read at hardest. Recorded per
+    # stage as well — `expected_close_month__s<stage>` in custom_fields, see
+    # stageScope.ts — with this column holding the current stage's answer.
+    #
+    # NOTE the neighbouring gap, deliberately not fixed here: probability_pct,
+    # lead_status and progression_pct all have active RECORD STATE placements
+    # on Deals with storage='column' and NO column on this table, so their
+    # base values are dropped on write. Pre-existing, orthogonal to this
+    # change, and widening the blast radius to fix it is how working screens
+    # break — see leads_record_state.py's note on the same judgement.
+    expected_close_month: Mapped[datetime | None] = mapped_column(
+        Date,
+        nullable=True,
+    )
 
     delivery_pm: Mapped[str | None] = mapped_column(
         String(20),

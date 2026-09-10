@@ -427,13 +427,28 @@ async function main() {
 
   out.push('### Identity is carried by reference')
   out.push('')
+  // The list used to be `split.read_through.fields`, a hand-kept array in
+  // module_split.json. Round 6/7 moved placement into PostgreSQL and the
+  // regenerated module_split.json carries only the structural half of the
+  // block — $note, parent_of, parent_link — so that array is gone and this
+  // script had been throwing on it ever since. Derived from the register
+  // instead, which is the same answer from the source that now owns it: a
+  // read-through placement is one whose value_mode says so.
+  const readThrough = [
+    ...new Set(
+      split.pipeline
+        .flatMap((m) => fieldsOf(m))
+        .filter((f) => f.value_mode === 'read_through')
+        .map((f) => f.api_name)
+    ),
+  ].sort()
   out.push(
     'An Opportunity holds `parent_lead`; a Deal holds `parent_opportunity`. The ' +
-      split.read_through.fields.length +
+      readThrough.length +
       ' identity fields below are **read through that link and rendered read-only** — never copied, so the same value cannot drift in two places. They appear in `fieldsOf(module)` because a criterion or a formula naming a parent field would otherwise stop compiling; carrying them made one previously-broken expression compile again (`deals.incremental_value`, whose visibility rule reads `opportunity_type`).'
   )
   out.push('')
-  out.push(split.read_through.fields.map((f) => '`' + f + '`').join(' · '))
+  out.push(readThrough.map((f) => '`' + f + '`').join(' · '))
   out.push('')
   out.push(
     'Deals takes 18 of the 20: the Deals sheet declares `end_client` and `customer_partner_si` itself. Whether those two register rows should be read-through instead is an open question on Spec Health, not something the loader decided.'

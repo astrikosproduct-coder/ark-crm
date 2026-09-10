@@ -31,11 +31,11 @@ import type { FieldSpec } from '@/types/field'
  * the ordinary RecordForm since A2 (see lib/spec/anchors.ts), so what is left
  * here is:
  *
- *   StageMetricsStrip   Progression % and Probability % above every stage,
- *                       written immediately — plus, when the probability typed
- *                       falls outside the stage's band, the justification for
- *                       it. Asked here because this strip is the only surface
- *                       that owns that number.
+ *   StageMetricsStrip   Progression %, Probability % and Expected Close Month
+ *                       above every stage, written immediately — plus, when
+ *                       the probability typed falls outside the stage's band,
+ *                       the justification for it. Asked here because this strip
+ *                       is the only surface that owns that number.
  *
  *   ReasonsPanel        READ-ONLY. Every reason and justification the record
  *                       carries, at every stage it was given one. Not an input
@@ -97,12 +97,17 @@ function isBlank(v: unknown): boolean {
 // --------------------------------------------------------------- the strip
 
 /**
- * Progression % and Probability % above the stage's fields, on every stage.
+ * The carry-forward fields above the stage's own, on every stage: Progression
+ * %, Probability % and Expected Close Month.
  *
  * Carry-forward: a stage the user has never touched shows the nearest earlier
- * stage's number, so moving forward does not blank two boxes that were just
- * filled in. Editing writes THIS stage's value; the earlier stage keeps what it
- * was given, which is what turns a single number into a history.
+ * stage's value, so moving forward does not blank boxes that were just filled
+ * in. Editing writes THIS stage's value; the earlier stage keeps what it was
+ * given, which is what turns a single value into a history.
+ *
+ * Which fields are here is spec — extensions.json stage_scoped.carry_forward —
+ * so nothing in this component names one, and the date that joined the two
+ * percentages needed no code beyond the control width below.
  */
 export function StageMetricsStrip(props: Common) {
   const fields = carryForwardFieldsOf(props.module)
@@ -161,7 +166,10 @@ function StripBody({
               <span className="text-muted-foreground shrink-0 text-xs font-medium">
                 {field.label}
               </span>
-              <div className="w-24 shrink-0">
+              {/* w-24 fits a percentage and truncates a date. The strip held
+                  two numbers until Expected Close Month joined it, so the
+                  width follows the control rather than the other way round. */}
+              <div className={cn('shrink-0', field.type === 'date' ? 'w-40' : 'w-24')}>
                 <FieldControl
                   field={field}
                   scope={{

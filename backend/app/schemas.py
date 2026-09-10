@@ -562,9 +562,9 @@ class LeadOut(BaseModel):
     `__labels` carries the resolved display name of every lookup so a page of
     rows is one request.
 
-    contracting_party, days_in_current_stage, days_since_last_update and
-    close_date_pushback_count are read-only, derived server-side from
-    models.Lead's properties — they are never accepted on create/update.
+    contracting_party, days_in_current_stage and days_since_last_update are
+    read-only, derived server-side from models.Lead's properties — they are
+    never accepted on create/update.
     """
 
     # extra="allow" so a response can carry the values of
@@ -654,7 +654,6 @@ class LeadOut(BaseModel):
     contracting_party: str | None = None
     days_in_current_stage: int = 0
     days_since_last_update: int = 0
-    close_date_pushback_count: int = 0
 
     labels: dict[str, str] | None = Field(default=None, alias="__labels")
 
@@ -670,6 +669,7 @@ OPPORTUNITY_SCALARS = (
     "project_stage",
     "probability_pct",
     "lead_status",
+    "expected_close_month",
     "parent_lead",
     "fx_rate_at_entry",
     "rfp_type",
@@ -782,6 +782,7 @@ class OpportunityBase(CustomFieldsMixin):
     project_stage: str | None = None
     probability_pct: int | None = None
     lead_status: str | None = None
+    expected_close_month: date | None = None
     parent_lead: str | None = Field(default=None, max_length=20)
     fx_rate_at_entry: float | None = None
     rfp_type: str | None = None
@@ -880,6 +881,7 @@ class OpportunityOut(BaseModel):
     project_stage: str | None = None
     probability_pct: int | None = None
     lead_status: str | None = None
+    expected_close_month: date | None = None
     parent_lead: str | None = None
     fx_rate_at_entry: float | None = None
     rfp_type: str | None = None
@@ -961,6 +963,7 @@ DEAL_SCALARS = (
     "end_client",
     "customer_partner_si",
     "deal_stage",
+    "expected_close_month",
     "delivery_pm",
     "order_booked",
     "booking_date",
@@ -1064,6 +1067,7 @@ class DealBase(CustomFieldsMixin):
     end_client: str | None = Field(default=None, max_length=20)
     customer_partner_si: str | None = Field(default=None, max_length=20)
     deal_stage: str | None = None
+    expected_close_month: date | None = None
     delivery_pm: str | None = Field(default=None, max_length=20)
     order_booked: bool | None = None
     booking_date: date | None = None
@@ -1140,6 +1144,7 @@ class DealOut(BaseModel):
     end_client: str | None = None
     customer_partner_si: str | None = None
     deal_stage: str | None = None
+    expected_close_month: date | None = None
     delivery_pm: str | None = None
     order_booked: bool = False
     booking_date: date | None = None

@@ -869,11 +869,15 @@
     },
     {
      "api_name": "probability_pct"
+    },
+    {
+     "api_name": "expected_close_month",
+     "$note": "The forecast date, revised at every stage rather than answered once at Connect - its own use_case says it must be reviewed monthly. Carry-forward and not sticky: a stage that has not revised it INHERITS the last answer, because the previous month's forecast is still the forecast until somebody moves it. That is the opposite of an On Hold Reason, which must never carry. No `default_by`: unlike progression, no formula can guess a close month, and inheriting the earlier stage's answer is the correct seed. Moved out of STAGE 0 - CONNECT and onto all three modules by backend/close_month_record_state.py; the per-stage values it now leaves behind (`expected_close_month__s0` ... `__s9`) are the history Close Date Pushback Count needed and never had."
     }
    ]
   },
   "sticky": {
-   "$note": "Shown inline underneath the stage's own fields, at the stage where the condition became true, and never carried forward. Only a CROSS-CUTTING field that actually HAS a visibility_condition qualifies, plus whatever `extra` names below. That deliberately leaves out Stage Skip Reason and Stage Reversal Reason - both are written by the Advance / Change stage dialog as part of the transition, so offering a second box for them here would be two places to write one answer - and every computed row (Days in Current Stage, Days Since Last Update, Close Date Pushback Count), which is record-level state and stays on the Details tab.",
+   "$note": "Shown inline underneath the stage's own fields, at the stage where the condition became true, and never carried forward. Only a CROSS-CUTTING field that actually HAS a visibility_condition qualifies, plus whatever `extra` names below. That deliberately leaves out Stage Skip Reason and Stage Reversal Reason - both are written by the Advance / Change stage dialog as part of the transition, so offering a second box for them here would be two places to write one answer - and every computed row (Days in Current Stage, Days Since Last Update), which is record-level state and stays on the Details tab. Close Date Pushback Count was named here too until it was deleted from the register - it was `computed` with an empty formula and a backend property hardcoded to 0, because counting how often the close month moved needs a history of it and one column cannot hold one. That history exists now: expected_close_month is carry_forward above.",
    "sections": [
     "CROSS-CUTTING"
    ],
