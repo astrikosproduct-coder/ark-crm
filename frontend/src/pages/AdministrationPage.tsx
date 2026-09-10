@@ -6,6 +6,7 @@ import { PageLayout } from '@/components/layout/PageLayout'
 import { UserDialog } from '@/components/admin/UserDialog'
 import { DeletedFieldsTab } from '@/components/admin/metadata/DeletedFieldsTab'
 import { FieldsTab } from '@/components/admin/metadata/FieldsTab'
+import { LayoutTab } from '@/components/admin/metadata/LayoutTab'
 import { ModulesTab } from '@/components/admin/metadata/ModulesTab'
 import { PicklistsTab } from '@/components/admin/metadata/PicklistsTab'
 import { PublishTab } from '@/components/admin/metadata/PublishTab'
@@ -95,6 +96,11 @@ export function AdministrationPage() {
           { key: 'roles', label: 'Roles', content: <RolesTab /> },
           { key: 'modules', label: 'Modules', content: metadataTab(<ModulesTab />) },
           { key: 'fields', label: 'Fields', content: metadataTab(<FieldsTab />) },
+          // Two views of one register, and both earn their place: Fields is
+          // the table you read a property off, Layout is the form you see a
+          // position in. Next to each other because the answer to "why is
+          // this field there" is on one and the fix is on the other.
+          { key: 'layout', label: 'Layout', content: metadataTab(<LayoutTab />) },
           { key: 'picklists', label: 'Picklists', content: metadataTab(<PicklistsTab />) },
           { key: 'stages', label: 'Stages', content: metadataTab(<StagesTab />) },
           {

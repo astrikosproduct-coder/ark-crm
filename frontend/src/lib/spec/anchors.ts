@@ -148,14 +148,46 @@ export interface FormNode {
  * would be the one outcome worse than the layout being slightly wrong.
  */
 export function arrangeAnchored(module: string, fields: FieldSpec[]): FormNode[] {
+  return arrangeAnchoredWith(fields, anchorsOf(module).children)
+}
+
+/**
+ * The anchor walk itself, over anything that has the three keys it reads.
+ *
+ * Extracted in B4 so Administration's layout canvas arranges DRAFT rows with
+ * the same code the real form arranges published ones. The canvas draws field
+ * chrome rather than live inputs — a box with a type icon and a label, the way
+ * Zoho's builder does — but the ARRANGEMENT is this function in both places,
+ * so where a field lands on the canvas and where it lands on the record cannot
+ * drift apart. A canvas that quietly disagreed with the form would be worse
+ * than no canvas: it would be a picture people trust and shouldn't.
+ *
+ * Generic over the row type rather than taking FieldSpec, because a draft row
+ * from /api/admin/metadata/fields is not a FieldSpec and converting one into
+ * the other would mean inventing the sidecar keys it has no answer for.
+ */
+export interface AnchorableRow {
+  api_name: string
+  anchor_field: string | null
+  anchor_position: 'after' | 'beside' | null
+}
+
+export interface AnchoredNode<T> {
+  field: T
+  under: AnchoredNode<T>[]
+}
+
+export function arrangeAnchoredWith<T extends AnchorableRow>(
+  fields: T[],
+  children: ReadonlyMap<string, T[]>
+): AnchoredNode<T>[] {
   const present = new Set(fields.map((f) => f.api_name))
-  const { children } = anchorsOf(module)
 
   const placed = new Set<string>()
-  const out: FormNode[] = []
+  const out: AnchoredNode<T>[] = []
 
-  const attach = (field: FieldSpec): FormNode => {
-    const node: FormNode = { field, under: [] }
+  const attach = (field: T): AnchoredNode<T> => {
+    const node: AnchoredNode<T> = { field, under: [] }
     for (const kid of children.get(field.api_name) ?? []) {
       if (kid.anchor_position !== 'after') continue
       if (!present.has(kid.api_name) || placed.has(kid.api_name)) continue
@@ -165,7 +197,7 @@ export function arrangeAnchored(module: string, fields: FieldSpec[]): FormNode[]
     return node
   }
 
-  const emit = (field: FieldSpec) => {
+  const emit = (field: T) => {
     if (placed.has(field.api_name)) return
     placed.add(field.api_name)
     out.push(attach(field))
@@ -186,6 +218,27 @@ export function arrangeAnchored(module: string, fields: FieldSpec[]): FormNode[]
   for (const field of fields) emit(field)
 
   return out
+}
+
+/**
+ * The children map arrangeAnchoredWith needs, built from a flat list.
+ *
+ * anchorsOf() builds the published one from the whole module in register
+ * order; this builds the same shape from whatever rows the caller has. Order
+ * within an anchor is the order of `fields`, so a caller that sorted by
+ * sort_order gets children in sort_order too.
+ */
+export function childrenByAnchor<T extends AnchorableRow>(fields: T[]): Map<string, T[]> {
+  const byName = new Set(fields.map((f) => f.api_name))
+  const children = new Map<string, T[]>()
+  for (const field of fields) {
+    if (!field.anchor_field || !byName.has(field.anchor_field)) continue
+    if (field.anchor_field === field.api_name) continue
+    const list = children.get(field.anchor_field)
+    if (list) list.push(field)
+    else children.set(field.anchor_field, [field])
+  }
+  return children
 }
 
 /**
