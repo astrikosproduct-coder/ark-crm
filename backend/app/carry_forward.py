@@ -51,6 +51,7 @@ from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm import Session
 
 from .metadata_resolver import carry_forward_plan, placements_of, value_source
+from .changes import diff, snapshot
 from .models import FieldPlacement
 
 # Which business model and id column each pipeline module is stored in. Needed
@@ -251,23 +252,51 @@ def _walk_to_source(
 
 
 def locked_violations(
-    db: Session, module_key: str, changing: set[str]
+    db: Session, module_key: str, record: Any, before: dict[str, Any]
 ) -> list[FieldPlacement]:
     """
-    Placements a write is trying to change that are locked against divergence.
+    Placements whose value THIS WRITE ACTUALLY CHANGED, but which may not change.
 
-    value_locked means "you were given this value and you may not move it". No
-    placement uses it today — D1 and D3 both chose unlocked, so a Deal may
-    renegotiate everything it inherits — but the column is what makes the
-    question answerable, and a rule with no enforcement is the exact failure
-    D5 exists to prevent. Enforced here so that turning the flag on in
-    Administration is all it takes.
+    Two kinds of placement are frozen once a record has them:
+
+        value_locked      a carried value the record was given and may not move.
+                          Carry-forward only — ck_field_placements_value_locked.
+        editable = false  an own value the register marks not editable, e.g. a
+                          Deal's Contract Value: set at conversion, never typed.
+
+    Decided 16 Sep 2026: no commercial value changes after Commercial
+    Evaluation, which reverses D1/D3's "a Deal may renegotiate what it
+    inherits". Contract changes belong in Contract Variations (phase 2), not in
+    editing the booked figures.
+
+    COMPARED BY VALUE, after the payload is applied. This used to refuse any
+    locked name merely PRESENT in the request — and every form save sends its
+    whole section, so switching the lock on would have refused every save of
+    that section, including the ones that changed nothing about the locked
+    value. Re-sending an unchanged value is never a violation now.
+
+    System fields (stamped by the server) and read-through fields (stored
+    nowhere) are both editable=false and are neither of this rule's business.
+
+    Call AFTER the scalars are applied and BEFORE commit. `before` is the
+    router's own snapshot of the attributes the request sent; raising then
+    writes nothing, because the session is never committed.
     """
-    placements = placements_of(db, module_key)
-    return [
-        placement
-        for api_name, placement in placements.items()
-        if api_name in changing
-        and placement.value_mode == "carry_forward"
-        and placement.value_locked
-    ]
+    moved = {change["field"] for change in diff(before, snapshot(record, list(before)))}
+    if not moved:
+        return []
+
+    frozen = []
+    for api_name, placement in placements_of(db, module_key).items():
+        attribute = attribute_for(type(record), api_name) or api_name
+        if attribute not in moved:
+            continue
+        if placement.value_locked:
+            frozen.append(placement)
+        elif (
+            placement.editable is False
+            and placement.value_mode != "read_through"
+            and placement.requirement != "System"
+        ):
+            frozen.append(placement)
+    return frozen

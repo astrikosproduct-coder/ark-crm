@@ -153,7 +153,9 @@ def case_2_administration_sees_the_crm(db) -> None:
     # the Deals sheet's own names for created_date and modified_date, which the
     # module also placed — six system rows for four facts, four of them blank
     # because the columns behind them were the other two.
-    for module, expected in (("leads", 80), ("opportunities", 107), ("deals", 98)):
+    # Deals 98 -> 97: po_number was retired on 16 Sep 2026
+    # (deal_sections_and_locks.py) — PO / LOI Reference asks for the same number.
+    for module, expected in (("leads", 80), ("opportunities", 107), ("deals", 97)):
         resolved = len(R.resolved_fields(db, module))
         api = client.get(
             "/api/admin/metadata/fields", params={"module": module}
@@ -203,11 +205,15 @@ def case_3_one_time_revenue(db) -> None:
         placements["opportunities"].value_mode == "own",
         placements["opportunities"].value_mode,
     )
+    # D1 said "carried forward, unlocked": a Deal could renegotiate what it
+    # inherited. REVERSED on 16 Sep 2026 — no commercial value changes after
+    # Commercial Evaluation, so the carried value is locked on the Deal
+    # (deal_sections_and_locks.py). Contract changes are Contract Variations,
+    # phase 2. Case 12 proves the lock is enforced by value.
     check(
-        "Deal carries it forward, unlocked (D1)",
+        "Deal carries it forward, LOCKED (D1 reversed 16 Sep 2026)",
         placements["deals"].value_mode == "carry_forward"
-        and placements["deals"].value_locked is False
-        and placements["deals"].editable is True,
+        and placements["deals"].value_locked is True,
         f"{placements['deals'].value_mode} locked={placements['deals'].value_locked}",
     )
     check(
@@ -638,12 +644,22 @@ def case_12_carry_forward_live(db) -> None:
         or getattr(opportunity, "end_client", None) is None,
     )
 
-    # ---- afterwards the Deal OWNS it and may diverge (D1: value_locked false)
+    # ---- afterwards the value is LOCKED on the Deal (D1 reversed 16 Sep 2026)
+    # The form re-sends its whole section on every save, so re-sending the
+    # value it already holds must succeed; only a CHANGE is refused. The lock
+    # used to refuse on mere presence, which would have failed every save.
+    resent = client.patch(f"/api/deals/{deal_id}", json={"one_time_revenue": 1000})
+    check("re-sending the locked value unchanged is accepted", resent.status_code == 200, resent.text[:200])
+
     patched = client.patch(f"/api/deals/{deal_id}", json={"one_time_revenue": 850})
-    check("the Deal may renegotiate a carried value", patched.status_code == 200, patched.text[:200])
+    check(
+        "changing a locked carried value is refused (422 VALUE_LOCKED)",
+        patched.status_code == 422 and "VALUE_LOCKED" in patched.text,
+        f"{patched.status_code} {patched.text[:200]}",
+    )
     db.expire_all()
     deal = db.get(Deal, deal_id)
-    check("the Deal's value diverged to 850", deal.one_time_revenue == 850, str(deal.one_time_revenue))
+    check("the Deal's value is still 1000", deal.one_time_revenue == 1000, str(deal.one_time_revenue))
 
     opportunity = db.get(Opportunity, opp_id)
     check(

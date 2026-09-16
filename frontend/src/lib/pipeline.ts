@@ -7,8 +7,10 @@ import { fieldsOf, moduleForStage, optionsFor, rangeOf, stageFieldOf } from '@/l
 export interface Stage {
   stage: number
   name: string
-  prob_min: number | null
-  prob_max: number | null
+  /** THE source of the pair a record takes on entering this stage. Whole
+   * percents, multiples of 5 — see backend app/progression.py. */
+  progression_pct: number | null
+  probability_pct: number | null
   owner_role: string
   bid_phase: string | null
   applies_to: 'lead' | 'deal'
@@ -55,17 +57,15 @@ export const GATES = gatesData as unknown as Gate[]
  *
  * Derived from the range in spec/module_split.json and the stage list in
  * spec/stages.json — NEVER from a picklist and never from `applies_to`. That is
- * deliberate, and it closes three register problems at once instead of hiding
+ * deliberate, and it closes two register problems at once instead of hiding
  * them behind sidecar entries:
  *
  *   - `applies_to` in stages.json still says stages 4-7 are `lead`. It is wrong
  *     as of the split and nothing reads it any more.
  *   - `leads_stage` still carries 4_RFP_RFI..7_CLOSE, four keys a Lead can no
  *     longer reach.
- *   - `deals__deal_stage` has no 7_CLOSE at all, so a Deal opening at Stage 7
- *     would have no value to store.
- *
- * All three are raised as register corrections on the Spec Health page. None of
+ * *
+ * Both are raised as register corrections on the Spec Health page. None of
  * them is worked around here.
  */
 export function stagesFor(module: string): Stage[] {
@@ -84,12 +84,47 @@ export function stageOf(stage: number | null | undefined): Stage | undefined {
   return STAGES.find((s) => s.stage === stage)
 }
 
-/** The band midpoint a transition writes into probability_pct. Rounded — the
- * field is a plain number, not a computed one, so nothing re-derives it. */
-export function probabilityMidpoint(stage: number): number | null {
-  const s = stageOf(stage)
-  if (!s || s.prob_min === null || s.prob_max === null) return null
-  return Math.round((s.prob_min + s.prob_max) / 2)
+/** "Stage 3 — Prescription", named by the stages table. Empty when unknown. */
+export function stageLabel(stage: number | null | undefined): string {
+  const found = stageOf(stage)
+  return found ? `Stage ${found.stage} — ${found.name}` : ''
+}
+
+/**
+ * Progression % / Probability % and their override state. A conversion never
+ * blind-copies these: the new record takes its OWN stage's pair on create
+ * (app/progression.py), and copying the source's numbers or override would
+ * claim a decision the new record never made. See LeadAdvanceDialog.tsx and
+ * opportunities/ConvertToDealDialog.tsx.
+ */
+export const STAGE_PCT_FIELDS: ReadonlySet<string> = new Set([
+  'progression_pct',
+  'probability_pct',
+  'progression_default_pct',
+  'probability_default_pct',
+  'is_overridden',
+  'overridden_by',
+  'overridden_date',
+])
+
+/** 409 ALREADY_CONVERTED — backend/app/conversion.py. */
+export interface AlreadyConverted {
+  message: string
+  target_module: string | null
+  target_id: string | null
+}
+
+/**
+ * The record this one already became, when a conversion was refused for that
+ * reason — so a dialog can send the user to it instead of offering Confirm
+ * again. Null for every other failure.
+ */
+export function alreadyConvertedOf(error: unknown): AlreadyConverted | null {
+  const detail = (error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail
+  if (detail && typeof detail === 'object' && (detail as { code?: unknown }).code === 'ALREADY_CONVERTED') {
+    return detail as AlreadyConverted
+  }
+  return null
 }
 
 /**
@@ -122,10 +157,8 @@ export function currentDealStageOf(record: Record<string, unknown> | undefined):
 
 /**
  * The deals__deal_stage picklist key for a Deal stage — the inverse of
- * currentDealStageOf.
- *
- * The Deals picklist intentionally starts at Project Success. Stage 7 / Close
- * is the conversion boundary and is not a Deal Stage option.
+ * currentDealStageOf. 7_CLOSE exists since 0022, where a paid POC/Pilot Deal
+ * sits; ordinary conversions still open a Deal at Stage 8.
  */
 export function dealStageKeyOf(stage: number): string | undefined {
   return optionsFor('deals__deal_stage').find((o) => stageNumberOf(o.key) === stage)?.key
@@ -138,9 +171,9 @@ export function dealStageKeyOf(stage: number): string | undefined {
  * SINGULAR — returns only the first section it finds. Kept for the create
  * pages, which open a record at one fixed stage that has always had exactly
  * one section. A detail page's "current stage" tab must use sectionsForStage
- * instead: Deals' Stage 7 has TWO — its own register-native "ON CONVERSION"
- * plus "STAGE 7 — CLOSE", moved in from Leads by the pipeline split — and this
- * function would silently show one and drop the other. */
+ * instead: Deals' Stage 7 has TWO — "STAGE 7 — COMMERCIAL TERMS (AS WON)" and
+ * "STAGE 7 — CLOSE" — and Opportunities' Stage 4 has three, so this function
+ * would silently show one and drop the rest. */
 export function sectionForStage(module: string, stage: number): string | undefined {
   return fieldsOf(module).find((f) => f.capture_stage === stage)?.section
 }
@@ -150,11 +183,10 @@ export function sectionForStage(module: string, stage: number): string | undefin
  * module's own order — plural counterpart to sectionForStage, for a screen
  * that must not silently drop a second section sharing a stage number.
  *
- * A stage having more than one section is not a design goal, it is what
- * happens when a moved-in section (STAGE 7 — CLOSE, reassigned onto Deals by
- * spec/module_split.json) lands on the same stage number as a section the
- * target module already declared for itself (ON CONVERSION). Both are real;
- * a screen showing only the first would make the second's fields
+ * A stage with more than one section is how the register groups a big stage:
+ * Deals' Stage 7 splits what was won (fixed) from the closing work, and
+ * Opportunities' Stage 4 splits the RFP from revenue and from cost & margin.
+ * All are real; a screen showing only the first would make the others' fields
  * unreachable, not merely miscategorised.
  */
 export function sectionsForStage(module: string, stage: number): string[] {
@@ -198,10 +230,21 @@ export const SEED_ACTOR_ID = 'USR-001'
  * skipped: absence of history is not evidence of a skip.
  */
 export function skippedStagesOf(transitions: { from: number; to: number }[]): Set<number> {
+  // Every stage the record has actually been AT: the one each move landed on,
+  // plus the one the earliest move started from, which is where it was created.
+  const visited = new Set<number>()
+  for (const t of transitions) visited.add(t.to)
+  if (transitions.length > 0) visited.add(Math.min(...transitions.map((t) => t.from)))
+
   const out = new Set<number>()
   for (const t of transitions) {
     if (t.to <= t.from + 1) continue
-    for (let s = t.from + 1; s < t.to; s++) out.add(s)
+    // A jump over a stage the record has ALREADY BEEN THROUGH is not a stage
+    // it missed. OPP-00003 went 4 -> 5, came back 5 -> 4, then skipped 4 -> 6:
+    // Stage 5 was worked and saved, so the rail drew a warning over completed
+    // work. The skip is still recorded as a skip on the History timeline —
+    // this set only decides what the rail warns about.
+    for (let s = t.from + 1; s < t.to; s++) if (!visited.has(s)) out.add(s)
   }
   return out
 }
@@ -216,6 +259,22 @@ export interface Transition {
   reason: string | null
   is_skip: boolean
   is_reversal: boolean
+  /** Criterion codes a person ticked in the Update Stage dialog. */
+  attested?: string[]
+  /** Always present on a row READ back. Never sent — see NewTransition. */
   actor: string
   timestamp: string
 }
+
+/**
+ * What a client may POST to /transitions.
+ *
+ * `actor` and `timestamp` are absent, and that is the whole point: the server
+ * takes both from the Entra session and its own clock and ignores anything the
+ * body claims (app/routers/transitions.py). This is the table a manager reads
+ * to find out who skipped a gate, and a trail whose caller names the person
+ * and the moment records a claim rather than an event.
+ *
+ * Typed as an Omit rather than written out again so the two cannot drift.
+ */
+export type NewTransition = Omit<Transition, 'id' | 'actor' | 'timestamp'>

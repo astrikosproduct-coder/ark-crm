@@ -494,23 +494,6 @@ def _write(db: Session, deal_id: str, payload: DealUpdate, sent: set[str], user:
     before_custom = dict(deal.custom_fields or {})
     before_children = _children_of(deal)
 
-    # A carried value the Deal is not allowed to move. No placement is locked
-    # today — D1 and D3 both chose divergence — so this refuses nothing yet.
-    # It exists so that turning value_locked on in Administration is the whole
-    # change, rather than metadata that claims a rule nothing enforces.
-    locked = locked_violations(db, "deals", sent)
-    if locked:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            {
-                "message": (
-                    "These values were carried forward from the parent record "
-                    "and are locked against divergence."
-                ),
-                "fields": sorted(p.api_name for p in locked),
-            },
-        )
-
     # Before anything is applied — see routers/leads.py::_write.
     pct_plan = plan_write(db, "deals", deal, payload, sent)
 
@@ -540,6 +523,28 @@ def _write(db: Session, deal_id: str, payload: DealUpdate, sent: set[str], user:
             extras=extras_of(payload),
         ),
     )
+
+    # The commercial terms are fixed once won (decided 16 Sep 2026). Checked
+    # here, AFTER the values are applied, because the rule is about a value
+    # CHANGING — the form re-sends the whole section on every save, so a check
+    # on what was merely sent refused saves that touched nothing locked. Nothing
+    # is committed yet, so refusing here leaves the Deal exactly as it was.
+    locked = locked_violations(db, "deals", deal, before)
+    if locked:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            {
+                "code": "VALUE_LOCKED",
+                "message": (
+                    "These values were fixed when the pursuit was won and cannot be "
+                    "changed on the Deal: "
+                    + ", ".join(sorted(p.label_override or p.api_name for p in locked))
+                    + ". Nothing was saved."
+                ),
+                "fields": sorted(p.api_name for p in locked),
+            },
+        )
+
     # See SYSTEM_STAMPED. Stamped on every save rather than left to the
     # column's onupdate=, which fires only when some OTHER attribute changed —
     # a save that altered nothing would otherwise read as if the record had

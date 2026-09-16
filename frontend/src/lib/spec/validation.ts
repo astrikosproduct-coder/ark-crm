@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { childSpecFor, isChildColumnOnly, type ResolvedChildSpec } from './childSpec'
 import { isVisible, requirementOf, type Values } from './conditions'
-import { fieldsOf, optionsFor } from './index'
+import { fieldOptions, fieldsOf } from './index'
 import type { FieldSpec } from '@/types/field'
 
 export interface FieldError {
@@ -25,6 +25,27 @@ const BLANK = (v: unknown) =>
   v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0)
 
 /**
+ * The register's Min value / Max value, both inclusive — '1 to 10' accepts 1 and 10.
+ * The API refuses the same range on save (app/thresholds.py); this is the early,
+ * on-screen half of it.
+ */
+function bounded(field: FieldSpec, schema: z.ZodNumber): z.ZodNumber {
+  const low = field.min_value ?? undefined
+  const high = field.max_value ?? undefined
+  if (low === undefined && high === undefined) return schema
+  const message =
+    low !== undefined && high !== undefined
+      ? `Must be between ${low} and ${high}`
+      : low !== undefined
+        ? `Must be at least ${low}`
+        : `Must be at most ${high}`
+  let s = schema
+  if (low !== undefined) s = s.min(low, { message })
+  if (high !== undefined) s = s.max(high, { message })
+  return s
+}
+
+/**
  * The shape check for one field, ignoring whether it is required. Requirement
  * is layered on top because it depends on the record's values and, for
  * transitions, on the target stage.
@@ -34,12 +55,13 @@ function shapeOf(field: FieldSpec): z.ZodTypeAny {
 
   switch (field.type) {
     case 'number':
-      return z.number({ message: 'Must be a number' })
+      return bounded(field, z.number({ message: 'Must be a number' }))
 
     case 'currency':
-      return z
-        .number({ message: 'Must be an amount' })
-        .min(0, { message: 'Cannot be negative' })
+      return bounded(
+        field,
+        z.number({ message: 'Must be an amount' }).min(0, { message: 'Cannot be negative' })
+      )
 
     case 'percent':
       return z.number({ message: 'Must be a percentage' })
@@ -60,11 +82,19 @@ function shapeOf(field: FieldSpec): z.ZodTypeAny {
     case 'email':
       return z.email({ message: 'Must be an email address' })
 
+    case 'phone': {
+      // "+971 50 123 4567" — the dial code and the number in one string. Lenient
+      // on shape, so a number typed before the dial code existed still saves.
+      let s = z.string().regex(/^\+?[\d\s()./-]*$/, { message: 'Must be a phone number' })
+      if (max) s = s.max(max, { message: `Longer than ${max} characters` })
+      return s
+    }
+
     case 'url':
       return z.url({ message: 'Must be a URL' })
 
     case 'picklist': {
-      const keys = optionsFor(field.picklist).map((o) => o.key)
+      const keys = fieldOptions(field).map((o) => o.key)
       // A picklist with no set behind it (11 of them in the register) cannot
       // constrain anything, so it falls back to a free string rather than
       // rejecting everything the user types.
@@ -73,7 +103,7 @@ function shapeOf(field: FieldSpec): z.ZodTypeAny {
     }
 
     case 'multiselect': {
-      const keys = optionsFor(field.picklist).map((o) => o.key)
+      const keys = fieldOptions(field).map((o) => o.key)
       const item = keys.length
         ? z.enum(keys as [string, ...string[]], { message: 'Not one of the allowed values' })
         : z.string()
@@ -115,7 +145,13 @@ export function isUserEditable(field: FieldSpec): boolean {
     // A locked Round-5 lookup is disabled — nobody can type a value into it —
     // so holding a record to it would make its blocks_transition stage
     // permanently unreachable. See LockedField in FieldControl.tsx.
-    !field.phase1_locked
+    !field.phase1_locked &&
+    // A value frozen on this record — a carried value locked against change, or
+    // one the register marks not editable (a Deal's Contract Value). It renders
+    // read-only and the server refuses a change, so a blank one cannot be
+    // demanded: a paid-pilot Deal has no Opportunity and no ARR to carry.
+    !field.value_locked &&
+    field.editable !== false
   )
 }
 

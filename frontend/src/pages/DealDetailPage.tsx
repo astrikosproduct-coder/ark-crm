@@ -51,7 +51,7 @@ function DealHeader({ ctx }: { ctx: PipelineRecordContext }) {
   const revenue = ctx.values ? revenueOf(ctx.values) : null
 
   // "From LEAD-00118" removed on instruction. A Deal keeps a route back:
-  // parent_lead and parent_opportunity are both ON CONVERSION fields, which is
+  // parent_lead and parent_opportunity are both RECORD STATE fields, which is
   // a Details-tab section, so they are on screen at every stage.
   return <>{revenue?.value != null && <span>{revenue.label}: {localAmount(revenue)}</span>}</>
 }
@@ -188,7 +188,7 @@ export const dealsPipeline: PipelineModuleSpec = {
   skipReasonField: 'stage_skip_reason',
   reversalReasonField: 'stage_reversal_reason',
   recordHeading: 'Deal Information',
-  detailsHeading: 'On conversion, and system fields',
+  detailsHeading: 'Record state, reasons and system fields',
   showProbabilityBand: false,
   tabs: ['current', 'details', 'related', 'history'],
   Header: DealHeader,

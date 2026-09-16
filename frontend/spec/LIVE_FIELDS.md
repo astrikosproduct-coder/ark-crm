@@ -33,9 +33,9 @@ Generated on 2026-09-16 by running the application's own spec loader, not a copy
 | **Contacts** | — | 15 | 0 | 0 | 2 |
 | **Leads** | 0–3 | 80 | 2 | 8 | 8 |
 | **Opportunities** | 4–6 | 103 | 1 | 8 | 11 |
-| **Deals** | 7–9 | 91 | 2 | 11 | 9 |
+| **Deals** | 7–9 | 90 | 2 | 11 | 9 |
 
-Row counts match the target placement in `ARK_CRM_Field_Register_Split_v1.xlsx`: Leads 80, Opportunities 107, Deals 98 — counting every row on the sheet, including the child-column rows the form engine folds into their table.
+Row counts match the target placement in `ARK_CRM_Field_Register_Split_v1.xlsx`: Leads 80, Opportunities 107, Deals 97 — counting every row on the sheet, including the child-column rows the form engine folds into their table.
 
 ---
 
@@ -344,6 +344,7 @@ Stages 4–6. Holds `parent_lead`; identity is read through the parent `leads` a
 | Opportunity Status | `lead_status` | picklist | **Mandatory** | 0 | `leads__lead_status` — Open · On Hold · Closed Lost · Converted · POC/Pilot Deal | — |
 | Is Primary Pursuit | `is_primary_pursuit` | checkbox | System | 0 | System — true unless a Pursuit Group names another pursuit as primary | — |
 | Pursuit Group | `pursuit_group` | lookup | System | 0 | → `pursuit_group` | — |
+| Parent Lead | `parent_lead` | lookup | System | 0 | → `lead` | — |
 
 ### STAGE 4 — RFP / RFI
 
@@ -360,7 +361,6 @@ Stages 4–6. Holds `parent_lead`; identity is read through the parent `leads` a
 | Client Tender Reference | `client_tender_reference` | text | Optional | 4 | max 60 | — |
 | Nomination Bid | `nomination_bid` | checkbox | Optional | 4 | — | — |
 | Incumbent Only | `incumbent_only` | checkbox | Optional | 4 | — | — |
-| Parent Lead | `parent_lead` | lookup | System | 4 | → `lead` | — |
 | Value Confidence | `value_confidence` | picklist | Optional | 4 | `value_confidence` — Budgetary · Firm | — |
 
 ### Health & Forecast
@@ -531,41 +531,15 @@ Stages 7–9. Holds `parent_opportunity`; identity is read through the parent `o
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
+| Deal ID | `deal_id` | autonumber | System | 0 | DEAL-00001 | — |
+| Deal Name | `deal_name` | text | **Mandatory** | 0 | max 150 | — |
+| Deal Stage | `deal_stage` | picklist | **Mandatory** | 0 | **Derived from the module range, not from `deals__deal_stage`** — 7 Close · 8 Project Success · 9 Expansion | — |
 | Deal Status | `lead_status` | picklist | **Mandatory** | 0 | `leads__lead_status` — Open · On Hold · Closed Lost · Converted · POC/Pilot Deal | — |
 | Is Primary Pursuit | `is_primary_pursuit` | checkbox | System | 0 | System — true unless a Pursuit Group names another pursuit as primary | — |
 | Pursuit Group | `pursuit_group` | lookup | System | 0 | → `pursuit_group` | — |
-
-### ON CONVERSION
-
-| Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
-|---|---|---|---|---|---|---|
-| Deal Name | `deal_name` | text | **Mandatory** | 7 | max 150 | — |
-| Deal ID | `deal_id` | autonumber | System | 7 | DEAL-00001 | — |
-| Parent Lead | `parent_lead` | lookup | **Mandatory** | 7 | → `lead` | — |
-| End Client | `end_client` | lookup | **Mandatory** | 7 | → `account`, filtered: _Account Type must include End Client_<br>Account Type must include End Client | — |
-| Customer (Partner / SI) | `customer_partner_si` | lookup | **Mandatory** | 7 | → `account`, filtered: _Account Type must include Partner / SI_<br>Account Type must include Partner / SI | — |
-| Deal Stage | `deal_stage` | picklist | **Mandatory** | 7 | **Derived from the module range, not from `deals__deal_stage`** — 7 Close · 8 Project Success · 9 Expansion | — |
-| Delivery PM | `delivery_pm` | lookup | **Mandatory** | 7 | → `user` | — |
-| Order Booked | `order_booked` | checkbox | **Mandatory** | 7 | — | — |
-| Booking Date | `booking_date` | date | **Mandatory** | 7 | — | — |
-| ERP Reference | `erp_reference` | text | **Mandatory** | 7 | max 50 | — |
-| PO / LOI Reference | `po_loi_reference` | text | **Mandatory** | 7 | max 50 | — |
-| Project Code | `project_code` | text | **Mandatory** | 7 | max 30 | — |
-| Contract Value | `contract_value` | currency | **Mandatory** | 7 | — | — |
-| ARR (Annual Recurring) | `arr_annual_recurring` | currency | **Mandatory** | 7 | — | — |
-| One-Time Revenue | `one_time_revenue` | currency | **Mandatory** | 7 | — | — |
-| 3rd-Party Revenue — One-Time | `3rd_party_one_time` | currency | **Mandatory** | 7 | — | — |
-| 3rd-Party Revenue — Recurring (per year) | `3rd_party_recurring_per_year` | currency | **Mandatory** | 7 | — | — |
-| Contract Years | `contract_years` | number | **Mandatory** | 7 | — | — |
-| PSP Completed Date | `psp_completed_date` | date | **Mandatory** | 7 | — | — |
-| Handover Pack Delivered Date | `handover_pack_delivered_date` | date | **Mandatory** | 7 | — | — |
-| Kickoff Meeting Date | `kickoff_meeting_date` | date | **Mandatory** | 7 | — | — |
-| Cash Flow Sign-Off Date | `cash_flow_sign_off_date` | date | **Mandatory** | 7 | — | — |
-| Resource Plan Sign-Off Date | `resource_plan_sign_off_date` | date | **Mandatory** | 7 | — | — |
-| Bid Commitments Register | `bid_commitments_register` | child list | **Mandatory** | 7 | row shape in the child-list table below | — |
-| Parent Opportunity | `parent_opportunity` | lookup | System | 7 | → `opportunity` | — |
-
-> 7 further fields in this section — `guarantee_—_type`, `guarantee_—_value`, `guarantee_—_pct_of_contract_value`, `guarantee_—_issue_date`, `guarantee_—_expiry_date`, `guarantee_—_issuing_bank`, `guarantee_—_status` — define row columns of **Bid Commitments Register** and are listed there, not as record fields.
+| Parent Opportunity | `parent_opportunity` | lookup | System | 0 | → `opportunity` | — |
+| Parent Lead | `parent_lead` | lookup | **Mandatory** | 0 | → `lead` | — |
+| Delivery PM | `delivery_pm` | lookup | **Mandatory** | 0 | → `user` | — |
 
 ### Health & Forecast
 
@@ -578,13 +552,38 @@ Stages 7–9. Holds `parent_opportunity`; identity is read through the parent `o
 | Progression % | `progression_pct` | percent | Optional | any | Set from the stage: 5 · 15 · 25 · 40 · 50 · 70 · 85 · 95 · 100 · 100. Multiples of 5. | — |
 | Probability (%) | `probability_pct` | percent | **Mandatory** | 0 | Set from the stage: 5 · 10 · 20 · 30 · 40 · 55 · 70 · 90 · 100 · 100. Multiples of 5. | — |
 
+### STAGE 7 — COMMERCIAL TERMS (AS WON)
+
+| Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
+|---|---|---|---|---|---|---|
+| End Client | `end_client` | lookup | **Mandatory** | 7 | → `account`, filtered: _Account Type must include End Client_<br>Account Type must include End Client | — |
+| Customer (Partner / SI) | `customer_partner_si` | lookup | **Mandatory** | 7 | → `account`, filtered: _Account Type must include Partner / SI_<br>Account Type must include Partner / SI | — |
+| Contract Value | `contract_value` | currency | **Mandatory** | 7 | — | — |
+| ARR (Annual Recurring) | `arr_annual_recurring` | currency | **Mandatory** | 7 | — | — |
+| One-Time Revenue | `one_time_revenue` | currency | **Mandatory** | 7 | — | — |
+| 3rd-Party Revenue — One-Time | `3rd_party_one_time` | currency | **Mandatory** | 7 | — | — |
+| 3rd-Party Revenue — Recurring (per year) | `3rd_party_recurring_per_year` | currency | **Mandatory** | 7 | — | — |
+| Contract Years | `contract_years` | number | **Mandatory** | 7 | — | — |
+
 ### STAGE 7 — CLOSE
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
-| PO Number | `po_number` | text | Conditional | 7 | max 50 | — |
+| Order Booked | `order_booked` | checkbox | **Mandatory** | 7 | — | — |
+| Booking Date | `booking_date` | date | **Mandatory** | 7 | — | — |
+| PO / LOI Reference | `po_loi_reference` | text | **Mandatory** | 7 | max 50 | — |
 | Contract Signed Date | `contract_signed_date` | date | Conditional | 7 | — | — |
 | Payment Schedule Confirmed | `payment_schedule_confirmed` | checkbox | **Mandatory** | 7 | — | — |
+| ERP Reference | `erp_reference` | text | **Mandatory** | 7 | max 50 | — |
+| Project Code | `project_code` | text | **Mandatory** | 7 | max 30 | — |
+| PSP Completed Date | `psp_completed_date` | date | **Mandatory** | 7 | — | — |
+| Handover Pack Delivered Date | `handover_pack_delivered_date` | date | **Mandatory** | 7 | — | — |
+| Kickoff Meeting Date | `kickoff_meeting_date` | date | **Mandatory** | 7 | — | — |
+| Cash Flow Sign-Off Date | `cash_flow_sign_off_date` | date | **Mandatory** | 7 | — | — |
+| Resource Plan Sign-Off Date | `resource_plan_sign_off_date` | date | **Mandatory** | 7 | — | — |
+| Bid Commitments Register | `bid_commitments_register` | child list | **Mandatory** | 7 | row shape in the child-list table below | — |
+
+> 7 further fields in this section — `guarantee_—_type`, `guarantee_—_value`, `guarantee_—_pct_of_contract_value`, `guarantee_—_issue_date`, `guarantee_—_expiry_date`, `guarantee_—_issuing_bank`, `guarantee_—_status` — define row columns of **Bid Commitments Register** and are listed there, not as record fields.
 
 ### STAGE 8 — PROJECT SUCCESS
 
@@ -1140,10 +1139,10 @@ Declared in `spec/extensions.json` `new_fields`, so `spec/fields.json` stays gen
 | Next Milestone | `next_milestone` | long text | `leads` | header | gap fix |
 | Next Milestone Date | `next_milestone_date` | date | `leads` | header | gap fix |
 | Progression % | `progression_pct` | percent | `leads` | header | gap fix |
+| Parent Lead | `parent_lead` | lookup | `opportunities` | 0 | structural link |
 | Overall RAG | `overall_rag` | picklist | `opportunities` | header | gap fix |
 | Nomination Bid | `nomination_bid` | checkbox | `opportunities` | 4 | gap fix |
 | Incumbent Only | `incumbent_only` | checkbox | `opportunities` | 4 | gap fix |
-| Parent Lead | `parent_lead` | lookup | `opportunities` | 4 | structural link |
 | Value Confidence | `value_confidence` | picklist | `opportunities` | 4 | gap fix |
 | Next Milestone | `next_milestone` | long text | `opportunities` | header | gap fix |
 | Next Milestone Date | `next_milestone_date` | date | `opportunities` | header | gap fix |
@@ -1154,11 +1153,11 @@ Declared in `spec/extensions.json` `new_fields`, so `spec/fields.json` stays gen
 | Low Hanging Rank | `low_hanging_rank` | number | `opportunities` | header | gap fix |
 | Top 10 | `is_top_10` | checkbox | `opportunities` | header | gap fix |
 | Top 10 Rank | `top_10_rank` | number | `opportunities` | header | gap fix |
-| Parent Lead | `parent_lead` | lookup | `deals` | 7 | gap fix |
+| Parent Opportunity | `parent_opportunity` | lookup | `deals` | 0 | structural link |
+| Parent Lead | `parent_lead` | lookup | `deals` | 0 | gap fix |
 | Overall RAG | `overall_rag` | picklist | `deals` | header | gap fix |
 | Next Milestone | `next_milestone` | long text | `deals` | header | gap fix |
 | Next Milestone Date | `next_milestone_date` | date | `deals` | header | gap fix |
-| Parent Opportunity | `parent_opportunity` | lookup | `deals` | 7 | structural link |
 | Progression % | `progression_pct` | percent | `deals` | header | gap fix |
 
 ### Identity is carried by reference

@@ -56,7 +56,11 @@ import type { FieldSpec } from '@/types/field'
  * not a case to special-case in code.
  */
 export function isSystemField(field: FieldSpec): boolean {
-  return field.requirement === 'System' || field.editable === false
+  // value_locked joins the other two since 16 Sep 2026: a Deal's commercial
+  // terms are carried from the Opportunity and fixed once won. The server
+  // already refuses a changed value (carry_forward.locked_violations); drawing
+  // an editable box for it would invite an edit guaranteed to fail on Save.
+  return field.requirement === 'System' || field.editable === false || field.value_locked === true
 }
 
 /**

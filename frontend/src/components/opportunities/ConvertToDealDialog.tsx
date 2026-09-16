@@ -30,9 +30,9 @@ interface Props {
 
 /**
  * Where a converted Opportunity lands: Stage 7 — Close, the first stage Deals
- * own (spec/module_split.json ranges), and the stage whose two sections — the
- * register's own ON CONVERSION plus STAGE 7 — CLOSE, moved in by the split —
- * exist precisely to be filled at this moment.
+ * own (spec/module_split.json ranges), and the stage whose two sections —
+ * STAGE 7 — COMMERCIAL TERMS (AS WON), carried in and locked, and STAGE 7 —
+ * CLOSE, the closing work — exist precisely to be filled at this moment.
  *
  * It used to be 8, which was wrong in four ways at once: G3 Commercial is
  * anchored to ENTERING Stage 7 so that no skip can bypass it, and it never

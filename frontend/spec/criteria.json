@@ -35,7 +35,7 @@
   "code": "E1.2",
   "text": "Relevant S!aP suite identified",
   "evaluation": "automatic",
-  "source": "saap_solution_suite",
+  "source": "sap_solution_suite",
   "enforcement": "blocking",
   "playbook_ref": "§3.2 S1"
  },
@@ -54,8 +54,8 @@
   "type": "exit",
   "code": "X1.1",
   "text": "Client expresses genuine interest; next step agreed",
-  "evaluation": "attestation",
-  "source": "interest_level, agreed_next_step",
+  "evaluation": "automatic",
+  "source": "interest_level && agreed_next_step",
   "enforcement": "blocking",
   "playbook_ref": "§3.2 S1"
  },
@@ -75,7 +75,7 @@
   "code": "E2.1",
   "text": "Data or site access confirmed in writing",
   "evaluation": "automatic",
-  "source": "poc.data_site_access_confirmed == true",
+  "source": "data_site_access_confirmation_document",
   "enforcement": "blocking",
   "playbook_ref": "Annexure A.1"
  },
@@ -155,7 +155,7 @@
   "code": "E3.3",
   "text": "Budget and timeline directionally confirmed",
   "evaluation": "automatic",
-  "source": "budget_estimate and probable_award_date",
+  "source": "budget_estimate && probable_award_date",
   "enforcement": "blocking",
   "playbook_ref": "§3.2 S3"
  },
@@ -185,7 +185,7 @@
   "code": "X3.3",
   "text": "Pre-bid alliance partner locked",
   "evaluation": "automatic",
-  "source": "pre_bid_alliance_partner and alliance_structure and pbaa_signed_date",
+  "source": "pre_bid_alliance_partner && alliance_structure && pbaa_signed_date",
   "enforcement": "blocking",
   "playbook_ref": "§3.2 S3"
  },
@@ -195,7 +195,7 @@
   "code": "E4.1",
   "text": "RFP or RFI document received",
   "evaluation": "automatic",
-  "source": "rfp_received_date and rfp_document",
+  "source": "rfp_received_date && rfp_document_file",
   "enforcement": "blocking",
   "playbook_ref": "§3.2 S4"
  },
@@ -275,7 +275,7 @@
   "code": "X5.2",
   "text": "Technical approval achieved or on the approved vendor list",
   "evaluation": "automatic",
-  "source": "technical_approval_status in ['Approved','On approved vendor list']",
+  "source": "technical_approval_status == 'Approved' || technical_approval_status == 'On approved vendor list'",
   "enforcement": "blocking",
   "playbook_ref": "§3.2 S5"
  },
@@ -313,9 +313,9 @@
   "stage": 6,
   "type": "exit",
   "code": "X6.1",
-  "text": "Commercial agreement on price, payment terms and key clauses",
+  "text": "Commercial agreement on price, payment terms and key clauses — Final Negotiated Value equals Total Contract Value",
   "evaluation": "automatic",
-  "source": "final_negotiated_value and payment_milestones.count == 8",
+  "source": "final_negotiated_value && final_negotiated_value == total_value_tcv",
   "enforcement": "blocking",
   "playbook_ref": "§3.2 S6"
  },
@@ -335,7 +335,7 @@
   "code": "X6.3",
   "text": "LOI or verbal award received",
   "evaluation": "automatic",
-  "source": "award_type and loi_received_date",
+  "source": "award_type && loi_received_date",
   "enforcement": "blocking",
   "playbook_ref": "§3.2 S6"
  },
@@ -345,7 +345,7 @@
   "code": "E7.1",
   "text": "LOI, PO or signed contract received",
   "evaluation": "automatic",
-  "source": "po_number or contract_signed_date",
+  "source": "po_loi_reference || contract_signed_date",
   "enforcement": "blocking",
   "playbook_ref": "§3.2 S7"
  },
@@ -375,7 +375,7 @@
   "code": "X7.1",
   "text": "Order booked",
   "evaluation": "automatic",
-  "source": "order_booked == true and booking_date and erp_reference",
+  "source": "order_booked == true && booking_date && erp_reference",
   "enforcement": "blocking",
   "playbook_ref": "§3.2 S7"
  },
@@ -395,7 +395,7 @@
   "code": "X7.3",
   "text": "Kickoff meeting scheduled with Delivery",
   "evaluation": "automatic",
-  "source": "kickoff_meeting_date and delivery_pm",
+  "source": "kickoff_meeting_date && delivery_pm",
   "enforcement": "blocking",
   "playbook_ref": "§3.2 S7"
  },
@@ -405,7 +405,7 @@
   "code": "X7.4",
   "text": "Cash flow and resource plan signed off",
   "evaluation": "automatic",
-  "source": "cash_flow_sign_off_date and resource_plan_sign_off_date",
+  "source": "cash_flow_sign_off_date && resource_plan_sign_off_date",
   "enforcement": "blocking",
   "playbook_ref": "§4.2"
  },
@@ -425,7 +425,7 @@
   "code": "E8.1",
   "text": "System commissioned and client signed off",
   "evaluation": "automatic",
-  "source": "commissioning_date and tandc_sign_off_date",
+  "source": "commissioning_date && tandc_sign_off_date",
   "enforcement": "blocking",
   "playbook_ref": "§3.2 S8"
  },
@@ -465,7 +465,7 @@
   "code": "X8.3",
   "text": "Expansion opportunity identified",
   "evaluation": "automatic",
-  "source": "expansion_use_cases.count >= 1",
+  "source": "count(expansion_use_cases) >= 1",
   "enforcement": "blocking",
   "playbook_ref": "§3.2 S8"
  },
