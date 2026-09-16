@@ -17,6 +17,7 @@ export type FieldType =
   | 'percent'
   | 'url'
   | 'email'
+  | 'phone'
 
 export type Requirement =
   | 'System'
@@ -101,6 +102,40 @@ export interface ChildSpec {
   /** Required when origin is "inferred": what the shape was derived from. */
   basis?: string
   columns: ChildColumnRef[]
+  /**
+   * api_names of columns that belong to the row but are NOT captured on this
+   * module's screen — they are still columns of the row, and still consumed
+   * from the register, they are simply asked for somewhere else.
+   *
+   * payment_milestones is the case this exists for: Milestone, % of Contract,
+   * Trigger and Planned Date are commercial terms agreed on the Opportunity at
+   * Stage 6, while Actual, Invoice, Payment Received and Status are facts of
+   * delivery recorded on the Deal at Stage 8. Dropping the four from `columns`
+   * instead would put them back on the form as loose fields — see
+   * isChildColumnOnly — and one of them is Mandatory.
+   */
+  captured_elsewhere?: string[]
+  /**
+   * Columns summed under the table — % of Contract across the payment
+   * milestones. Shown, never enforced: nothing in the register says a schedule
+   * must total 100%, so the total is stated and a schedule that differs is
+   * flagged rather than refused.
+   */
+  total_columns?: string[]
+  /**
+   * Values a new row takes when one column is chosen — the eight standard
+   * payment milestones and their percentages and triggers.
+   *
+   * A DEFAULT, never a rule: every filled column stays editable, and a value
+   * already typed is not overwritten. `by` is the column that selects the
+   * default; `values` is keyed on that column's stored value.
+   */
+  row_defaults?: {
+    by: string
+    values: Record<string, Record<string, unknown>>
+    /** Button that adds one row per entry above, in picklist order. */
+    add_all_label?: string
+  }
   /** Present when rows are records of another module rather than inline rows. */
   child_module?: string
   /** Linked-record lists are displayed, not edited. */
@@ -149,8 +184,8 @@ export interface FieldExtension {
    * A computed field whose value cannot be written in the expression language,
    * resolved by a named function instead — see resolvers.ts.
    *
-   * progression_pct needs the ordered stage list, which is not a field of any
-   * record, so no expression over api_names can produce it. The escape hatch is
+   * days_in_current_stage needs a derived date and the clock, neither a field of
+   * the record, so no expression over api_names can produce it. The escape hatch is
    * ONE NAME looked up in a fixed table, never an eval: the same containment
    * transition_owned uses. A name with no resolver behind it reads blank and is
    * reported, exactly like a missing computed_expr.
@@ -196,6 +231,49 @@ export interface FieldExtension {
    * Drop the flag once the target table ships and the lookup works for real.
    */
   phase1_locked?: boolean
+  /**
+   * This percent field STORES A FRACTION: 0.70 on the wire and in the column,
+   * 70 in the box. progression_pct and probability_pct are the only fields like
+   * this — Numeric(5,4) columns. See app/models.py and
+   * app/progression.py::serialise_pct, which states the convention.
+   *
+   * Declared rather than guessed. lib/format.ts's percent() infers it from the
+   * value being <= 1, which is fine for DISPLAY but cannot be used while
+   * someone is typing: "1" would mean 100% on one keystroke and 1% on the
+   * next. FieldControl scales the edit box by this flag alone.
+   */
+  stored_as?: 'fraction'
+  /**
+   * Picklist keys this PLACEMENT must not offer. For a value that belongs to one
+   * module of a picklist several modules share — POC_PILOT_DEAL is a Deal status
+   * on the status list Leads and Opportunities also use. Hiding is not the
+   * boundary; the server refuses the value too (app/progression.py).
+   */
+  exclude_options?: string[]
+  /**
+   * This list is not closed: the control offers the register's options plus
+   * "+ Other", and choosing it swaps the dropdown for a text box.
+   *
+   * What gets stored is WHAT THE USER TYPED, not a picklist key. Three
+   * consequences, and a field only earns this flag when all three are
+   * acceptable: the value is invisible to anything comparing against a key (a
+   * condition, a criterion, a formula); it is a value on one record rather
+   * than an option anyone else will see, because Administration owns the
+   * picklist and this does not touch it; and the column must accept free text
+   * at its own length.
+   *
+   * Declared per PLACEMENT, so a shared picklist can be open on the module
+   * that needs it and closed on the one that must not.
+   *
+   * State the column's own length in the SAME sidecar entry, as `max_length`.
+   * It is deliberately not declared on this interface — RawFieldSpec already
+   * requires that key, and declaring it here too makes the two parents of
+   * FieldSpec disagree — but the merge spreads the sidecar over the register
+   * row, so the value lands on field.max_length and caps the text box. Without
+   * it someone types past what the column holds and the save fails at the
+   * database.
+   */
+  allow_custom_value?: boolean
 }
 
 /** Exactly the columns build_spec.py emits. Do not add to this interface. */
@@ -207,6 +285,9 @@ export interface RawFieldSpec {
   label: string
   type: FieldType
   max_length: number | null
+  /** Inclusive bounds on a number field. Absent or null: unbounded on that side. */
+  min_value?: number | null
+  max_value?: number | null
   picklist: string | null
   lookup_target: string | null
   lookup_filter: string | null

@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowUpRightIcon, LockIcon, PaperclipIcon } from 'lucide-react'
@@ -197,6 +197,22 @@ export function FieldControl({ field, onCreateNew, scope }: Props) {
           </div>
         )
       }
+      // A list the sidecar says is not closed — see allow_custom_value in
+      // types/field.ts. Declared per placement in spec/extensions.json, never
+      // named here: this stays the generic picklist control.
+      if (field.allow_custom_value) {
+        return (
+          <PicklistOrCustom
+            field={field}
+            id={id}
+            value={value}
+            set={set}
+            invalid={invalid}
+            options={options}
+          />
+        )
+      }
+
       return (
         <Select value={(value as string) || undefined} onValueChange={set}>
           <SelectTrigger id={id} aria-invalid={invalid} className="w-full">
@@ -701,4 +717,113 @@ export function formatComputed(field: FieldSpec, value: unknown): string {
   }
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) return fmtDate(value)
   return String(value)
+}
+
+/**
+ * The sentinel the extra option carries. Never stored: choosing it swaps the
+ * control for a text box, and what is stored is whatever is typed there. The
+ * register writes picklist keys in SCREAMING_SNAKE, so this cannot collide
+ * with one.
+ */
+const CUSTOM_OPTION = '__other__'
+
+/**
+ * A picklist the sidecar marks as not closed — allow_custom_value in
+ * spec/extensions.json, declared per placement and never named in here.
+ *
+ * Two states over ONE value. The dropdown offers the register's options plus
+ * "+ Other"; choosing that clears the value and shows a text box. A value the
+ * list does not contain opens in the text box as well — a custom value saved
+ * earlier, or one restored with a row — because showing it as an empty
+ * dropdown would read as "nothing chosen" for a field that has an answer.
+ *
+ * Going back to the list CLEARS what was typed. The two states share one
+ * value, and text left behind a dropdown that cannot show it is how a record
+ * saves something nobody can see.
+ */
+function PicklistOrCustom({
+  field,
+  id,
+  value,
+  set,
+  invalid,
+  options,
+}: {
+  field: FieldSpec
+  id: string
+  value: unknown
+  set: (next: unknown) => void
+  invalid: boolean
+  options: ReturnType<typeof fieldOptions>
+}) {
+  const current = typeof value === 'string' ? value : ''
+  const listed = options.some((option) => option.key === current)
+  const [typing, setTyping] = useState(current !== '' && !listed)
+  // Focus only when the PERSON asked for the box. The same state is reached by
+  // an unlisted value arriving on its own, and taking focus on load moves the
+  // page away from whatever someone was reading.
+  const asked = useRef(false)
+
+  useEffect(() => {
+    if (current !== '' && !listed) setTyping(true)
+  }, [current, listed])
+
+  useEffect(() => {
+    if (!typing || !asked.current) return
+    asked.current = false
+    const box = document.getElementById(id)
+    if (box instanceof HTMLInputElement) box.focus()
+  }, [typing, id])
+
+  if (typing) {
+    return (
+      <div className="space-y-1">
+        <Input
+          id={id}
+          aria-invalid={invalid}
+          maxLength={field.max_length ?? undefined}
+          value={current}
+          placeholder={`${field.label} — not in the list`}
+          onChange={(event) => set(event.target.value)}
+        />
+        <button
+          type="button"
+          className="text-muted-foreground hover:text-foreground text-xs underline underline-offset-2"
+          onClick={() => {
+            setTyping(false)
+            set('')
+          }}
+        >
+          Choose from the list instead
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <Select
+      value={current || undefined}
+      onValueChange={(next) => {
+        if (next !== CUSTOM_OPTION) {
+          set(next)
+          return
+        }
+        asked.current = true
+        setTyping(true)
+        set('')
+      }}
+    >
+      <SelectTrigger id={id} aria-invalid={invalid} className="w-full">
+        <SelectValue placeholder="Select…" />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((option) => (
+          <SelectItem key={option.key} value={option.key}>
+            {option.label}
+          </SelectItem>
+        ))}
+        <SelectItem value={CUSTOM_OPTION}>+ Other…</SelectItem>
+      </SelectContent>
+    </Select>
+  )
 }

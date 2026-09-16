@@ -64,7 +64,6 @@
   "registrations": {
    "$note": "The registrations collection is described by the partners MODULE, section DEAL REGISTRATION - see MODULE_OF_COLLECTION in src/lib/spec/index.ts. The partner column is FULLY QUALIFIED because partners.partner is defined twice - here and in QUARTERLY SCORECARD - and the loader refuses to resolve the short form.",
    "columns": [
-    "partners.registration_id",
     "partners.DEAL REGISTRATION.partner",
     "partners.end_client",
     "partners.project_name",
@@ -106,6 +105,7 @@
     "opportunities.opportunity_name",
     "opportunities.project_stage",
     "opportunities.end_client",
+    "opportunities.pursuit_group",
     "opportunities.total_value_tcv",
     "opportunities.submission_deadline",
     "opportunities.probability_pct",
@@ -149,13 +149,14 @@
   "acknowledgement_sla_days": 2,
   "expiring_within_days": 15,
   "capture_fields": {
-   "$note": "The seven fields a partner supplies when registering. Everything else in DEAL REGISTRATION is stamped by ARK on acknowledgement, so a create form that offered them would invite somebody to type an exclusivity date by hand.",
+   "$note": "The eight fields a partner supplies when registering. Everything else in DEAL REGISTRATION is stamped by ARK on acknowledgement, so a create form that offered them would invite somebody to type an exclusivity date by hand.",
    "module": "partners",
    "section": "DEAL REGISTRATION",
    "fields": [
     "partner",
     "end_client",
     "project_name",
+    "currency",
     "estimated_value",
     "expected_timeline",
     "partner_role",
@@ -178,6 +179,9 @@
    "section": "CONFLICT ADJUDICATION",
    "fields": [
     "decision",
+    "primary_registration",
+    "decision_rationale",
+    "evidence_link",
     "decision_date",
     "decided_by",
     "both_partners_notified"
@@ -242,6 +246,14 @@
  "open_questions": {
   "$note": "Gaps found by hand while building a screen, which no automatic check over fields.json can detect. They render on the Spec Health page beside the generated ones. `ref` is a module.api_name where one applies and a module name where the question is about the sheet as a whole.",
   "rows": [
+   {
+    "ref": "criteria",
+    "detail": "HAND EDIT TO spec/criteria.json, 13 Sep 2026 - regenerate the workbook to match. Readiness checks are now uniform: a criterion either ticks from the record, or a person ticks it in the Update Stage dialog. Fourteen sources were rewritten so the expression engine can read them against fields that already exist: E1.2 'saap_solution_suite' -> 'sap_solution_suite'; X1.1 'interest_level, agreed_next_step' -> 'interest_level && agreed_next_step'; E2.1 'poc.data_site_access_confirmed == true' -> 'data_site_access_confirmation_document'; E3.3 'budget_estimate and probable_award_date' -> 'budget_estimate && probable_award_date'; X3.3 'pre_bid_alliance_partner and alliance_structure and pbaa_signed_date' -> 'pre_bid_alliance_partner && alliance_structure && pbaa_signed_date'; E4.1 'rfp_received_date and rfp_document' -> 'rfp_received_date && rfp_document_file'; X5.2 'technical_approval_status in ['Approved','On approved vendor list']' -> 'technical_approval_status == 'Approved' || technical_approval_status == 'On approved vendor list''; X6.3 'award_type and loi_received_date' -> 'award_type && loi_received_date'; E7.1 'po_number or contract_signed_date' -> 'po_number || contract_signed_date'; X7.1 'order_booked == true and booking_date and erp_reference' -> 'order_booked == true && booking_date && erp_reference'; X7.3 'kickoff_meeting_date and delivery_pm' -> 'kickoff_meeting_date && delivery_pm'; X7.4 'cash_flow_sign_off_date and resource_plan_sign_off_date' -> 'cash_flow_sign_off_date && resource_plan_sign_off_date'; E8.1 'commissioning_date and tandc_sign_off_date' -> 'commissioning_date && tandc_sign_off_date'; X8.3 'expansion_use_cases.count >= 1' -> 'count(expansion_use_cases) >= 1'. Two were wrong, not just unreadable: E1.2 named saap_solution_suite (the field is sap_solution_suite) and E4.1 named rfp_document (the field is rfp_document_file). X1.1 changed from attestation to automatic because both facts it attests are fields. X8.3 uses count(), added to the engine for it. Left MANUAL, ticked by a person until their record is built: POC (E2.3, X2.1, X2.2, X2.3, and E3.1, whose client_phase half is a field but whose POC-success half is not), Bid (X4.2, X5.1), Gates (E2.2, E4.2, E7.3), contact roles on another record (X0.1), and criteria that name no field at all (E1.3, X3.1 spec_influence_evidence, E9.1, X9.1). Any criterion naming something the record does not have is manual by rule (src/lib/readiness.ts), so building POC, Bid or Gates turns those back into automatic ticks by fixing their source, not the screen."
+   },
+   {
+    "ref": "opportunities.final_negotiated_value",
+    "detail": "HAND EDIT TO spec/criteria.json, 13 Sep 2026 - regenerate the workbook to match. X6.1 is now final_negotiated_value && final_negotiated_value == total_value_tcv, so the pipeline's one Opportunity revenue source (TCV) is the negotiated number when Stage 6 is exited (decided with the BD owner; see backend/app/revenue.py). It is ALSO ENFORCED on the server - a Deal cannot be created from an Opportunity until it holds (guard_final_value_matches_tcv) - because exit criteria are advisory everywhere else in this build. criteria.json has no generator in this repository (frontend/build_split_workbook.py reads it rather than writing it), so this could not be regenerated. TWO THINGS TO DECIDE: (1) the old source was prose - 'final_negotiated_value and payment_milestones.count == 8' - which the expression engine never evaluated (no `and` keyword, no member access, no count function); the payment-milestone half is DROPPED from the evaluable source rather than kept as prose that silently disables the whole criterion, and is still named in the text. Say whether 8 milestones is a real rule and it will need a count() function. (2) X6.1's original use, measuring concession against the bid value, has nothing left to compare against, because no snapshot of the bid TCV is kept. Decide whether a Bid Value snapshot field is needed."
+   },
    {
     "ref": "partners",
     "detail": "The Partners sheet defines no partner-ORGANISATION fields. Its three sections are DEAL REGISTRATION, CONFLICT ADJUDICATION and QUARTERLY SCORECARD - all child records of a partner. The partner-only attributes (Partner Tier, Partner Type, Platform Depth, Partner Satisfaction Score, Engagement Cadence, Post-Award Protection, Protected Until) are a section of the ACCOUNTS sheet. The prototype therefore keeps them on the account and does NOT create a second partner record keyed by account_id, which would store the same seven values in two places. Decide: move them to a PARTNER PROFILE section on the Partners sheet, or confirm they belong on Accounts."
@@ -391,20 +403,12 @@
     "detail": "The Deals sheet declares end_client and customer_partner_si as its own Mandatory lookups, so the split leaves them as stored fields on the Deal — Deals takes 18 of the 20 read-through identity fields rather than all 20. That contradicts carry-forward-by-reference: the same two organisations would then be stored on the Lead, the Opportunity and the Deal, three places to drift. Decide: drop both rows from the Deals sheet and read them through parent_opportunity like the other 18, or state why a Deal is meant to be able to name a different End Client from its Opportunity."
    },
    {
-    "ref": "opportunities.progression_pct",
-    "detail": "Progression % is derived as the position of the current stage in the ordered 0–9 list ÷ (count − 1), giving 0/11/22/33/44/56/67/78/89/100. Linear-by-position is this build’s choice — the register states no progression curve anywhere, and the workbook has no column for one. If progression is meant to be weighted (Stage 2 POC carrying more of the journey than Stage 1 Demo, say), the weights have to be stated in spec/stages.json. Nothing is hardcoded to 9: the divisor is read from the stage list."
-   },
-   {
-    "ref": "opportunities.nomination_bid",
-    "detail": "Nomination Bid and Incumbent Only are agreed to adjust win probability, but spec/stages.json carries no uplift for either — every stage row has only prob_min, prob_max, owner_role, bid_phase and applies_to. The checkboxes therefore record the fact and probability is left untouched; no number is invented. Incumbent advantage is written in the playbook as a RANGE, which a single uplift field cannot hold. State both values, and state whether the incumbent range resolves to a point or to a wider band on probability_pct."
-   },
-   {
     "ref": "opportunities.opportunity_name",
     "detail": "This field and end_client are read_through - resolved from the parent Lead via useResolvedRecord, never stored on the Opportunity record itself. The mock list endpoint (mocks/query.ts) filters, sorts and searches over the raw stored row, so neither field can be searched or meaningfully sorted from the Opportunities list today - list_views.opportunities.search is left empty rather than pointed at a field that would silently match nothing. Fix belongs in the list endpoint: either it learns to resolve read_through fields per row, or search/sort on them is declared unsupported outright."
    },
    {
     "ref": "leads.demo_completed",
-    "detail": "PROTOTYPE REGISTER EDIT, made by hand in spec/fields.json. The row carried capture_stage 0, mandatory_from 0 and blocks_transition \"0 → 1\" - it is Stage 0's own exit gate (X0.2, 'the event that lets Stage 1 close' per its use_case) - but section still read STAGE 1 — DEMO PRESENTATION, left over from before the field was pulled back a stage. sectionsForStage() groups a stage's fields by section, so the mismatch pulled the whole Demo Presentation section onto the Stage 0 - Connect screen: saving a brand-new lead at Stage 0 showed Demo Presentation fields directly underneath it, one stage early. section corrected to STAGE 0 — CONNECT to match the three fields that already agreed. build_spec.py will overwrite this on the next regenerate — make the same correction in the workbook."
+    "detail": "PROTOTYPE REGISTER EDIT, made by hand in spec/fields.json. The row carried capture_stage 0, mandatory_from 0 and blocks_transition \"0 → 1\" - it is Stage 0's own exit gate (X0.2, 'the event that lets Stage 1 close' per its use_case) - but section still read STAGE 1 — DEMO PRESENTATION, left over from before the field was pulled back a stage. sectionsForStage() groups a stage's fields by section, so the mismatch pulled the whole Demo Presentation section onto the Stage 0 - Connect screen: saving a brand-new lead at Stage 0 showed Demo Presentation fields directly underneath it, one stage early. section corrected to STAGE 0 — CONNECT to match the three fields that already agreed. build_spec.py will overwrite this on the next regenerate — make the same correction in the workbook. SUPERSEDED 15 Sep 2026: moved to STAGE 1 — DEMO PRESENTATION, directly before Demo Date, with Demo Date's own stage rule (capture_stage 1, mandatory_from 1, blocks 1 → 2), on review instruction — a new lead was being asked whether a demo it had not been offered yet was finished. X0.2 now reads demo_agreed, so no criterion depends on this field. Made in PostgreSQL and published (backend/lead_form_review_metadata.py), not by hand here."
    },
    {
     "ref": "accounts.region",
@@ -457,6 +461,33 @@
   ]
  },
  "fields": {
+  "deals.progression_pct": {
+   "type_override": "percent",
+   "stored_as": "fraction",
+   "note": "Drawn by the ordinary form engine. The register types it 'number' because there is no register vocabulary for a percentage stored 0-1; the column is Numeric(5,4) and the wire carries the fraction both ways (app/progression.py::serialise_pct). type_override renders it as the app's own percent box and stored_as scales the EDIT box by 100. The VALUE comes from the stage: every record takes its stage's pair from Administration > Stages on entering it."
+  },
+  "leads.probability_pct": {
+   "type_override": "percent",
+   "stored_as": "fraction",
+   "note": "As deals.progression_pct above. An edit to either number that disagrees with the stage's value is an override, and the backend demands Override Justification for the current stage in the SAME request (app/progression.py::plan_write) - which is why that field is anchored to this one in the register, so one form and one Save carry both. Nomination Bid and Incumbent Only are reasons to override, not automatic boosts."
+  },
+  "deals.guarantee_—_type": {
+   "allow_custom_value": true,
+   "max_length": 40,
+   "note": "ABG Advance and PBG Performance are the two the register names, and a bid can be asked for a retention, a warranty, a mobilisation or a payment guarantee that none of them covers. The Bid Commitments Register therefore offers the register's options plus '+ Other', and what is typed is stored verbatim in deal_bid_commitments.guarantee_—_type - String(40), and no server-side value check, which is why max_length is stated here. A typed value is NOT a new picklist value: it lives on that row, nobody else's dropdown gains it, and a condition comparing against ABG_ADVANCE will not match it. When a typed value keeps coming back, add it as a real option in Administration > Picklists and publish."
+  },
+  "leads.lead_status": {
+   "exclude_options": [
+    "POC_PILOT_DEAL"
+   ],
+   "note": "POC/Pilot Deal is a Deals-only value on the status picklist all three pipeline modules share (one definition, one picklist). Hidden here and refused by the server (app/progression.py::plan_write); a Lead becomes one by marking its pilot Paid."
+  },
+  "opportunities.lead_status": {
+   "exclude_options": [
+    "POC_PILOT_DEAL"
+   ],
+   "note": "POC/Pilot Deal is a Deals-only value on the status picklist all three pipeline modules share (one definition, one picklist). Hidden here and refused by the server (app/progression.py::plan_write); a Lead becomes one by marking its pilot Paid."
+  },
   "$upload_to_link_note": "File-upload fields became link (url) fields prototype-wide — there is no server for an uploaded file to land on, and a pasted link is the honest equivalent. Applied only on the four that actually render on a live screen (Leads/Opportunities/Deals); the register's other file fields (bids_pocs POC workspace, administration audit-log sections) are unbuilt and left untouched. See FieldExtension.type_override/.label_override in src/types/field.ts for the override mechanism — fields.json itself is never hand-edited.",
   "leads.data_site_access_confirmation_document": {
    "type_override": "url",
@@ -621,7 +652,7 @@
      }
     ]
    },
-   "field_sync": {
+   "child_field_sync": {
     "$note": "Mirrors Job Title, Organisation and Role between a demo_attendees ROW and the Attendee's own Contact record, once Attendee is picked. Gap-fill both ways, same rule as LeadAccountFieldSync: Contact -> row fills the row live, in ChildListTable, the moment Attendee changes and the row's own box is still empty; row -> Contact is the reverse gap-fill, run once on save (RecordEditor's afterSave for Stage 1) for every row whose columns hold something the linked Contact does not. SUPERSEDES the child_spec column note above, which said Job Title was deliberately NOT read from the contact because the use_case is about seniority on the day, not the contact's current title — that rationale is overridden here at explicit request; still editable per-row afterwards, so a row can still diverge once filled.",
     "trigger_column": "attendee",
     "target_module": "contacts",
@@ -712,9 +743,54 @@
       "picklist": "administration__milestone_status",
       "width": 150
      }
-    ]
+    ],
+    "captured_elsewhere": [
+     "milestone_—_actual_date",
+     "milestone_—_invoice_date",
+     "milestone_—_payment_received_date",
+     "milestone_status"
+    ],
+    "total_columns": ["pct_of_contract"],
+    "row_defaults": {
+     "by": "milestone",
+     "add_all_label": "Add the standard milestones",
+     "values": {
+      "CONTRACT_SIGNING": {
+       "pct_of_contract": 10,
+       "trigger": "Signed contract or LOI + ABG (if advance > 15%)"
+      },
+      "DESIGN_APPROVAL": {
+       "pct_of_contract": 5,
+       "trigger": "Client approval of detailed design / architecture document"
+      },
+      "SUBMITTAL_APPROVAL": {
+       "pct_of_contract": 5,
+       "trigger": "Client approval of material submittals (hardware/software BOQ)"
+      },
+      "FAT": {
+       "pct_of_contract": 20,
+       "trigger": "FAT completion certificate signed by client representative"
+      },
+      "DELIVERY": {
+       "pct_of_contract": 40,
+       "trigger": "Delivery note / goods receipt at site"
+      },
+      "INSTALLATION": {
+       "pct_of_contract": 10,
+       "trigger": "Installation completion and site acceptance sign-off"
+      },
+      "TANDC": {
+       "pct_of_contract": 5,
+       "trigger": "T&C completion certificate"
+      },
+      "HANDOVER": {
+       "pct_of_contract": 5,
+       "trigger": "Signed final handover certificate"
+      }
+     }
+    }
    },
-   "note": "values_note says '8 standard milestones'. Nothing enforces eight rows, and nothing enforces that the percentages sum to 100 - neither rule is stated as data."
+   "note": "values_note says '8 standard milestones'. THE EIGHT ARE NOW DEFAULTED (16 Sep 2026, from the table the business supplied): choosing a milestone fills its % of Contract and Trigger, and 'Add the standard milestones' adds all eight in picklist order. Both columns stay editable and a typed value is never overwritten - the percentages are a standard, not a rule, and nothing refuses a schedule that differs. The table totals % of Contract under itself and says so when the rows do not add up to 100. STILL NOT STATED AS DATA: that there are eight rows, and that they must total 100 - the total is shown, not enforced. THE ROW IS SPLIT ACROSS TWO SCREENS: Milestone, % of Contract, Trigger and Planned Date are the payment SCHEDULE, negotiated on the Opportunity at Stage 6; Actual Date, Invoice Date, Payment Received Date and Status are facts of DELIVERY and are captured on the Deal at Stage 8 (captured_elsewhere above, and components/deals/PaymentMilestonesPanel.tsx). They were previously all asked for at Stage 6, where three of them cannot be known and, once the Opportunity went read-only on conversion, could never be filled in at all."
   },
   "deals.bid_commitments_register": {
    "child_spec": {
@@ -781,6 +857,30 @@
   "deals.parent_opportunity": {
    "structural": true,
    "note": "The parent link carry-forward-by-reference and read-through both resolve through. Plumbing, not a business field."
+  },
+  "leads.days_in_current_stage": {
+   "computed_by": "days_in_stage",
+   "note": "Was 'No formula in the field register for this field.' on all three modules: the register types it Computed and its computed_formula is the empty string, so nothing anywhere produced a value. It is not expressible -- the age of the CURRENT stay in a stage is a function of the stage_transitions table, not of any field on the record -- so it resolves through a named function, the same escape hatch progression_pct uses. The server supplies the FACT (stage_entered_date, the last move INTO the stage the record is in now, so a 3 -> 5 -> 3 pursuit is aged from the second Stage 3); the browser counts the days on the company clock. Before 12 Sep 2026 the backend approximated this from modified_date, which meant editing a lead's remarks reset its stage age to zero and the two Aging fields printed the same number on every record."
+  },
+  "leads.days_since_last_update": {
+   "computed_by": "days_since_update",
+   "note": "Was 'No formula in the field register for this field.', like days_in_current_stage beside it, though this one the list view had been answering all along -- leadListCell.tsx read modified_date directly because the register offered it no formula, so the List tab showed '14d' while the Details tab showed the apology. A resolver rather than a computed_expr because the expression language has no 'now': days_between(modified_date, TODAY) would need a TODAY identifier, and resolving one against the browser's own clock is the disagreement lib/time.ts exists to remove."
+  },
+  "opportunities.days_in_current_stage": {
+   "computed_by": "days_in_stage",
+   "note": "Was 'No formula in the field register for this field.' on all three modules: the register types it Computed and its computed_formula is the empty string, so nothing anywhere produced a value. It is not expressible -- the age of the CURRENT stay in a stage is a function of the stage_transitions table, not of any field on the record -- so it resolves through a named function, the same escape hatch progression_pct uses. The server supplies the FACT (stage_entered_date, the last move INTO the stage the record is in now, so a 3 -> 5 -> 3 pursuit is aged from the second Stage 3); the browser counts the days on the company clock. Before 12 Sep 2026 the backend approximated this from modified_date, which meant editing a lead's remarks reset its stage age to zero and the two Aging fields printed the same number on every record."
+  },
+  "opportunities.days_since_last_update": {
+   "computed_by": "days_since_update",
+   "note": "Was 'No formula in the field register for this field.', like days_in_current_stage beside it, though this one the list view had been answering all along -- leadListCell.tsx read modified_date directly because the register offered it no formula, so the List tab showed '14d' while the Details tab showed the apology. A resolver rather than a computed_expr because the expression language has no 'now': days_between(modified_date, TODAY) would need a TODAY identifier, and resolving one against the browser's own clock is the disagreement lib/time.ts exists to remove."
+  },
+  "deals.days_in_current_stage": {
+   "computed_by": "days_in_stage",
+   "note": "Was 'No formula in the field register for this field.' on all three modules: the register types it Computed and its computed_formula is the empty string, so nothing anywhere produced a value. It is not expressible -- the age of the CURRENT stay in a stage is a function of the stage_transitions table, not of any field on the record -- so it resolves through a named function, the same escape hatch progression_pct uses. The server supplies the FACT (stage_entered_date, the last move INTO the stage the record is in now, so a 3 -> 5 -> 3 pursuit is aged from the second Stage 3); the browser counts the days on the company clock. Before 12 Sep 2026 the backend approximated this from modified_date, which meant editing a lead's remarks reset its stage age to zero and the two Aging fields printed the same number on every record."
+  },
+  "deals.days_since_last_update": {
+   "computed_by": "days_since_update",
+   "note": "Was 'No formula in the field register for this field.', like days_in_current_stage beside it, though this one the list view had been answering all along -- leadListCell.tsx read modified_date directly because the register offered it no formula, so the List tab showed '14d' while the Details tab showed the apology. A resolver rather than a computed_expr because the expression language has no 'now': days_between(modified_date, TODAY) would need a TODAY identifier, and resolving one against the browser's own clock is the disagreement lib/time.ts exists to remove."
   }
  },
  "stage_scoped": {
@@ -791,15 +891,8 @@
    "deals"
   ],
   "carry_forward": {
-   "$note": "Shown in the metrics strip at the top of every stage, editable there. A stage with no value of its own inherits the nearest EARLIER stage that has one, falling back to the base api_name. Editing the CURRENT stage also writes the base api_name, so list columns, the readiness panel and the probability-band check keep reading one number. THIS LIST NO LONGER DEFINES THE SET - fields.json's `stage_scoped: carry_forward` does, and the strip renders them in register order. It survives only to bind `default_by`, and only progression_pct has one: no formula can guess a close month, and inheriting the earlier stage's answer is the correct seed for the other two.",
+   "$note": "Shown in the metrics strip at the top of every stage, editable there. A stage with no value of its own inherits the nearest EARLIER stage that has one, falling back to the base api_name. Editing the CURRENT stage also writes the base api_name, so list columns and the readiness panel keep reading one number. THIS LIST NO LONGER DEFINES THE SET - fields.json's `stage_scoped: carry_forward` does, and the strip renders them in register order. It survives only to bind `default_by`, and nothing uses one now: Progression % and Probability % stopped being per-stage in 0022 (they follow the stage), and no formula can guess a close month.",
    "fields": [
-    {
-     "api_name": "progression_pct",
-     "default_by": "progression"
-    },
-    {
-     "api_name": "probability_pct"
-    },
     {
      "api_name": "expected_close_month",
      "$note": "The forecast date, revised at every stage rather than answered once at Connect - its own use_case says it must be reviewed monthly. Carry-forward and not sticky: a stage that has not revised it INHERITS the last answer, because the previous month's forecast is still the forecast until somebody moves it. That is the opposite of an On Hold Reason, which must never carry. No `default_by`: unlike progression, no formula can guess a close month, and inheriting the earlier stage's answer is the correct seed. Moved out of STAGE 0 - CONNECT and onto all three modules by backend/close_month_record_state.py; the per-stage values it now leaves behind (`expected_close_month__s0` ... `__s9`) are the history Close Date Pushback Count needed and never had."
