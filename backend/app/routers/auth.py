@@ -19,6 +19,7 @@ the organisation's own directory can reach this code at all.
 
 import os
 import re
+from urllib.parse import urlencode
 
 from authlib.integrations.starlette_client import OAuth, OAuthError
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -192,7 +193,7 @@ async def callback(request: Request, db: Session = Depends(get_db)):
     except OAuthError as exc:
         # Wrong redirect URI, expired code, consent withdrawn. Send them back to
         # a page that can explain rather than rendering a bare JSON error.
-        return RedirectResponse(f"{APP_BASE_URL}/signed-out?error={exc.error}")
+        return RedirectResponse(f"{APP_BASE_URL}/login?{urlencode({'error': exc.error})}")
 
     claims = token.get("userinfo") or {}
     if not claims.get("oid") and not claims.get("preferred_username"):
@@ -210,7 +211,10 @@ async def callback(request: Request, db: Session = Depends(get_db)):
         user.employee_id = employee_id
 
     sign_in(request, user, db)
-    return RedirectResponse(APP_BASE_URL)
+    # Always the Dashboard, wherever the person was before signing in —
+    # decided 16 Sep 2026. No "return to" address is carried through
+    # Microsoft, so there is none to tamper with either.
+    return RedirectResponse(f"{APP_BASE_URL}/dashboard")
 
 
 @router.post("/auth/logout")

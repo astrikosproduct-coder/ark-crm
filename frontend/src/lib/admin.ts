@@ -44,6 +44,25 @@ export interface UserCreateInput {
   role_ids: string[]
 }
 
+/** A person in the Astrikos Microsoft directory — see backend/app/graph_directory.py. */
+export interface DirectoryPerson {
+  entra_object_id: string
+  name: string
+  email: string
+  employee_id: string | null
+  job_title: string | null
+  department: string | null
+  /** Set when this person is already in ARK CRM. */
+  user_id: string | null
+}
+
+export interface UserFromDirectoryInput {
+  entra_object_id: string
+  user_id?: string
+  active?: boolean
+  role_ids: string[]
+}
+
 export interface UserUpdateInput {
   name?: string
   email?: string
@@ -56,6 +75,7 @@ export const adminKeys = {
   users: ['admin', 'users'] as const,
   roles: ['admin', 'roles'] as const,
   nextId: ['admin', 'next-user-id'] as const,
+  directory: (q: string) => ['admin', 'directory', q] as const,
 }
 
 export function useRoles() {
@@ -85,6 +105,23 @@ export function useNextUserId(enabled: boolean) {
   })
 }
 
+/**
+ * Search the Astrikos directory. Two characters minimum, as the server
+ * requires. Not retried: the usual failure is a missing Graph permission,
+ * and asking again three times does not grant it.
+ */
+export function useDirectorySearch(q: string) {
+  const text = q.trim()
+  return useQuery({
+    queryKey: adminKeys.directory(text),
+    queryFn: async () =>
+      (await api.get<DirectoryPerson[]>(`${BASE}/directory/people`, { params: { q: text } })).data,
+    enabled: text.length >= 2,
+    retry: false,
+    staleTime: 60_000,
+  })
+}
+
 function useInvalidateUsers() {
   const queryClient = useQueryClient()
   return () => {
@@ -107,6 +144,21 @@ export function useCreateUser() {
     mutationFn: async (input: UserCreateInput) =>
       (await api.post<AdminUser>(`${BASE}/users`, input)).data,
     onSuccess: invalidate,
+  })
+}
+
+/** Name, email and employee id are read from the directory by the server. */
+export function useCreateUserFromDirectory() {
+  const invalidate = useInvalidateUsers()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: UserFromDirectoryInput) =>
+      (await api.post<AdminUser>(`${BASE}/users/from-directory`, input)).data,
+    onSuccess: () => {
+      invalidate()
+      // Search results carry "already in ARK CRM" — stale the moment someone is added.
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'directory'] })
+    },
   })
 }
 
@@ -138,18 +190,36 @@ export function useReplaceUserRoles() {
   })
 }
 
-/** Pulls the server's message out of an axios error, falling back to its own. */
-export function errorMessage(error: unknown): string {
-  const detail = (error as { response?: { data?: { detail?: unknown } } })?.response?.data
-    ?.detail
+/**
+ * Pulls the server's message out of an axios error, falling back to its own.
+ *
+ * `fieldLabel` turns a validation error's api_name into the label on the form —
+ * "Expected Timeline", never "expected_timeline".
+ */
+export function errorMessage(
+  error: unknown,
+  options: { fieldLabel?: (apiName: string) => string | undefined; fallback?: string } = {}
+): string {
+  const response = (error as { response?: { data?: { detail?: unknown } } })?.response
+  const detail = response?.data?.detail
   if (typeof detail === 'string') return detail
+  // A rule refusal — {code, message} — carries its own sentence. Without this
+  // a withdrawal or delete dialog said "Request failed with status code 409".
+  if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
+    const message = (detail as { message?: unknown }).message
+    if (typeof message === 'string' && message) return message
+  }
   if (Array.isArray(detail)) {
     // FastAPI validation errors arrive as a list of {loc, msg}.
     const first = detail[0] as { loc?: unknown[]; msg?: string } | undefined
     if (first?.msg) {
       const field = Array.isArray(first.loc) ? first.loc[first.loc.length - 1] : undefined
-      return field ? `${String(field)}: ${first.msg}` : first.msg
+      if (field === undefined || field === null) return first.msg
+      return `${options.fieldLabel?.(String(field)) ?? String(field)}: ${first.msg}`
     }
   }
-  return error instanceof Error ? error.message : 'Something went wrong'
+  // A status code with no sentence of its own — "Request failed with status
+  // code 500" — tells the person reading it nothing.
+  if (response) return options.fallback ?? 'The server could not complete the request.'
+  return error instanceof Error ? error.message : (options.fallback ?? 'Something went wrong')
 }

@@ -17,12 +17,14 @@ import { UserLookup } from '@/components/admin/UserLookup'
 import {
   errorMessage,
   useCreateUser,
+  useCreateUserFromDirectory,
   useNextUserId,
   useReplaceUserRoles,
   useRoles,
   useUpdateUser,
   useUsers,
   type AdminUser,
+  type DirectoryPerson,
 } from '@/lib/admin'
 import type { PicklistOption } from '@/types/field'
 
@@ -68,6 +70,7 @@ export function UserDialog({ open, onOpenChange, user }: Props) {
   const { data: suggestedId } = useNextUserId(open && !isEdit)
 
   const createUser = useCreateUser()
+  const createFromDirectory = useCreateUserFromDirectory()
   const updateUser = useUpdateUser()
   const replaceRoles = useReplaceUserRoles()
 
@@ -78,10 +81,14 @@ export function UserDialog({ open, onOpenChange, user }: Props) {
   // Set when the lookup matched someone — we are then editing their roles, not
   // creating a duplicate person.
   const [existing, setExisting] = useState<AdminUser | null>(null)
+  // Set when the person was picked from the Astrikos directory. Their name and
+  // email are Microsoft's and are shown read-only; the server reads them again.
+  const [directoryPerson, setDirectoryPerson] = useState<DirectoryPerson | null>(null)
 
   useEffect(() => {
     if (!open) return
     setError(null)
+    setDirectoryPerson(null)
     if (user) {
       setForm({
         user_id: user.user_id,
@@ -120,6 +127,7 @@ export function UserDialog({ open, onOpenChange, user }: Props) {
   /** The lookup found them: their details come from the database, not retyped. */
   const pickExisting = (picked: AdminUser) => {
     setExisting(picked)
+    setDirectoryPerson(null)
     setForm({
       user_id: picked.user_id,
       name: picked.name,
@@ -130,13 +138,25 @@ export function UserDialog({ open, onOpenChange, user }: Props) {
     setStep('details')
   }
 
+  const pickDirectory = (person: DirectoryPerson) => {
+    setExisting(null)
+    setDirectoryPerson(person)
+    setForm({ ...EMPTY, name: person.name, email: person.email, user_id: suggestedId ?? '' })
+    setStep('details')
+  }
+
   const startNew = (typedName: string) => {
     setExisting(null)
+    setDirectoryPerson(null)
     setForm({ ...EMPTY, name: typedName, user_id: suggestedId ?? '' })
     setStep('details')
   }
 
-  const busy = createUser.isPending || updateUser.isPending || replaceRoles.isPending
+  const busy =
+    createUser.isPending ||
+    createFromDirectory.isPending ||
+    updateUser.isPending ||
+    replaceRoles.isPending
 
   const submit = async () => {
     setError(null)
@@ -150,6 +170,13 @@ export function UserDialog({ open, onOpenChange, user }: Props) {
         await replaceRoles.mutateAsync({
           userId: existing.user_id,
           roleIds: form.role_ids,
+        })
+      } else if (directoryPerson) {
+        await createFromDirectory.mutateAsync({
+          entra_object_id: directoryPerson.entra_object_id,
+          user_id: form.user_id.trim(),
+          active: form.active,
+          role_ids: form.role_ids,
         })
       } else {
         await createUser.mutateAsync({
@@ -181,12 +208,18 @@ export function UserDialog({ open, onOpenChange, user }: Props) {
               ? 'Check whether this person already exists before creating them.'
               : existing && !isEdit
                 ? 'This person is already in the database. Their details are shown as stored — set their roles below.'
-                : 'Roles are stored as assignments, so a user can hold several.'}
+                : directoryPerson
+                  ? "From the Astrikos directory. Name and email are Microsoft's — choose their roles, and they will have them from their first sign-in."
+                  : 'Roles are stored as assignments, so a user can hold several.'}
           </DialogDescription>
         </DialogHeader>
 
         {step === 'lookup' ? (
-          <AddLookupStep onPick={pickExisting} onCreateNew={startNew} />
+          <AddLookupStep
+            onPick={pickExisting}
+            onPickDirectory={pickDirectory}
+            onCreateNew={startNew}
+          />
         ) : (
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
@@ -210,6 +243,7 @@ export function UserDialog({ open, onOpenChange, user }: Props) {
               <Input
                 id="name"
                 value={form.name}
+                disabled={Boolean(directoryPerson)}
                 onChange={(e) => set('name', e.target.value)}
                 placeholder="Rahul Sharma"
               />
@@ -221,10 +255,23 @@ export function UserDialog({ open, onOpenChange, user }: Props) {
                 id="email"
                 type="email"
                 value={form.email}
+                disabled={Boolean(directoryPerson)}
                 onChange={(e) => set('email', e.target.value)}
                 placeholder="rahul.sharma@astrikos.ai"
               />
             </div>
+
+            {directoryPerson && (
+              <p className="text-muted-foreground text-xs">
+                {[
+                  directoryPerson.job_title,
+                  directoryPerson.department,
+                  directoryPerson.employee_id && `Employee ID ${directoryPerson.employee_id}`,
+                ]
+                  .filter(Boolean)
+                  .join(' · ') || 'No job title or department in the directory.'}
+              </p>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="roles">Roles</Label>
@@ -281,9 +328,11 @@ export function UserDialog({ open, onOpenChange, user }: Props) {
 /** Kept separate so the users query only runs while the lookup step is shown. */
 function AddLookupStep({
   onPick,
+  onPickDirectory,
   onCreateNew,
 }: {
   onPick: (user: AdminUser) => void
+  onPickDirectory: (person: DirectoryPerson) => void
   onCreateNew: (typedName: string) => void
 }) {
   const { data: users = [], isLoading } = useUsers()
@@ -294,6 +343,7 @@ function AddLookupStep({
         users={users}
         loading={isLoading}
         onPick={onPick}
+        onPickDirectory={onPickDirectory}
         onCreateNew={onCreateNew}
       />
     </div>

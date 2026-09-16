@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import {
   createBrowserRouter,
   createRoutesFromElements,
@@ -14,6 +15,7 @@ import { AccountDetailPage } from '@/pages/AccountDetailPage'
 import { AccountsPage } from '@/pages/AccountsPage'
 import { ContactDetailPage } from '@/pages/ContactDetailPage'
 import { ContactsPage } from '@/pages/ContactsPage'
+import { DashboardPage } from '@/pages/DashboardPage'
 import { DealDetailPage } from '@/pages/DealDetailPage'
 import { DealsPage } from '@/pages/DealsPage'
 import { FormEnginePage } from '@/pages/FormEnginePage'
@@ -44,8 +46,13 @@ import { SpecHealthPage } from '@/pages/SpecHealthPage'
  */
 const router = createBrowserRouter(
   createRoutesFromElements(
+    <>
+    {/* A signed-in visit to /login has nothing to sign in to. Outside the
+        shell, so it does not flash the navigation first. */}
+    <Route path="login" element={<Navigate to="/dashboard" replace />} />
     <Route element={<AppShell />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="form-engine" element={<FormEnginePage />} />
           <Route path="spec-health" element={<SpecHealthPage />} />
           <Route path="settings" element={<SettingsPage />} />
@@ -106,8 +113,12 @@ const router = createBrowserRouter(
       <Route path=":module" element={<ModulePage />} />
       <Route path=":module/:id" element={<ModuleDetailPage />} />
     </Route>
+    </>
   )
 )
+
+/** The sign-in screen's own address. */
+const LOGIN_PATH = '/login'
 
 /**
  * The gate.
@@ -124,6 +135,16 @@ const router = createBrowserRouter(
  */
 function AuthGate() {
   const { state } = useAuth()
+
+  // Signed out, the address bar says /login whatever was typed. The address
+  // asked for is NOT remembered: a successful sign-in always lands on the
+  // Dashboard (backend/app/routers/auth.py::callback). A sign-in error arrives
+  // as /login?error=..., and that query is kept so the page can show it.
+  useEffect(() => {
+    if (state.status === 'signed-out' && window.location.pathname !== LOGIN_PATH) {
+      window.history.replaceState(null, '', LOGIN_PATH)
+    }
+  }, [state.status])
 
   if (state.status === 'loading') {
     return (

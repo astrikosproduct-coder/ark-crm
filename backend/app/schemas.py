@@ -40,6 +40,38 @@ class UserCreate(BaseModel):
     role_ids: list[str] = []
 
 
+class DirectoryPersonOut(BaseModel):
+    """
+    A person in the Astrikos Microsoft directory, as the Add user search shows
+    them. `user_id` is set when they are ALREADY in ARK CRM — linked by
+    directory id, or by the same email on a row an administrator typed in — so
+    the dialog opens that user instead of offering a duplicate.
+    """
+
+    entra_object_id: str
+    name: str
+    email: str
+    employee_id: str | None = None
+    job_title: str | None = None
+    department: str | None = None
+    user_id: str | None = None
+
+
+class UserFromDirectory(BaseModel):
+    """
+    Add a person picked from the directory. Only the directory id is taken from
+    the request; name, email and employee id are read back from Microsoft on the
+    server, so what is stored is what the directory says.
+    """
+
+    entra_object_id: str = Field(
+        pattern=r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    )
+    user_id: str | None = Field(default=None, min_length=1, max_length=20)
+    active: bool = True
+    role_ids: list[str] = []
+
+
 class UserUpdate(BaseModel):
     """Every field optional — PATCH applies only what was sent."""
 
