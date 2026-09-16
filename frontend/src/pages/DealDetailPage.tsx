@@ -1,21 +1,20 @@
-import { currentUserId } from '@/lib/currentUser'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowRightIcon, SparklesIcon } from 'lucide-react'
+import { SparklesIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { RecordListView } from '@/components/list/RecordListView'
-import { contactListCell } from '@/components/contacts/contactListCell'
+import { DealPaymentMilestones } from '@/components/deals/PaymentMilestonesPanel'
 import { PipelineRecordPage } from '@/components/pipeline/PipelineRecordPage'
+import { PipelineRelated } from '@/components/pipeline/PipelineRelated'
+import { PursuitBanner } from '@/components/pursuits/PursuitBanner'
 import type { PipelineModuleSpec, PipelineRecordContext } from '@/components/pipeline/types'
 import { api } from '@/lib/api'
-import { money } from '@/lib/format'
+import { localAmount, revenueOf } from '@/lib/revenue'
 import {
   dealStageKeyOf,
-  probabilityMidpoint,
   stageKeyOf,
   stagesFor,
-  type Transition,
+  type NewTransition,
 } from '@/lib/pipeline'
 import { displayNameOf } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
@@ -49,24 +48,12 @@ function useParentLead(ctx: PipelineRecordContext) {
 }
 
 function DealHeader({ ctx }: { ctx: PipelineRecordContext }) {
-  const navigate = useNavigate()
-  const parent = useParentLead(ctx)
-  const contractValue = ctx.values?.contract_value
+  const revenue = ctx.values ? revenueOf(ctx.values) : null
 
-  return (
-    <>
-      {typeof contractValue === 'number' && <span>Contract value: ${money(contractValue)}</span>}
-      {parent.record && (
-        <button
-          type="button"
-          className="text-primary underline underline-offset-2"
-          onClick={() => navigate(`/leads/${parent.id}`)}
-        >
-          From {parent.id}
-        </button>
-      )}
-    </>
-  )
+  // "From LEAD-00118" removed on instruction. A Deal keeps a route back:
+  // parent_lead and parent_opportunity are both ON CONVERSION fields, which is
+  // a Details-tab section, so they are on screen at every stage.
+  return <>{revenue?.value != null && <span>{revenue.label}: {localAmount(revenue)}</span>}</>
 }
 
 /**
@@ -85,14 +72,14 @@ function useCreateExpansionLead(ctx: PipelineRecordContext) {
     mutationFn: async () => {
       const parentLead = parent.record
       if (!ctx.id || !ctx.values || !parentLead) throw new Error('Parent lead not loaded')
-      const now = new Date().toISOString()
       const reason =
         'Expansion lead — the client relationship and the integration already exist, so this enters directly at Stage 3 (Prescription) rather than Stage 0, per the journey doc.'
 
       const payload: Values = {
         opportunity_name: `${displayNameOf(parentLead)} — Expansion`,
         project_stage: stageKeyOf(EXPANSION_ENTRY_STAGE),
-        probability_pct: probabilityMidpoint(EXPANSION_ENTRY_STAGE),
+        // Progression %/Probability % are NOT seeded here — the Lead takes
+        // Stage 3's pair when it is created (app/progression.py).
         lead_status: 'OPEN',
         opportunity_type: 'EXPANSION',
         parent_deal: ctx.id,
@@ -105,16 +92,12 @@ function useCreateExpansionLead(ctx: PipelineRecordContext) {
         // plausibly carries it — see spec/extensions.json's note on that field.
         demo_attendees: Array.isArray(parentLead.demo_attendees) ? parentLead.demo_attendees : [],
         stage_skip_reason: reason,
-        created_date: now,
-        created_by: currentUserId(),
-        modified_date: now,
-        modified_by: currentUserId(),
       }
 
       const created = await api.post<Record<string, unknown>>('/leads', payload)
       const newId = String(created.data.id)
 
-      const transition: Transition = {
+      const transition: NewTransition = {
         module: 'leads',
         record_id: newId,
         from: 0,
@@ -122,8 +105,6 @@ function useCreateExpansionLead(ctx: PipelineRecordContext) {
         reason,
         is_skip: true,
         is_reversal: false,
-        actor: currentUserId(),
-        timestamp: now,
       }
       await api.post('/transitions', transition)
 
@@ -158,10 +139,7 @@ function DealActions({ ctx }: { ctx: PipelineRecordContext }) {
         </Button>
       )}
       <Button onClick={ctx.openAdvance} disabled={ctx.isLoading || !ctx.values}>
-        <ArrowRightIcon className="size-4" />
-        {ctx.currentStage >= LAST_STAGE
-          ? 'Change stage'
-          : `Advance to Stage ${ctx.currentStage + 1}`}
+        Update Stage
       </Button>
     </>
   )
@@ -179,43 +157,20 @@ function DealBanner({ ctx }: { ctx: PipelineRecordContext }) {
     filters: { mutationKey: [EXPANSION_MUTATION, ctx.id], status: 'error' },
     select: (m) => m.state.error,
   })
-  if (!failures.length) return null
-
   return (
-    <p className="mb-2 text-sm text-destructive">
-      Could not create the expansion lead — the parent lead may not be loaded yet.
-    </p>
+    <>
+      {failures.length > 0 && (
+        <p className="mb-2 text-sm text-destructive">
+          Could not create the expansion lead — the parent lead may not be loaded yet.
+        </p>
+      )}
+      <PursuitBanner ctx={ctx} />
+    </>
   )
 }
 
 function DealRelated({ ctx }: { ctx: PipelineRecordContext }) {
-  if (!ctx.values) return null
-
-  const endClientId = typeof ctx.values.end_client === 'string' ? ctx.values.end_client : undefined
-
-  return (
-    <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        {ctx.endClient
-          ? `Contacts at ${displayNameOf(ctx.endClient)} — carried from the Lead's End Client.`
-          : 'No End Client set.'}
-      </p>
-      {endClientId ? (
-        <RecordListView
-          module="contacts"
-          collection="contacts"
-          basePath="/contacts"
-          filter={{ account: endClientId }}
-          hiddenColumns={['account']}
-          renderCell={contactListCell}
-          pageSize={10}
-          emptyMessage="No contacts at this account yet."
-        />
-      ) : (
-        <p className="text-sm text-muted-foreground">No End Client set.</p>
-      )}
-    </div>
-  )
+  return <PipelineRelated ctx={ctx} />
 }
 
 export const dealsPipeline: PipelineModuleSpec = {
@@ -226,13 +181,13 @@ export const dealsPipeline: PipelineModuleSpec = {
   stages: stagesFor(MODULE),
   stageKeyOf: dealStageKeyOf,
   // A booked Deal is at 100%; there is no band left to judge.
-  writesProbability: false,
-  // The Deals sheet had no reason fields of its own when these screens were
-  // built, so a Deal's reason lives only on the Transition record. The split has
-  // since placed CROSS-CUTTING on all three modules, so deals now HAS
-  // stage_skip_reason and stage_reversal_reason — wiring them up would change
-  // what a Deal stores, which is a decision rather than a refactor.
-  stamp: () => ({ modified_by_date: new Date().toISOString() }),
+  // Same as Leads and Opportunities since 16 Sep 2026 (migration 0031): the
+  // Update Stage dialog writes the reason onto the Deal in the same save as
+  // the move, and ReasonsPanel lists it on the Details tab. The transition row
+  // still records every move; these hold the latest of each.
+  skipReasonField: 'stage_skip_reason',
+  reversalReasonField: 'stage_reversal_reason',
+  recordHeading: 'Deal Information',
   detailsHeading: 'On conversion, and system fields',
   showProbabilityBand: false,
   tabs: ['current', 'details', 'related', 'history'],
@@ -240,6 +195,9 @@ export const dealsPipeline: PipelineModuleSpec = {
   Actions: DealActions,
   Banner: DealBanner,
   Related: DealRelated,
+  // Stage 8's payment milestones: the schedule agreed on the Opportunity, with
+  // the delivery dates that could not be recorded anywhere until now.
+  StagePanel: DealPaymentMilestones,
 }
 
 export function DealDetailPage() {

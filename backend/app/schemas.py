@@ -1134,6 +1134,9 @@ DEAL_SCALARS = (
     "overall_rag",
     "next_milestone",
     "next_milestone_date",
+    # ADDED BY 0031 — as on leads and opportunities.
+    "stage_skip_reason",
+    "stage_reversal_reason",
     # SYSTEM_STAMPED — written by the server, never from the payload. Deals
     # had no actor columns at all until 0030; who touched a Deal lived only in
     # audit_log.
@@ -1267,6 +1270,9 @@ class DealBase(CustomFieldsMixin):
     overall_rag: str | None = Field(default=None, max_length=10)
     next_milestone: str | None = Field(default=None, max_length=200)
     next_milestone_date: date | None = None
+    # ADDED BY 0031 — written by the Update Stage dialog with the move.
+    stage_skip_reason: str | None = Field(default=None, max_length=500)
+    stage_reversal_reason: str | None = Field(default=None, max_length=500)
     # SYSTEM_STAMPED: declared so the scalar loop can read them off a payload
     # uniformly, discarded on write, and stamped from the Entra session.
     created_by: str | None = Field(default=None, max_length=20)
@@ -1367,6 +1373,8 @@ class DealOut(BaseModel):
     overall_rag: str | None = None
     next_milestone: str | None = None
     next_milestone_date: date | None = None
+    stage_skip_reason: str | None = None
+    stage_reversal_reason: str | None = None
     # The same four every other module serves, since 0030. created_by_date /
     # modified_by_date are gone: same facts, two names, four blank rows.
     created_by: str | None = None

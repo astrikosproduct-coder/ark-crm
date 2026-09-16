@@ -1670,6 +1670,13 @@ class Deal(StagePercentMixin, Base):
 
     next_milestone_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
 
+    # ADDED BY 0031 — the latest skip and reversal reason, kept on the record as
+    # Leads and Opportunities keep theirs. Written by the Update Stage dialog in
+    # the same save as the move; stage_transitions keeps one per move.
+    stage_skip_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    stage_reversal_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     # RECORD STATE, own instance. A Deal at Stage 7 is still forecasting a
     # booking month right up until order_booked/booking_date make it a fact,
     # and Close is the stage that number is read at hardest. Recorded per
