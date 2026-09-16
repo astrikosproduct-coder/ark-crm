@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowRightIcon, CheckIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { SecondaryCannotWin } from '@/components/pursuits/SecondaryCannotWin'
 import {
   Dialog,
   DialogContent,
@@ -14,8 +15,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { api } from '@/lib/api'
-import { dealStageKeyOf } from '@/lib/pipeline'
-import { displayNameOf, fieldsOf } from '@/lib/spec'
+import { errorMessage } from '@/lib/admin'
+import { pursuitErrorOf } from '@/lib/pursuitGroups'
+import { alreadyConvertedOf, dealStageKeyOf, stageOf, STAGE_PCT_FIELDS } from '@/lib/pipeline'
+import { displayNameOf, fieldOf, fieldsOf, labelForValue } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
 
 interface Props {
@@ -25,7 +28,24 @@ interface Props {
   onClose: () => void
 }
 
-const OPENING_STAGE = 8
+/**
+ * Where a converted Opportunity lands: Stage 7 — Close, the first stage Deals
+ * own (spec/module_split.json ranges), and the stage whose two sections — the
+ * register's own ON CONVERSION plus STAGE 7 — CLOSE, moved in by the split —
+ * exist precisely to be filled at this moment.
+ *
+ * It used to be 8, which was wrong in four ways at once: G3 Commercial is
+ * anchored to ENTERING Stage 7 so that no skip can bypass it, and it never
+ * fired; Stage 7's entry criteria never ran; Stage 7's own fields (PO number,
+ * contract signed date, payment schedule confirmed, ERP reference, PSP,
+ * handover pack, kickoff) were never demanded while the rail drew that stage
+ * as completed; and a Deal booked this morning opened at Stage 8's 100/100,
+ * reporting delivery complete before a single milestone. 7 → 8 is now an
+ * ordinary Update Stage move with its own checks.
+ *
+ * A paid-pilot Deal has always opened here (app/progression.py PILOT_DEAL_STAGE).
+ */
+const OPENING_STAGE = 7
 
 interface ConversionResult {
   dealId: string
@@ -50,7 +70,12 @@ export function ConvertToDealDialog({ open, opportunityId, values, onClose }: Pr
       const dealPayload: Values = {}
 
       for (const [key, value] of Object.entries(values)) {
-        if (key === 'id' || readThrough.has(key)) continue
+        // STAGE_PCT_FIELDS, like readThrough, is excluded: the Deal takes its
+        // OWN stage's Progression %/Probability % on create. Sending Stage 6's
+        // 85/70 to a Deal opening at Stage 8 reads as an override of Stage 8's
+        // 100/100, and the server refuses the whole conversion for want of an
+        // Override Justification nobody meant to give (app/progression.py).
+        if (key === 'id' || readThrough.has(key) || STAGE_PCT_FIELDS.has(key)) continue
         dealPayload[key] = value
       }
 
@@ -61,36 +86,21 @@ export function ConvertToDealDialog({ open, opportunityId, values, onClose }: Pr
       dealPayload.delivery_pm = currentUserId()
       dealPayload.order_booked = true
       dealPayload.booking_date = now.slice(0, 10)
-      dealPayload.created_by_date = now
-      dealPayload.modified_by_date = now
+      dealPayload.conversion_note = `${opportunityId} moved to Deals from its Stage 6 detail page.`
 
+      // ONE request. Creating the Deal converts the Opportunity and writes the
+      // conversion record in the same server transaction, and a second press
+      // is refused rather than booking a second Deal — see
+      // backend/app/conversion.py.
       const createdDeal = await api.post<Record<string, unknown>>('/deals', dealPayload)
-      const dealId = String(createdDeal.data.id)
-
-      await api.put(`/opportunities/${opportunityId}`, {
-        lead_status: 'CONVERTED',
-        modified_date: now,
-        modified_by: currentUserId(),
-      })
 
       const copiedFields = Object.keys(dealPayload).filter(
-        (key) => !['parent_opportunity', 'deal_stage'].includes(key)
+        (key) => !['parent_opportunity', 'deal_stage', 'conversion_note'].includes(key)
       )
-      await api.post('/conversions', {
-        source_module: 'opportunities',
-        source_id: opportunityId,
-        target_module: 'deals',
-        target_id: dealId,
-        actor: currentUserId(),
-        timestamp: now,
-        copied_fields: copiedFields,
-        note: `${opportunityId} moved to Deals from its Stage 6 detail page.`,
-      })
-
-
-      return { dealId, copiedFieldCount: copiedFields.length }
+      return { dealId: String(createdDeal.data.id), copiedFieldCount: copiedFields.length }
     },
     onSuccess: async (conversion) => {
+      setResult(conversion)
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['record', 'opportunities', opportunityId] }),
         queryClient.invalidateQueries({ queryKey: ['list', 'opportunities'] }),
@@ -98,7 +108,6 @@ export function ConvertToDealDialog({ open, opportunityId, values, onClose }: Pr
         queryClient.invalidateQueries({ queryKey: ['list', 'deals'] }),
         queryClient.invalidateQueries({ queryKey: ['collection', 'deals'] }),
       ])
-      setResult(conversion)
     },
   })
 
@@ -109,6 +118,8 @@ export function ConvertToDealDialog({ open, opportunityId, values, onClose }: Pr
     onClose()
   }
 
+  const alreadyConverted = alreadyConvertedOf(convert.error)
+
   return (
     <Dialog open={open} onOpenChange={(next) => !next && handleClose()}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
@@ -117,7 +128,7 @@ export function ConvertToDealDialog({ open, opportunityId, values, onClose }: Pr
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <ArrowRightIcon className="size-4" />
-                Convert {opportunityId} to a Deal
+                Convert {displayNameOf(values)} to a Deal
               </DialogTitle>
               <DialogDescription>
                 Nothing happens until you confirm. This is what will happen:
@@ -125,22 +136,52 @@ export function ConvertToDealDialog({ open, opportunityId, values, onClose }: Pr
             </DialogHeader>
 
             <ul className="space-y-2 text-sm">
-              <li>A Deal is created at Stage {OPENING_STAGE}.</li>
-              <li>{opportunityId} becomes read-only and its status becomes Converted.</li>
+              <li>
+                A Deal is created at Stage {OPENING_STAGE}
+                {stageOf(OPENING_STAGE)?.name ? ` — ${stageOf(OPENING_STAGE)?.name}` : ''}, taking that
+                stage&apos;s Progression % and Probability %. Stage 8 is a move you make once delivery has
+                actually started.
+              </li>
+              <li>This opportunity becomes read-only and its status becomes {labelForValue(fieldOf('leads', 'lead_status')?.picklist, 'CONVERTED')}.</li>
               <li>The Opportunity fields are carried into the Deal and the conversion is audited.</li>
             </ul>
 
+            {alreadyConverted ? (
+              <p className="text-sm text-destructive">{alreadyConverted.message}</p>
+            ) : (
+              convert.isError &&
+              !pursuitErrorOf(convert.error) && (
+                <p className="text-sm text-destructive">
+                  {errorMessage(convert.error, { fallback: 'The conversion failed.' })} Nothing was changed.
+                </p>
+              )
+            )}
             {convert.isError && (
-              <p className="text-sm text-destructive">The conversion failed — nothing was changed.</p>
+              <SecondaryCannotWin error={convert.error} recordId={opportunityId} retry={() => convert.mutate()} />
             )}
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={handleClose} disabled={convert.isPending}>
-                Cancel
+                {alreadyConverted ? 'Close' : 'Cancel'}
               </Button>
-              <Button type="button" onClick={() => convert.mutate()} disabled={convert.isPending}>
-                {convert.isPending ? 'Converting…' : 'Confirm conversion'}
-              </Button>
+              {alreadyConverted?.target_id ? (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const dealId = alreadyConverted.target_id
+                    handleClose()
+                    navigate(`/deals/${dealId}`)
+                  }}
+                >
+                  Go to {alreadyConverted.target_id}
+                </Button>
+              ) : (
+                !alreadyConverted && (
+                  <Button type="button" onClick={() => convert.mutate()} disabled={convert.isPending}>
+                    {convert.isPending ? 'Converting…' : 'Confirm conversion'}
+                  </Button>
+                )
+              )}
             </DialogFooter>
           </>
         ) : (
@@ -148,7 +189,7 @@ export function ConvertToDealDialog({ open, opportunityId, values, onClose }: Pr
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <CheckIcon className="size-4 text-emerald-600 dark:text-emerald-400" />
-                {opportunityId} converted to {result.dealId}
+                {displayNameOf(values)} converted to a Deal
               </DialogTitle>
               <DialogDescription>Here is exactly what happened.</DialogDescription>
             </DialogHeader>
@@ -156,13 +197,13 @@ export function ConvertToDealDialog({ open, opportunityId, values, onClose }: Pr
             <p className="flex items-start gap-2 text-sm">
               <CheckIcon className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
               <span>
-                Deal {result.dealId} created from {displayNameOf(values)} with {result.copiedFieldCount}{' '}
+                A Deal was created from {displayNameOf(values)} with {result.copiedFieldCount}{' '}
                 carried field{result.copiedFieldCount === 1 ? '' : 's'}.
               </span>
             </p>
             <p className="flex items-start gap-2 text-sm">
               <CheckIcon className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-              <span>{opportunityId} is now read-only, status Converted.</span>
+              <span>{displayNameOf(values)} is now read-only, status {labelForValue(fieldOf('leads', 'lead_status')?.picklist, 'CONVERTED')}.</span>
             </p>
 
             <DialogFooter>
