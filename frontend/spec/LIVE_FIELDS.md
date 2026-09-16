@@ -4,7 +4,7 @@
 
 Partners · Accounts · Contacts · Leads · Opportunities · Deals — every field the prototype renders today, with its type, its picklist options and, for a child list, every column of one row.
 
-Generated on 2026-09-10 by running the application's own spec loader, not a copy of it — `npm run spec:fields`. The workbook remains the source; `spec/fields.json` is never hand-edited.
+Generated on 2026-09-16 by running the application's own spec loader, not a copy of it — `npm run spec:fields`. The workbook remains the source; `spec/fields.json` is never hand-edited.
 
 **What "live" means here.** A field is listed if the form engine puts it on a screen. Four rules shape the list:
 
@@ -28,14 +28,14 @@ Generated on 2026-09-10 by running the application's own spec loader, not a copy
 
 | Module | Stages | Live record fields | Child lists | Child-list columns | Sections |
 |---|---|---|---|---|---|
-| **Partners** | — | 33 | 0 | 0 | 3 |
+| **Partners** | — | 39 | 0 | 0 | 3 |
 | **Accounts** | — | 18 | 0 | 0 | 4 |
 | **Contacts** | — | 15 | 0 | 0 | 2 |
-| **Leads** | 0–3 | 80 | 2 | 8 | 9 |
-| **Opportunities** | 4–6 | 101 | 1 | 8 | 9 |
-| **Deals** | 7–9 | 90 | 2 | 11 | 10 |
+| **Leads** | 0–3 | 80 | 2 | 8 | 8 |
+| **Opportunities** | 4–6 | 103 | 1 | 8 | 11 |
+| **Deals** | 7–9 | 91 | 2 | 11 | 9 |
 
-Row counts match the target placement in `ARK_CRM_Field_Register_Split_v1.xlsx`: Leads 80, Opportunities 105, Deals 97 — counting every row on the sheet, including the child-column rows the form engine folds into their table.
+Row counts match the target placement in `ARK_CRM_Field_Register_Split_v1.xlsx`: Leads 80, Opportunities 107, Deals 98 — counting every row on the sheet, including the child-column rows the form engine folds into their table.
 
 ---
 
@@ -49,15 +49,18 @@ Row counts match the target placement in `ARK_CRM_Field_Register_Split_v1.xlsx`:
 | Partner | `partner` | lookup | **Mandatory** | — | → `account` |
 | End Client | `end_client` | lookup | **Mandatory** | — | → `account` |
 | Project Name | `project_name` | text | **Mandatory** | — | max 150 |
+| Currency | `currency` | picklist | **Mandatory** | — | `leads__currency` — USD · AED · SAR · QAR · OMR · KWD · BHD · INR |
 | Estimated Value | `estimated_value` | currency | **Mandatory** | — | — |
-| Expected Timeline | `expected_timeline` | text | **Mandatory** | — | max 100 |
+| Expected Timeline | `expected_timeline` | date | **Mandatory** | — | — |
 | Partner Role | `partner_role` | picklist | **Mandatory** | — | `partners__partner_role` — Prime · Sub |
 | Submitted Date | `submitted_date` | date | **Mandatory** | — | — |
 | Acknowledged Date | `acknowledged_date` | date | **Mandatory** | — | — |
 | Acknowledgement SLA Met | `acknowledgement_sla_met` | computed | Computed | — | `acknowledged_date <= add_days(submitted_date, 2)` |
 | Exclusivity Start Date | `exclusivity_start_date` | date | **Mandatory** | — | — |
 | Exclusivity Expiry Date | `exclusivity_expiry_date` | computed | Computed | — | `add_days(exclusivity_start_date, 89)`<br>Start date plus 90 days |
-| Registration Status | `registration_status` | picklist | **Mandatory** | — | `partners__registration_status` — Submitted · Acknowledged · Active · Extended · Expired · Superseded · Rejected |
+| Registration Status | `registration_status` | picklist | **Mandatory** | — | `partners__registration_status` — Submitted · Acknowledged · Active · Extended · Expired · Superseded · Rejected · Withdrawn |
+| Withdrawn Date | `withdrawn_date` | date | System | — | shown when `registration_status == 'Withdrawn'` |
+| Withdrawal Reason | `withdrawal_reason` | long text | System | — | shown when `registration_status == 'Withdrawn'` |
 | Extension Reason | `extension_reason` | text | Conditional | — | max 500 |
 | Linked Lead | `linked_lead` | lookup | Optional | — | → `lead` |
 
@@ -68,10 +71,13 @@ Row counts match the target placement in `ARK_CRM_Field_Register_Split_v1.xlsx`:
 | Conflict ID | `conflict_id` | autonumber | System | — | CNF-00001 |
 | Registration A | `registration_a` | lookup | **Mandatory** | — | → `deal_registration` |
 | Registration B | `registration_b` | lookup | **Mandatory** | — | → `deal_registration` |
-| Who Registered First | `who_registered_first` | text | **Mandatory** | — | max 300 |
-| Stronger Client Relationship | `stronger_client_relationship` | text | **Mandatory** | — | max 300 |
-| Better Delivery Capability | `better_delivery_capability` | text | **Mandatory** | — | max 300 |
-| Decision | `decision` | picklist | **Mandatory** | — | `partners__decision` — Awarded to Registration A · Awarded to Registration B · Both declined |
+| Who Registered First | `who_registered_first` | picklist | System | — | `partners__who_registered_first` — Registration A · Registration B · Same day |
+| Stronger Client Relationship | `stronger_client_relationship` | picklist | **Mandatory** | — | `partners__relationship_assessment` — Registration A · Registration B · Comparable · Neither has an established relationship |
+| Better Delivery Capability | `better_delivery_capability` | picklist | **Mandatory** | — | `partners__delivery_assessment` — Registration A · Registration B · Comparable · Neither meets the requirement |
+| Decision | `decision` | picklist | **Mandatory** | — | `partners__decision` — Awarded to Registration A · Awarded to Registration B · Both declined · Both pursued |
+| Primary Registration | `primary_registration` | lookup | Conditional | — | → `deal_registration`<br>required when `decision == 'Both pursued'`<br>shown when `decision == 'Both pursued'` |
+| Decision Rationale & Evidence | `decision_rationale` | long text | Conditional | — | — |
+| Evidence Link | `evidence_link` | url | Optional | — | — |
 | Decision Date | `decision_date` | date | **Mandatory** | — | — |
 | Decided By | `decided_by` | lookup | **Mandatory** | — | → `user` |
 | Both Partners Notified | `both_partners_notified` | checkbox | **Mandatory** | — | — |
@@ -118,10 +124,10 @@ Row counts match the target placement in `ARK_CRM_Field_Register_Split_v1.xlsx`:
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula |
 |---|---|---|---|---|---|
-| Partner Tier | `partner_tier` | picklist | Conditional | — | `accounts__partner_tier` — Tier 1 Strategic · Tier 2 Commercial · Registered · Not a partner |
-| Partner Type | `partner_type` | picklist | Conditional | — | `accounts__partner_type` — Strategic MSI · Systems Integrator · OEM / Technology · Sector Specialist |
-| Partner Satisfaction Score | `partner_satisfaction_score` | number | Optional | — | — |
-| Engagement Cadence | `engagement_cadence` | picklist | Conditional | — | `accounts__engagement_cadence` — Monthly · Bi-monthly · Deal-specific only |
+| Partner Tier | `partner_tier` | picklist | Conditional | — | `accounts__partner_tier` — Tier 1 Strategic · Tier 2 Commercial · Registered · Not a partner<br>required when `account_type includes 'Partner / SI' \|\| account_type includes 'Consultant / Specifier' \|\| account_type includes 'OEM / Technology Partner'`<br>shown when `account_type includes 'Partner / SI' \|\| account_type includes 'Consultant / Specifier' \|\| account_type includes 'OEM / Technology Partner'` |
+| Partner Type | `partner_type` | picklist | Conditional | — | `accounts__partner_type` — Strategic MSI · Systems Integrator · OEM / Technology · Sector Specialist<br>required when `account_type includes 'Partner / SI' \|\| account_type includes 'Consultant / Specifier' \|\| account_type includes 'OEM / Technology Partner'`<br>shown when `account_type includes 'Partner / SI' \|\| account_type includes 'Consultant / Specifier' \|\| account_type includes 'OEM / Technology Partner'` |
+| Partner Satisfaction Score | `partner_satisfaction_score` | number | Optional | — | shown when `account_type includes 'Partner / SI' \|\| account_type includes 'Consultant / Specifier' \|\| account_type includes 'OEM / Technology Partner'` |
+| Engagement Cadence | `engagement_cadence` | picklist | Conditional | — | `accounts__engagement_cadence` — Monthly · Bi-monthly · Deal-specific only<br>required when `account_type includes 'Partner / SI' \|\| account_type includes 'Consultant / Specifier' \|\| account_type includes 'OEM / Technology Partner'`<br>shown when `account_type includes 'Partner / SI' \|\| account_type includes 'Consultant / Specifier' \|\| account_type includes 'OEM / Technology Partner'` |
 
 ### RESEARCH
 
@@ -144,8 +150,8 @@ Row counts match the target placement in `ARK_CRM_Field_Register_Split_v1.xlsx`:
 | Job Title | `job_title` | text | **Mandatory** | — | max 100 |
 | Account | `account` | lookup | **Mandatory** | — | → `account` |
 | Email | `email` | email | Optional | — | — |
-| Phone | `phone` | text | Optional | — | max 30 |
-| Mobile | `mobile` | text | Optional | — | max 30 |
+| Phone | `phone` | phone | Optional | — | max 30 |
+| Mobile | `mobile` | phone | Optional | — | max 30 |
 | LinkedIn | `linkedin` | url | Optional | — | — |
 
 ### ROLE & RELATIONSHIP
@@ -154,9 +160,9 @@ Row counts match the target placement in `ARK_CRM_Field_Register_Split_v1.xlsx`:
 |---|---|---|---|---|---|
 | Contact Role | `contact_role` | picklist | **Mandatory** | — | `contacts__contact_role` — DECM Decision Maker · RECM Recommender · INFL Influencer · INTEL Intel Provider · GENL General Contact |
 | Engagement Owner | `engagement_owner` | lookup | **Mandatory** | — | → `user` |
-| Relationship Score | `relationship_score` | number | Conditional | — | — |
+| Relationship Score | `relationship_score` | number | Optional | — | — |
 | Friend / Foe Assessment | `friend_foe_assessment` | picklist | Optional | — | `contacts__friend_foe_assessment` — Supporter · Neutral · Blocker |
-| Confidential | `confidential` | checkbox | System | — | — |
+| Confidential | `confidential` | checkbox | Optional | — | — |
 | Is Client POC Evaluator | `is_client_poc_evaluator` | checkbox | Optional | — | — |
 | Notes | `notes` | rich text | Optional | — | — |
 
@@ -166,61 +172,64 @@ Row counts match the target placement in `ARK_CRM_Field_Register_Split_v1.xlsx`:
 
 Stages 0–3.
 
-### HEADER
-
-| Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
-|---|---|---|---|---|---|---|
-| Progression % | `progression_pct` | number | Optional | any | 0 · 11 · 22 · 33 · 44 · 56 · 67 · 78 · 89 · 100 | — |
-
-### RECORD STATE — each module keeps its own instance
+### RECORD STATE
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
 | Lead Stage | `project_stage` | picklist | **Mandatory** | any | **Derived from the module range, not from `leads_stage`** — 0 Connect · 1 Demo Presentation · 2 POC / Pilot · 3 Prescription | — |
-| Lead Status | `lead_status` | picklist | **Mandatory** | any | `leads__lead_status` — Open · On Hold · Closed Lost · Converted | — |
-| Probability (%) | `probability_pct` | number | **Mandatory** | any | Must sit in the band for the current stage | — |
-| Expected Close Month | `expected_close_month` | date | **Mandatory** | any | — | — |
+| Lead Status | `lead_status` | picklist | **Mandatory** | any | `leads__lead_status` — Open · On Hold · Closed Lost · Converted · POC/Pilot Deal | — |
 
 ### STAGE 0 — CONNECT
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
 | Lead ID | `lead_id` | autonumber | System | 0 | LEAD-00001 | — |
+| BD Owner | `bd_owner` | lookup | **Mandatory** | 0 | → `user`, filtered: _Role must include BD Owner_<br>Role must include BD Owner | — |
 | Opportunity Name | `opportunity_name` | text | **Mandatory** | 0 | max 150<br>Format: [Project Name] — [Client] | — |
 | Country | `country` | text | Optional | 0 | max 120 | — |
 | City / State | `city_state` | text | Optional | 0 | max 120 | — |
 | Destination Region | `destination_region` | picklist | Optional | 0 | `region` — India · MEA · APAC · Americas<br>Same value set as Region | — |
 | Booking Region | `booking_region` | picklist | Optional | 0 | `region` — India · MEA · APAC · Americas<br>Same value set as Region | — |
-| End Client | `end_client` | lookup | **Mandatory** | 0 | → `account`, filtered: _Account Type must include End Client_<br>Account Type must include End Client | — |
-| Customer (Partner / SI) | `customer_partner_si` | lookup | **Mandatory** | 0 | → `account`, filtered: _Account Type must include Partner / SI_<br>Account Type must include Partner / SI | — |
-| BD Owner | `bd_owner` | lookup | **Mandatory** | 0 | → `user`, filtered: _Role must include BD Owner_<br>Role must include BD Owner | — |
-| Primary Contact | `primary_contact` | lookup | Optional | 0 | → `contact` | — |
 | Deal Source | `deal_source` | picklist | **Mandatory** | 0 | `leads__deal_source` — Partner-sourced · Direct | — |
-| Opportunity Type | `opportunity_type` | picklist | **Mandatory** | 0 | `leads__opportunity_type` — New Logo · Expansion · Renewal | — |
 | Partner Deal Registration | `partner_deal_registration` | lookup | Conditional | 0 | → `deal_registration`<br>shown when `deal_source == 'Partner-sourced'` | — |
+| Customer (Partner / SI) | `customer_partner_si` | lookup | **Mandatory** | 0 | → `account`, filtered: _Account Type must include Partner / SI_<br>Account Type must include Partner / SI<br>required when `deal_source == "Partner-sourced"`<br>shown when `deal_source == "Partner-sourced"` | — |
+| End Client | `end_client` | lookup | **Mandatory** | 0 | → `account`, filtered: _Account Type must include End Client_<br>Account Type must include End Client | — |
+| Primary Contact | `primary_contact` | lookup | Optional | 0 | → `contact` | — |
+| Opportunity Type | `opportunity_type` | picklist | **Mandatory** | 0 | `leads__opportunity_type` — New Logo · Expansion · Renewal | — |
+| Parent Deal | `parent_deal` | lookup | Conditional | 0 | → `deal`<br>shown when `opportunity_type == 'Expansion'` | — |
+| Incremental Value | `incremental_value` | currency | Conditional | 0 | shown when `opportunity_type == 'Expansion'` | — |
 | Segment | `segment` | picklist | **Mandatory** | 0 | `segment` — Infrastructure · Industry · Power · Mobility | — |
 | Theme | `theme` | picklist | **Mandatory** | 0 | `theme` — Smart Cities · Energy Utilities & Critical Infrastructure · Smart Buildings & Campuses · Industry 4.0 & Manufacturing · Data Centers · Defence & Protected Markets · Smart Transport & Infrastructure | — |
 | S!aP Solution Suite | `sap_solution_suite` | text | **Mandatory** | 0 | Suite Type must be Primary suite | — |
 | Currency | `currency` | picklist | **Mandatory** | 0 | `leads__currency` — USD · AED · SAR · QAR · OMR · KWD · BHD · INR | — |
-| FX Rate at Entry | `fx_rate_at_entry` | number | System | 0 | Rate to USD | — |
+| FX Rate (local per 1 USD) | `fx_rate_at_entry` | number | Conditional | 0 | Local currency units per 1 USD, e.g. 3.6725 for AED. USD = local value / rate.<br>required when `currency != 'USD'`<br>shown when `currency != 'USD'` | — |
 | Estimated Value | `estimated_value` | currency | **Mandatory** | 0 | — | — |
-| Is Primary Pursuit | `is_primary_pursuit` | checkbox | **Mandatory** | 0 | Default true | — |
-| Parent Pursuit | `parent_pursuit` | lookup | Conditional | 0 | → `lead`<br>shown when `is_primary_pursuit == false` | — |
-| Parent Deal | `parent_deal` | lookup | Conditional | 0 | → `deal`<br>shown when `opportunity_type == 'Expansion'` | — |
-| Incremental Value | `incremental_value` | currency | Conditional | 0 | shown when `opportunity_type == 'Expansion'` | — |
+| Is Primary Pursuit | `is_primary_pursuit` | checkbox | System | 0 | System — true unless a Pursuit Group names another pursuit as primary | — |
+| Pursuit Group | `pursuit_group` | lookup | System | 0 | → `pursuit_group` | — |
+| Not a Duplicate — Reason | `not_duplicate_reason` | long text | Optional | 0 | shown when `not_duplicate_reason != ''` | — |
 | Contracting Party | `contracting_party` | computed | Computed | 0 | `deal_source == 'Partner-sourced' ? customer_partner_si : end_client`<br>Customer (Partner / SI) where Deal Source = Partner-sourced, otherwise End Client | — |
 | Remarks / Notes | `remarks_notes` | rich text | **Mandatory** | 0 | — | — |
 | Lighthouse Project | `lighthouse_project` | checkbox | Optional | 0 | — | — |
 | Gorilla Flag | `gorilla_flag` | checkbox | Optional | 0 | — | — |
 | Demo Agreed | `demo_agreed` | checkbox | **Mandatory** | 0 | — | — |
 | Demo Scheduled Date | `demo_scheduled_date` | date | **Mandatory** | 0 | — | — |
-| Demo Completed | `demo_completed` | checkbox | **Mandatory** | 0 | — | — |
-| Demo Field | `demo_field` | text | **Mandatory** | any | — | — |
+
+### Health & Forecast
+
+| Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
+|---|---|---|---|---|---|---|
+| Overall RAG | `overall_rag` | picklist | Optional | any | `overall_rag` — Green · Amber · Red | — |
+| Next Milestone | `next_milestone` | long text | Optional | any | max 200 | — |
+| Next Milestone Date | `next_milestone_date` | date | Optional | any | — | — |
+| Expected Close Month | `expected_close_month` | date | **Mandatory** | any | — | — |
+| Progression % | `progression_pct` | percent | Optional | any | Set from the stage: 5 · 15 · 25 · 40 · 50 · 70 · 85 · 95 · 100 · 100. Multiples of 5. | — |
+| Probability (%) | `probability_pct` | percent | **Mandatory** | any | Set from the stage: 5 · 10 · 20 · 30 · 40 · 55 · 70 · 90 · 100 · 100. Multiples of 5. | — |
 
 ### STAGE 1 — DEMO PRESENTATION
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
+| Demo Completed | `demo_completed` | checkbox | **Mandatory** | 1 | — | — |
 | Demo Date | `demo_date` | date | **Mandatory** | 1 | — | — |
 | Suite Demonstrated | `suite_demonstrated` | text | **Mandatory** | 1 | — | — |
 | Demo Attendees | `demo_attendees` | child list | **Mandatory** | 1 | row shape in the child-list table below | — |
@@ -262,25 +271,17 @@ Stages 0–3.
 | CTB Approval Date | `ctb_approval_date` | date | **Mandatory** | 3 | — | — |
 | Total Project Value | `total_project_value` | currency | Optional | 3 | shown when `alliance_structure == 'Partner prime'` | — |
 
-### __header
+### Aging
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
-| Overall RAG | `overall_rag` | picklist | Optional | any | `overall_rag` — Green · Amber · Red | — |
-| Next Milestone | `next_milestone` | text | Optional | any | max 200 | — |
-| Next Milestone Date | `next_milestone_date` | date | Optional | any | — | — |
-
-### CROSS-CUTTING
-
-| Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
-|---|---|---|---|---|---|---|
-| Probability Override Justification | `probability_override_justification` | text | Conditional | any | max 500 | — |
+| Override Justification | `probability_override_justification` | text | Conditional | any | max 500<br>required when `(progression_default_pct != '' && progression_pct != progression_default_pct) \|\| (probability_default_pct != '' && probability_pct != probability_default_pct)`<br>shown when `(progression_default_pct != '' && progression_pct != progression_default_pct) \|\| (probability_default_pct != '' && probability_pct != probability_default_pct)` | — |
 | Stage Skip Reason | `stage_skip_reason` | text | Conditional | any | max 500 | — |
 | Stage Reversal Reason | `stage_reversal_reason` | text | Conditional | any | max 500 | — |
-| Closed Lost Reason Code | `closed_lost_reason_code` | picklist | Conditional | any | `closed_lost_reason_code` — Lost to competitor · Price · Technical fit · Relationship · Client cancelled · Budget withdrawn · No bid · Partner conflict · Timing<br>required when `lead_status == 'Closed Lost'`<br>shown when `lead_status == 'Closed Lost'` | — |
+| Closed Lost Reason Code | `closed_lost_reason_code` | picklist | Conditional | any | `closed_lost_reason_code` — Lost to competitor · Price · Technical fit · Relationship · Client cancelled · Budget withdrawn · No bid · Partner conflict · Timing · Partner withdrew<br>required when `lead_status == 'Closed Lost'`<br>shown when `lead_status == 'Closed Lost'` | — |
 | On Hold Reason | `on_hold_reason` | text | Conditional | any | max 500<br>required when `lead_status == 'On Hold'`<br>shown when `lead_status == 'On Hold'` | — |
-| Days in Current Stage | `days_in_current_stage` | computed | Computed | — | **no formula in the register** | — |
-| Days Since Last Update | `days_since_last_update` | computed | Computed | — | **no formula in the register** | — |
+| Days in Current Stage | `days_in_current_stage` | computed | Computed | — | resolved by `days_in_stage` — see lib/spec/resolvers.ts | — |
+| Days Since Last Update | `days_since_last_update` | computed | Computed | — | resolved by `days_since_update` — see lib/spec/resolvers.ts | — |
 
 ### SYSTEM
 
@@ -335,20 +336,14 @@ Derived from the description ('Capability gaps surfaced during the demo') and us
 
 Stages 4–6. Holds `parent_lead`; identity is read through the parent `leads` and rendered read-only.
 
-### HEADER
-
-| Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
-|---|---|---|---|---|---|---|
-| Progression % | `progression_pct` | number | Optional | any | 0 · 11 · 22 · 33 · 44 · 56 · 67 · 78 · 89 · 100 | — |
-
-### RECORD STATE — each module keeps its own instance
+### RECORD STATE
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
 | Opportunity Stage | `project_stage` | picklist | **Mandatory** | 0 | **Derived from the module range, not from `leads_stage`** — 4 RFP / RFI · 5 Technical Evaluation · 6 Commercial Evaluation | — |
-| Opportunity Status | `lead_status` | picklist | **Mandatory** | 0 | `leads__lead_status` — Open · On Hold · Closed Lost · Converted | — |
-| Probability (%) | `probability_pct` | number | **Mandatory** | 0 | Must sit in the band for the current stage | — |
-| Expected Close Month | `expected_close_month` | date | **Mandatory** | 0 | — | — |
+| Opportunity Status | `lead_status` | picklist | **Mandatory** | 0 | `leads__lead_status` — Open · On Hold · Closed Lost · Converted · POC/Pilot Deal | — |
+| Is Primary Pursuit | `is_primary_pursuit` | checkbox | System | 0 | System — true unless a Pursuit Group names another pursuit as primary | — |
+| Pursuit Group | `pursuit_group` | lookup | System | 0 | → `pursuit_group` | — |
 
 ### STAGE 4 — RFP / RFI
 
@@ -356,35 +351,55 @@ Stages 4–6. Holds `parent_lead`; identity is read through the parent `leads` a
 |---|---|---|---|---|---|---|
 | RFP Type | `rfp_type` | picklist | **Mandatory** | 4 | `leads__rfp_type` — RFP · RFI · Tender · EOI | — |
 | RFP Received Date | `rfp_received_date` | date | **Mandatory** | 4 | — | — |
-| Submission Deadline | `submission_deadline` | date-time | **Mandatory** | 4 | — | — |
-| ARR (Annual Recurring) | `arr_annual_recurring` | currency | **Mandatory** | 4 | — | — |
-| One-Time Revenue | `one_time_revenue` | currency | **Mandatory** | 4 | — | — |
-| 3rd-Party One-Time | `3rd_party_one_time` | currency | **Mandatory** | 4 | — | — |
-| 3rd-Party Recurring (per year) | `3rd_party_recurring_per_year` | currency | **Mandatory** | 4 | — | — |
-| Contract Years | `contract_years` | number | **Mandatory** | 4 | — | — |
-| Total Value (TCV) | `total_value_tcv` | computed | Computed | 4 | `arr_annual_recurring * contract_years + perpetual_licence_fee + one_time_revenue + 3rd_party_one_time + 3rd_party_recurring_per_year * contract_years`<br>(ARR × Years) + Perpetual Licence Fee + One-Time + 3rd-Party One-Time + (3rd-Party Recurring × Years) | — |
-| Gross Margin % | `gross_margin_pct` | computed | Computed | 4 | `((arr_annual_recurring * contract_years + perpetual_licence_fee + one_time_revenue) - services_and_implementation_cost) / (arr_annual_recurring * contract_years + perpetual_licence_fee + one_time_revenue)`<br>(((ARR × Contract Years) + Perpetual Licence Fee + One-Time Revenue) - Services & Implementation Cost) / ((ARR × Contract Years) + Perpetual Licence Fee + One-Time Revenue). Excludes third-party content. | — |
+| Submission Deadline | `submission_deadline` | date | **Mandatory** | 4 | — | — |
 | Competitors Noticed | `competitors_noticed` | text | **Mandatory** | 4 | max 255<br>Free text. Was typed multiselect with no value set behind it in the register. | — |
 | Bid Record | `bid_record` | lookup | **Mandatory** | 4 | → `bid` | — |
-| Bid Submission Date | `bid_submission_date` | date-time | **Mandatory** | 4 | — | — |
+| Bid Submission Date | `bid_submission_date` | date | **Mandatory** | 4 | — | — |
 | Submitted On Time | `submitted_on_time` | computed | Computed | 4 | `bid_submission_date <= submission_deadline`<br>Bid Submission Date ≤ Submission Deadline | — |
 | Debrief Requested Date | `debrief_requested_date` | date | Advisory | 4 | — | — |
-| Platform Licence List Price | `platform_licence_list_price` | currency | **Mandatory** | 4 | — | — |
-| Licence Discount % | `licence_discount_pct` | computed | Computed | 4 | `(platform_licence_list_price - arr_annual_recurring) / platform_licence_list_price`<br>(List Price - ARR) / List Price | — |
-| Services & Implementation Cost | `services_and_implementation_cost` | currency | **Mandatory** | 4 | — | — |
-| Third-Party Cost | `third_party_cost` | currency | Conditional | 4 | — | — |
-| Total Cost | `total_cost` | computed | Computed | 4 | `services_and_implementation_cost + third_party_cost`<br>Services & Implementation Cost + Third-Party Cost | — |
-| Third-Party % of TCV | `third_party_pct_of_tcv` | computed | Computed | 4 | `(3rd_party_one_time + 3rd_party_recurring_per_year * contract_years) / total_value_tcv`<br>(3rd-Party One-Time + 3rd-Party Recurring × Years) / Total Value (TCV) | — |
-| Cost Model (RCM) Document Link | `cost_model_rcm_document` | url | **Mandatory** | 4 | — | — |
-| Licence Model | `licence_model` | picklist | **Mandatory** | 4 | `leads__licence_model` — Subscription · Perpetual | — |
-| Perpetual Licence Fee | `perpetual_licence_fee` | currency | Conditional | 4 | shown when `licence_model == 'Perpetual'` | — |
 | Client Tender Reference | `client_tender_reference` | text | Optional | 4 | max 60 | — |
-| Primary Quote | `primary_quote` | lookup | **Mandatory** | 4 | → `quote`, filtered: _Status must be Sent_<br>Status must be Sent | — |
-| RFP DOCUMENT FILE | `rfp_document_file` | file | **Mandatory** | 4 | — | — |
 | Nomination Bid | `nomination_bid` | checkbox | Optional | 4 | — | — |
 | Incumbent Only | `incumbent_only` | checkbox | Optional | 4 | — | — |
 | Parent Lead | `parent_lead` | lookup | System | 4 | → `lead` | — |
 | Value Confidence | `value_confidence` | picklist | Optional | 4 | `value_confidence` — Budgetary · Firm | — |
+
+### Health & Forecast
+
+| Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
+|---|---|---|---|---|---|---|
+| Overall RAG | `overall_rag` | picklist | Optional | any | `overall_rag` — Green · Amber · Red | — |
+| Next Milestone | `next_milestone` | long text | Optional | any | max 200 | — |
+| Next Milestone Date | `next_milestone_date` | date | Optional | any | — | — |
+| Expected Close Month | `expected_close_month` | date | **Mandatory** | 0 | — | — |
+| Progression % | `progression_pct` | percent | Optional | any | Set from the stage: 5 · 15 · 25 · 40 · 50 · 70 · 85 · 95 · 100 · 100. Multiples of 5. | — |
+| Probability (%) | `probability_pct` | percent | **Mandatory** | 0 | Set from the stage: 5 · 10 · 20 · 30 · 40 · 55 · 70 · 90 · 100 · 100. Multiples of 5. | — |
+
+### STAGE 4 — COMMERCIAL: REVENUE
+
+| Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
+|---|---|---|---|---|---|---|
+| Licence Model | `licence_model` | picklist | **Mandatory** | 4 | `leads__licence_model` — Subscription · Perpetual | — |
+| Platform Licence List Price | `platform_licence_list_price` | currency | **Mandatory** | 4 | — | — |
+| ARR (Annual Recurring) | `arr_annual_recurring` | currency | **Mandatory** | 4 | — | — |
+| Licence Discount % | `licence_discount_pct` | computed | Computed | 4 | `(platform_licence_list_price - arr_annual_recurring) / platform_licence_list_price`<br>(List Price - ARR) / List Price | — |
+| Perpetual Licence Fee | `perpetual_licence_fee` | currency | Conditional | 4 | shown when `licence_model == 'Perpetual'` | — |
+| One-Time Revenue | `one_time_revenue` | currency | **Mandatory** | 4 | — | — |
+| Contract Years | `contract_years` | number | **Mandatory** | 4 | — | — |
+| 3rd-Party Revenue — One-Time | `3rd_party_one_time` | currency | **Mandatory** | 4 | — | — |
+| 3rd-Party Revenue — Recurring (per year) | `3rd_party_recurring_per_year` | currency | **Mandatory** | 4 | — | — |
+| Total Value (TCV) | `total_value_tcv` | computed | Computed | 4 | `arr_annual_recurring * contract_years + perpetual_licence_fee + one_time_revenue + 3rd_party_one_time + 3rd_party_recurring_per_year * contract_years`<br>(ARR × Years) + Perpetual Licence Fee + One-Time + 3rd-Party One-Time + (3rd-Party Recurring × Years) | — |
+| Third-Party % of TCV | `third_party_pct_of_tcv` | computed | Computed | 4 | `(3rd_party_one_time + 3rd_party_recurring_per_year * contract_years) / total_value_tcv`<br>(3rd-Party One-Time + 3rd-Party Recurring × Years) / Total Value (TCV) | — |
+| Primary Quote | `primary_quote` | lookup | **Mandatory** | 4 | → `quote`, filtered: _Status must be Sent_<br>Status must be Sent | — |
+
+### STAGE 4 — COMMERCIAL: COST & MARGIN
+
+| Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
+|---|---|---|---|---|---|---|
+| Services & Implementation Cost | `services_and_implementation_cost` | currency | **Mandatory** | 4 | — | — |
+| 3rd-Party Cost (paid to vendors) | `third_party_cost` | currency | Conditional | 4 | — | — |
+| Total Cost | `total_cost` | computed | Computed | 4 | `services_and_implementation_cost + third_party_cost`<br>Services & Implementation Cost + Third-Party Cost | — |
+| Gross Margin % | `gross_margin_pct` | computed | Computed | 4 | `((arr_annual_recurring * contract_years + perpetual_licence_fee + one_time_revenue) - services_and_implementation_cost) / (arr_annual_recurring * contract_years + perpetual_licence_fee + one_time_revenue)`<br>(((ARR × Contract Years) + Perpetual Licence Fee + One-Time Revenue) - Services & Implementation Cost) / ((ARR × Contract Years) + Perpetual Licence Fee + One-Time Revenue). Excludes third-party content. | — |
+| Cost Model (RCM) Document Link | `cost_model_rcm_document` | url | **Mandatory** | 4 | — | — |
 
 ### STAGE 5 — TECHNICAL EVALUATION
 
@@ -423,9 +438,6 @@ Stages 4–6. Holds `parent_lead`; identity is read through the parent `leads` a
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
-| Overall RAG | `overall_rag` | picklist | Optional | any | `overall_rag` — Green · Amber · Red | — |
-| Next Milestone | `next_milestone` | text | Optional | any | max 200 | — |
-| Next Milestone Date | `next_milestone_date` | date | Optional | any | — | — |
 | Low Hanging | `is_low_hanging` | checkbox | Optional | any | — | — |
 | Low Hanging Rank | `low_hanging_rank` | number | Optional | any | — | — |
 | Top 10 | `is_top_10` | checkbox | Optional | any | — | — |
@@ -451,6 +463,7 @@ Stages 4–6. Holds `parent_lead`; identity is read through the parent `leads` a
 | Theme | `theme` | picklist | **Mandatory** | 0 | `theme` — Smart Cities · Energy Utilities & Critical Infrastructure · Smart Buildings & Campuses · Industry 4.0 & Manufacturing · Data Centers · Defence & Protected Markets · Smart Transport & Infrastructure | — |
 | S!aP Solution Suite | `sap_solution_suite` | text | **Mandatory** | 0 | Suite Type must be Primary suite | — |
 | Currency | `currency` | picklist | **Mandatory** | 0 | `leads__currency` — USD · AED · SAR · QAR · OMR · KWD · BHD · INR | — |
+| FX Rate (local per 1 USD) | `fx_rate_at_entry` | number | Conditional | 0 | Local currency units per 1 USD, e.g. 3.6725 for AED. USD = local value / rate.<br>required when `currency != 'USD'`<br>shown when `currency != 'USD'` | — |
 | Lighthouse Project | `lighthouse_project` | checkbox | Optional | 0 | — | — |
 | Gorilla Flag | `gorilla_flag` | checkbox | Optional | 0 | — | — |
 | Suite Demonstrated | `suite_demonstrated` | text | **Mandatory** | 1 | — | — |
@@ -462,17 +475,17 @@ Stages 4–6. Holds `parent_lead`; identity is read through the parent `leads` a
 | Alliance Structure | `alliance_structure` | picklist | **Mandatory** | 3 | `leads__alliance_structure` — Astrikos prime · Partner prime · Consortium / joint bid · Not applicable | — |
 | Total Project Value | `total_project_value` | currency | Optional | 3 | shown when `alliance_structure == 'Partner prime'` | — |
 
-### CROSS-CUTTING
+### Aging
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
-| Probability Override Justification | `probability_override_justification` | text | Conditional | any | max 500 | — |
+| Override Justification | `probability_override_justification` | text | Conditional | any | max 500<br>required when `(progression_default_pct != '' && progression_pct != progression_default_pct) \|\| (probability_default_pct != '' && probability_pct != probability_default_pct)`<br>shown when `(progression_default_pct != '' && progression_pct != progression_default_pct) \|\| (probability_default_pct != '' && probability_pct != probability_default_pct)` | — |
 | Stage Skip Reason | `stage_skip_reason` | text | Conditional | any | max 500 | — |
 | Stage Reversal Reason | `stage_reversal_reason` | text | Conditional | any | max 500 | — |
-| Closed Lost Reason Code | `closed_lost_reason_code` | picklist | Conditional | any | `closed_lost_reason_code` — Lost to competitor · Price · Technical fit · Relationship · Client cancelled · Budget withdrawn · No bid · Partner conflict · Timing<br>required when `lead_status == 'Closed Lost'`<br>shown when `lead_status == 'Closed Lost'` | — |
+| Closed Lost Reason Code | `closed_lost_reason_code` | picklist | Conditional | any | `closed_lost_reason_code` — Lost to competitor · Price · Technical fit · Relationship · Client cancelled · Budget withdrawn · No bid · Partner conflict · Timing · Partner withdrew<br>required when `lead_status == 'Closed Lost'`<br>shown when `lead_status == 'Closed Lost'` | — |
 | On Hold Reason | `on_hold_reason` | text | Conditional | any | max 500<br>required when `lead_status == 'On Hold'`<br>shown when `lead_status == 'On Hold'` | — |
-| Days in Current Stage | `days_in_current_stage` | computed | Computed | — | **no formula in the register** | — |
-| Days Since Last Update | `days_since_last_update` | computed | Computed | — | **no formula in the register** | — |
+| Days in Current Stage | `days_in_current_stage` | computed | Computed | — | resolved by `days_in_stage` — see lib/spec/resolvers.ts | — |
+| Days Since Last Update | `days_since_last_update` | computed | Computed | — | resolved by `days_since_update` — see lib/spec/resolvers.ts | — |
 
 ### SYSTEM
 
@@ -497,10 +510,10 @@ Row shape: _inferred_.
 | % of Contract | `pct_of_contract` | percent | **required** | — | declared in extensions.json |
 | Trigger | `trigger` | text | optional | max 200 | declared in extensions.json |
 | Milestone — Planned Date | `milestone_—_planned_date` | date | **required** | — | register field `opportunities.milestone_—_planned_date` |
-| Milestone — Actual Date | `milestone_—_actual_date` | date | optional | — | register field `opportunities.milestone_—_actual_date` |
-| Milestone — Invoice Date | `milestone_—_invoice_date` | date | optional | — | register field `opportunities.milestone_—_invoice_date` |
-| Milestone — Payment Received Date | `milestone_—_payment_received_date` | date | optional | — | register field `opportunities.milestone_—_payment_received_date` |
-| Status | `milestone_status` | picklist | optional | `administration__milestone_status` — Not due · Due · Invoiced · Paid | declared in extensions.json |
+| Milestone — Actual Date | `milestone_—_actual_date` | date | optional | — | register field `opportunities.milestone_—_actual_date` · **captured on another screen** (`captured_elsewhere`) |
+| Milestone — Invoice Date | `milestone_—_invoice_date` | date | optional | — | register field `opportunities.milestone_—_invoice_date` · **captured on another screen** (`captured_elsewhere`) |
+| Milestone — Payment Received Date | `milestone_—_payment_received_date` | date | optional | — | register field `opportunities.milestone_—_payment_received_date` · **captured on another screen** (`captured_elsewhere`) |
+| Status | `milestone_status` | picklist | optional | `administration__milestone_status` — Not due · Due · Invoiced · Paid | declared in extensions.json · **captured on another screen** (`captured_elsewhere`) |
 
 <details><summary><b>Why these columns</b> — the register states no row shape, so this one was derived. Correct it here or in the register.</summary>
 
@@ -514,19 +527,13 @@ The four milestone_—_* date fields sit flat in STAGE 7 - CLOSE and are the reg
 
 Stages 7–9. Holds `parent_opportunity`; identity is read through the parent `opportunities` and rendered read-only.
 
-### HEADER
+### RECORD STATE
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
-| Progression % | `progression_pct` | number | Optional | any | 0 · 11 · 22 · 33 · 44 · 56 · 67 · 78 · 89 · 100 | — |
-
-### RECORD STATE — each module keeps its own instance
-
-| Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
-|---|---|---|---|---|---|---|
-| Deal Status | `lead_status` | picklist | **Mandatory** | 0 | `leads__lead_status` — Open · On Hold · Closed Lost · Converted | — |
-| Probability (%) | `probability_pct` | number | **Mandatory** | 0 | Must sit in the band for the current stage | — |
-| Expected Close Month | `expected_close_month` | date | **Mandatory** | 0 | — | — |
+| Deal Status | `lead_status` | picklist | **Mandatory** | 0 | `leads__lead_status` — Open · On Hold · Closed Lost · Converted · POC/Pilot Deal | — |
+| Is Primary Pursuit | `is_primary_pursuit` | checkbox | System | 0 | System — true unless a Pursuit Group names another pursuit as primary | — |
+| Pursuit Group | `pursuit_group` | lookup | System | 0 | → `pursuit_group` | — |
 
 ### ON CONVERSION
 
@@ -547,8 +554,8 @@ Stages 7–9. Holds `parent_opportunity`; identity is read through the parent `o
 | Contract Value | `contract_value` | currency | **Mandatory** | 7 | — | — |
 | ARR (Annual Recurring) | `arr_annual_recurring` | currency | **Mandatory** | 7 | — | — |
 | One-Time Revenue | `one_time_revenue` | currency | **Mandatory** | 7 | — | — |
-| 3rd-Party One-Time | `3rd_party_one_time` | currency | **Mandatory** | 7 | — | — |
-| 3rd-Party Recurring (per year) | `3rd_party_recurring_per_year` | currency | **Mandatory** | 7 | — | — |
+| 3rd-Party Revenue — One-Time | `3rd_party_one_time` | currency | **Mandatory** | 7 | — | — |
+| 3rd-Party Revenue — Recurring (per year) | `3rd_party_recurring_per_year` | currency | **Mandatory** | 7 | — | — |
 | Contract Years | `contract_years` | number | **Mandatory** | 7 | — | — |
 | PSP Completed Date | `psp_completed_date` | date | **Mandatory** | 7 | — | — |
 | Handover Pack Delivered Date | `handover_pack_delivered_date` | date | **Mandatory** | 7 | — | — |
@@ -559,6 +566,17 @@ Stages 7–9. Holds `parent_opportunity`; identity is read through the parent `o
 | Parent Opportunity | `parent_opportunity` | lookup | System | 7 | → `opportunity` | — |
 
 > 7 further fields in this section — `guarantee_—_type`, `guarantee_—_value`, `guarantee_—_pct_of_contract_value`, `guarantee_—_issue_date`, `guarantee_—_expiry_date`, `guarantee_—_issuing_bank`, `guarantee_—_status` — define row columns of **Bid Commitments Register** and are listed there, not as record fields.
+
+### Health & Forecast
+
+| Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
+|---|---|---|---|---|---|---|
+| Overall RAG | `overall_rag` | picklist | Optional | any | `overall_rag` — Green · Amber · Red | — |
+| Next Milestone | `next_milestone` | long text | Optional | any | max 200 | — |
+| Next Milestone Date | `next_milestone_date` | date | Optional | any | — | — |
+| Expected Close Month (at conversion) | `expected_close_month` | date | Optional | 0 | — | — |
+| Progression % | `progression_pct` | percent | Optional | any | Set from the stage: 5 · 15 · 25 · 40 · 50 · 70 · 85 · 95 · 100 · 100. Multiples of 5. | — |
+| Probability (%) | `probability_pct` | percent | **Mandatory** | 0 | Set from the stage: 5 · 10 · 20 · 30 · 40 · 55 · 70 · 90 · 100 · 100. Multiples of 5. | — |
 
 ### STAGE 7 — CLOSE
 
@@ -596,14 +614,6 @@ Stages 7–9. Holds `parent_opportunity`; identity is read through the parent `o
 | Renewal Signed Date | `renewal_signed_date` | date | Advisory | 9 | — | — |
 | Renewal Status | `renewal_status` | picklist | **Mandatory** | 9 | `deals__renewal_status` — Not started · In progress · Signed · Lapsed | — |
 
-### __header
-
-| Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
-|---|---|---|---|---|---|---|
-| Overall RAG | `overall_rag` | picklist | Optional | any | `overall_rag` — Green · Amber · Red | — |
-| Next Milestone | `next_milestone` | text | Optional | any | max 200 | — |
-| Next Milestone Date | `next_milestone_date` | date | Optional | any | — | — |
-
 ### READ THROUGH THE PARENT — resolved from the parent, never stored here
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
@@ -622,6 +632,7 @@ Stages 7–9. Holds `parent_opportunity`; identity is read through the parent `o
 | Theme | `theme` | picklist | **Mandatory** | 0 | `theme` — Smart Cities · Energy Utilities & Critical Infrastructure · Smart Buildings & Campuses · Industry 4.0 & Manufacturing · Data Centers · Defence & Protected Markets · Smart Transport & Infrastructure | — |
 | S!aP Solution Suite | `sap_solution_suite` | text | **Mandatory** | 0 | Suite Type must be Primary suite | — |
 | Currency | `currency` | picklist | **Mandatory** | 0 | `leads__currency` — USD · AED · SAR · QAR · OMR · KWD · BHD · INR | — |
+| FX Rate (local per 1 USD) | `fx_rate_at_entry` | number | Conditional | 0 | Local currency units per 1 USD, e.g. 3.6725 for AED. USD = local value / rate.<br>required when `currency != 'USD'`<br>shown when `currency != 'USD'` | — |
 | Lighthouse Project | `lighthouse_project` | checkbox | Optional | 0 | — | — |
 | Gorilla Flag | `gorilla_flag` | checkbox | Optional | 0 | — | — |
 | Suite Demonstrated | `suite_demonstrated` | text | **Mandatory** | 1 | — | — |
@@ -633,24 +644,22 @@ Stages 7–9. Holds `parent_opportunity`; identity is read through the parent `o
 | Alliance Structure | `alliance_structure` | picklist | **Mandatory** | 3 | `leads__alliance_structure` — Astrikos prime · Partner prime · Consortium / joint bid · Not applicable | — |
 | Total Project Value | `total_project_value` | currency | Optional | 3 | shown when `alliance_structure == 'Partner prime'` | — |
 
-### CROSS-CUTTING
+### Aging
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
-| Probability Override Justification | `probability_override_justification` | text | Conditional | any | max 500 | — |
+| Override Justification | `probability_override_justification` | text | Conditional | any | max 500<br>required when `(progression_default_pct != '' && progression_pct != progression_default_pct) \|\| (probability_default_pct != '' && probability_pct != probability_default_pct)`<br>shown when `(progression_default_pct != '' && progression_pct != progression_default_pct) \|\| (probability_default_pct != '' && probability_pct != probability_default_pct)` | — |
 | Stage Skip Reason | `stage_skip_reason` | text | Conditional | any | max 500 | — |
 | Stage Reversal Reason | `stage_reversal_reason` | text | Conditional | any | max 500 | — |
-| Closed Lost Reason Code | `closed_lost_reason_code` | picklist | Conditional | any | `closed_lost_reason_code` — Lost to competitor · Price · Technical fit · Relationship · Client cancelled · Budget withdrawn · No bid · Partner conflict · Timing<br>required when `lead_status == 'Closed Lost'`<br>shown when `lead_status == 'Closed Lost'` | — |
+| Closed Lost Reason Code | `closed_lost_reason_code` | picklist | Conditional | any | `closed_lost_reason_code` — Lost to competitor · Price · Technical fit · Relationship · Client cancelled · Budget withdrawn · No bid · Partner conflict · Timing · Partner withdrew<br>required when `lead_status == 'Closed Lost'`<br>shown when `lead_status == 'Closed Lost'` | — |
 | On Hold Reason | `on_hold_reason` | text | Conditional | any | max 500<br>required when `lead_status == 'On Hold'`<br>shown when `lead_status == 'On Hold'` | — |
-| Days in Current Stage | `days_in_current_stage` | computed | Computed | — | **no formula in the register** | — |
-| Days Since Last Update | `days_since_last_update` | computed | Computed | — | **no formula in the register** | — |
+| Days in Current Stage | `days_in_current_stage` | computed | Computed | — | resolved by `days_in_stage` — see lib/spec/resolvers.ts | — |
+| Days Since Last Update | `days_since_last_update` | computed | Computed | — | resolved by `days_since_update` — see lib/spec/resolvers.ts | — |
 
 ### SYSTEM
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
-| Created By / Date | `created_by_date` | date-time | System | — | — | — |
-| Modified By / Date | `modified_by_date` | date-time | System | — | — | — |
 | Created By | `created_by` | lookup | System | — | → `user` | — |
 | Created Date | `created_date` | date-time | System | — | — | — |
 | Modified By | `modified_by` | lookup | System | — | → `user` | — |
@@ -666,7 +675,7 @@ Row shape: _inferred_.
 
 | Column | api_name | Type | Row requirement | Options / target / formula | Where the column comes from |
 |---|---|---|---|---|---|
-| Guarantee — Type | `guarantee_—_type` | picklist | optional | `deals__guarantee_type` — ABG Advance · PBG Performance | register field `deals.guarantee_—_type` |
+| Guarantee — Type | `guarantee_—_type` | picklist | optional | `deals__guarantee_type` — ABG Advance · PBG Performance<br>max 40 | register field `deals.guarantee_—_type` |
 | Guarantee — Value | `guarantee_—_value` | currency | optional | — | register field `deals.guarantee_—_value` |
 | Guarantee — % of Contract Value | `guarantee_—_pct_of_contract_value` | computed | optional | `guarantee_—_value / contract_value`<br>Guarantee Value / Contract Value | register field `deals.guarantee_—_pct_of_contract_value` |
 | Guarantee — Issue Date | `guarantee_—_issue_date` | date | optional | — | register field `deals.guarantee_—_issue_date` |
@@ -788,7 +797,7 @@ The **key** is what the store holds and what a condition compares against; the *
 | `DEMONSTRATED` | Demonstrated |
 | `NOT_DEMONSTRATED` | Not demonstrated |
 
-**`closed_lost_reason_code`** — 9 options
+**`closed_lost_reason_code`** — 10 options
 
 | key | label |
 |---|---|
@@ -801,6 +810,7 @@ The **key** is what the store holds and what a condition compares against; the *
 | `NO_BID` | No bid |
 | `PARTNER_CONFLICT` | Partner conflict |
 | `TIMING` | Timing |
+| `PARTNER_WITHDRAWN` | Partner withdrew |
 
 **`contacts__contact_role`** — 5 options
 
@@ -946,7 +956,7 @@ The **key** is what the store holds and what a condition compares against; the *
 | `MEDIUM` | Medium |
 | `LOW` | Low |
 
-**`leads__lead_status`** — 4 options
+**`leads__lead_status`** — 5 options
 
 | key | label |
 |---|---|
@@ -954,6 +964,7 @@ The **key** is what the store holds and what a condition compares against; the *
 | `ON_HOLD` | On Hold |
 | `CLOSED_LOST` | Closed Lost |
 | `CONVERTED` | Converted |
+| `POC_PILOT_DEAL` | POC/Pilot Deal |
 
 **`leads__licence_model`** — 2 options
 
@@ -1012,13 +1023,23 @@ The **key** is what the store holds and what a condition compares against; the *
 | `AMBER` | Amber |
 | `RED` | Red |
 
-**`partners__decision`** — 3 options
+**`partners__decision`** — 4 options
 
 | key | label |
 |---|---|
 | `AWARDED_TO_REGISTRATION_A` | Awarded to Registration A |
 | `AWARDED_TO_REGISTRATION_B` | Awarded to Registration B |
 | `BOTH_DECLINED` | Both declined |
+| `BOTH_PURSUED` | Both pursued |
+
+**`partners__delivery_assessment`** — 4 options
+
+| key | label |
+|---|---|
+| `REGISTRATION_A` | Registration A |
+| `REGISTRATION_B` | Registration B |
+| `COMPARABLE` | Comparable |
+| `NEITHER` | Neither meets the requirement |
 
 **`partners__partner_role`** — 2 options
 
@@ -1036,7 +1057,7 @@ The **key** is what the store holds and what a condition compares against; the *
 | `Q3` | Q3 |
 | `Q4_PLUS_YEAR` | Q4 plus year |
 
-**`partners__registration_status`** — 7 options
+**`partners__registration_status`** — 8 options
 
 | key | label |
 |---|---|
@@ -1047,6 +1068,24 @@ The **key** is what the store holds and what a condition compares against; the *
 | `EXPIRED` | Expired |
 | `SUPERSEDED` | Superseded |
 | `REJECTED` | Rejected |
+| `WITHDRAWN` | Withdrawn |
+
+**`partners__relationship_assessment`** — 4 options
+
+| key | label |
+|---|---|
+| `REGISTRATION_A` | Registration A |
+| `REGISTRATION_B` | Registration B |
+| `COMPARABLE` | Comparable |
+| `NEITHER` | Neither has an established relationship |
+
+**`partners__who_registered_first`** — 3 options
+
+| key | label |
+|---|---|
+| `REGISTRATION_A` | Registration A |
+| `REGISTRATION_B` | Registration B |
+| `SAME_DAY` | Same day |
 
 **`region`** — 4 options
 
@@ -1097,36 +1136,36 @@ Declared in `spec/extensions.json` `new_fields`, so `spec/fields.json` stays gen
 
 | Field | api_name | Type | Module | Stage | Kind |
 |---|---|---|---|---|---|
-| Progression % | `progression_pct` | number | `leads` | header | gap fix |
 | Overall RAG | `overall_rag` | picklist | `leads` | header | gap fix |
-| Next Milestone | `next_milestone` | text | `leads` | header | gap fix |
+| Next Milestone | `next_milestone` | long text | `leads` | header | gap fix |
 | Next Milestone Date | `next_milestone_date` | date | `leads` | header | gap fix |
-| Progression % | `progression_pct` | number | `opportunities` | header | gap fix |
+| Progression % | `progression_pct` | percent | `leads` | header | gap fix |
+| Overall RAG | `overall_rag` | picklist | `opportunities` | header | gap fix |
 | Nomination Bid | `nomination_bid` | checkbox | `opportunities` | 4 | gap fix |
 | Incumbent Only | `incumbent_only` | checkbox | `opportunities` | 4 | gap fix |
 | Parent Lead | `parent_lead` | lookup | `opportunities` | 4 | structural link |
 | Value Confidence | `value_confidence` | picklist | `opportunities` | 4 | gap fix |
+| Next Milestone | `next_milestone` | long text | `opportunities` | header | gap fix |
+| Next Milestone Date | `next_milestone_date` | date | `opportunities` | header | gap fix |
+| Progression % | `progression_pct` | percent | `opportunities` | header | gap fix |
 | SoW Agreed Date | `sow_agreed_date` | date | `opportunities` | 6 | gap fix |
 | Bidder Declared Date | `bidder_declared_date` | date | `opportunities` | 6 | gap fix |
-| Overall RAG | `overall_rag` | picklist | `opportunities` | header | gap fix |
-| Next Milestone | `next_milestone` | text | `opportunities` | header | gap fix |
-| Next Milestone Date | `next_milestone_date` | date | `opportunities` | header | gap fix |
 | Low Hanging | `is_low_hanging` | checkbox | `opportunities` | header | gap fix |
 | Low Hanging Rank | `low_hanging_rank` | number | `opportunities` | header | gap fix |
 | Top 10 | `is_top_10` | checkbox | `opportunities` | header | gap fix |
 | Top 10 Rank | `top_10_rank` | number | `opportunities` | header | gap fix |
-| Progression % | `progression_pct` | number | `deals` | header | gap fix |
 | Parent Lead | `parent_lead` | lookup | `deals` | 7 | gap fix |
-| Parent Opportunity | `parent_opportunity` | lookup | `deals` | 7 | structural link |
 | Overall RAG | `overall_rag` | picklist | `deals` | header | gap fix |
-| Next Milestone | `next_milestone` | text | `deals` | header | gap fix |
+| Next Milestone | `next_milestone` | long text | `deals` | header | gap fix |
 | Next Milestone Date | `next_milestone_date` | date | `deals` | header | gap fix |
+| Parent Opportunity | `parent_opportunity` | lookup | `deals` | 7 | structural link |
+| Progression % | `progression_pct` | percent | `deals` | header | gap fix |
 
 ### Identity is carried by reference
 
-An Opportunity holds `parent_lead`; a Deal holds `parent_opportunity`. The 26 identity fields below are **read through that link and rendered read-only** — never copied, so the same value cannot drift in two places. They appear in `fieldsOf(module)` because a criterion or a formula naming a parent field would otherwise stop compiling; carrying them made one previously-broken expression compile again (`deals.incremental_value`, whose visibility rule reads `opportunity_type`).
+An Opportunity holds `parent_lead`; a Deal holds `parent_opportunity`. The 27 identity fields below are **read through that link and rendered read-only** — never copied, so the same value cannot drift in two places. They appear in `fieldsOf(module)` because a criterion or a formula naming a parent field would otherwise stop compiling; carrying them made one previously-broken expression compile again (`deals.incremental_value`, whose visibility rule reads `opportunity_type`).
 
-`alliance_structure` · `bd_owner` · `booking_region` · `city_state` · `consultant_specifier` · `country` · `currency` · `customer_partner_si` · `deal_source` · `destination_region` · `end_client` · `gorilla_flag` · `lighthouse_project` · `opportunity_name` · `opportunity_type` · `partner_deal_registration` · `pre_bid_alliance_partner` · `presales_owner` · `primary_contact` · `probable_award_date` · `sales_owner` · `sap_solution_suite` · `segment` · `suite_demonstrated` · `theme` · `total_project_value`
+`alliance_structure` · `bd_owner` · `booking_region` · `city_state` · `consultant_specifier` · `country` · `currency` · `customer_partner_si` · `deal_source` · `destination_region` · `end_client` · `fx_rate_at_entry` · `gorilla_flag` · `lighthouse_project` · `opportunity_name` · `opportunity_type` · `partner_deal_registration` · `pre_bid_alliance_partner` · `presales_owner` · `primary_contact` · `probable_award_date` · `sales_owner` · `sap_solution_suite` · `segment` · `suite_demonstrated` · `theme` · `total_project_value`
 
 Deals takes 18 of the 20: the Deals sheet declares `end_client` and `customer_partner_si` itself. Whether those two register rows should be read-through instead is an open question on Spec Health, not something the loader decided.
 
@@ -1143,16 +1182,14 @@ Stage options are derived from the module range plus `spec/stages.json`, never f
 
 ### Refs still written the old way
 
-16 sidecar refs name a module their field has left. Every one still resolves — the loader keeps a `movedRefs` fall-through, so the split needed no hand-editing of `extensions.json` — and every one is listed on Spec Health rather than silently rewritten.
+14 sidecar refs name a module their field has left. Every one still resolves — the loader keeps a `movedRefs` fall-through, so the split needed no hand-editing of `extensions.json` — and every one is listed on Spec Health rather than silently rewritten.
 
 | Written as | Now lives at | Where |
 |---|---|---|
 | `leads.cost_model_rcm_document` | `opportunities.cost_model_rcm_document` | extensions.json fields |
 | `leads.total_value_tcv` | `opportunities.total_value_tcv` | extensions.json fields |
 | `leads.gross_margin_pct` | `opportunities.gross_margin_pct` | extensions.json fields |
-| `leads.submitted_on_time` | `opportunities.submitted_on_time` | extensions.json fields |
 | `leads.licence_discount_pct` | `opportunities.licence_discount_pct` | extensions.json fields |
-| `leads.total_cost` | `opportunities.total_cost` | extensions.json fields |
 | `leads.third_party_pct_of_tcv` | `opportunities.third_party_pct_of_tcv` | extensions.json fields |
 | `leads.primary_quote` | `opportunities.primary_quote` | extensions.json fields |
 | `leads.bid_record` | `opportunities.bid_record` | extensions.json fields |
@@ -1166,6 +1203,6 @@ Stage options are derived from the module range plus `spec/stages.json`, never f
 
 ### Not settled
 
-- **Nomination Bid and Incumbent Only adjust probability, but `spec/stages.json` carries no uplift for either.** Every stage row holds only `prob_min`, `prob_max`, `owner_role`, `bid_phase` and `applies_to`. The boxes record the fact and probability is untouched; no number is invented. Incumbent advantage is written in the playbook as a *range*, which a single uplift field cannot hold.
-- **Progression % is linear by stage position** — position in the ordered 0–9 list ÷ (count − 1), read from `stages.json` and never hardcoded to 9. The register states no progression curve. It is shown BESIDE Probability, never instead of it: at Stage 7 they read 78% and 90–100%, and that difference is the point.
+- **Nomination Bid and Incumbent Only are reasons to override Probability %, not automatic boosts** (decided 13 Sep 2026). The boxes record the fact; a person who raises Probability % on the strength of either gives it as the Override Justification.
+- **Progression % and Probability % come from one table** — each stage in `stages.json` carries one pair, multiples of 5, set in Administration > Stages. A record takes its stage’s pair on entering it; changing either number needs an Override Justification. Progression moves on our work, Probability on the client’s decisions.
 

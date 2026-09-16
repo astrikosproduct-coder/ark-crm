@@ -7,6 +7,7 @@ from sqlalchemy import (
     Column,
     Date,
     DateTime,
+    Float,
     ForeignKey,
     ForeignKeyConstraint,
     Integer,
@@ -16,14 +17,16 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
 
+from .clock import days_since as days_since_company, now_utc
 from .database import Base
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    """Every timestamp column's default. UTC, always — see app/clock.py."""
+    return now_utc()
 
 
 # =========================================================================
@@ -374,7 +377,56 @@ class IdSequence(Base):
     last_value = Column(Integer, nullable=False, default=0)
 
 
-class Lead(Base):
+class StagePercentMixin:
+    """
+    The override half of Progression % / Probability %, shared by Leads,
+    Opportunities and Deals.
+
+    `progression_pct` and `probability_pct` themselves are register fields
+    (declared on each model). What a record takes on entering a stage comes
+    from ONE place — the `stages` table's own progression_pct/probability_pct
+    — and app/progression.py copies it here. These columns remember that
+    stage value and who, if anyone, changed a number away from it.
+
+    Not register fields: nobody types into them, and putting them in
+    field_metadata would draw boxes on the form nobody should fill in.
+    """
+
+    #: The stage value as it was when the record entered its stage. An edit is
+    #: an override when it differs from THIS — not from the live stages row,
+    #: so retuning a stage in Administration never turns a deliberate number
+    #: into an unjustified one after the fact.
+    @declared_attr
+    def progression_default_pct(cls) -> Mapped[Decimal | None]:
+        return mapped_column(Numeric(5, 4), nullable=True)
+
+    @declared_attr
+    def probability_default_pct(cls) -> Mapped[Decimal | None]:
+        return mapped_column(Numeric(5, 4), nullable=True)
+
+    #: True exactly while either number differs from its default — derived on
+    #: every write by progression.py, never stamped and trusted.
+    @declared_attr
+    def is_overridden(cls) -> Mapped[bool]:
+        return mapped_column(
+            Boolean, nullable=False, server_default=text("false"), default=False
+        )
+
+    # The REASON lives in the register's own probability_override_justification,
+    # per stage, in custom_fields — not in a column here.
+
+    @declared_attr
+    def overridden_by(cls) -> Mapped[str | None]:
+        return mapped_column(
+            String(20), ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True
+        )
+
+    @declared_attr
+    def overridden_date(cls) -> Mapped[datetime | None]:
+        return mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class Lead(StagePercentMixin, Base):
     """
     A pipeline Lead — Stages 0 through 7. It converts to a Deal at Stage 7 and
     becomes read-only (deals live in a Round-2/3 table not yet built).
@@ -473,8 +525,17 @@ class Lead(Base):
         nullable=True,
     )
 
+    # A real foreign key since migration 0025, ON DELETE RESTRICT: a registration
+    # a lead was created under cannot be deleted out from under it. use_alter,
+    # because deal_registrations.linked_lead points back at leads.
     partner_deal_registration: Mapped[str | None] = mapped_column(
         String(20),
+        ForeignKey(
+            "deal_registrations.registration_id",
+            ondelete="RESTRICT",
+            name="fk_leads_partner_deal_registration",
+            use_alter=True,
+        ),
         nullable=True,
     )
 
@@ -503,8 +564,15 @@ class Lead(Base):
         nullable=True,
     )
 
-    probability_pct: Mapped[int | None] = mapped_column(
-        Integer,
+    # SET FROM THE STAGE (stages.probability_pct, 0022) whenever the record
+    # enters one. Still editable, but an edit that disagrees with
+    # probability_default_pct is an OVERRIDE and must carry a justification —
+    # see app/progression.py.
+    #
+    # Numeric(5,4) holds the FRACTION (0.4000), not the whole number; the UI
+    # multiplies by 100 for display — see percent() in lib/format.ts.
+    probability_pct: Mapped[Decimal | None] = mapped_column(
+        Numeric(5, 4),
         nullable=True,
     )
 
@@ -518,6 +586,10 @@ class Lead(Base):
         nullable=True,
     )
 
+    # LOCAL CURRENCY UNITS PER 1 USD (AED 3.6725), so USD = local / rate. Numeric
+    # again since 0020: pipeline totals are reported in USD and divide by it.
+    # 0019 had made it free text when nothing computed with it. Opportunities
+    # and Deals read it through this Lead, the same way they read currency.
     fx_rate_at_entry: Mapped[Decimal | None] = mapped_column(
         Numeric(12, 6),
         nullable=True,
@@ -534,12 +606,27 @@ class Lead(Base):
         default=True,
     )
 
+    # Superseded by pursuit_group (0020) and logically deleted in the register.
+    # The column and its values stay, which is what makes a restore real.
     parent_pursuit: Mapped[str | None] = mapped_column(
         String(20),
         ForeignKey("leads.lead_id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
+
+    # SERVER-WRITTEN, with is_primary_pursuit above. Which PursuitGroup this
+    # lead's pursuit belongs to; only app/pursuits.py sets either column.
+    pursuit_group: Mapped[str | None] = mapped_column(
+        String(20),
+        ForeignKey("pursuit_groups.group_id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    # Why this lead was saved beside another open pursuit for the same End
+    # Client without joining its group — "a different project at EC".
+    not_duplicate_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     parent_deal: Mapped[str | None] = mapped_column(
         String(20),
@@ -601,6 +688,20 @@ class Lead(Base):
 
     interest_level: Mapped[str | None] = mapped_column(
         String(20),
+        nullable=True,
+    )
+
+    # ADDED BY 0016, and it is a repair rather than a new field. The register
+    # has carried leads.agreed_next_step since the Stage-1 review — an active
+    # placement, storage='column' — and this table had no column for it, so
+    # every value a user picked was dropped on save. The three fields directly
+    # below are conditional on it being 'POC scoping', which meant three boxes
+    # rendering off a gate that could never be set.
+    #
+    # Stored as the picklist KEY ('POC_SCOPING'), like every other picklist
+    # column here.
+    agreed_next_step: Mapped[str | None] = mapped_column(
+        String(30),
         nullable=True,
     )
 
@@ -757,10 +858,13 @@ class Lead(Base):
     # HEADER / CURRENT STATE
     # ---------------------------------------------------------
 
-    progression_pct: Mapped[int | None] = mapped_column(
-        Integer,
+    # SET FROM THE STAGE — see probability_pct above for why this is a
+    # fraction and what an override means.
+    progression_pct: Mapped[Decimal | None] = mapped_column(
+        Numeric(5, 4),
         nullable=True,
     )
+
 
     overall_rag: Mapped[str | None] = mapped_column(
         String(10),
@@ -863,18 +967,26 @@ class Lead(Base):
             return self.customer_partner_si
         return self.end_client
 
-    @property
-    def days_in_current_stage(self) -> int:
-        """
-        Approximated from modified_date, since the stage_transitions table that
-        would record an actual stage-entry timestamp is Round 7 work. Revisit
-        once that table exists.
-        """
-        return (datetime.now(timezone.utc).date() - self.modified_date.date()).days
+    # days_in_current_stage WAS here, approximating itself from modified_date
+    # because the stage_transitions table did not exist yet. It exists, so the
+    # approximation is gone rather than left lying: it was wrong in both
+    # directions — editing a Stage 3 lead's remarks reset its stage age to 0,
+    # and it returned the same number as days_since_last_update on every record
+    # in the database, which is what put two identical figures on the Details
+    # tab. It is resolved per page of records now, from the transition that
+    # actually moved the record into the stage it is in. See app/stage_entry.py
+    # and each router's _label_maps.
 
     @property
     def days_since_last_update(self) -> int:
-        return (datetime.now(timezone.utc).date() - self.modified_date.date()).days
+        """
+        Whole days since the record last changed.
+
+        Counted on the COMPANY calendar, not UTC and not the server's local
+        zone — the browser counts the same way (src/lib/time.ts), so the number
+        on a card and the number from the API agree. See app/clock.py.
+        """
+        return days_since_company(self.modified_date) or 0
 
     # close_date_pushback_count was here, returning a hardcoded 0 because it
     # needs a history of expected_close_month edits and nothing persisted one.
@@ -981,7 +1093,7 @@ class LeadFeatureGap(Base):
     lead = relationship("Lead", back_populates="feature_gaps")
 
 
-class Opportunity(Base):
+class Opportunity(StagePercentMixin, Base):
     """
     A pipeline Opportunity — Stages 4 through 6. Born by converting a Lead at
     Stage 3 (ConvertToOpportunityDialog), and converts on to a Deal at Stage 6
@@ -1048,8 +1160,10 @@ class Opportunity(Base):
         nullable=True,
     )
 
-    probability_pct: Mapped[int | None] = mapped_column(
-        Integer,
+    # SET FROM THE STAGE. Numeric(5,4) holds the FRACTION (0.4000) - see
+    # Lead.probability_pct.
+    probability_pct: Mapped[Decimal | None] = mapped_column(
+        Numeric(5, 4),
         nullable=True,
     )
 
@@ -1079,9 +1193,24 @@ class Opportunity(Base):
         index=True,
     )
 
+    # Numeric since 0020, matching Lead.fx_rate_at_entry. The register places
+    # no field on this column — an Opportunity reads the rate through its
+    # parent Lead — so it is kept only so the two tables do not disagree.
     fx_rate_at_entry: Mapped[Decimal | None] = mapped_column(
         Numeric(12, 6),
         nullable=True,
+    )
+
+    # SERVER-WRITTEN (app/pursuits.py). Copied from the parent Lead when the
+    # Opportunity is created; see models.PursuitGroup.
+    pursuit_group: Mapped[str | None] = mapped_column(
+        String(20),
+        ForeignKey("pursuit_groups.group_id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    is_primary_pursuit: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
     )
 
     # ---------------------------------------------------------
@@ -1096,9 +1225,10 @@ class Opportunity(Base):
     # spec/extensions.json fields."leads.rfp_document". Column needs no change.
     rfp_document: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    submission_deadline: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    # Date, not timestamp — 0029. A bid deadline is a day; nothing ever read
+    # the time of day, and a timestamp's offset made the form's box render
+    # empty. Annotated as datetime like every other Date column on this model.
+    submission_deadline: Mapped[datetime | None] = mapped_column(Date, nullable=True)
 
     arr_annual_recurring: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
 
@@ -1121,9 +1251,8 @@ class Opportunity(Base):
     # same rule Lead's poc_record/ctb_gate/parent_deal already follow.
     bid_record: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
-    bid_submission_date: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    # Date, not timestamp — 0029, with submission_deadline above.
+    bid_submission_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
 
     debrief_requested_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
 
@@ -1217,7 +1346,9 @@ class Opportunity(Base):
     # HEADER / CURRENT STATE — own instance, same shape as Lead's
     # ---------------------------------------------------------
 
-    progression_pct: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # SET FROM THE STAGE. Numeric(5,4) holds the FRACTION (0.4000) - see
+    # Lead.probability_pct.
+    progression_pct: Mapped[Decimal | None] = mapped_column(Numeric(5, 4), nullable=True)
 
     overall_rag: Mapped[str | None] = mapped_column(String(10), nullable=True)
 
@@ -1357,7 +1488,7 @@ class OpportunityPaymentMilestone(Base):
     opportunity = relationship("Opportunity", back_populates="payment_milestones")
 
 
-class Deal(Base):
+class Deal(StagePercentMixin, Base):
     """
     A booked order — Stages 7 through 9. Born by converting either an
     Opportunity at Stage 6 (opportunities/ConvertToDealDialog.tsx) or a Lead
@@ -1420,12 +1551,14 @@ class Deal(Base):
     ON DELETE SET NULL throughout for the accounts/users FKs below, same rule
     Lead and Opportunity follow.
 
-    created_by_date / modified_by_date, not created_date/created_by /
-    modified_date/modified_by: the Deals sheet genuinely names its system
-    timestamps this way (spec/module_split.json shared.equivalence declares
-    the pair a known duplicate of the other modules' concept, "NOT silently
-    collapsed" — a register_correction, not a rename to apply here). Deals
-    also carries no created_by/modified_by lookup at all, so none is added.
+    SYSTEM is the same four fields as every other module, since 0030:
+    created_by / created_date / modified_by / modified_date. The Deals sheet
+    named its timestamps created_by_date / modified_by_date and named no actor
+    at all, so the module showed six system rows — four of them permanently
+    blank — and no record of WHO touched a Deal outside audit_log. That was a
+    register correction waiting in spec/module_split.json rather than a
+    distinction worth keeping; the rename is applied and the two actor columns
+    are backfilled from the audit trail.
     """
 
     __tablename__ = "deals"
@@ -1474,18 +1607,77 @@ class Deal(Base):
 
     deal_stage: Mapped[str | None] = mapped_column(String(30), nullable=True)
 
+    # ---------------------------------------------------------
+    # RECORD STATE - the gap the note below used to describe
+    # ---------------------------------------------------------
+    #
+    # Both of these had active RECORD STATE placements on Deals with
+    # storage='column' and NO column here, so every value written to them was
+    # dropped. That was left alone deliberately - "widening the blast radius to
+    # fix it is how working screens break".
+    #
+    # 0016 gave progression_pct/probability_pct their columns: every pipeline
+    # module takes the pair from its stage (app/progression.py).
+    #
+    # lead_status ("Deal Status") had the same gap and was left alone as
+    # orthogonal until 0020. It is not orthogonal any more: pipeline totals
+    # count Open and On Hold only, and a primary pursuit may not be closed
+    # lost while a secondary is still open. Choosing Closed Lost on a Deal used
+    # to save without error and come back empty.
+    #
+    # POC_PILOT_DEAL is a Deals-only value on this shared picklist (0022): a
+    # paid pilot, sold and certain, sitting at Stage 7 Close. The server
+    # refuses it on Leads and Opportunities — see progression.PILOT_STATUS.
+    lead_status: Mapped[str | None] = mapped_column(String(30), nullable=True)
+
+    # SERVER-WRITTEN (app/pursuits.py). Copied from the parent Opportunity or
+    # Lead when the Deal is created; see models.PursuitGroup.
+    pursuit_group: Mapped[str | None] = mapped_column(
+        String(20),
+        ForeignKey("pursuit_groups.group_id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    is_primary_pursuit: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
+
+    progression_pct: Mapped[Decimal | None] = mapped_column(Numeric(5, 4), nullable=True)
+
+    probability_pct: Mapped[Decimal | None] = mapped_column(Numeric(5, 4), nullable=True)
+
+    # ADDED BY 0016 alongside leads.agreed_next_step, and the same repair: an
+    # active deals.contract_signed_date placement with storage='column' and no
+    # column to store it in.
+    contract_signed_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
+
+    # ADDED BY 0030 — the same repair as contract_signed_date above, five more
+    # times. These two are STAGE 7 — CLOSE, which is where a converted Deal now
+    # opens, so two of that section's three fields were quietly discarding
+    # whatever was typed into them.
+    po_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
+    payment_schedule_confirmed: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+
+    # Health & Forecast. Leads and Opportunities have held these three since the
+    # split and Deals held none of them, which is why dashboard.py read a Deal's
+    # RAG out of custom_fields and always found nothing there.
+    overall_rag: Mapped[str | None] = mapped_column(String(10), nullable=True)
+
+    next_milestone: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+    next_milestone_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
+
     # RECORD STATE, own instance. A Deal at Stage 7 is still forecasting a
     # booking month right up until order_booked/booking_date make it a fact,
     # and Close is the stage that number is read at hardest. Recorded per
     # stage as well — `expected_close_month__s<stage>` in custom_fields, see
     # stageScope.ts — with this column holding the current stage's answer.
     #
-    # NOTE the neighbouring gap, deliberately not fixed here: probability_pct,
-    # lead_status and progression_pct all have active RECORD STATE placements
-    # on Deals with storage='column' and NO column on this table, so their
-    # base values are dropped on write. Pre-existing, orthogonal to this
-    # change, and widening the blast radius to fix it is how working screens
-    # break — see leads_record_state.py's note on the same judgement.
+    # The gap this note used to describe is now two thirds closed - see the
+    # RECORD STATE block above deal_stage.
     expected_close_month: Mapped[datetime | None] = mapped_column(
         Date,
         nullable=True,
@@ -1602,15 +1794,27 @@ class Deal(Base):
     # in spec/extensions.json for the criteria.json X9.1 fallout.
 
     # ---------------------------------------------------------
-    # SYSTEM — see class docstring for why this pair, not created_date/
-    # created_by/modified_date/modified_by
+    # SYSTEM — the same four as Lead and Opportunity, since 0030. See the
+    # class docstring for the pair they replaced.
     # ---------------------------------------------------------
 
-    created_by_date: Mapped[datetime] = mapped_column(
+    created_by: Mapped[str | None] = mapped_column(
+        String(20),
+        ForeignKey("users.user_id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    created_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=_now
     )
 
-    modified_by_date: Mapped[datetime] = mapped_column(
+    modified_by: Mapped[str | None] = mapped_column(
+        String(20),
+        ForeignKey("users.user_id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    modified_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
     )
 
@@ -2212,8 +2416,11 @@ class Stage(Base):
     stage: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
 
     name: Mapped[str] = mapped_column(String(120), nullable=False)
-    prob_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    prob_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # THE ONE SOURCE of Progression % and Probability % (0022). Whole percents,
+    # multiples of 5; a record takes this pair whenever it enters the stage.
+    # See app/progression.py.
+    progression_pct: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    probability_pct: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     owner_role: Mapped[str | None] = mapped_column(
         String(30),
@@ -2490,6 +2697,10 @@ class FieldDefinition(Base):
     # ---- concept would mean `currency` on one screen and `date` on another
     field_type: Mapped[str] = mapped_column(String(30), nullable=False)
     max_length: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Inclusive bounds on a number field (0023). Null: unbounded on that side.
+    # Enforced on write by app/thresholds.py, and on screen by validation.ts.
+    min_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    max_value: Mapped[float | None] = mapped_column(Float, nullable=True)
     picklist_key: Mapped[str | None] = mapped_column(
         String(120), ForeignKey("picklists.picklist_key"), nullable=True, index=True
     )
@@ -2896,6 +3107,12 @@ class StageTransition(Base):
     is_skip: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_reversal: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Criterion codes a person ticked in the Update Stage dialog because nothing
+    # could evaluate them — see migration 0021. actor/timestamp below say who
+    # and when.
+    attested: Mapped[list] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb")
+    )
 
     actor: Mapped[str | None] = mapped_column(
         String(20), ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True
@@ -2946,10 +3163,16 @@ class AuditLog(Base):
     * metadata_versions, which is Round 6's history of the FIELD REGISTER
       itself, not of any lead/account/opportunity/deal/contact row.
 
-    changed_fields is the list of api_names the write touched, not a
-    before/after diff — enough to answer "was X edited and by whom", which is
-    what a prototype audit trail needs; capturing old values too would mean
-    reading every row twice on every write for a value nothing here uses yet.
+    TWO COLUMNS, TWO QUESTIONS. `changed_fields` is the list of api_names the
+    write CARRIED — the record editor PUTs a whole section, so a save that
+    altered one field lists twenty. It answers "was this record touched".
+    `changed` is what actually MOVED, as [{field, from, to}], and is what the
+    History timeline renders. Both are kept because the first is cheap and
+    already relied on, and neither can be derived from the other.
+
+    `changed` is NULL on rows written before Sep 2026 — the old values were
+    never captured and cannot be reconstructed, so the timeline says so rather
+    than implying a history it does not have.
     """
 
     __tablename__ = "audit_log"
@@ -2963,6 +3186,12 @@ class AuditLog(Base):
 
     changed_fields: Mapped[list | None] = mapped_column(JSONB, nullable=True)
 
+    #: [{field, from, to}] for scalars, {field, kind:'list'} for child lists.
+    #: Raw values, never labels — see app/changes.py.
+    changed: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+
+    #: The signed-in Entra user, taken from the session by every call site.
+    #: Never a value the request body supplied — see app/audit.py.
     actor: Mapped[str | None] = mapped_column(
         String(20), ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True
     )
@@ -3010,7 +3239,14 @@ class DealRegistration(Base):
     )
     project_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
     estimated_value: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
-    expected_timeline: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    #: The currency Estimated Value is in — the same register field as a Lead's
+    #: Currency, same leads__currency picklist (migration 0028).
+    currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
+    expected_timeline: Mapped[datetime | None] = mapped_column(Date, nullable=True)
+    #: What Expected Timeline held while it was free text (migration 0026). No
+    #: form shows it: "RFP Q1 2027, award Q3 2027" is not a date, and turning it
+    #: into one would be a guess. Kept so nothing typed is lost.
+    expected_timeline_text: Mapped[str | None] = mapped_column(String(100), nullable=True)
     partner_role: Mapped[str | None] = mapped_column(String(40), nullable=True)
     submitted_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
     acknowledged_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
@@ -3028,6 +3264,27 @@ class DealRegistration(Base):
     linked_lead: Mapped[str | None] = mapped_column(
         String(20), ForeignKey("leads.lead_id", ondelete="SET NULL"), nullable=True
     )
+
+    # Set only by the Withdraw action — app/registration_withdrawal.py.
+    withdrawn_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
+    withdrawal_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Registrations a person declared "a different project", so the conflict
+    # check never asks about that pair again — app/registration_matching.py.
+    not_conflict_with: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    not_conflict_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # SYSTEM — stamped by routers/registrations.py from the session and the
+    # server clock. Nullable, unlike Lead's: rows older than migration 0024 have
+    # no knowable creation time, and a backfilled one would be invented.
+    created_by: Mapped[str | None] = mapped_column(
+        String(20), ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    created_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    modified_by: Mapped[str | None] = mapped_column(
+        String(20), ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    modified_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     custom_fields: Mapped[dict] = _custom_fields_column()
 
@@ -3064,10 +3321,85 @@ class RegistrationConflict(Base):
     better_delivery_capability: Mapped[str | None] = mapped_column(String(300), nullable=True)
 
     decision: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Required when decision is BOTH_PURSUED, and must be registration_a or
+    # registration_b. Saving that decision creates the PursuitGroup.
+    primary_registration: Mapped[str | None] = mapped_column(
+        String(20), ForeignKey("deal_registrations.registration_id", ondelete="SET NULL"), nullable=True
+    )
     decision_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
     decided_by: Mapped[str | None] = mapped_column(
         String(20), ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True
     )
     both_partners_notified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
+    # The proof behind the decision. Required once a decision is set — enforced
+    # by routers/conflicts.py, not by the column.
+    decision_rationale: Mapped[str | None] = mapped_column(Text, nullable=True)
+    evidence_link: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    # SYSTEM — stamped by routers/conflicts.py. Nullable for the same reason as
+    # DealRegistration's: see migration 0024.
+    created_by: Mapped[str | None] = mapped_column(
+        String(20), ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    created_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    modified_by: Mapped[str | None] = mapped_column(
+        String(20), ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    modified_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     custom_fields: Mapped[dict] = _custom_fields_column()
+
+
+class PursuitGroup(Base):
+    """
+    One project at one End Client, chased through more than one partner —
+    Playbook §7.2: "duplicates must not inflate pipeline value; only primary
+    pursuits roll up."
+
+    A PURSUIT is a chain Lead -> Opportunity -> Deal, named by its first
+    record's id: LEAD-00130 for a chain that began as a lead, OPP-… for an
+    Opportunity created without one. Membership is the `pursuit_group` column on
+    every record of the chain; this row only says which chain is PRIMARY.
+
+    That split is the point. Primary-ness belongs to the pursuit, not to any one
+    record, so changing it never writes a converted, read-only Lead — only this
+    row, plus the server-maintained is_primary_pursuit copies app/pursuits.py
+    restamps from it.
+
+    primary_pursuit is empty only while a "Both pursued" conflict names a
+    primary registration whose lead has not been created yet. Until then no
+    member counts toward pipeline, and every member's screen says so.
+
+    A record with no group is the primary of a group of one. No row is written
+    for it, and a group left with one member is dissolved.
+    """
+
+    __tablename__ = "pursuit_groups"
+
+    group_id: Mapped[str] = mapped_column(String(20), primary_key=True)
+
+    end_client: Mapped[str | None] = mapped_column(
+        String(20), ForeignKey("accounts.account_id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    # No foreign key — see the migration: LEAD-… or OPP-…, two tables.
+    primary_pursuit: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    primary_registration: Mapped[str | None] = mapped_column(
+        String(20), ForeignKey("deal_registrations.registration_id", ondelete="SET NULL"), nullable=True
+    )
+    source_conflict: Mapped[str | None] = mapped_column(
+        String(20),
+        ForeignKey("registration_conflicts.conflict_id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    # Stamped from the Entra session and the server clock, never the payload.
+    created_by: Mapped[str | None] = mapped_column(
+        String(20), ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True
+    )
+    created_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
+    modified_by: Mapped[str | None] = mapped_column(
+        String(20), ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True
+    )
+    modified_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)

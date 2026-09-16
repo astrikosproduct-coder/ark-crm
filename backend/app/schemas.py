@@ -331,6 +331,7 @@ class ActiveFlag(BaseModel):
 # multiselect. Listed once so create/update/serialise cannot drift apart —
 # same convention as ACCOUNT_SCALARS and CONTACT_SCALARS.
 LEAD_SCALARS = (
+    "fx_rate_at_entry",
     "opportunity_name",
     "country",
     "city_state",
@@ -351,10 +352,14 @@ LEAD_SCALARS = (
     "probability_pct",
     "expected_close_month",
     "currency",
-    "fx_rate_at_entry",
     "estimated_value",
     "is_primary_pursuit",
     "parent_pursuit",
+    # ADDED BY 0020. pursuit_group and is_primary_pursuit are SERVER-WRITTEN —
+    # listed here so they serialise, and skipped on write by
+    # app/pursuits.py::PURSUIT_STAMPED.
+    "pursuit_group",
+    "not_duplicate_reason",
     "parent_deal",
     "incremental_value",
     "remarks_notes",
@@ -367,6 +372,10 @@ LEAD_SCALARS = (
     "suite_demonstrated",
     "secondary_sap_suites",
     "interest_level",
+    # ADDED BY 0016. R_POC's only proof AND the visibility gate for the three
+    # fields below it — an active register placement with storage='column'
+    # that had no column until now. See models.Lead.
+    "agreed_next_step",
     "data_site_access_confirmation_document",
     "pilot_commercial_model",
     "pilot_fee",
@@ -418,7 +427,6 @@ LEAD_LOOKUPS = {
 }
 
 _MONEY_FIELDS = {
-    "fx_rate_at_entry",
     "estimated_value",
     "incremental_value",
     "pilot_fee",
@@ -485,13 +493,19 @@ class LeadBase(CustomFieldsMixin):
     sap_solution_suite: str | None = Field(default=None, max_length=20)
     project_stage: str | None = None
     lead_status: str | None = None
-    probability_pct: int | None = None
+    probability_pct: float | None = None
     expected_close_month: date | None = None
     currency: str | None = Field(default=None, max_length=3)
-    fx_rate_at_entry: float | None = None
+    fx_rate_at_entry: float | None = Field(default=None, gt=0)
     estimated_value: float | None = None
     is_primary_pursuit: bool | None = None
     parent_pursuit: str | None = Field(default=None, max_length=20)
+    pursuit_group: str | None = Field(default=None, max_length=20)
+    not_duplicate_reason: str | None = None
+    # NOT a column. Accepted on create and update only: "join the pursuit group
+    # of this record" — any record id in the other chain — answered in the same
+    # save as the lead itself. See app/pursuits.py::guard_possible_duplicate.
+    join_pursuit_of: str | None = Field(default=None, max_length=20)
     parent_deal: str | None = Field(default=None, max_length=20)
     incremental_value: float | None = None
     remarks_notes: str | None = None
@@ -503,6 +517,8 @@ class LeadBase(CustomFieldsMixin):
     demo_date: date | None = None
     suite_demonstrated: str | None = Field(default=None, max_length=20)
     interest_level: str | None = None
+    # ADDED BY 0016 — see LEAD_SCALARS above.
+    agreed_next_step: str | None = None
     data_site_access_confirmation_document: str | None = Field(default=None, max_length=255)
     pilot_commercial_model: str | None = None
     pilot_fee: float | None = None
@@ -529,7 +545,7 @@ class LeadBase(CustomFieldsMixin):
     ctb_approval_status: str | None = None
     ctb_approval_date: date | None = None
     total_project_value: float | None = None
-    progression_pct: int | None = None
+    progression_pct: float | None = None
     overall_rag: str | None = None
     next_milestone: str | None = Field(default=None, max_length=200)
     next_milestone_date: date | None = None
@@ -538,6 +554,12 @@ class LeadBase(CustomFieldsMixin):
     created_by: str | None = Field(default=None, max_length=20)
     modified_by: str | None = Field(default=None, max_length=20)
     active: bool | None = None
+
+
+    # Override Justification is NOT a field here. It is the register's own
+    # probability_override_justification, sent the ordinary per-stage way —
+    # a flat `probability_override_justification__s<stage>` key. See
+    # app/progression.py.
 
     # The two childlists — one row per attendee / gap, never a delimited
     # string, array column or JSONB, same rule secondary_sap_suites follows.
@@ -562,9 +584,12 @@ class LeadOut(BaseModel):
     `__labels` carries the resolved display name of every lookup so a page of
     rows is one request.
 
-    contracting_party, days_in_current_stage and days_since_last_update are
-    read-only, derived server-side from models.Lead's properties — they are
-    never accepted on create/update.
+    contracting_party, stage_entered_date, days_in_current_stage and
+    days_since_last_update are read-only and derived server-side — they are
+    never accepted on create/update. stage_entered_date is the one the browser
+    actually counts off: it comes from stage_transitions (app/stage_entry.py),
+    and lib/spec/resolvers.ts turns it into "12 days" on the company clock so
+    the card and the API cannot disagree.
     """
 
     # extra="allow" so a response can carry the values of
@@ -594,13 +619,15 @@ class LeadOut(BaseModel):
     sap_solution_suite: str | None = None
     project_stage: str | None = None
     lead_status: str | None = None
-    probability_pct: int | None = None
+    probability_pct: float | None = None
     expected_close_month: date | None = None
     currency: str | None = None
     fx_rate_at_entry: float | None = None
     estimated_value: float | None = None
     is_primary_pursuit: bool = True
     parent_pursuit: str | None = None
+    pursuit_group: str | None = None
+    not_duplicate_reason: str | None = None
     parent_deal: str | None = None
     incremental_value: float | None = None
     remarks_notes: str | None = None
@@ -612,6 +639,8 @@ class LeadOut(BaseModel):
     demo_date: date | None = None
     suite_demonstrated: str | None = None
     interest_level: str | None = None
+    # ADDED BY 0016 — see LEAD_SCALARS above.
+    agreed_next_step: str | None = None
     data_site_access_confirmation_document: str | None = None
     pilot_commercial_model: str | None = None
     pilot_fee: float | None = None
@@ -636,7 +665,7 @@ class LeadOut(BaseModel):
     ctb_approval_status: str | None = None
     ctb_approval_date: date | None = None
     total_project_value: float | None = None
-    progression_pct: int | None = None
+    progression_pct: float | None = None
     overall_rag: str | None = None
     next_milestone: str | None = None
     next_milestone_date: date | None = None
@@ -652,8 +681,25 @@ class LeadOut(BaseModel):
 
     # Derived, never stored.
     contracting_party: str | None = None
+    stage_entered_date: datetime | None = None
     days_in_current_stage: int = 0
     days_since_last_update: int = 0
+
+
+    # ---------------------------------------------------------
+    # THE STAGE PAIR'S OVERRIDE STATE (app/progression.py)
+    # ---------------------------------------------------------
+    #
+    # progression_pct and probability_pct are declared above. All FRACTIONS -
+    # 0.4 is 40%. The defaults are the stage's pair as it was when the record
+    # entered the stage; is_overridden is True while either number differs
+    # from its default. The reason lives in the register's own
+    # probability_override_justification, per stage, via custom_fields.
+    progression_default_pct: float | None = None
+    probability_default_pct: float | None = None
+    is_overridden: bool = False
+    overridden_by: str | None = None
+    overridden_date: datetime | None = None
 
     labels: dict[str, str] | None = Field(default=None, alias="__labels")
 
@@ -666,12 +712,15 @@ class LeadOut(BaseModel):
 # "3rd_party_*" name as their Pydantic `alias` below and their SQLAlchemy
 # column name in models.py, since neither language accepts a leading digit.
 OPPORTUNITY_SCALARS = (
+    "fx_rate_at_entry",
+    # ADDED BY 0020, SERVER-WRITTEN — see LEAD_SCALARS.
+    "pursuit_group",
+    "is_primary_pursuit",
     "project_stage",
     "probability_pct",
     "lead_status",
     "expected_close_month",
     "parent_lead",
-    "fx_rate_at_entry",
     "rfp_type",
     "rfp_received_date",
     "rfp_document",
@@ -769,6 +818,42 @@ class OpportunityPaymentMilestoneOut(OpportunityPaymentMilestoneIn):
     pass
 
 
+class DealPaymentMilestoneOut(OpportunityPaymentMilestoneOut):
+    """
+    One milestone as the DEAL reads it — the schedule plus its delivery state.
+
+    Same rows, on the same table: the payment schedule is agreed on the
+    Opportunity at Stage 6 and the milestones are delivered against after the
+    Deal exists. row_order is included because it is how a delivery write
+    addresses a row (see DealMilestoneDeliveryIn).
+    """
+
+    row_order: int
+
+
+class DealMilestoneDeliveryIn(BaseModel):
+    """
+    What a Deal may write onto a milestone row: WHEN IT HAPPENED, never what
+    was agreed.
+
+    Milestone, % of Contract, Trigger and Planned Date are commercial terms
+    negotiated before signature and are not in this model at all — a delivery
+    screen that could rewrite the payment schedule would be a way to change the
+    deal after it was signed. The Opportunity is read-only by then, which is
+    exactly why these four had nowhere to be entered before (16 Sep 2026).
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    row_order: int
+    milestone_actual_date: date | None = Field(default=None, alias="milestone_—_actual_date")
+    milestone_invoice_date: date | None = Field(default=None, alias="milestone_—_invoice_date")
+    milestone_payment_received_date: date | None = Field(
+        default=None, alias="milestone_—_payment_received_date"
+    )
+    milestone_status: str | None = None
+
+
 class OpportunityBase(CustomFieldsMixin):
     """
     Optional throughout, same reasoning LeadBase gives: 'Mandatory' in the
@@ -780,15 +865,17 @@ class OpportunityBase(CustomFieldsMixin):
     model_config = ConfigDict(populate_by_name=True)
 
     project_stage: str | None = None
-    probability_pct: int | None = None
+    probability_pct: float | None = None
     lead_status: str | None = None
     expected_close_month: date | None = None
     parent_lead: str | None = Field(default=None, max_length=20)
-    fx_rate_at_entry: float | None = None
+    fx_rate_at_entry: float | None = Field(default=None, gt=0)
+    pursuit_group: str | None = Field(default=None, max_length=20)
+    is_primary_pursuit: bool | None = None
     rfp_type: str | None = None
     rfp_received_date: date | None = None
     rfp_document: str | None = Field(default=None, max_length=255)
-    submission_deadline: datetime | None = None
+    submission_deadline: date | None = None
     arr_annual_recurring: float | None = None
     one_time_revenue: float | None = None
     third_party_one_time: float | None = Field(default=None, alias="3rd_party_one_time")
@@ -798,7 +885,7 @@ class OpportunityBase(CustomFieldsMixin):
     contract_years: int | None = None
     competitors_noticed: str | None = Field(default=None, max_length=255)
     bid_record: str | None = Field(default=None, max_length=20)
-    bid_submission_date: datetime | None = None
+    bid_submission_date: date | None = None
     debrief_requested_date: date | None = None
     platform_licence_list_price: float | None = None
     services_and_implementation_cost: float | None = None
@@ -831,7 +918,7 @@ class OpportunityBase(CustomFieldsMixin):
     pay_when_paid: bool | None = None
     sow_agreed_date: date | None = None
     bidder_declared_date: date | None = None
-    progression_pct: int | None = None
+    progression_pct: float | None = None
     overall_rag: str | None = None
     next_milestone: str | None = Field(default=None, max_length=200)
     next_milestone_date: date | None = None
@@ -849,6 +936,12 @@ class OpportunityBase(CustomFieldsMixin):
     modified_by: str | None = Field(default=None, max_length=20)
     active: bool | None = None
 
+
+    # Override Justification is NOT a field here. It is the register's own
+    # probability_override_justification, sent the ordinary per-stage way —
+    # a flat `probability_override_justification__s<stage>` key. See
+    # app/progression.py.
+
     # The childlist — one row per payment milestone, never a delimited
     # string, array column or JSONB, same rule secondary_sap_suites follows.
     payment_milestones: list[OpportunityPaymentMilestoneIn] | None = None
@@ -857,6 +950,9 @@ class OpportunityBase(CustomFieldsMixin):
 class OpportunityCreate(OpportunityBase):
     # Optional: the server allocates the next OPP-00nnn when it is absent.
     opportunity_id: str | None = Field(default=None, max_length=20)
+    #: How and why, when this record is created FROM another one — kept on the
+    #: Conversion row the create writes, never a field. See app/conversion.py.
+    conversion_note: str | None = Field(default=None, max_length=2000)
 
 
 class OpportunityUpdate(OpportunityBase):
@@ -879,15 +975,17 @@ class OpportunityOut(BaseModel):
     id: str
     opportunity_id: str
     project_stage: str | None = None
-    probability_pct: int | None = None
+    probability_pct: float | None = None
     lead_status: str | None = None
     expected_close_month: date | None = None
     parent_lead: str | None = None
     fx_rate_at_entry: float | None = None
+    pursuit_group: str | None = None
+    is_primary_pursuit: bool = True
     rfp_type: str | None = None
     rfp_received_date: date | None = None
     rfp_document: str | None = None
-    submission_deadline: datetime | None = None
+    submission_deadline: date | None = None
     arr_annual_recurring: float | None = None
     one_time_revenue: float | None = None
     third_party_one_time: float | None = Field(default=None, alias="3rd_party_one_time")
@@ -897,7 +995,7 @@ class OpportunityOut(BaseModel):
     contract_years: int | None = None
     competitors_noticed: str | None = None
     bid_record: str | None = None
-    bid_submission_date: datetime | None = None
+    bid_submission_date: date | None = None
     debrief_requested_date: date | None = None
     platform_licence_list_price: float | None = None
     services_and_implementation_cost: float | None = None
@@ -930,7 +1028,7 @@ class OpportunityOut(BaseModel):
     pay_when_paid: bool = False
     sow_agreed_date: date | None = None
     bidder_declared_date: date | None = None
-    progression_pct: int | None = None
+    progression_pct: float | None = None
     overall_rag: str | None = None
     next_milestone: str | None = None
     next_milestone_date: date | None = None
@@ -946,6 +1044,22 @@ class OpportunityOut(BaseModel):
     modified_date: datetime
     active: bool = True
     payment_milestones: list[OpportunityPaymentMilestoneOut] = []
+
+
+    # ---------------------------------------------------------
+    # THE STAGE PAIR'S OVERRIDE STATE (app/progression.py)
+    # ---------------------------------------------------------
+    #
+    # progression_pct and probability_pct are declared above. All FRACTIONS -
+    # 0.4 is 40%. The defaults are the stage's pair as it was when the record
+    # entered the stage; is_overridden is True while either number differs
+    # from its default. The reason lives in the register's own
+    # probability_override_justification, per stage, via custom_fields.
+    progression_default_pct: float | None = None
+    probability_default_pct: float | None = None
+    is_overridden: bool = False
+    overridden_by: str | None = None
+    overridden_date: datetime | None = None
 
     labels: dict[str, str] | None = Field(default=None, alias="__labels")
 
@@ -963,6 +1077,11 @@ DEAL_SCALARS = (
     "end_client",
     "customer_partner_si",
     "deal_stage",
+    # ADDED BY 0020 — Deal Status finally has a column; see models.Deal.
+    "lead_status",
+    # ADDED BY 0020, SERVER-WRITTEN — see LEAD_SCALARS.
+    "pursuit_group",
+    "is_primary_pursuit",
     "expected_close_month",
     "delivery_pm",
     "order_booked",
@@ -998,6 +1117,28 @@ DEAL_SCALARS = (
     "contract_expiry_date",
     "renewal_status",
     "renewal_signed_date",
+    # ADDED BY 0016. R14's only proof, and an active register placement with
+    # storage='column' that had no column until now — see models.Deal.
+    "contract_signed_date",
+    # ADDED BY 0016 — both had the same gap contract_signed_date did (an
+    # active placement, storage='column', no column). Set from the stage by
+    # app/progression.py. See models.Deal's RECORD STATE note.
+    "progression_pct",
+    "probability_pct",
+    # ADDED BY 0030. Three Health & Forecast fields Leads and Opportunities
+    # have always had, and the two STAGE 7 — CLOSE fields a converted Deal now
+    # opens on — every one of them an active placement with storage='column'
+    # and no column, so the API took the value and threw it away.
+    "po_number",
+    "payment_schedule_confirmed",
+    "overall_rag",
+    "next_milestone",
+    "next_milestone_date",
+    # SYSTEM_STAMPED — written by the server, never from the payload. Deals
+    # had no actor columns at all until 0030; who touched a Deal lived only in
+    # audit_log.
+    "created_by",
+    "modified_by",
     "active",
 )
 
@@ -1013,6 +1154,12 @@ DEAL_LOOKUPS = {
     "end_client": "accounts",
     "customer_partner_si": "accounts",
     "delivery_pm": "users",
+    # SYSTEM_STAMPED, and here only so __labels resolves their display names.
+    # Never validated on write — see _check_links in routers/deals.py, which
+    # skips them for the reason leads.py states: never validate what you do
+    # not write.
+    "created_by": "users",
+    "modified_by": "users",
 }
 
 
@@ -1067,6 +1214,9 @@ class DealBase(CustomFieldsMixin):
     end_client: str | None = Field(default=None, max_length=20)
     customer_partner_si: str | None = Field(default=None, max_length=20)
     deal_stage: str | None = None
+    lead_status: str | None = None
+    pursuit_group: str | None = Field(default=None, max_length=20)
+    is_primary_pursuit: bool | None = None
     expected_close_month: date | None = None
     delivery_pm: str | None = Field(default=None, max_length=20)
     order_booked: bool | None = None
@@ -1106,7 +1256,28 @@ class DealBase(CustomFieldsMixin):
     contract_expiry_date: date | None = None
     renewal_status: str | None = None
     renewal_signed_date: date | None = None
+    # ADDED BY 0016 — see DEAL_SCALARS above for why these three are new here.
+    contract_signed_date: date | None = None
+    progression_pct: float | None = None
+    probability_pct: float | None = None
+    # ADDED BY 0030 — the same gap again: active placements, storage='column',
+    # no column, so every value typed into them was dropped on the way in.
+    po_number: str | None = Field(default=None, max_length=50)
+    payment_schedule_confirmed: bool | None = None
+    overall_rag: str | None = Field(default=None, max_length=10)
+    next_milestone: str | None = Field(default=None, max_length=200)
+    next_milestone_date: date | None = None
+    # SYSTEM_STAMPED: declared so the scalar loop can read them off a payload
+    # uniformly, discarded on write, and stamped from the Entra session.
+    created_by: str | None = Field(default=None, max_length=20)
+    modified_by: str | None = Field(default=None, max_length=20)
     active: bool | None = None
+
+
+    # Override Justification is NOT a field here. It is the register's own
+    # probability_override_justification, sent the ordinary per-stage way —
+    # a flat `probability_override_justification__s<stage>` key. See
+    # app/progression.py.
 
     # The two childlists — one row per commitment/use case, never a delimited
     # string, array column or JSONB, same rule payment_milestones follows.
@@ -1117,6 +1288,9 @@ class DealBase(CustomFieldsMixin):
 class DealCreate(DealBase):
     # Optional: the server allocates the next DEAL-00nnn when it is absent.
     deal_id: str | None = Field(default=None, max_length=20)
+    #: How and why, when this record is created FROM another one — kept on the
+    #: Conversion row the create writes, never a field. See app/conversion.py.
+    conversion_note: str | None = Field(default=None, max_length=2000)
 
 
 class DealUpdate(DealBase):
@@ -1144,6 +1318,9 @@ class DealOut(BaseModel):
     end_client: str | None = None
     customer_partner_si: str | None = None
     deal_stage: str | None = None
+    lead_status: str | None = None
+    pursuit_group: str | None = None
+    is_primary_pursuit: bool = True
     expected_close_month: date | None = None
     delivery_pm: str | None = None
     order_booked: bool = False
@@ -1181,11 +1358,40 @@ class DealOut(BaseModel):
     contract_expiry_date: date | None = None
     renewal_status: str | None = None
     renewal_signed_date: date | None = None
-    created_by_date: datetime
-    modified_by_date: datetime
+    # ADDED BY 0016 — see DEAL_SCALARS for why these three are new on Deals.
+    contract_signed_date: date | None = None
+    progression_pct: float | None = None
+    probability_pct: float | None = None
+    po_number: str | None = None
+    payment_schedule_confirmed: bool | None = None
+    overall_rag: str | None = None
+    next_milestone: str | None = None
+    next_milestone_date: date | None = None
+    # The same four every other module serves, since 0030. created_by_date /
+    # modified_by_date are gone: same facts, two names, four blank rows.
+    created_by: str | None = None
+    created_date: datetime
+    modified_by: str | None = None
+    modified_date: datetime
     active: bool = True
     bid_commitments_register: list[DealBidCommitmentOut] = []
     expansion_use_cases: list[DealExpansionUseCaseOut] = []
+
+
+    # ---------------------------------------------------------
+    # THE STAGE PAIR'S OVERRIDE STATE (app/progression.py)
+    # ---------------------------------------------------------
+    #
+    # progression_pct and probability_pct are declared above. All FRACTIONS -
+    # 0.4 is 40%. The defaults are the stage's pair as it was when the record
+    # entered the stage; is_overridden is True while either number differs
+    # from its default. The reason lives in the register's own
+    # probability_override_justification, per stage, via custom_fields.
+    progression_default_pct: float | None = None
+    probability_default_pct: float | None = None
+    is_overridden: bool = False
+    overridden_by: str | None = None
+    overridden_date: datetime | None = None
 
     labels: dict[str, str] | None = Field(default=None, alias="__labels")
 
@@ -1204,8 +1410,14 @@ class TransitionCreate(BaseModel):
     reason: str | None = None
     is_skip: bool = False
     is_reversal: bool = False
+    #: Criterion codes ticked by hand — see models.StageTransition.attested.
+    attested: list[str] = Field(default_factory=list, max_length=50)
+    # Both IGNORED — the server stamps them (routers/transitions.py). Optional,
+    # because lib/pipeline.ts's NewTransition rightly never sends them, and a
+    # required timestamp 422'd every Update Stage AFTER the record's stage had
+    # already been written.
     actor: str | None = None
-    timestamp: datetime
+    timestamp: datetime | None = None
 
 
 class TransitionOut(BaseModel):
@@ -1219,6 +1431,7 @@ class TransitionOut(BaseModel):
     reason: str | None
     is_skip: bool
     is_reversal: bool
+    attested: list[str] = []
     actor: str | None
     timestamp: datetime
 
@@ -1234,7 +1447,9 @@ class ConversionCreate(BaseModel):
     target_module: str
     target_id: str
     actor: str | None = None
-    timestamp: datetime
+    #: Ignored, like actor — the server stamps both. It was REQUIRED, which
+    #: 422'd every conversion after its record had already been created.
+    timestamp: datetime | None = None
     copied_fields: list[str] = []
     note: str | None = None
 
@@ -1266,12 +1481,16 @@ class AuditLogOut(BaseModel):
     action: str
     actor: str | None
     changed_fields: list[str] | None
+    #: [{field, from, to}] for scalars, {field, kind:'list'} for child lists.
+    #: NULL on rows written before 0018 — the old values were never captured,
+    #: and the History tab says so rather than implying nothing changed.
+    changed: list[dict] | None = None
     timestamp: datetime
 
 
 # --------------------------------------------------------------- deal registrations
 
-# The 14 register fields a registration carries besides its id. Described by
+# The 15 register fields a registration carries besides its id. Described by
 # the register under module `partners`, section DEAL REGISTRATION — see
 # models.DealRegistration.
 REGISTRATION_SCALARS = (
@@ -1279,6 +1498,7 @@ REGISTRATION_SCALARS = (
     "end_client",
     "project_name",
     "estimated_value",
+    "currency",
     "expected_timeline",
     "partner_role",
     "submitted_date",
@@ -1302,7 +1522,8 @@ class DealRegistrationBase(CustomFieldsMixin):
     end_client: str | None = Field(default=None, max_length=20)
     project_name: str | None = Field(default=None, max_length=150)
     estimated_value: float | None = None
-    expected_timeline: str | None = Field(default=None, max_length=100)
+    currency: str | None = Field(default=None, max_length=3)
+    expected_timeline: date | None = None
     partner_role: str | None = Field(default=None, max_length=40)
     submitted_date: date | None = None
     acknowledged_date: date | None = None
@@ -1318,9 +1539,40 @@ class DealRegistrationCreate(DealRegistrationBase):
     # Absent means the server allocates the next REG-nnnnn.
     registration_id: str | None = Field(default=None, max_length=20)
 
+    # The answer to 422 POSSIBLE_CONFLICT — see app/registration_matching.py.
+    # Not register fields and never stored as themselves.
+    raise_conflict_with: list[str] | None = None
+    not_conflict_with: list[str] | None = None
+    not_conflict_reason: str | None = Field(default=None, max_length=1000)
+
 
 class DealRegistrationUpdate(DealRegistrationBase):
     """PATCH and PUT both use this; only the fields sent are applied."""
+
+    # See DealRegistrationCreate. Asked again only when partner, End Client or
+    # Project Name changes.
+    raise_conflict_with: list[str] | None = None
+    not_conflict_with: list[str] | None = None
+    not_conflict_reason: str | None = Field(default=None, max_length=1000)
+
+
+class DealRegistrationConflictCheck(BaseModel):
+    """POST /registrations/{id}/conflict-check — one possible conflict answered
+    from the Conflict tab, for a registration saved before the check existed."""
+
+    raise_conflict_with: list[str] | None = None
+    not_conflict_with: list[str] | None = None
+    not_conflict_reason: str | None = Field(default=None, max_length=1000)
+
+
+class DealRegistrationWithdraw(BaseModel):
+    """POST /registrations/{id}/withdraw — see app/registration_withdrawal.py."""
+
+    reason: str = Field(default="", max_length=1000)
+    #: keep | hold | close — required when the registration's pursuit is open.
+    pursuit_action: str | None = Field(default=None, max_length=10)
+    #: Any record id of the pursuit that becomes primary, when closing the primary.
+    new_primary: str | None = Field(default=None, max_length=20)
 
 
 class DealRegistrationOut(BaseModel):
@@ -1332,7 +1584,8 @@ class DealRegistrationOut(BaseModel):
     end_client: str | None = None
     project_name: str | None = None
     estimated_value: float | None = None
-    expected_timeline: str | None = None
+    currency: str | None = Field(default=None, max_length=3)
+    expected_timeline: date | None = None
     partner_role: str | None = None
     submitted_date: date | None = None
     acknowledged_date: date | None = None
@@ -1342,6 +1595,22 @@ class DealRegistrationOut(BaseModel):
     registration_status: str | None = None
     extension_reason: str | None = None
     linked_lead: str | None = None
+
+    #: "Partner · Project" — what a person calls a registration.
+    name: str | None = None
+    #: Set only by the Withdraw action.
+    withdrawn_date: date | None = None
+    withdrawal_reason: str | None = None
+    #: Registrations declared "a different project", and why.
+    not_conflict_with: list[str] = []
+    not_conflict_reason: str | None = None
+
+    # Read-only system stamps. Not on DealRegistrationBase, so a body that
+    # sends them has nothing to bind to.
+    created_by: str | None = None
+    created_date: datetime | None = None
+    modified_by: str | None = None
+    modified_date: datetime | None = None
 
     labels: dict[str, str] | None = Field(default=None, alias="__labels")
 
@@ -1357,14 +1626,18 @@ CONFLICT_SCALARS = (
     "stronger_client_relationship",
     "better_delivery_capability",
     "decision",
+    "primary_registration",
     "decision_date",
     "decided_by",
     "both_partners_notified",
+    "decision_rationale",
+    "evidence_link",
 )
 
 CONFLICT_LOOKUPS = {
     "registration_a": "registrations",
     "registration_b": "registrations",
+    "primary_registration": "registrations",
     "decided_by": "users",
 }
 
@@ -1376,9 +1649,12 @@ class RegistrationConflictBase(CustomFieldsMixin):
     stronger_client_relationship: str | None = Field(default=None, max_length=300)
     better_delivery_capability: str | None = Field(default=None, max_length=300)
     decision: str | None = Field(default=None, max_length=40)
+    primary_registration: str | None = Field(default=None, max_length=20)
     decision_date: date | None = None
     decided_by: str | None = Field(default=None, max_length=20)
     both_partners_notified: bool | None = None
+    decision_rationale: str | None = Field(default=None, max_length=4000)
+    evidence_link: str | None = Field(default=None, max_length=500)
 
 
 class RegistrationConflictCreate(RegistrationConflictBase):
@@ -1401,8 +1677,94 @@ class RegistrationConflictOut(BaseModel):
     stronger_client_relationship: str | None = None
     better_delivery_capability: str | None = None
     decision: str | None = None
+    primary_registration: str | None = None
     decision_date: date | None = None
     decided_by: str | None = None
     both_partners_notified: bool = False
 
+    decision_rationale: str | None = None
+    evidence_link: str | None = None
+    #: "Conflict: Gulfstar vs Sahara".
+    name: str | None = None
+
+    # Read-only system stamps — see DealRegistrationOut.
+    created_by: str | None = None
+    created_date: datetime | None = None
+    modified_by: str | None = None
+    modified_date: datetime | None = None
+
     labels: dict[str, str] | None = Field(default=None, alias="__labels")
+
+
+# ----------------------------------------------------------- pursuit groups
+
+#: A reason is a sentence someone will read later to understand a revenue
+#: decision. Five characters keeps out "x" and "ok" without pretending to judge.
+REASON = Field(min_length=5, max_length=1000)
+
+
+class PursuitGroupCreate(BaseModel):
+    """Group two or more pursuits for the same End Client. Every id may name
+    ANY record of its chain — a converted Lead and its Opportunity are the same
+    pursuit — and `primary` must be one of `members`."""
+
+    members: list[str] = Field(min_length=2)
+    primary: str = Field(max_length=20)
+    reason: str = REASON
+
+
+class PursuitGroupAddMember(BaseModel):
+    record_id: str = Field(max_length=20)
+    reason: str = REASON
+
+
+class PursuitGroupChangePrimary(BaseModel):
+    record_id: str = Field(max_length=20)
+    reason: str = REASON
+
+
+class PursuitGroupRemoveMember(BaseModel):
+    reason: str = REASON
+    #: Required when the pursuit being removed is the primary and at least two
+    #: members would remain; the group cannot be left without one.
+    new_primary: str | None = Field(default=None, max_length=20)
+
+
+class PursuitMemberOut(BaseModel):
+    """One pursuit in a group, described by the live end of its chain."""
+
+    model_config = ConfigDict(extra="allow")
+
+    pursuit: str
+    is_primary: bool
+    is_open: bool
+    module: str
+    record_id: str
+    name: str | None = None
+    partner: str | None = None
+    partner_name: str | None = None
+    stage: str | None = None
+    stage_number: int | None = None
+    status: str | None = None
+    #: Every record of the chain, first to last — LEAD-…, OPP-…, DEAL-….
+    chain: list[dict[str, str]] = []
+    revenue: dict[str, Any] | None = None
+
+
+class PursuitGroupOut(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: str
+    group_id: str
+    end_client: str | None = None
+    end_client_name: str | None = None
+    primary_pursuit: str | None = None
+    primary_registration: str | None = None
+    source_conflict: str | None = None
+    created_by: str | None = None
+    created_date: datetime
+    modified_by: str | None = None
+    modified_date: datetime
+    members: list[PursuitMemberOut] = []
+    #: Plain-language notices the record screens show — see app/pursuits.py.
+    alerts: list[dict[str, Any]] = []

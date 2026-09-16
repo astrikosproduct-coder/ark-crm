@@ -137,10 +137,23 @@ def case_2_administration_sees_the_crm(db) -> None:
     head("2  Administration shows what the CRM renders")
 
     # leads was 81 until Close Date Pushback Count was deleted from the
-    # register (close_month_record_state.py). Opportunities and Deals are
+    # register (close_month_record_state.py). Opportunities and Deals were
     # unchanged at 105 and 97: each lost that same field and gained its own
     # instance of Expected Close Month in the same change.
-    for module, expected in (("leads", 80), ("opportunities", 105), ("deals", 97)):
+    #
+    # Pursuit Groups (pursuit_group_metadata.py, 13 Sep 2026): Opportunities and
+    # Deals each gain is_primary_pursuit, pursuit_group and a read-through
+    # fx_rate_at_entry (+3). Leads gains pursuit_group and not_duplicate_reason
+    # and loses parent_pursuit (+1) — 80 assumed a leads count of 80 that the
+    # register had already left at 79 before this change.
+    # Opportunities 108 -> 107: rfp_document_file was deleted in Administration
+    # on 15 Sep 2026 (version 109), deliberately — see case 11.
+    # Deals 100 -> 98: created_by_date and modified_by_date were retired on
+    # 16 Sep 2026 (deal_register_alignment.py, after migration 0030). They were
+    # the Deals sheet's own names for created_date and modified_date, which the
+    # module also placed — six system rows for four facts, four of them blank
+    # because the columns behind them were the other two.
+    for module, expected in (("leads", 80), ("opportunities", 107), ("deals", 98)):
         resolved = len(R.resolved_fields(db, module))
         api = client.get(
             "/api/admin/metadata/fields", params={"module": module}
@@ -416,7 +429,8 @@ def case_9_read_through(db) -> None:
     head("9  read-through — stores nothing, resolves to the parent")
 
     plan = R.read_through_plan(db, "opportunities")
-    check("Opportunities reads 26 fields through", len(plan) == 26, str(len(plan)))
+    # 27 since Pursuit Groups: fx_rate_at_entry reads through beside currency.
+    check("Opportunities reads 27 fields through", len(plan) == 27, str(len(plan)))
     check("every one of them resolves to leads", set(plan.values()) == {"leads"})
 
     rows = [
@@ -473,36 +487,54 @@ def case_10_shared(db) -> None:
 
 # =====================================================================
 def case_11_admin_created(db) -> None:
-    head("11  Administration-created field")
+    head("11  Administration-created field, deleted in the register")
 
     definition = db.scalar(
         select(FieldDefinition).where(FieldDefinition.api_name == "rfp_document_file")
     )
     check("one definition", definition is not None)
-    placements = [p for p in definition.placements if p.status == "active"]
-    check("exactly one placement", len(placements) == 1, str(len(placements)))
+    active = [p for p in definition.placements if p.status == "active"]
+    deleted = [p for p in definition.placements if p.status == "deleted"]
+
+    # RFP Document File was deleted in Administration on 15 Sep 2026 (register
+    # version 109) and confirmed deliberate on 16 Sep. The case is kept rather
+    # than removed, because what it now proves is the thing that matters about
+    # an Administration field: deleting one is LOGICAL. No DDL ran, the
+    # definition is still here, the placement is still here marked deleted, and
+    # every value ever stored under this api_name is untouched in the JSONB —
+    # which is what makes Administration's restore real rather than a promise.
+    check("no active placement — it renders nowhere", not active, str(len(active)))
+    check("exactly one deleted placement", len(deleted) == 1, str(len(deleted)))
     check(
-        "placed on Opportunities — it is a Stage 4 field",
-        placements[0].module_key == "opportunities",
-        placements[0].module_key,
+        "it was placed on Opportunities — a Stage 4 field",
+        deleted[0].module_key == "opportunities",
+        deleted[0].module_key,
     )
     check(
         "its values live in custom_fields, never a column",
-        placements[0].storage == "custom_fields",
-        str(placements[0].storage),
+        deleted[0].storage == "custom_fields",
+        str(deleted[0].storage),
     )
     check(
-        "the custom-field writer sees it on Opportunities",
-        "rfp_document_file" in custom_field_defs(db, "opportunities"),
+        "the custom-field writer no longer accepts it on Opportunities",
+        "rfp_document_file" not in custom_field_defs(db, "opportunities"),
     )
     check(
-        "and does NOT see it on Leads any more (it renders on neither)",
-        "rfp_document_file" not in custom_field_defs(db, "leads"),
+        "and it never reached Leads",
+        "rfp_document_file" not in custom_field_defs(db, "leads", include_deleted=True),
     )
+    check(
+        "the deleted placement is still there to restore from",
+        "rfp_document_file" in custom_field_defs(db, "opportunities", include_deleted=True),
+    )
+    # demo_field has been deleted in Administration too, so the scoping is read
+    # through the deleted placements. The rule under test is unchanged and is
+    # the one that matters: a placement belongs to ONE module, and deleting it
+    # does not smear it across the others.
     check(
         "demo_field, a Stage 0 field, is scoped to Leads alone",
-        "demo_field" in custom_field_defs(db, "leads")
-        and "demo_field" not in custom_field_defs(db, "opportunities"),
+        "demo_field" in custom_field_defs(db, "leads", include_deleted=True)
+        and "demo_field" not in custom_field_defs(db, "opportunities", include_deleted=True),
     )
 
 
@@ -552,6 +584,10 @@ def case_12_carry_forward_live(db) -> None:
         one_time_revenue=1000,
         arr_annual_recurring=2000,
         contract_years=5,
+        # X6.1 is enforced when a Deal is created from an Opportunity (app/
+        # revenue.py, 13 Sep 2026): the negotiated value must equal TCV =
+        # 2000 × 5 + 1000 + 300 + 400 × 5.
+        final_negotiated_value=13300,
     )
     opportunity.third_party_one_time = 300
     opportunity.third_party_recurring_per_year = 400
@@ -619,13 +655,26 @@ def case_12_carry_forward_live(db) -> None:
     # ---- an explicitly supplied value is never overwritten by inheritance
     # No cleanup here: the run-start _cleanup already cleared any leftovers,
     # and clearing again would take OPP-T9001 with it.
+    #
+    # Its own Opportunity, a copy of the first. OPP-T9001 became DEAL-T9001
+    # above, and an Opportunity converts once (app/conversion.py) — a second
+    # Deal from it is refused, which is the point of that rule, not of this test.
+    from sqlalchemy import inspect as sa_inspect
+
+    db.expire_all()
+    source = db.get(Opportunity, opp_id)
+    opp2 = "OPP-T9002"
+    copy = {a.key: getattr(source, a.key) for a in sa_inspect(Opportunity).column_attrs if a.key != "opportunity_id"}
+    db.add(Opportunity(opportunity_id=opp2, **{**copy, "lead_status": "OPEN"}))
+    db.commit()
+
     deal2 = "DEAL-T9002"
     response = client.post(
         "/api/deals",
         json={
             "deal_id": deal2,
             "deal_name": "Explicit wins",
-            "parent_opportunity": opp_id,
+            "parent_opportunity": opp2,
             "one_time_revenue": 7,
         },
     )
