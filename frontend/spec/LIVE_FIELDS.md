@@ -552,7 +552,7 @@ Stages 7–9. Holds `parent_opportunity`; identity is read through the parent `o
 | Progression % | `progression_pct` | percent | Optional | any | Set from the stage: 5 · 15 · 25 · 40 · 50 · 70 · 85 · 95 · 100 · 100. Multiples of 5. | — |
 | Probability (%) | `probability_pct` | percent | **Mandatory** | 0 | Set from the stage: 5 · 10 · 20 · 30 · 40 · 55 · 70 · 90 · 100 · 100. Multiples of 5. | — |
 
-### STAGE 7 — COMMERCIAL TERMS (AS WON)
+### STAGE 7 — COMMERCIAL TERMS
 
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|

@@ -141,16 +141,18 @@ function ParentSection({
         </h3>
         {record && <span className="text-muted-foreground text-xs">{displayNameOf(record)}</span>}
       </div>
+      {/* No "open it to change a value": a parent is converted, so it is
+          read-only in its own module too. */}
       <p className="text-muted-foreground text-xs">
-        Read-only: what the {noun} recorded in its own stages. To change a value, open the {noun}.
+        Read-only: what the {noun} recorded in its own stages.
       </p>
 
       {isLoading && <p className="text-muted-foreground py-2 text-sm">Loading {id}…</p>}
       {isError && <p className="py-2 text-sm text-destructive">Could not load {id}.</p>}
+      {/* No frame of its own — each stage section is already a card, and a
+          border around them drew a second, thinner box. */}
       {record && (
-        <div className="rounded-md border px-3 pb-3">
-          <RecordForm key={`${module}:${id}`} module={module} mode="view" values={record} sections={sections} />
-        </div>
+        <RecordForm key={`${module}:${id}`} module={module} mode="view" values={record} sections={sections} />
       )}
     </section>
   )

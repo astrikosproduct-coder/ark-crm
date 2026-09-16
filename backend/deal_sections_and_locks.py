@@ -17,8 +17,7 @@ different homes:
     RECORD STATE                      what the record IS, always on Details:
                                       Deal ID, Deal Name, Deal Stage, Parent
                                       Opportunity, Parent Lead, Delivery PM
-    STAGE 7 — COMMERCIAL TERMS
-    (AS WON)                          what was won, fixed from here on: End
+    STAGE 7 — COMMERCIAL TERMS        what was won, fixed from here on: End
                                       Client, Customer, Contract Value and the
                                       five revenue lines
     STAGE 7 — CLOSE                   the closing work: booking, references,
@@ -84,7 +83,9 @@ from app.clock import now_utc
 from app.database import SessionLocal
 from app.models import FieldPlacement, Section
 
-COMMERCIAL_SECTION = "STAGE 7 — COMMERCIAL TERMS (AS WON)"
+COMMERCIAL_SECTION = "STAGE 7 — COMMERCIAL TERMS"
+#: The label it was first published under (version 113), renamed in place.
+FORMER_COMMERCIAL_SECTION = "STAGE 7 — COMMERCIAL TERMS (AS WON)"
 RETIRED_SECTION = "ON CONVERSION"
 
 #: (module, section label, capture stage to set or None to leave, [api_name, ...])
@@ -201,6 +202,13 @@ def main() -> int:
         # The new section takes the retiring one's slot in the order.
         retiring = section(db, "deals", RETIRED_SECTION)
         commercial = section(db, "deals", COMMERCIAL_SECTION)
+        former = section(db, "deals", FORMER_COMMERCIAL_SECTION)
+        if commercial is None and former is not None:
+            former.label = COMMERCIAL_SECTION
+            former.updated_at = stamp
+            db.flush()
+            commercial = former
+            changes.append(f"deals: section renamed — {FORMER_COMMERCIAL_SECTION} -> {COMMERCIAL_SECTION}")
         if commercial is None:
             slot = retiring.sort_order if retiring is not None else 3
             commercial = Section(
@@ -334,7 +342,7 @@ def main() -> int:
         result = _publish(
             db,
             build_snapshot(db),
-            "Deals: ON CONVERSION retired into RECORD STATE, STAGE 7 — COMMERCIAL TERMS (AS WON) "
+            "Deals: ON CONVERSION retired into RECORD STATE, STAGE 7 — COMMERCIAL TERMS "
             "and STAGE 7 — CLOSE; commercial values locked; PO Number retired for PO / LOI "
             "Reference. Opportunities: Parent Lead moved to RECORD STATE.",
             args.user,

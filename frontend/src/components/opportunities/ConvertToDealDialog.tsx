@@ -31,7 +31,7 @@ interface Props {
 /**
  * Where a converted Opportunity lands: Stage 7 — Close, the first stage Deals
  * own (spec/module_split.json ranges), and the stage whose two sections —
- * STAGE 7 — COMMERCIAL TERMS (AS WON), carried in and locked, and STAGE 7 —
+ * STAGE 7 — COMMERCIAL TERMS, carried in and locked, and STAGE 7 —
  * CLOSE, the closing work — exist precisely to be filled at this moment.
  *
  * It used to be 8, which was wrong in four ways at once: G3 Commercial is

@@ -7881,7 +7881,7 @@
  },
  {
   "module": "deals",
-  "section": "STAGE 7 — COMMERCIAL TERMS (AS WON)",
+  "section": "STAGE 7 — COMMERCIAL TERMS",
   "order": 20,
   "api_name": "end_client",
   "label": "End Client",
@@ -7921,7 +7921,7 @@
  },
  {
   "module": "deals",
-  "section": "STAGE 7 — COMMERCIAL TERMS (AS WON)",
+  "section": "STAGE 7 — COMMERCIAL TERMS",
   "order": 21,
   "api_name": "customer_partner_si",
   "label": "Customer (Partner / SI)",
@@ -8001,7 +8001,7 @@
  },
  {
   "module": "deals",
-  "section": "STAGE 7 — COMMERCIAL TERMS (AS WON)",
+  "section": "STAGE 7 — COMMERCIAL TERMS",
   "order": 22,
   "api_name": "contract_value",
   "label": "Contract Value",
@@ -8041,7 +8041,7 @@
  },
  {
   "module": "deals",
-  "section": "STAGE 7 — COMMERCIAL TERMS (AS WON)",
+  "section": "STAGE 7 — COMMERCIAL TERMS",
   "order": 23,
   "api_name": "arr_annual_recurring",
   "label": "ARR (Annual Recurring)",
@@ -8081,7 +8081,7 @@
  },
  {
   "module": "deals",
-  "section": "STAGE 7 — COMMERCIAL TERMS (AS WON)",
+  "section": "STAGE 7 — COMMERCIAL TERMS",
   "order": 24,
   "api_name": "one_time_revenue",
   "label": "One-Time Revenue",
@@ -8121,7 +8121,7 @@
  },
  {
   "module": "deals",
-  "section": "STAGE 7 — COMMERCIAL TERMS (AS WON)",
+  "section": "STAGE 7 — COMMERCIAL TERMS",
   "order": 25,
   "api_name": "3rd_party_one_time",
   "label": "3rd-Party Revenue — One-Time",
@@ -8161,7 +8161,7 @@
  },
  {
   "module": "deals",
-  "section": "STAGE 7 — COMMERCIAL TERMS (AS WON)",
+  "section": "STAGE 7 — COMMERCIAL TERMS",
   "order": 26,
   "api_name": "3rd_party_recurring_per_year",
   "label": "3rd-Party Revenue — Recurring (per year)",
@@ -8201,7 +8201,7 @@
  },
  {
   "module": "deals",
-  "section": "STAGE 7 — COMMERCIAL TERMS (AS WON)",
+  "section": "STAGE 7 — COMMERCIAL TERMS",
   "order": 27,
   "api_name": "contract_years",
   "label": "Contract Years",

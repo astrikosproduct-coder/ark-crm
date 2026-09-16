@@ -268,7 +268,7 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
     [spec.module, keyFacts]
   )
   // Plural, deliberately: a stage can carry more than one section — Deals'
-  // Stage 7 has STAGE 7 — COMMERCIAL TERMS (AS WON) and STAGE 7 — CLOSE, and
+  // Stage 7 has STAGE 7 — COMMERCIAL TERMS and STAGE 7 — CLOSE, and
   // Opportunities' Stage 4 has three. sectionForStage (singular) would
   // silently drop all but the first; see its own comment in lib/pipeline.ts.
   //

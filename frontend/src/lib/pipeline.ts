@@ -171,7 +171,7 @@ export function dealStageKeyOf(stage: number): string | undefined {
  * SINGULAR — returns only the first section it finds. Kept for the create
  * pages, which open a record at one fixed stage that has always had exactly
  * one section. A detail page's "current stage" tab must use sectionsForStage
- * instead: Deals' Stage 7 has TWO — "STAGE 7 — COMMERCIAL TERMS (AS WON)" and
+ * instead: Deals' Stage 7 has TWO — "STAGE 7 — COMMERCIAL TERMS" and
  * "STAGE 7 — CLOSE" — and Opportunities' Stage 4 has three, so this function
  * would silently show one and drop the rest. */
 export function sectionForStage(module: string, stage: number): string | undefined {

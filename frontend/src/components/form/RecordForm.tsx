@@ -178,19 +178,28 @@ export function FormSection({
     : arrangeAnchored(module, fields)
   const errorCount = fields.filter((f) => form.visibleErrors[f.api_name]).length
 
-  // A section with nothing to show in view mode is not worth a header.
-  if (nodes.length === 0 && form.mode === 'view') return null
+  // A section with nothing to show is not worth a header, in either mode —
+  // Accounts' PARTNER ATTRIBUTES is hidden whole when no field in it applies.
+  if (nodes.length === 0) return null
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="rounded-lg border">
-      <CollapsibleTrigger className="flex w-full items-center gap-2 px-4 py-3 text-left">
+    // A SURFACE, not a box. No outer border: the card's own background lifts it
+    // off the canvas (and in light mode a soft shadow does the rest), which is
+    // the whole elevation system — see index.css. The header separates by
+    // weight and by the space around it rather than by a rule.
+    <Collapsible
+      open={open}
+      onOpenChange={setOpen}
+      className="bg-card rounded-lg shadow-sm"
+    >
+      <CollapsibleTrigger className="flex w-full items-center gap-2 px-6 pt-5 pb-1 text-left">
         <ChevronDownIcon
-          className={cn('size-4 shrink-0 transition-transform', !open && '-rotate-90')}
+          className={cn(
+            'text-muted-foreground size-4 shrink-0 transition-transform',
+            !open && '-rotate-90'
+          )}
         />
-        <span className="text-section font-bold tracking-wide">{title ?? section}</span>
-        <span className="text-xs text-muted-foreground">
-          {fields.length} {fields.length === 1 ? 'field' : 'fields'}
-        </span>
+        <span className="text-page-title font-bold tracking-tight">{title ?? section}</span>
         {errorCount > 0 && (
           <Badge variant="destructive" className="ml-auto">
             {errorCount}
@@ -199,26 +208,35 @@ export function FormSection({
       </CollapsibleTrigger>
 
       <CollapsibleContent>
-        <div className="grid gap-x-6 gap-y-4 border-t px-4 py-4 md:grid-cols-2">
-          {nodes.length === 0 ? (
-            <p className="text-sm text-muted-foreground md:col-span-2">
-              {/* Two different reasons a section can come up empty, and since
-                  anchors the second one is common: CROSS-CUTTING on a pipeline
-                  record now has all five of its fields drawn somewhere else —
-                  two beside the status field, three on their own surfaces. */}
-              Nothing to fill in here. Every field in this section is either hidden by a
-              visibility condition or shown elsewhere on this screen.
-            </p>
-          ) : (
-            nodes.map((node) => (
-              <AnchorCell
-                key={node.field.qref}
-                node={node}
-                className={cn(nodeSpansFullWidth(node, FULL_WIDTH) && 'md:col-span-2')}
-                onCreateNew={onCreateNew}
-              />
-            ))
-          )}
+        {/* Roomier than it was, because the rows are label-beside-value now and
+            the reference gives each one about 40px of rhythm — §3.3.
+            A CONTAINER, and the columns answer to its width rather than the
+            window's: the same section renders full width on a record page and
+            inside a 672px quick-create dialog, and only the first of those has
+            room for two columns of label-plus-value. FieldRow reads the same
+            container to decide whether its label sits beside the value.
+
+            The container is a WRAPPER, not the grid. A container query only
+            ever measures an ANCESTOR, so `@container` and `@3xl:grid-cols-2`
+            on the same element meant the grid could never see its own width:
+            the two-column rule never matched, every section rendered as one
+            column, and every picklist stretched the full section. */}
+        <div className="@container">
+        {/* grid-cols-1 and *:min-w-0: a grid cell is otherwise never narrower
+            than its content, so a child table wider than the column pushed the
+            cell — and the whole page — sideways instead of scrolling inside
+            its own overflow box. With no column template at all, the one
+            implicit column grew to the table's width the same way. */}
+        <div className="grid grid-cols-1 gap-x-10 gap-y-5 px-6 pt-4 pb-7 *:min-w-0 [--ark-form-label:9rem] @3xl:grid-cols-2">
+          {nodes.map((node) => (
+            <AnchorCell
+              key={node.field.qref}
+              node={node}
+              className={cn(nodeSpansFullWidth(node, FULL_WIDTH) && '@3xl:col-span-2')}
+              onCreateNew={onCreateNew}
+            />
+          ))}
+        </div>
         </div>
       </CollapsibleContent>
     </Collapsible>
@@ -249,14 +267,55 @@ function AnchorCell({
     return <FieldRow field={node.field} onCreateNew={onCreateNew} className={className} />
   }
 
+  // Whether this cell occupies the whole row. The stack below it may only lay
+  // its children out in two columns when it does — inside a half-width cell
+  // there is no second column to put one in, and the section-level @3xl
+  // breakpoint measures the SECTION, so it cannot tell the difference.
+  const wide = nodeSpansFullWidth(node, FULL_WIDTH)
+
   return (
-    <div className={cn('flex flex-col gap-4', className)}>
+    // A GRID, so the anchor keeps its own width when the CELL was widened for
+    // something else. nodeSpansFullWidth is true if the anchor OR anything
+    // stacked under it needs the row, and the cell was then laid out as a flex
+    // column — which stretched the anchor to the full two columns as a side
+    // effect of a child's requirement. Agreed Next Step is a plain picklist
+    // with no layout_span at all, and it rendered as a select twice the width
+    // of Interest Level directly above it, purely because the file link
+    // anchored beneath it is marked `full`.
+    //
+    // As a two-column grid the anchor takes one column like any other field,
+    // and only the things that actually asked for the row get it.
+    <div className={cn('grid grid-cols-1 gap-x-10 gap-y-4 *:min-w-0', wide && '@3xl:grid-cols-2', className)}>
       <FieldRow field={node.field} onCreateNew={onCreateNew} />
       {/* Ruled and indented, so the stack reads as "these belong to the field
-          above" rather than as unrelated boxes that happen to sit close. */}
-      <div className="border-muted-foreground/25 flex flex-col gap-4 border-l-2 pl-3">
+          above" rather than as unrelated boxes that happen to sit close.
+          `--ark-form-label` is narrowed by exactly what the rule and its
+          padding consume (0.75rem + 2px), which is what keeps a nested row's
+          VALUE on the same x as every unnested value in the section — see the
+          note in FieldRow. One level is enough: no anchored field in any module
+          is itself an anchor target, so the stacks are never nested.
+
+          A GRID, NOT A COLUMN, when the cell is wide. These children carry
+          their own layout_span and it was being thrown away: Pilot Commercial
+          Model and Pilot Fee are both declared `half` in the register, and a
+          flex column rendered them one above the other at DOUBLE width, each
+          filling a two-column cell. Two halves now sit side by side, which is
+          what the admin asked for in the layout canvas. */}
+      <div
+        className={cn(
+          'border-muted-foreground/25 gap-x-10 gap-y-4 border-l-2 pl-3 [--ark-form-label:calc(9rem_-_0.875rem)]',
+          wide ? 'grid grid-cols-1 *:min-w-0 @3xl:col-span-2 @3xl:grid-cols-2' : 'flex min-w-0 flex-col'
+        )}
+      >
         {node.under.map((child) => (
-          <AnchorCell key={child.field.qref} node={child} onCreateNew={onCreateNew} />
+          <AnchorCell
+            key={child.field.qref}
+            node={child}
+            className={cn(
+              wide && nodeSpansFullWidth(child, FULL_WIDTH) && '@3xl:col-span-2'
+            )}
+            onCreateNew={onCreateNew}
+          />
         ))}
       </div>
     </div>
