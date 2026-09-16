@@ -7741,7 +7741,7 @@
   "description": "The Opportunity this Deal was converted from. Read-only, set by the conversion.",
   "use_case": "Second link in the chain. deals.parent_lead is resolved THROUGH this rather than stored twice. Plumbing, not an invented business field.",
   "required_on_skip": null,
-  "visibility_condition": null,
+  "visibility_condition": "parent_opportunity",
   "condition": null,
   "computed_formula": null,
   "value_mode": "own",

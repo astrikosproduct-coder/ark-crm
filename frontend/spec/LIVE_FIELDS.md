@@ -537,7 +537,7 @@ Stages 7–9. Holds `parent_opportunity`; identity is read through the parent `o
 | Deal Status | `lead_status` | picklist | **Mandatory** | 0 | `leads__lead_status` — Open · On Hold · Closed Lost · Converted · POC/Pilot Deal | — |
 | Is Primary Pursuit | `is_primary_pursuit` | checkbox | System | 0 | System — true unless a Pursuit Group names another pursuit as primary | — |
 | Pursuit Group | `pursuit_group` | lookup | System | 0 | → `pursuit_group` | — |
-| Parent Opportunity | `parent_opportunity` | lookup | System | 0 | → `opportunity` | — |
+| Parent Opportunity | `parent_opportunity` | lookup | System | 0 | → `opportunity`<br>shown when `parent_opportunity` | — |
 | Parent Lead | `parent_lead` | lookup | **Mandatory** | 0 | → `lead` | — |
 | Delivery PM | `delivery_pm` | lookup | **Mandatory** | 0 | → `user` | — |
 

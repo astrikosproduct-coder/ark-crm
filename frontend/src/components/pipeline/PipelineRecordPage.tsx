@@ -13,6 +13,7 @@ import { AdvanceStageDialog } from '@/components/pipeline/AdvanceStageDialog'
 import { HEADER_STRIP_SECTION, HeaderStrip } from '@/components/pipeline/HeaderStrip'
 import { PriorityFlagMark } from '@/components/opportunities/PriorityFlagMark'
 import { RecordTimelineTab } from '@/components/pipeline/RecordTimelineTab'
+import { Lineage } from '@/components/pipeline/Lineage'
 import { ReasonsPanel } from '@/components/pipeline/StageScopedFields'
 import type {
   PipelineModuleSpec,
@@ -29,7 +30,7 @@ import {
   stageNumberOf,
   type Transition,
 } from '@/lib/pipeline'
-import { displayNameOf, fieldOf, sectionsFor, withRecordId } from '@/lib/spec'
+import { displayNameOf, fieldOf, fieldsOf, sectionsFor, withRecordId } from '@/lib/spec'
 import { requestDiscard } from '@/store/useUnsavedChangesStore'
 import { revealField } from '@/lib/revealField'
 import { restoreScroll } from '@/lib/preserveScroll'
@@ -252,7 +253,17 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
   const detailSections = useMemo(
     () =>
       sectionsFor(spec.module).filter(
-        (s) => !s.startsWith('STAGE') && s !== HEADER_STRIP_SECTION && s !== keyFacts
+        (s) =>
+          !s.startsWith('STAGE') &&
+          s !== HEADER_STRIP_SECTION &&
+          s !== keyFacts &&
+          // Identity read through the parent is shown on the Related tab only,
+          // under the parent record that owns it (decided 16 Sep 2026) — see
+          // ParentRecordsPanel. Decided by the fields, not by the section's
+          // name: a section every one of whose fields is read-through.
+          !fieldsOf(spec.module)
+            .filter((f) => f.section === s)
+            .every((f) => f.value_mode === 'read_through')
       ),
     [spec.module, keyFacts]
   )
@@ -390,6 +401,7 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
                 thing there. */}
             {endClient && <span>End client: {displayNameOf(endClient)}</span>}
             {partner && <span>Partner: {displayNameOf(partner)}</span>}
+            <Lineage ctx={ctx} />
             {Header && <Header ctx={ctx} />}
           </div>
           </div>

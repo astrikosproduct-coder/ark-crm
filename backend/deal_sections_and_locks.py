@@ -59,6 +59,13 @@ parent_lead lived in STAGE 4 — RFP / RFI, so the only route back to the Lead
 was visible only while the Opportunity sat at Stage 4. It moves to RECORD
 STATE, like Parent Lead and Parent Opportunity on a Deal.
 
+5  PARENT OPPORTUNITY ONLY WHERE THERE IS ONE
+
+A Deal made directly from a Lead — a paid POC / pilot — has no Opportunity.
+Its Parent Opportunity field is hidden rather than shown blank, by a
+visibility_condition, so the rule is register data and not a line of code.
+The Related tab says the same thing in words (ParentRecordsPanel).
+
 DEPLOY ORDER
 
     python deal_sections_and_locks.py --apply
@@ -160,6 +167,9 @@ LOCKED = (
 NOT_EDITABLE = ("contract_value",)
 RETIRED_FIELDS = ("po_number",)
 
+#: A bare identifier is truthy when set — the same form criteria use.
+PARENT_OPPORTUNITY_VISIBLE = "parent_opportunity"
+
 
 def section(db, module: str, label: str) -> Section | None:
     return db.scalar(select(Section).where(Section.module_key == module, Section.label == label))
@@ -242,6 +252,17 @@ def main() -> int:
                 f"capture_stage {parent_lead.capture_stage} -> 0"
             )
             parent_lead.capture_stage = 0
+
+        # 5 — Parent Opportunity only where there is one
+        row = placement(db, "deals", "parent_opportunity")
+        if row is None:
+            problems.append("deals.parent_opportunity: no active placement")
+        elif row.visibility_condition != PARENT_OPPORTUNITY_VISIBLE:
+            changes.append(
+                f"deals.parent_opportunity: visibility_condition "
+                f"{row.visibility_condition!r} -> {PARENT_OPPORTUNITY_VISIBLE!r}"
+            )
+            row.visibility_condition = PARENT_OPPORTUNITY_VISIBLE
 
         # 2 — commercial values locked
         for api_name in LOCKED:

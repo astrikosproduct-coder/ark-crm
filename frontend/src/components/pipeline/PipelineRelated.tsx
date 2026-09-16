@@ -9,6 +9,7 @@ import { dealListCell } from '@/components/deals/dealListCell'
 import { leadListCell } from '@/components/leads/leadListCell'
 import { opportunityListCell } from '@/components/opportunities/opportunityListCell'
 import { registrationListCell } from '@/components/partners/registrationListCell'
+import { ParentRecordsPanel } from '@/components/pipeline/ParentRecordsPanel'
 import type { PipelineRecordContext } from '@/components/pipeline/types'
 import { PursuitGroupPanel } from '@/components/pursuits/PursuitGroupPanel'
 import { ComingSoon } from '@/pages/ComingSoon'
@@ -102,6 +103,10 @@ export function PipelineRelated({
 
   return (
     <div className="space-y-8">
+      {/* Where this record came from — its parents' own stages, read-only.
+          Draws nothing on a Lead. */}
+      <ParentRecordsPanel ctx={ctx} />
+
       <ContactPanel
         role={oneOrganisation ? 'End Client and Customer (Partner / SI)' : 'End Client'}
         accountId={endClientId}
