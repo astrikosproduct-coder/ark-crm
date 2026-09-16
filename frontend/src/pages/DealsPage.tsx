@@ -6,6 +6,7 @@ import { RecordListView } from '@/components/list/RecordListView'
 import { DealKanbanBoard } from '@/components/deals/DealKanbanBoard'
 import { dealListCell } from '@/components/deals/dealListCell'
 import { fieldOf, optionsFor } from '@/lib/spec'
+import { ragAccent } from '@/lib/rag'
 
 const ALL = '__all__'
 
@@ -52,13 +53,14 @@ export function DealsPage() {
                 basePath="/deals"
                 filter={filter}
                 renderCell={dealListCell}
+                rowAccent={ragAccent}
                 pageSize={25}
                 emptyMessage="No deals yet — convert a Lead at Stage 7 to create one."
               />
             </div>
           ),
         },
-        { key: 'pipeline', label: 'Pipeline', content: <DealKanbanBoard /> },
+        { key: 'pipeline', label: 'Kanban', content: <DealKanbanBoard /> },
       ]}
     />
   )

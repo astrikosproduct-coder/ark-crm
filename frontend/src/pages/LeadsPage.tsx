@@ -11,8 +11,9 @@ import { LeadKanbanBoard } from '@/components/leads/LeadKanbanBoard'
 import { leadListCell } from '@/components/leads/leadListCell'
 import { api } from '@/lib/api'
 import { stageKeyOf, stagesFor } from '@/lib/pipeline'
-import { displayNameOf, fieldOf, idOf, optionsFor } from '@/lib/spec'
+import { displayNameOf, fieldOf, fieldOptions, idOf } from '@/lib/spec'
 import { applyLookupFilter } from '@/lib/spec/conditions'
+import { ragAccent } from '@/lib/rag'
 
 const ALL = '__all__'
 
@@ -51,7 +52,7 @@ export function LeadsPage() {
     <PageLayout
       wide
       title="Leads"
-      subtitle="Stage 0 to 3 of the pipeline. A Lead moves to Opportunities at Stage 3."
+      subtitle=""
       actions={
         <Button onClick={() => navigate('/leads/new')}>
           <PlusIcon className="size-4" />
@@ -103,7 +104,7 @@ export function LeadsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={ALL}>All statuses</SelectItem>
-                    {optionsFor(statusField?.picklist).map((o) => (
+                    {(statusField ? fieldOptions(statusField) : []).map((o) => (
                       <SelectItem key={o.key} value={o.key}>
                         {o.label}
                       </SelectItem>
@@ -118,13 +119,14 @@ export function LeadsPage() {
                 basePath="/leads"
                 filter={filter}
                 renderCell={leadListCell}
+                rowAccent={ragAccent}
                 pageSize={25}
                 emptyMessage="No leads yet."
               />
             </div>
           ),
         },
-        { key: 'pipeline', label: 'Pipeline', content: <LeadKanbanBoard /> },
+        { key: 'pipeline', label: 'Kanban', content: <LeadKanbanBoard /> },
       ]}
     />
   )

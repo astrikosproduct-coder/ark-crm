@@ -26,6 +26,7 @@ interface ExtensionsFile {
   partner_roster: { account_types: string[] }
   partner_registration: PartnerRegistrationSpec
   quick_create: { extra_fields: Record<string, string[]> }
+  kanban: { status_field: string; terminal_statuses: string[] }
   open_questions: { rows: SpecNote[] }
   precision_limits: { rows: SpecNote[] }
 }
@@ -419,6 +420,13 @@ export function optionsFor(picklistKey: string | null | undefined): PicklistOpti
   return options.filter((o) => o.active).sort((a, b) => a.sort - b.sort)
 }
 
+/** The options THIS field offers — its picklist minus the sidecar's exclude_options. */
+export function fieldOptions(field: Pick<FieldSpec, 'picklist' | 'exclude_options'>): PicklistOption[] {
+  const options = optionsFor(field.picklist)
+  const excluded = field.exclude_options
+  return excluded?.length ? options.filter((o) => !excluded.includes(o.key)) : options
+}
+
 /**
  * Resolve a stored value or an expression literal to a picklist key.
  *
@@ -592,6 +600,13 @@ export function isPartnerAccount(account: Record<string, unknown> | undefined): 
 export const partnerRegistration = extensionsFile.partner_registration
 
 /**
+ * Which status ends a pursuit, for the Kanban board's terminal columns. Keys,
+ * not labels, and declared rather than written into the board — see the note
+ * on the block itself for why POC/Pilot Deal and On Hold are not in it.
+ */
+export const kanbanBoard = extensionsFile.kanban
+
+/**
  * The fields of a declared field set, resolved and ordered as the sidecar names
  * them. A name the register no longer carries is dropped and reported, exactly
  * as an unresolvable list_views column is.
@@ -714,6 +729,8 @@ const COLLECTION_OF: Record<string, string> = {
   bid: 'bids',
   poc: 'pocs',
   deal_registration: 'registrations',
+  // Hyphenated because it is the API path: /api/pursuit-groups.
+  pursuit_group: 'pursuit-groups',
   region: 'regions',
   support_tier: 'supportTiers',
   approval: 'approvals',

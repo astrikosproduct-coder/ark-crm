@@ -188,6 +188,15 @@
    ]
   }
  },
+ "kanban": {
+  "$note": "The board's columns are the module's own stages plus one column per TERMINAL status, so a pursuit that is finished sits in one place instead of being parked in whichever stage it happened to reach. The keys are named here rather than in the component for the reason every picklist key is: a status is register data. A status column is drawn only where that key is actually offered on the module, read through exclude_options - so a module that excludes a terminal status gets no column for it. Deals still offer Converted today, so their Converted column is drawn and normally empty; excluding it on deals.lead_status would remove it.",
+  "$not_terminal_note": "POC_PILOT_DEAL is deliberately NOT terminal. A paid pilot is live, counted revenue (app/revenue.py COUNTED_STATUSES) and belongs in its stage column. ON_HOLD is not terminal either: it counts toward pipeline and the deal is still being worked.",
+  "status_field": "lead_status",
+  "terminal_statuses": [
+   "CLOSED_LOST",
+   "CONVERTED"
+  ]
+ },
  "quick_create": {
   "$note": "CreateNewDialog's '+ Create new' shortcut on a lookup field shows only the target module's first section - enough to make the record selectable, not a full create form. A few fields outside that first section matter from day one, though, and skipping them just because they sit in a later section would be a real gap. Listed here, by module, as extra api_names appended after the first section's own fields; each still goes through the normal visibility/requirement rules.",
   "extra_fields": {
