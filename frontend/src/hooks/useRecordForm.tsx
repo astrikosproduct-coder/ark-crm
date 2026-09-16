@@ -47,9 +47,9 @@ interface State {
 type Action =
   | { t: 'set'; api_name: string; value: unknown }
   // One edit that lands on MORE THAN ONE key. A per-stage field writes
-  // `probability_pct__s3`, and — when the stage being edited is the one the
-  // record is at — the plain `probability_pct` as well, so list columns and
-  // the band check keep reading one number. `touch` is the field's plain
+  // `expected_close_month__s3`, and — when the stage being edited is the one
+  // the record is at — the plain `expected_close_month` as well, so list
+  // columns keep reading one value. `touch` is the field's plain
   // api_name, because that is what every error and required map is keyed on.
   | { t: 'patch'; touch: string; values: Values }
   | { t: 'setChild'; api_name: string; rows: Values[] }
@@ -180,6 +180,19 @@ export function useRecordForm(): RecordForm {
   return form
 }
 
+/**
+ * The form context if there is one, null if there is not.
+ *
+ * For the one control that legitimately renders outside a form: a FieldControl
+ * given a `scope` reads and writes through that scope alone, and
+ * DealPaymentMilestones draws its columns straight onto the Deal page with no
+ * RecordFormProvider anywhere above them. The throwing hook above stays the
+ * default, because a control with no scope and no provider is a real mistake.
+ */
+export function useOptionalRecordForm(): RecordForm | null {
+  return useContext(Ctx)
+}
+
 export interface RecordFormProviderProps {
   module: string
   mode: FormMode
@@ -220,7 +233,7 @@ export interface StageScope {
   stage: number
   /** The stage the record is at, which decides whether a carried value is
    * ALSO written to the plain api_name. Correcting history must not become
-   * the record's current probability — see stageScopedPatch. */
+   * the record's current value — see stageScopedPatch. */
   currentStage: number
 }
 

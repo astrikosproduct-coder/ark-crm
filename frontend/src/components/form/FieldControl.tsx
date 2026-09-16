@@ -18,12 +18,46 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { ChildListTable } from '@/components/form/ChildListTable'
 import { LookupCombobox } from '@/components/form/LookupCombobox'
 import { MultiSelect } from '@/components/form/MultiSelect'
-import { useRecordForm, type FormMode } from '@/hooks/useRecordForm'
+import { PhoneInput } from '@/components/form/PhoneInput'
+import { NumericInput } from '@/components/ui/numeric-input'
+import {
+  useOptionalRecordForm,
+  useRecordForm,
+  type FormMode,
+  type RecordForm,
+} from '@/hooks/useRecordForm'
 import { api } from '@/lib/api'
 import { date as fmtDate, dateTime as fmtDateTime, money, number, percent } from '@/lib/format'
+import { compileFor } from '@/lib/spec/conditions'
 import { computedGap } from '@/lib/spec/formula'
-import { collectionFor, displayNameOf, fieldOf, idOf, labelForValue, optionsFor } from '@/lib/spec'
+import { collectionFor, displayNameOf, fieldOf, fieldOptions, idOf, labelForValue } from '@/lib/spec'
 import type { FieldSpec } from '@/types/field'
+
+/**
+ * A field the application writes and the user does not.
+ *
+ * Register-driven, both halves of it — no api_name is named here, per
+ * CLAUDE.md's "never hardcode a field":
+ *
+ * `requirement === 'System'` is the register saying this value is recorded by
+ * the application. It is what Created By / Created Date / Modified By /
+ * Modified Date carry, and what makes them read-only now that the server
+ * stamps all four from the Entra session and its own clock.
+ *
+ * `editable === false` is the placement-level flag the register has carried
+ * since Round 7 and which, until now, NOTHING in the form engine read — a
+ * field could be marked read-only in Administration and still render as a text
+ * box. Honouring it here is what makes that switch mean something.
+ *
+ * ONE KNOWN MISLABEL, worth stating because this makes it visible: leads'
+ * `fx_rate_at_entry` is marked System in the register but nothing in the
+ * application stamps it, so it becomes read-only here with no other way to set
+ * it. That is a register correction (Administration -> change its requirement),
+ * not a case to special-case in code.
+ */
+export function isSystemField(field: FieldSpec): boolean {
+  return field.requirement === 'System' || field.editable === false
+}
 
 /**
  * Where a control reads and writes, when that is not the record itself.
@@ -52,13 +86,41 @@ interface Props {
 /** Types the user never types into, whatever the mode. */
 const DERIVED = new Set(['computed', 'autonumber'])
 
+/**
+ * The two conversions a `stored_as: 'fraction'` percent field needs, rounded
+ * so that neither direction accumulates float dust: 0.155 shows as 15.5, and
+ * 15.5 stores as 0.155 rather than 0.15500000000000003. Four decimal places on
+ * the fraction is exactly what the column holds.
+ */
+function toWholePercent(value: unknown): number | '' {
+  const n = typeof value === 'number' ? value : Number(value)
+  if (value === null || value === undefined || value === '' || !Number.isFinite(n)) return ''
+  return Math.round(n * 10000) / 100
+}
+
+function toFraction(wholePercent: number): number | '' {
+  if (!Number.isFinite(wholePercent)) return ''
+  return Math.round(wholePercent * 100) / 10000
+}
+
 export function FieldControl({ field, onCreateNew, scope }: Props) {
-  const form = useRecordForm()
+  // A SCOPED control stands alone. Every read below already asks `scope` first,
+  // and DealPaymentMilestones renders these columns straight onto the Deal page
+  // with no RecordFormProvider above them — so demanding the context here threw
+  // on the only screen that uses the scope prop, and took the whole page with
+  // it. Without a scope the provider is genuinely required, and that stays an
+  // error rather than a control silently rendering nothing.
+  const context = useOptionalRecordForm()
+  if (!scope && !context) {
+    throw new Error('A FieldControl without a `scope` must be used inside a RecordFormProvider')
+  }
+  const form = context as RecordForm
   const value = scope ? scope.value : form.values[field.api_name]
   const id = scope?.id ?? `${field.module}.${field.api_name}`
   const set = scope ? scope.set : (v: unknown) => form.setValue(field.api_name, v)
   const invalid = scope ? Boolean(scope.invalid) : Boolean(form.visibleErrors[field.api_name])
   const mode = scope?.mode ?? form.mode
+  const currencyCode = !scope && typeof form.values.currency === 'string' ? form.values.currency : ''
 
   if (field.type === 'childlist') return <ChildListTable field={field} />
 
@@ -94,13 +156,30 @@ export function FieldControl({ field, onCreateNew, scope }: Props) {
     )
   }
 
+  // Created By / Created Date / Modified By / Modified Date, and anything else
+  // the register marks System.
+  //
+  // These rendered as ordinary text boxes until Sep 2026, which meant the two
+  // values a manager most needs to trust — when was this last modified, and by
+  // whom — were the two anyone could type over. The server now stamps them from
+  // the Entra session and its own clock and discards whatever a payload claims
+  // (app/routers/leads.py, SYSTEM_STAMPED), so an editable box here would be a
+  // box whose contents are thrown away: worse than useless, it would look like
+  // the edit had worked.
+  //
+  // This is presentation, NOT the boundary. The boundary is the server, which
+  // refuses the value whatever the browser does.
+  if (isSystemField(field)) {
+    return <ReadOnlyValue field={field} value={value} />
+  }
+
   if (mode === 'view' || DERIVED.has(field.type)) {
     return <ReadOnlyValue field={field} value={value} />
   }
 
   switch (field.type) {
     case 'picklist': {
-      const options = optionsFor(field.picklist)
+      const options = fieldOptions(field)
       // 11 picklist fields in the register name no value set. A free text box
       // is honest about that; an empty dropdown is not.
       if (!options.length) {
@@ -138,7 +217,7 @@ export function FieldControl({ field, onCreateNew, scope }: Props) {
       return (
         <MultiSelect
           id={id}
-          options={optionsFor(field.picklist)}
+          options={fieldOptions(field)}
           value={Array.isArray(value) ? (value as string[]) : []}
           onChange={set}
         />
@@ -169,47 +248,57 @@ export function FieldControl({ field, onCreateNew, scope }: Props) {
     case 'currency':
       return (
         <div className="relative">
-          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
-            $
-          </span>
-          <Input
+          {/* The record's own Currency, never a typed "$" — an AED lead showed
+              "$" in front of dirhams. No prefix until the record has one. */}
+          {currencyCode && (
+            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
+              {currencyCode}
+            </span>
+          )}
+          <NumericInput
             id={id}
-            type="number"
-            className="pl-6"
+            className={currencyCode ? 'pl-12' : undefined}
             aria-invalid={invalid}
-            value={(value as number | string) ?? ''}
-            onChange={(e) => set(e.target.value === '' ? '' : Number(e.target.value))}
+            value={value as number | string | null}
+            onValueChange={set}
           />
         </div>
       )
 
-    case 'percent':
+    case 'percent': {
+      // A percent field usually stores the whole number it shows. Progression %
+      // and Probability % store a fraction and say so — see FieldExtension.stored_as.
+      const fraction = field.stored_as === 'fraction'
+      const shown = fraction ? toWholePercent(value) : ((value as number | string) ?? '')
       return (
         <div className="relative">
-          <Input
+          <NumericInput
             id={id}
-            type="number"
-            step="any"
             className="pr-7"
             aria-invalid={invalid}
-            value={(value as number | string) ?? ''}
-            onChange={(e) => set(e.target.value === '' ? '' : Number(e.target.value))}
+            value={shown}
+            onValueChange={(typed) => set(typed === '' || !fraction ? typed : toFraction(typed))}
           />
           <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">
             %
           </span>
         </div>
       )
+    }
 
     case 'number':
       return (
-        <Input
+        <NumericInput
           id={id}
-          type="number"
-          step="any"
+          // The register's range as a hint, e.g. "1–10". Enforced in validation.ts.
+          placeholder={
+            field.min_value != null && field.max_value != null
+              ? `${field.min_value}–${field.max_value}`
+              : undefined
+          }
           aria-invalid={invalid}
-          value={(value as number | string) ?? ''}
-          onChange={(e) => set(e.target.value === '' ? '' : Number(e.target.value))}
+          value={value as number | string | null}
+          onValueChange={set}
         />
       )
 
@@ -275,6 +364,17 @@ export function FieldControl({ field, onCreateNew, scope }: Props) {
           aria-invalid={invalid}
           value={(value as string) ?? ''}
           onChange={(e) => set(e.target.value)}
+        />
+      )
+
+    case 'phone':
+      return (
+        <PhoneInput
+          id={id}
+          options={fieldOptions(field)}
+          value={value}
+          onChange={set}
+          invalid={invalid}
         />
       )
 
@@ -448,6 +548,16 @@ function InheritedValue({
   )
 }
 
+/**
+ * A value on a record that is being read rather than edited.
+ *
+ * px-3, matching Input's own horizontal padding, NOT the px-1 this used to
+ * carry. The label column is the same width in both modes, so the 8px
+ * difference showed up as every value on the record sliding right the moment
+ * Edit was pressed and back again on Cancel — a whole column of text moving for
+ * no reason the user did anything to cause. The reference does not do that: a
+ * value sits exactly where the input that edits it will put it.
+ */
 export function ReadOnlyValue({ field, value }: { field: FieldSpec; value: unknown }) {
   const gap = computedGap(field)
 
@@ -459,8 +569,34 @@ export function ReadOnlyValue({ field, value }: { field: FieldSpec; value: unkno
     )
   }
 
+  // A checkbox reads as a checkbox, ticked or not, rather than the word "Yes".
+  // A read-only one — Is Primary Pursuit, set by the Pursuit Group — was the
+  // one box on the form that looked like text. Before the blank check: an
+  // unset checkbox is unticked, not missing.
+  if (field.type === 'checkbox') {
+    return (
+      <div className="flex h-9 items-center px-3">
+        <Checkbox
+          checked={Boolean(value)}
+          disabled
+          aria-readonly
+          aria-label={field.label}
+          className="disabled:cursor-default disabled:opacity-100"
+        />
+      </div>
+    )
+  }
+
   if (value === null || value === undefined || value === '') {
-    return <p className="px-1 py-2 text-sm text-muted-foreground">—</p>
+    return <p className="px-3 py-2 text-sm text-muted-foreground">—</p>
+  }
+
+  // A computed field whose expression only ever yields a record id —
+  // Contracting Party is the partner or the end client — reads as that
+  // record's name, exactly as the lookups it was computed from do.
+  if (field.type === 'computed' && typeof value === 'string') {
+    const source = lookupSourceOf(field)
+    if (source) return <LookupValue field={source} value={value} />
   }
 
   // A lookup stores a record id. Showing USR-001 where the form showed "Kishan
@@ -474,13 +610,13 @@ export function ReadOnlyValue({ field, value }: { field: FieldSpec; value: unkno
   // one field with several values, and it reads as one line.
   if (Array.isArray(value)) {
     return (
-      <p className="px-1 py-2 text-sm">
+      <p className="px-3 py-2 text-sm">
         {value.map((v) => labelForValue(field.picklist, v)).join(', ')}
       </p>
     )
   }
 
-  return <p className="px-1 py-2 text-sm">{formatValue(field, value)}</p>
+  return <p className="px-3 py-2 text-sm">{formatValue(field, value)}</p>
 }
 
 /**
@@ -504,7 +640,28 @@ function LookupValue({ field, value }: { field: FieldSpec; value: unknown }) {
   })
 
   const hit = data?.find((r) => idOf(r) === value)
-  return <p className="px-1 py-2 text-sm">{hit ? displayNameOf(hit) : String(value)}</p>
+  return <p className="px-3 py-2 text-sm">{hit ? displayNameOf(hit) : String(value)}</p>
+}
+
+/**
+ * The lookup a computed field's value is read from, when its expression only
+ * ever yields a record id — `deal_source == 'Partner-sourced' ?
+ * customer_partner_si : end_client`. Found from the expression, never named:
+ * every lookup it reads must point at the same kind of record, or there is no
+ * one name to show and the raw value stays.
+ */
+function lookupSourceOf(field: FieldSpec): FieldSpec | undefined {
+  if (!field.computed_expr) return undefined
+  let deps: string[]
+  try {
+    deps = compileFor(field.module, field.computed_expr).deps
+  } catch {
+    return undefined
+  }
+  const lookups = deps
+    .map((name) => fieldOf(field.module, name))
+    .filter((f): f is FieldSpec => f?.type === 'lookup' && Boolean(f.lookup_target))
+  return new Set(lookups.map((f) => f.lookup_target)).size === 1 ? lookups[0] : undefined
 }
 
 function formatValue(field: FieldSpec, value: unknown): string {
