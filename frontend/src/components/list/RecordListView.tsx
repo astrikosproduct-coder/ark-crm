@@ -21,11 +21,31 @@ import {
 } from '@/components/ui/select'
 import { ListCell, NUMERIC_TYPES, type ListRow } from '@/components/list/ListCell'
 import { api } from '@/lib/api'
-import { idOf, listViewFor } from '@/lib/spec'
+import { fieldOf, fieldsNamed, idOf, listViewFor, type ListView } from '@/lib/spec'
 import { cn } from '@/lib/utils'
 import type { FieldSpec } from '@/types/field'
 
 const PAGE_SIZES = [10, 25, 50]
+
+/**
+ * The label a search key is shown under in the filter box.
+ *
+ * A list view's `module` is its list_views KEY, which is not always a module
+ * that owns the fields: `registrations` is described by the partners module,
+ * and Partner records by accounts. fieldOf(module, name) found nothing for
+ * either, so the box read "Filter project_name, partner, end_client…". The
+ * view's own columns are the fields a reader sees, so they answer first; then
+ * the modules those columns come from, for a key that is searched but not shown.
+ */
+function searchLabelOf(view: ListView, module: string, name: string): string {
+  const column = view.fields.find((f) => f.api_name === name)
+  if (column) return column.label
+  for (const owner of new Set(view.fields.map((f) => f.module))) {
+    const hit = fieldsNamed(owner, name)[0]
+    if (hit) return hit.label
+  }
+  return fieldOf(module, name)?.label ?? name
+}
 
 export interface RecordListViewProps {
   /** Module in fields.json whose list_views entry supplies the columns. */
@@ -43,8 +63,38 @@ export interface RecordListViewProps {
   hiddenColumns?: string[]
   /** Override the rendering of one cell. Return undefined to fall through. */
   renderCell?: (field: FieldSpec, row: ListRow) => ReactNode | undefined
+  /**
+   * Classes for a coloured stripe down the left edge of a row — the pipeline
+   * modules pass ragAccent, so a Red pursuit is marked here exactly as it is
+   * on its Kanban card and its record header. Return '' for no stripe. Opt-in:
+   * Accounts and Contacts carry no such judgement and pass nothing.
+   */
+  rowAccent?: (row: ListRow) => string
   emptyMessage?: string
   pageSize?: number
+  /**
+   * Hide the filter box. For an embedded list that is ALREADY filtered to one
+   * parent — the contact panels on a Related tab — where the result is a
+   * handful of rows a reader can see at once, so a search box over them offers
+   * to narrow something that is not wide.
+   *
+   * Opt-in, and deliberately not inferred from the row count: a list that grows
+   * a search box once it passes some threshold changes shape under the user,
+   * and the full-page lists this component also serves need theirs whether they
+   * hold three rows today or three hundred.
+   */
+  hideSearch?: boolean
+  /**
+   * Hide the footer — the total, the rows-per-page selector and the page
+   * chevrons. Same case as `hideSearch`: an embedded list already narrowed to
+   * one parent holds a handful of rows, and paging controls over two of them
+   * are chrome for a problem the list does not have.
+   *
+   * The list still pages internally on `pageSize`, so a parent with more rows
+   * than that shows the first page rather than an unbounded table. Pass it only
+   * where that ceiling is acceptable.
+   */
+  hidePager?: boolean
 }
 
 /**
@@ -64,8 +114,11 @@ export function RecordListView({
   filter,
   hiddenColumns,
   renderCell,
+  rowAccent,
   emptyMessage,
   pageSize = 25,
+  hideSearch,
+  hidePager,
 }: RecordListViewProps) {
   const navigate = useNavigate()
   const view = listViewFor(module)
@@ -76,6 +129,12 @@ export function RecordListView({
   const [limit, setLimit] = useState(pageSize)
   const [sort, setSort] = useState(() => view?.default_sort ?? '')
   const [order, setOrder] = useState<'asc' | 'desc'>('asc')
+
+  // A different filter is a different result set: page 3 of the old one may
+  // not exist in the new one. Keyed on the filter's content, not its identity,
+  // because a parent rebuilds the object on every render.
+  const filterKey = JSON.stringify(filter ?? {})
+  useEffect(() => setPage(1), [filterKey])
 
   // Debounced so a five-letter search is one request, not five.
   useEffect(() => {
@@ -130,6 +189,7 @@ export function RecordListView({
   }
 
   const rows = data?.rows ?? []
+  const filtered = Object.keys(filter ?? {}).length > 0
   const total = data?.total ?? 0
   const lastPage = Math.max(1, Math.ceil(total / limit))
   const first = total === 0 ? 0 : (page - 1) * limit + 1
@@ -147,27 +207,38 @@ export function RecordListView({
 
   return (
     <div className="space-y-3 py-3">
-      <div className="relative max-w-sm">
-        <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          className="pl-9"
-          placeholder={`Filter ${view.search.length ? view.search.join(', ') : 'anything'}…`}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+      {!hideSearch && (
+        <div className="relative max-w-sm">
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder={`Filter ${
+              view.search.length ? view.search.map((name) => searchLabelOf(view, module, name)).join(', ') : 'anything'
+            }…`}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+      )}
 
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-label">
+      {/* A surface, not a bordered box, and no vertical rules inside it: the
+          columns are held apart by their own padding. The header keeps one
+          hairline under it because a table without it loses where the data
+          starts; rows separate on hover and on the zebra ground instead. */}
+      <div className="bg-card overflow-x-auto rounded-lg shadow-sm">
+        <table className="w-full border-separate border-spacing-0 text-sm">
+          <thead className="text-label">
             <tr>
               {columns.map((f) => (
-                <th key={f.qref} className="p-0 text-left font-medium whitespace-nowrap">
+                <th
+                  key={f.qref}
+                  className="border-border border-b p-0 text-left font-semibold whitespace-nowrap"
+                >
                   <button
                     type="button"
                     onClick={() => toggleSort(f)}
                     className={cn(
-                      'flex w-full items-center gap-1 px-3 py-2 hover:text-foreground',
+                      'flex w-full items-center gap-1 px-4 py-3 hover:text-foreground',
                       NUMERIC_TYPES.has(f.type) && 'justify-end',
                       sort === f.api_name ? 'text-foreground' : 'text-muted-foreground'
                     )}
@@ -189,7 +260,7 @@ export function RecordListView({
           <tbody className={cn(isPlaceholderData && 'opacity-60')}>
             {isLoading && (
               <tr>
-                <td colSpan={columns.length} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">
                   Loading…
                 </td>
               </tr>
@@ -197,7 +268,7 @@ export function RecordListView({
 
             {isError && (
               <tr>
-                <td colSpan={columns.length} className="px-3 py-6 text-center text-destructive">
+                <td colSpan={columns.length} className="px-4 py-8 text-center text-destructive">
                   Could not load {collection}
                 </td>
               </tr>
@@ -210,12 +281,14 @@ export function RecordListView({
               <tr>
                 <td colSpan={columns.length} className="px-6 py-12 text-center">
                   <p className="text-section text-foreground font-bold">
-                    {q ? 'No matches' : `No ${module.replace(/_/g, ' ')} yet`}
+                    {q || filtered ? 'No matches' : `No ${module.replace(/_/g, ' ')} yet`}
                   </p>
                   <p className="text-muted-foreground mx-auto mt-1.5 max-w-md">
                     {q
                       ? `Nothing matches “${q}”.`
-                      : (emptyMessage ?? 'Nothing has been recorded here yet.')}
+                      : filtered
+                        ? 'Nothing matches these filters.'
+                        : (emptyMessage ?? 'Nothing has been recorded here yet.')}
                   </p>
                 </td>
               </tr>
@@ -233,7 +306,7 @@ export function RecordListView({
                     if (e.key === 'Enter') navigate(`${basePath}/${id}`)
                   }}
                   className={cn(
-                    'cursor-pointer border-t outline-none hover:bg-accent focus-visible:bg-accent',
+                    'cursor-pointer outline-none even:bg-raised/60 hover:bg-accent focus-visible:bg-accent',
                     // A deactivated record is still listed — it is history, not
                     // a deletion — but it reads as retired rather than current.
                     row.active === false && 'text-muted-foreground opacity-60'
@@ -243,12 +316,15 @@ export function RecordListView({
                     <td
                       key={f.qref}
                       className={cn(
-                        'px-3 py-2.5 align-middle',
+                        'px-4 py-3 align-middle',
                         NUMERIC_TYPES.has(f.type) && 'text-right',
                         // The list view's first column is the record's name —
                         // it reads as the link into the record, as it does on
                         // every CRM list screen.
-                        i === 0 && 'text-link font-medium'
+                        i === 0 && 'text-link font-medium',
+                        // The RAG stripe rides that same first cell: a <tr>
+                        // cannot carry a left border under border-collapse.
+                        i === 0 && rowAccent?.(row)
                       )}
                     >
                       {renderCell?.(f, row) ?? <ListCell field={f} row={row} />}
@@ -263,7 +339,10 @@ export function RecordListView({
 
       {/* Footer reads as the reference's does — "Total Records N" left, the
           shown range and chevrons right (§5a.3). */}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+      <div
+        className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground"
+        hidden={hidePager}
+      >
         <span>
           Total Records <span className="text-foreground font-medium">{total}</span>
         </span>

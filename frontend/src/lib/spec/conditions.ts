@@ -14,6 +14,23 @@ interface Compiled {
 const cache = new Map<string, Compiled>()
 
 /**
+ * Values the SERVER stamps on a record without the register placing them, each
+ * keyed to the register field it belongs to: the stage's own Progression % and
+ * Probability % (app/progression.py, PCT_OUT). A condition may read one on any
+ * module that places its field.
+ *
+ * They exist for one rule the register could not otherwise state: Override
+ * Justification is asked for when a number DIFFERS FROM WHAT THE STAGE SET.
+ * Without these the condition would not compile, a broken condition fails open,
+ * and the box showed on every record whether anything was overridden or not.
+ * No form draws them and no payload may set them — the server owns both.
+ */
+const SERVER_STAMPED: Record<string, string> = {
+  progression_default_pct: 'progression_pct',
+  probability_default_pct: 'probability_pct',
+}
+
+/**
  * Parse an expression and check every identifier against the module's api_name
  * set. A typo in the register or the sidecar throws here, naming both the
  * expression and the identifier, rather than evaluating to undefined and
@@ -37,7 +54,8 @@ export function compileFor(module: string, expr: string): Compiled {
   for (const name of deps) {
     if (FUNCTION_NAMES.includes(name)) continue
 
-    if (!known.has(name)) {
+    const stampedFor = SERVER_STAMPED[name]
+    if (!known.has(name) && !(stampedFor && known.has(stampedFor))) {
       throw new SpecExprError(
         `Unknown identifier ${JSON.stringify(name)} for module ${JSON.stringify(module)}`,
         expr,

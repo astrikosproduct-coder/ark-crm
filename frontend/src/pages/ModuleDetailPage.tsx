@@ -31,6 +31,7 @@ export function ModuleDetailPage() {
 
   return (
     <PageLayout
+      back
       title={id ?? ''}
       subtitle={label}
       tabs={[

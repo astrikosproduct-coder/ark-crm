@@ -117,6 +117,7 @@ FIELD_TYPES = frozenset(
         "percent",
         "url",
         "email",
+        "phone",
     }
 )
 
@@ -128,6 +129,9 @@ REQUIREMENTS = ("Mandatory", "Conditional", "Optional", "Advisory", "System", "C
 
 # Types whose values come from a picklist rather than being typed in.
 PICKLIST_TYPES = frozenset({"picklist", "multiselect"})
+
+# Types a Min value / Max value can bound.
+NUMERIC_TYPES = frozenset({"number", "currency", "percent"})
 
 FIELD_STATUSES = ("active", "deleted")
 
@@ -266,8 +270,8 @@ def build_snapshot(db: Session) -> dict[str, Any]:
             {
                 "stage": s.stage,
                 "name": s.name,
-                "prob_min": s.prob_min,
-                "prob_max": s.prob_max,
+                "progression_pct": s.progression_pct,
+                "probability_pct": s.probability_pct,
                 "owner_role": s.owner_role,
                 "bid_phase": s.bid_phase,
                 "applies_to": s.applies_to,
@@ -329,8 +333,9 @@ def spec_documents(snapshot: dict[str, Any]) -> dict[str, Any]:
         {
             "stage": s["stage"],
             "name": s["name"],
-            "prob_min": s["prob_min"],
-            "prob_max": s["prob_max"],
+            # .get(): a snapshot published before 0022 carries a band instead.
+            "progression_pct": s.get("progression_pct"),
+            "probability_pct": s.get("probability_pct"),
             "owner_role": s["owner_role"],
             "bid_phase": s["bid_phase"],
             "applies_to": s["applies_to"],
@@ -744,6 +749,14 @@ def validate_snapshot(snapshot: dict[str, Any]) -> ValidationResult:
         # 4. invalid field definitions
         if row["type"] not in FIELD_TYPES:
             result.errors.append(f"{ref} has type {row['type']!r}, which the form engine cannot render")
+        low, high = row.get("min_value"), row.get("max_value")
+        if low is not None or high is not None:
+            if row["type"] not in NUMERIC_TYPES:
+                result.errors.append(
+                    f"{ref} has a Min/Max value but is a {row['type']}, which is not a number"
+                )
+            elif low is not None and high is not None and low > high:
+                result.errors.append(f"{ref} has Min value {low} above Max value {high}")
         if row["requirement"] not in REQUIREMENTS:
             result.errors.append(f"{ref} has requirement {row['requirement']!r}, which is not one of {', '.join(REQUIREMENTS)}")
 
@@ -847,11 +860,12 @@ def validate_snapshot(snapshot: dict[str, Any]) -> ValidationResult:
     for stage in snapshot["stages"]:
         if not stage["active"]:
             continue
-        low, high = stage["prob_min"], stage["prob_max"]
-        if low is not None and high is not None and low > high:
-            result.errors.append(
-                f"stage {stage['stage']} has prob_min {low} above prob_max {high}"
-            )
+        for name in ("progression_pct", "probability_pct"):
+            value = stage.get(name)
+            if value is not None and (value < 0 or value > 100 or value % 5):
+                result.errors.append(
+                    f"stage {stage['stage']} has {name} {value}; it must be 0-100 in steps of 5"
+                )
 
     return result
 
@@ -994,11 +1008,12 @@ def diff_snapshots(previous: dict[str, Any], current: dict[str, Any]) -> list[st
     for key in sorted(prev_st.keys() - curr_st.keys()):
         changes.append(f"stage removed — {key}")
     for key in sorted(curr_st.keys() & prev_st.keys()):
-        for attr in ("name", "prob_min", "prob_max", "owner_role", "bid_phase", "applies_to", "sort_order", "active"):
-            if prev_st[key][attr] != curr_st[key][attr]:
+        for attr in ("name", "progression_pct", "probability_pct", "owner_role", "bid_phase", "applies_to", "sort_order", "active"):
+            # .get(): a version published before 0022 has a band, not the pair.
+            if prev_st[key].get(attr) != curr_st[key].get(attr):
                 changes.append(
                     f"stage changed — {key}.{attr}: "
-                    f"{prev_st[key][attr]!r} -> {curr_st[key][attr]!r}"
+                    f"{prev_st[key].get(attr)!r} -> {curr_st[key].get(attr)!r}"
                 )
 
     return changes
@@ -1176,8 +1191,8 @@ def restore_snapshot(db: Session, snapshot: dict[str, Any]) -> list[str]:
                 Stage(
                     stage=row["stage"],
                     name=row["name"],
-                    prob_min=row["prob_min"],
-                    prob_max=row["prob_max"],
+                    progression_pct=row.get("progression_pct"),
+                    probability_pct=row.get("probability_pct"),
                     owner_role=row["owner_role"],
                     bid_phase=row["bid_phase"],
                     applies_to=row["applies_to"],
@@ -1189,8 +1204,12 @@ def restore_snapshot(db: Session, snapshot: dict[str, Any]) -> list[str]:
             actions.append(f"stage recreated — {row['stage']}")
         else:
             stage.name = row["name"]
-            stage.prob_min = row["prob_min"]
-            stage.prob_max = row["prob_max"]
+            # A snapshot from before 0022 carries no pair: restoring it must not
+            # blank the one source of Progression % / Probability %.
+            if "progression_pct" in row:
+                stage.progression_pct = row["progression_pct"]
+            if "probability_pct" in row:
+                stage.probability_pct = row["probability_pct"]
             stage.owner_role = row["owner_role"]
             stage.bid_phase = row["bid_phase"]
             stage.applies_to = row["applies_to"]
@@ -1255,6 +1274,9 @@ def restore_snapshot(db: Session, snapshot: dict[str, Any]) -> list[str]:
         definition.label = row["label"] if not extra.get("label_override") else definition.label
         definition.field_type = row["type"]
         definition.max_length = row["max_length"]
+        # Absent from snapshots taken before 0023, which had no thresholds.
+        definition.min_value = row.get("min_value")
+        definition.max_value = row.get("max_value")
         definition.picklist_key = row["picklist"]
         definition.lookup_target = row["lookup_target"]
         definition.lookup_filter = row["lookup_filter"]

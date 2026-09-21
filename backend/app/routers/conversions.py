@@ -4,9 +4,11 @@ from fastapi import APIRouter, Depends, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..auth import current_user
+from ..clock import now_utc
 from ..database import get_db
 from ..ids import next_reference_id
-from ..models import Conversion
+from ..models import Conversion, User
 from ..schemas import ConversionCreate, ConversionOut
 
 router = APIRouter(tags=["conversions"])
@@ -56,13 +58,20 @@ def list_conversions(request: Request, response: Response, db: Session = Depends
 
 
 @router.post("/conversions", response_model=ConversionOut, status_code=status.HTTP_201_CREATED)
-def create_conversion(payload: ConversionCreate, db: Session = Depends(get_db)):
+def create_conversion(
+    payload: ConversionCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
     """
     Written right after the target record (the new Opportunity or Deal) is
     created — see LeadAdvanceDialog.tsx's moveToOpportunity and
     opportunities/ConvertToDealDialog.tsx. Never rejects on an unrecognised
     module/id: this is an audit trail of a conversion that already happened,
     not a gate on whether it may.
+
+    `actor` and `timestamp` in the body are IGNORED, for the same reason they
+    are on /transitions — see that router.
     """
     conversion = Conversion(
         reference_id=_next_conversion_id(db),
@@ -72,8 +81,8 @@ def create_conversion(payload: ConversionCreate, db: Session = Depends(get_db)):
         target_id=payload.target_id,
         copied_fields=payload.copied_fields,
         note=payload.note,
-        actor=payload.actor,
-        timestamp=payload.timestamp,
+        actor=user.user_id,
+        timestamp=now_utc(),
     )
     db.add(conversion)
     db.commit()

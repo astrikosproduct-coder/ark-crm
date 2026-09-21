@@ -183,12 +183,6 @@ function rebase<T>(value: T, delta: number): T {
   return value
 }
 
-/** What the last seeding did, surfaced through /api/__seed for the operator. */
-export interface SeedStamp {
-  anchor_date: string
-  seeded_on: string
-  delta_days: number
-}
 
 /**
  * Every spec/seed/*.json file becomes a collection automatically — add a file
@@ -199,6 +193,65 @@ export interface SeedStamp {
  * not data: `_anchor.json` supplies the rebase anchor and never becomes a
  * collection.
  */
+/**
+ * The price book and the catalogue: read-only reference data, served straight
+ * from spec/seed/*.json and never through the persisted store.
+ *
+ * WHY THESE ARE DIFFERENT FROM EVERYTHING ELSE
+ * --------------------------------------------
+ * Nothing in ARK creates or edits a product, a T-shirt size or a region
+ * factor. They are a catalogue: the same for every browser, changed only by
+ * editing the file. Keeping them in a persisted store bought nothing and cost
+ * something real — useDataStore's `merge` keeps a collection a browser has
+ * already persisted, so a browser that visited once held the product list
+ * FROZEN at whatever the file said that day. Editing products.json changed
+ * nothing for anyone who had been here before.
+ *
+ * That single defect is what the Settings page's "Reset demo data" button
+ * existed to work around, on a screen whose own subtitle said nothing on it
+ * exists in the real product. Reading the catalogue at request time instead
+ * removes the staleness, and with it the reason for the button — see the
+ * handler in src/mocks/handlers.ts and the deletion note in CLAUDE.md.
+ *
+ * NOT REBASED. `rebase` shifts seeded dates by today − anchor; a catalogue has
+ * no dates to shift, so it is handed over exactly as written.
+ */
+const REFERENCE_COLLECTIONS = new Set([
+  'products',
+  'prices',
+  'sizes',
+  'rateCard',
+  'supportTiers',
+  'regions',
+  'pricingParams',
+])
+
+let referenceCache: Record<string, unknown> | null = null
+
+/** Every reference collection, by the name its endpoint uses. Built once. */
+export function referenceData(): Record<string, unknown> {
+  if (referenceCache) return referenceCache
+  const modules = import.meta.glob('../../../spec/seed/*.json', {
+    eager: true,
+    import: 'default',
+  }) as Record<string, unknown>
+
+  const out: Record<string, unknown> = {}
+  for (const path in modules) {
+    const name = path.match(/([^/]+)\.json$/)?.[1]
+    if (!name || name.startsWith('_')) continue
+    const collection = toCamelCase(name)
+    if (REFERENCE_COLLECTIONS.has(collection)) out[collection] = modules[path]
+  }
+  referenceCache = out
+  return out
+}
+
+/** The catalogue's rows for one collection, or undefined if it is not one. */
+export function referenceCollection(collection: string): unknown {
+  return referenceData()[collection]
+}
+
 export function buildSeedData(now = new Date()): Record<string, unknown> {
   const modules = import.meta.glob('../../../spec/seed/*.json', {
     eager: true,
@@ -237,7 +290,12 @@ export function buildSeedData(now = new Date()): Record<string, unknown> {
     'deals',
     'gates',
     'transitions',
-    'comments',
+    // 'comments' was here for the comment-pin feature. Dropped 18 Sep 2026:
+    // it was an empty array and an id prefix, and nothing else — no component,
+    // no endpoint, no export. Feedback (17 Sep) covers the same job well
+    // enough for now. If field-level pins are built later they belong in
+    // PostgreSQL, not here: on this store every reviewer's notes live in one
+    // browser and the CSV export only ever holds one person's.
     // partners CONFLICT ADJUDICATION. The register defines the record; §6.2
     // describes when one arises; the workbook seeds none.
     'conflicts',
@@ -257,14 +315,18 @@ export function buildSeedData(now = new Date()): Record<string, unknown> {
   // browser's persisted leads, in useDataStore's migrate().
   const derived = deriveOpportunitiesFromLeads(data)
 
-  if (anchorDate) {
-    const stamp: SeedStamp = {
-      anchor_date: anchorDate,
-      seeded_on: format(now, 'yyyy-MM-dd'),
-      delta_days: delta,
-    }
-    derived.__seed = stamp
-  }
+  // The `__seed` stamp is no longer emitted (18 Sep 2026). It was read by
+  // exactly one screen — Settings — which reported the anchor date and the
+  // shift so an operator could tell whether a browser held stale demo dates.
+  // That screen is gone, and with the catalogue now read from file on every
+  // request there is nothing left in this store that a person can reach. The
+  // The rebasing above still computes `delta` and still shifts the seeded
+  // dates, because leads.json and registrations.json are still loaded here —
+  // both now unreachable, since /api/leads and /api/registrations pass through
+  // to PostgreSQL. That machinery is dead weight and should come out with the
+  // rest of the browser store; it is left standing rather than pulled out in
+  // the same pass as the Settings deletion, which is a smaller, separable
+  // change.
 
   scanned = true
   return derived

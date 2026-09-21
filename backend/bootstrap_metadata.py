@@ -220,8 +220,8 @@ def main(apply: bool, refresh_extensions: bool) -> None:
                 Stage(
                     stage=row["stage"],
                     name=row["name"],
-                    prob_min=row["prob_min"],
-                    prob_max=row["prob_max"],
+                    progression_pct=row.get("progression_pct"),
+                    probability_pct=row.get("probability_pct"),
                     owner_role=row["owner_role"],
                     bid_phase=row["bid_phase"],
                     applies_to=row["applies_to"],

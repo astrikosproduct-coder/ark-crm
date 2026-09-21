@@ -56,6 +56,18 @@ WRITING = [
     "test_custom_fields.py",
     "test_metadata_round6.py",
     "test_round6_gaps.py",
+    "test_progression.py",
+    "test_audit_timeline.py",
+    "test_pursuit_groups.py",
+    "test_partner_stamps.py",
+    "test_partner_lifecycle.py",
+    "test_lead_delete.py",
+    "test_conversions.py",
+    "test_deal_milestones.py",
+    "test_dashboard.py",
+    "test_list_query.py",
+    "test_feedback.py",
+    "test_spreadsheets.py",
 ]
 
 

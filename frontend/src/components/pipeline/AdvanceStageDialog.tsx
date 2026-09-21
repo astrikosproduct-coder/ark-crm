@@ -1,7 +1,5 @@
-import { currentUserId } from '@/lib/currentUser'
 import { useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowRightIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -15,11 +13,14 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ReadinessPanel } from '@/components/leads/ReadinessPanel'
+import { useAttestations } from '@/components/leads/useAttestations'
 import type { PipelineModuleSpec } from '@/components/pipeline/types'
 import { api } from '@/lib/api'
-import { probabilityMidpoint, stageFieldOf, type Transition } from '@/lib/pipeline'
-import { isStageScopedModule, stageScopedKey } from '@/lib/stageScope'
+import { Bullets, ErrorNotice } from '@/components/ui/notice'
+import { stageFieldOf, stageList, type NewTransition } from '@/lib/pipeline'
+import { displayNameOf } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
+import type { FieldSpec } from '@/types/field'
 
 interface Props {
   spec: PipelineModuleSpec
@@ -29,6 +30,12 @@ interface Props {
   currentStage: number
   onClose: () => void
   onAdvanced?: (toStage: number) => void
+  /**
+   * Drill down from a criterion to the field that proves it. The dialog closes
+   * on the way — the field is on the record behind it, and a user who has just
+   * asked to go and fill something in does not want to answer a modal first.
+   */
+  onJumpToField?: (field: FieldSpec) => void
 }
 
 /**
@@ -39,13 +46,19 @@ interface Props {
  * one-stage move does not.
  *
  * What differs per module is described in the descriptor, not branched on here:
- * which field holds the stage, which picklist keys it, whether the transition
- * writes a probability midpoint, and whether the record has its own reason
- * fields to write alongside the Transition. A module with only two stages can
- * never produce a skip, so nothing special is needed to suppress one.
+ * which field holds the stage, which picklist keys it, and whether the record
+ * has its own reason fields to write alongside the Transition. A module with
+ * only two stages can never produce a skip, so nothing special is needed to
+ * suppress one.
  *
- * POC-1: the readiness panel shown here is advisory only. Confirm always
- * succeeds, whatever it shows — see CLAUDE.md prompt 5.
+ * Progression % / Probability % are NOT written by this dialog. The server
+ * gives the record the target stage's pair on this same PUT — see
+ * app/progression.py.
+ *
+ * The readiness panel is advisory for everything the record can answer itself
+ * — a field filled, a formula passing. The checks nothing can evaluate are
+ * different: a forward move waits until a person ticks each one, and the ticks
+ * are recorded on the transition with who and when. See useAttestations.
  */
 export function AdvanceStageDialog({
   spec,
@@ -55,6 +68,7 @@ export function AdvanceStageDialog({
   currentStage,
   onClose,
   onAdvanced,
+  onJumpToField,
 }: Props) {
   const queryClient = useQueryClient()
   const stages = spec.stages
@@ -65,7 +79,11 @@ export function AdvanceStageDialog({
   const isSkip = target > currentStage + 1
   const isReversal = target < currentStage
   const reasonRequired = isSkip || isReversal
-  const canConfirm = target !== currentStage && (!reasonRequired || reason.trim().length > 0)
+  const attestations = useAttestations(spec.module, values, currentStage, target)
+  const canConfirm =
+    target !== currentStage &&
+    (!reasonRequired || reason.trim().length > 0) &&
+    attestations.outstanding.length === 0
 
   const stageOptions = useMemo(
     () => stages.filter((s) => s.stage !== currentStage),
@@ -75,36 +93,26 @@ export function AdvanceStageDialog({
   const advance = useMutation({
     mutationFn: async () => {
       const stageField = stageFieldOf(spec.module)
-      const patch: Values = { ...spec.stamp() }
+      // No system-field stamp: the server owns modified_by/modified_date and
+      // discards whatever the body claims. See PipelineModuleSpec in types.ts.
+      const patch: Values = {}
       if (stageField) patch[stageField] = spec.stageKeyOf(target) ?? target
-      if (spec.writesProbability) {
-        const midpoint = probabilityMidpoint(target) ?? values.probability_pct ?? null
-        patch.probability_pct = midpoint
-        // Probability is recorded per stage now (lib/stageScope.ts), so the
-        // midpoint has to be stamped ON the stage being entered as well as on
-        // the record. Without this the new stage would find no value of its own
-        // and carry the OLD stage's number forward, silently shadowing the
-        // midpoint this transition just decided — and the record would then
-        // show a Stage 2 probability sitting outside the Stage 2 band.
-        if (isStageScopedModule(spec.module)) {
-          patch[stageScopedKey('probability_pct', target)] = midpoint
-        }
-      }
+      // Progression %/Probability % are NOT written here: the server sets the
+      // target stage's pair on this PUT (app/progression.py).
       if (isSkip && spec.skipReasonField) patch[spec.skipReasonField] = reason.trim()
       if (isReversal && spec.reversalReasonField) patch[spec.reversalReasonField] = reason.trim()
 
       await api.put<Values>(`/${spec.collection}/${recordId}`, patch)
 
-      const transition: Transition = {
-        module: spec.module as Transition['module'],
+      const transition: NewTransition = {
+        module: spec.module as NewTransition['module'],
         record_id: recordId,
         from: currentStage,
         to: target,
         reason: reasonRequired ? reason.trim() : null,
         is_skip: isSkip,
         is_reversal: isReversal,
-        actor: currentUserId(),
-        timestamp: new Date().toISOString(),
+        attested: attestations.codes,
       }
       await api.post('/transitions', transition)
     },
@@ -129,18 +137,19 @@ export function AdvanceStageDialog({
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ArrowRightIcon className="size-4" />
-            Advance {recordId}
-          </DialogTitle>
-          <DialogDescription>
-            {canSkip
-              ? "Stages are states, not steps — moving forward more than one, or moving back, is legal here as long as it's explained."
-              : "Stages are states, not steps — moving back is legal here too, as long as it's explained."}
-          </DialogDescription>
+          <DialogTitle>Move {displayNameOf(values)} to another stage</DialogTitle>
+          <DialogDescription className="sr-only">Choose the stage this record moves to.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 text-sm">
+          <Bullets
+            className="text-muted-foreground"
+            items={
+              canSkip
+                ? ['You can move forward, skip ahead or go back.', 'Skipping or going back needs a short reason.']
+                : ['You can move forward one stage, or go back.', 'Going back needs a short reason.']
+            }
+          />
           <div className="flex items-center gap-3">
             <span className="text-muted-foreground">Move to</span>
             <Select value={String(target)} onValueChange={(v) => setTarget(Number(v))}>
@@ -159,15 +168,13 @@ export function AdvanceStageDialog({
 
           {isSkip && (
             <p className="text-xs text-amber-700 dark:text-amber-400">
-              Skips Stage{currentStage + 1 === target - 1 ? '' : 's'}{' '}
-              {Array.from({ length: target - currentStage - 1 }, (_, i) => currentStage + 1 + i).join(', ')}.
-              Recorded as a skip — a reason is required.
+              Skipping {stageList(Array.from({ length: target - currentStage - 1 }, (_, i) => currentStage + 1 + i))}.
+              Add a reason below.
             </p>
           )}
           {isReversal && (
             <p className="text-xs text-amber-700 dark:text-amber-400">
-              Moves backward from Stage {currentStage}. Recorded as a reversal — a reason is
-              required.
+              Moving back from Stage {currentStage}. Add a reason below.
             </p>
           )}
 
@@ -180,11 +187,31 @@ export function AdvanceStageDialog({
             />
           )}
 
-          <ReadinessPanel module={spec.module} values={values} from={currentStage} to={target} />
+          <ReadinessPanel
+            module={spec.module}
+            values={values}
+            from={currentStage}
+            to={target}
+            attested={attestations.attested}
+            onToggleAttested={attestations.toggle}
+            onJumpToField={
+              onJumpToField &&
+              ((field) => {
+                onClose()
+                onJumpToField(field)
+              })
+            }
+          />
+          {attestations.outstanding.length > 0 && (
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Tick the {attestations.outstanding.length} remaining check
+              {attestations.outstanding.length === 1 ? '' : 's'} above to continue.
+            </p>
+          )}
         </div>
 
         {advance.isError && (
-          <p className="text-sm text-destructive">The stage could not be advanced.</p>
+          <ErrorNotice error={advance.error} suffix="The stage wasn't changed." />
         )}
 
         <DialogFooter>
@@ -196,7 +223,7 @@ export function AdvanceStageDialog({
             onClick={() => advance.mutate()}
             disabled={!canConfirm || advance.isPending}
           >
-            {advance.isPending ? 'Advancing…' : `Advance to Stage ${target}`}
+            {advance.isPending ? 'Moving…' : `Move to Stage ${target}`}
           </Button>
         </DialogFooter>
       </DialogContent>

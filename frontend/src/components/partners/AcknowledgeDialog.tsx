@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { api } from '@/lib/api'
+import { ErrorNotice } from '@/components/ui/notice'
 import { date as fmtDate } from '@/lib/format'
 import {
   ACK_SLA_DAYS,
@@ -68,10 +69,10 @@ export function AcknowledgeDialog({ open, registration, partnerName, clientName,
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShieldCheckIcon className="size-4" />
-            Acknowledge registration {id}
+            Acknowledge registration
           </DialogTitle>
           <DialogDescription>
-            This is a commitment to the partner, not a status change. Read it before confirming.
+            This is a promise to the partner, not just a status change.
           </DialogDescription>
         </DialogHeader>
 
@@ -115,15 +116,10 @@ export function AcknowledgeDialog({ open, registration, partnerName, clientName,
               </dd>
             </dl>
           </div>
-
-          <p className="text-xs text-muted-foreground">
-            Nothing is sent to the partner. This is a prototype — the notification that would have
-            gone out is written to the automation log.
-          </p>
         </div>
 
         {acknowledge.isError && (
-          <p className="text-sm text-destructive">The registration could not be acknowledged.</p>
+          <ErrorNotice error={acknowledge.error} fallback="The registration wasn't acknowledged. Try again." />
         )}
 
         <DialogFooter>

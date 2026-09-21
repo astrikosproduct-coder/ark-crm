@@ -460,6 +460,37 @@ export interface ListViewSpec {
   default_sort: string
   /** api_names the free-text filter searches. */
   search: string[]
+  /** The Filter panel's Common filters: "<module>.<api_name>" refs, in order. */
+  filters?: string[]
+}
+
+/**
+ * One entry in a module's list-scope picker — "Open leads", "Converted leads",
+ * "All leads". Each names status KEYS, never labels.
+ *
+ * `exclude` and `include` are mutually exclusive and both optional: an option
+ * with neither is the unscoped view (All), which is how "show me everything"
+ * stays a declared choice rather than a magic key the code tests for.
+ */
+export interface ListScopeOption {
+  key: string
+  label: string
+  /** Status keys this view leaves out — sent as `<field>_ne`. */
+  exclude?: string[]
+  /** The only status keys this view shows — sent as repeated `<field>`, which the list contract reads as OR. */
+  include?: string[]
+}
+
+/** A module's scope picker, as spec/extensions.json `list_scopes.modules` declares it. */
+export interface ListScopeSpec {
+  /** The option key used when the URL says nothing. */
+  default: string
+  options: ListScopeOption[]
+}
+
+/** A ListScopeSpec with the status field it reads folded in. */
+export interface ResolvedListScope extends ListScopeSpec {
+  field: string
 }
 
 /** A named subset of one section's fields. Declared in spec/extensions.json. */

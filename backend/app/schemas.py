@@ -1808,3 +1808,36 @@ class PursuitGroupOut(BaseModel):
     members: list[PursuitMemberOut] = []
     #: Plain-language notices the record screens show — see app/pursuits.py.
     alerts: list[dict[str, Any]] = []
+
+
+# ---------------------------------------------------------------- feedback
+# UX roadmap item 2 (17 Sep 2026) — app/routers/feedback.py. Who wrote it and
+# when are stamped by the server, so neither is a field here.
+
+
+class FeedbackCreate(BaseModel):
+    category: str = Field(min_length=1, max_length=40)
+    message: str = Field(min_length=1, max_length=5000)
+    page_path: str | None = Field(default=None, max_length=500)
+    record_ref: str | None = Field(default=None, max_length=40)
+
+
+class FeedbackStatusUpdate(BaseModel):
+    status: str = Field(min_length=1, max_length=20)
+
+
+class FeedbackOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    feedback_id: str
+    category: str
+    message: str
+    page_path: str | None
+    record_ref: str | None
+    status: str
+    created_by: str
+    created_by_name: str | None
+    created_at: datetime
+    read_by: str | None
+    read_at: datetime | None

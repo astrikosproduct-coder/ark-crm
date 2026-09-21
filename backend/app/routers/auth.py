@@ -75,8 +75,8 @@ def _entra():
     if client is None:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Microsoft sign-in is not configured on this server "
-            "(ENTRA_TENANT_ID / ENTRA_CLIENT_ID / ENTRA_CLIENT_SECRET).",
+            # ENTRA_TENANT_ID / ENTRA_CLIENT_ID / ENTRA_CLIENT_SECRET are unset.
+            "Microsoft sign-in isn't set up yet. Contact your administrator.",
         )
     return client
 
@@ -198,7 +198,7 @@ async def callback(request: Request, db: Session = Depends(get_db)):
     claims = token.get("userinfo") or {}
     if not claims.get("oid") and not claims.get("preferred_username"):
         raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, "Microsoft did not return an identifiable user."
+            status.HTTP_400_BAD_REQUEST, "Microsoft didn't tell us who you are. Try signing in again."
         )
 
     user = _resolve_user(db, claims)

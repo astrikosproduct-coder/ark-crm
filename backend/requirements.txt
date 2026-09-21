@@ -7,6 +7,7 @@ certifi==2026.7.22
 click==8.5.0
 dnspython==2.8.0
 email-validator==2.3.0
+et_xmlfile==2.0.0
 fastapi==0.141.1
 greenlet==3.5.5
 h11==0.16.0
@@ -17,6 +18,7 @@ itsdangerous==2.2.0
 joserfc==1.7.5
 Mako==1.4.1
 MarkupSafe==3.0.3
+openpyxl==3.1.5
 psycopg-binary==3.3.4
 psycopg==3.3.4
 pydantic==2.13.4
@@ -28,3 +30,4 @@ typing-inspection==0.4.4
 typing_extensions==4.16.0
 tzdata==2026.3
 uvicorn==0.52.4
+xlrd==2.0.2

@@ -1,14 +1,13 @@
-import stagesData from '../../../spec/stages.json'
-import { stageFieldOf } from './moduleSplit'
+import { daysSinceCompany } from '../time'
 import type { Values } from './conditions'
 
 /**
  * Named resolvers for computed fields the expression language cannot express.
  *
- * The language operates over a record's own api_names. progression_pct is not a
- * function of any field's VALUE — it is a function of where the record's stage
- * sits in the ordered list of stages, which is not a field at all. No expression
- * over api_names can produce it.
+ * The language operates over a record's own api_names. Days in the current stage
+ * is not a function of any field's VALUE — it reads a derived date and the
+ * company clock, neither of which is a field. No expression over api_names can
+ * produce it.
  *
  * So the escape hatch is a `computed_by` NAME looked up in the fixed table
  * below: one identifier, resolved against code that was written and reviewed,
@@ -17,66 +16,56 @@ import type { Values } from './conditions'
  * reported on Spec Health, exactly like a missing computed_expr.
  */
 
-interface StageRow {
-  stage: number
-  name: string
-}
-
-const STAGES = stagesData as unknown as StageRow[]
-
-/** Stages in ascending order — the 0-9 spine both pipelines are measured against. */
-const ORDERED = [...STAGES].sort((a, b) => a.stage - b.stage)
-
-/**
- * The leading integer of a stage value.
- *
- * project_stage is a picklist keyed "4_RFP_RFI"; deal_stage is keyed
- * "8_PROJECT_SUCCESS"; a record straight off a create can still hold the bare
- * number. All three resolve here. Duplicated from lib/pipeline deliberately:
- * the spec layer must not depend on the pipeline layer, which depends on it.
- */
-function stageNumber(value: unknown): number | null {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : null
-  if (typeof value !== 'string') return null
-  const m = /^(\d+)/.exec(value)
-  return m ? Number(m[1]) : null
-}
-
-/**
- * How far through the whole pursuit this record sits, as a percentage of stage
- * POSITION — 0, 11, 22, 33, 44, 56, 67, 78, 89, 100.
- *
- * Deliberately NOT probability. Probability is a commercial judgement inside the
- * band the register gives each stage; progression is a positional fact. At Stage
- * 7 they read 78% and 90-100%, and a screen showing both is showing two
- * different things on purpose — which is the entire reason this field exists.
- *
- * The divisor is the length of the stage list, never a hardcoded 9: add a Stage
- * 10 to spec/stages.json and every progression re-scales itself.
- *
- * Linear-by-position is this build's choice. The register states no progression
- * curve anywhere, and that is recorded as an open question rather than settled
- * here by picking weights nobody asked for.
- */
-function progression(module: string, values: Values): number | null {
-  if (ORDERED.length < 2) return null
-
-  const field = stageFieldOf(module)
-  if (!field) return null
-
-  const stage = stageNumber(values[field])
-  if (stage === null) return null
-
-  const index = ORDERED.findIndex((s) => s.stage === stage)
-  if (index === -1) return null
-
-  return Math.round((index / (ORDERED.length - 1)) * 100)
-}
-
 export type SpecResolver = (module: string, values: Values) => unknown
 
+/**
+ * Whole days the record has been in the stage it is in now.
+ *
+ * Reads `stage_entered_date`, which the server derives from the stage_transitions
+ * table — the LAST move INTO the current stage, so a pursuit that went 3 -> 5 -> 3
+ * is aged from the second Stage 3 and not the first. See app/stage_entry.py.
+ *
+ * NOT a computed_expr: the expression
+ * language operates over a record's own api_names, and stage_entered_date is a
+ * derived fact the register has no field for. It is a resolver rather than the
+ * server simply sending the number so that ONE clock counts — daysSinceCompany
+ * is the same company-calendar count app/clock.py::days_since performs, so the
+ * figure here, the figure on a Kanban card and the figure from the API agree by
+ * construction rather than by three implementations staying in step.
+ *
+ * Falls back to created_date: a record that has never transitioned has been in
+ * its stage since it was created, which is a real answer and not a placeholder.
+ */
+function daysInStage(_module: string, values: Values): number | null {
+  return daysSinceCompany(values.stage_entered_date ?? values.created_date)
+}
+
+/**
+ * Whole days since the record last changed.
+ *
+ * modified_date is a System field the server stamps on every save, so this is
+ * expressible from the record alone — but it lives here beside daysInStage
+ * rather than as a computed_expr because the expression language has no "now".
+ * `days_between(modified_date, TODAY)` would need a TODAY identifier, and one
+ * that resolved against the browser's own clock would reintroduce exactly the
+ * disagreement lib/time.ts was written to remove.
+ *
+ * Deals stamp modified_by_date / created_by_date, not modified_date — the
+ * Deals sheet names its own system fields, see the Deal docstring in
+ * app/models.py — so both spellings are read.
+ */
+function daysSinceUpdate(_module: string, values: Values): number | null {
+  return daysSinceCompany(
+    values.modified_date ??
+      values.modified_by_date ??
+      values.created_date ??
+      values.created_by_date
+  )
+}
+
 const RESOLVERS: Record<string, SpecResolver> = {
-  progression,
+  days_in_stage: daysInStage,
+  days_since_update: daysSinceUpdate,
 }
 
 /** The resolver a field's `computed_by` names, or undefined when there is none. */

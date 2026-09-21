@@ -30,10 +30,10 @@ export function UnsavedChangesDialog({ open, onStay, onLeave }: Props) {
       <DialogContent className="max-w-lg gap-6 p-7">
         <DialogHeader className="gap-2">
           <DialogTitle className="text-page-title leading-snug">
-            You have not saved your changes.
+            Leave without saving?
           </DialogTitle>
           <DialogDescription className="text-foreground/80 text-sm">
-            Are you sure you want to move away from this page?
+            Your changes on this page will be lost.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -41,7 +41,7 @@ export function UnsavedChangesDialog({ open, onStay, onLeave }: Props) {
             Stay Here
           </Button>
           <Button type="button" variant="destructive" onClick={onLeave}>
-            Yes, Leave Page
+            Leave without saving
           </Button>
         </DialogFooter>
       </DialogContent>

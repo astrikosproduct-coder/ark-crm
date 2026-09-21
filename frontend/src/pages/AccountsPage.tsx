@@ -1,30 +1,39 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PlusIcon } from 'lucide-react'
-
-import { Button } from '@/components/ui/button'
 import { PageLayout } from '@/components/layout/PageLayout'
+import { ListFilterBar } from '@/components/list/ListFilterBar'
+import { ModuleActions } from '@/components/list/ModuleActions'
 import { RecordListView } from '@/components/list/RecordListView'
+import { useListFilters } from '@/lib/listFilters'
 
 export function AccountsPage() {
   const navigate = useNavigate()
+  const filters = useListFilters({ view: 'accounts' })
+  const listFilter = useMemo(() => filters.params(), [filters])
 
   return (
     <PageLayout
       wide
       title="Accounts"
-      subtitle="End Clients, Partners / SIs, consultants and OEMs. One organisation can be more than one of these at once."
       actions={
-        <Button onClick={() => navigate('/accounts/new')}>
-          <PlusIcon className="size-4" />
-          New account
-        </Button>
+        <ModuleActions
+          module="accounts"
+          plural="Accounts"
+          noun="account"
+          createLabel="New account"
+          onCreate={() => navigate('/accounts/new')}
+          exportFilter={() => listFilter}
+        />
       }
       tabs={[
         {
           key: 'list',
           label: 'List',
           content: (
-            <RecordListView module="accounts" collection="accounts" basePath="/accounts" />
+            <>
+              <ListFilterBar filters={filters} plural="Accounts" searchPlaceholder="Search name, region or segment…" />
+              <RecordListView module="accounts" collection="accounts" basePath="/accounts" filter={listFilter} hideSearch />
+            </>
           ),
         },
       ]}

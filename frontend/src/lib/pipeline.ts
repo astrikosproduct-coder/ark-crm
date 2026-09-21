@@ -85,6 +85,13 @@ export function stageOf(stage: number | null | undefined): Stage | undefined {
 }
 
 /** "Stage 3 — Prescription", named by the stages table. Empty when unknown. */
+/** "Stage 2", "Stages 2 and 3", "Stages 2, 3 and 4" — for a sentence, never a comma dump. */
+export function stageList(stages: number[]): string {
+  if (stages.length === 0) return ''
+  if (stages.length === 1) return `Stage ${stages[0]}`
+  return `Stages ${stages.slice(0, -1).join(', ')} and ${stages[stages.length - 1]}`
+}
+
 export function stageLabel(stage: number | null | undefined): string {
   const found = stageOf(stage)
   return found ? `Stage ${found.stage} — ${found.name}` : ''

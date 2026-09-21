@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query'
 
 import type { Stage, Transition } from '@/lib/pipeline'
 import type { Values } from '@/lib/spec/conditions'
+import type { FieldSpec } from '@/types/field'
 import type { ResolvedRecord } from '@/lib/spec/resolveRecord'
 
 /**
@@ -41,16 +42,34 @@ export interface PipelineModuleSpec {
   /** The leads_stage / deals__deal_stage key for a stage number. */
   stageKeyOf: (stage: number) => string | undefined
 
-  /** A transition writes the band midpoint into probability_pct. Leads do. */
-  writesProbability: boolean
-
   /** Where a skip reason is written on the record, when the module has one. */
   skipReasonField?: string
   /** Where a reversal reason is written on the record. */
   reversalReasonField?: string
 
-  /** Values ARK stamps on every save and every transition. */
-  stamp: () => Values
+  /*
+   * `stamp: () => Values` used to live here — the browser's own
+   * modified_date/modified_by, merged into every save.
+   *
+   * It is gone because the server stamps both from the Entra session and its
+   * own clock and ignores whatever the payload claims (app/routers/leads.py,
+   * SYSTEM_STAMPED). A client-side stamp would now be a value that travels,
+   * gets discarded, and misleads the next person reading this file into
+   * thinking the browser decides who edited a record. It does not, and that is
+   * the entire point: the two fields a manager most needs to trust are the two
+   * a BD must not be able to write.
+   */
+
+  /**
+   * Heading over the Current-stage tab's own content — "Lead Information",
+   * "Opportunity Information", "Deal Information".
+   *
+   * It used to read "Stage 1 — Demo Presentation", which was the name of the
+   * section drawn immediately underneath it: the same words twice, one inside
+   * the other. This names the RECORD, the way Zoho's record pages do, and
+   * leaves naming the stage to the section that holds the stage's fields.
+   */
+  recordHeading: string
 
   /** Heading over the non-stage sections on the Details tab. */
   detailsHeading: string
@@ -72,6 +91,13 @@ export interface PipelineModuleSpec {
   Banner?: PipelineSlot
   /** The Related tab's contents. */
   Related?: PipelineSlot
+  /**
+   * Rendered under the stage's own form on the Current-stage tab, for a table
+   * that belongs to a stage but not to this record's fields — Deals' Stage 8
+   * payment milestones, whose rows live on the parent Opportunity. It is
+   * handed the context and decides for itself which stages it draws on.
+   */
+  StagePanel?: PipelineSlot
   /** Dialogs and anything else rendered at page level. */
   Extras?: PipelineSlot
 
@@ -121,6 +147,15 @@ export interface PipelineRecordContext {
   openAdvance: () => void
   selectStage: (stage: number) => void
   setActiveTab: (tab: PipelineTab) => void
+  /**
+   * Drill down from a readiness criterion to the field that proves it: selects
+   * the field's stage, switches to the tab and section that hold it, opens
+   * that section for editing, then scrolls to and pulses the field. Handed to
+   * every readiness surface — the drawer, the generic Update Stage dialog, and
+   * any module's own Actions slot that embeds its own advance dialog, such as
+   * LeadAdvanceDialog — so a criterion behaves identically wherever it is met.
+   */
+  jumpToField: (field: FieldSpec) => void
 }
 
 export type PipelineSlot = ComponentType<{ ctx: PipelineRecordContext }>

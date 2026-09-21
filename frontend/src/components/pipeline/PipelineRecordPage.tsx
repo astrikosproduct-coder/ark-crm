@@ -13,7 +13,6 @@ import { AdvanceStageDialog } from '@/components/pipeline/AdvanceStageDialog'
 import { HEADER_STRIP_SECTION, HeaderStrip } from '@/components/pipeline/HeaderStrip'
 import { PriorityFlagMark } from '@/components/opportunities/PriorityFlagMark'
 import { RecordTimelineTab } from '@/components/pipeline/RecordTimelineTab'
-import { Lineage } from '@/components/pipeline/Lineage'
 import { ReasonsPanel } from '@/components/pipeline/StageScopedFields'
 import type {
   PipelineModuleSpec,
@@ -401,7 +400,8 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
                 thing there. */}
             {endClient && <span>End client: {displayNameOf(endClient)}</span>}
             {partner && <span>Partner: {displayNameOf(partner)}</span>}
-            <Lineage ctx={ctx} />
+            {/* No LEAD → OPP → DEAL breadcrumb (removed 17 Sep 2026): where a
+                pursuit came from is on the Related tab, by name. */}
             {Header && <Header ctx={ctx} />}
           </div>
           </div>

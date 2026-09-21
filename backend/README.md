@@ -78,6 +78,28 @@ are already there and `0001` would fail on its first `CREATE TABLE`:
 
 On an empty database, `alembic upgrade head` builds everything.
 
+**Migrations that come with a register script.** Some revisions change storage
+and have a matching script that changes the field register. Run all three steps,
+in this order, or the screens and the database disagree:
+
+| Revision | Then run |
+|---|---|
+| `0020_pursuit_groups` | `pursuit_group_metadata.py --apply`, then `regenerate_spec.py --apply` |
+| `0024_partner_stamps` | nothing — created/modified stamps and audit rows on registrations and conflicts |
+| `0025_partner_lifecycle` | `partner_lifecycle_metadata.py --apply`, then `regenerate_spec.py --apply` |
+| `0026_expected_timeline_date` | `expected_timeline_metadata.py --apply` — changes the register and publishes a version itself |
+| `0027_lead_defaults` | nothing — fills blank lead status/currency with Open/USD |
+| `0028_registration_currency` | `registration_currency_metadata.py --apply` — places the shared Currency field and publishes |
+
+`0025` refuses to run while any lead names a deal registration that does not
+exist, and lists them; correct those leads first. It moves any free-text
+adjudication criteria into Decision Rationale & Evidence rather than guessing
+them into the new picklists. Take a `pg_dump` before running it.
+
+`0026` makes Expected Timeline a date. Free text is never guessed into one: an
+ISO date converts, anything else stays in `expected_timeline_text` (on no form)
+and Expected Timeline is left blank — the upgrade prints which registrations.
+
 `alembic check` reports two tables the models no longer declare —
 `lead_secondary_suites` and `deal_expansion_suites`, left behind by the Phase-1
 freeze of those two multiselects to free text. They are deliberately not dropped:

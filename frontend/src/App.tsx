@@ -32,8 +32,8 @@ import { PartnerDetailPage } from '@/pages/PartnerDetailPage'
 import { PartnersPage } from '@/pages/PartnersPage'
 import { RegistrationDetailPage } from '@/pages/RegistrationDetailPage'
 import { RecordCreatePage } from '@/pages/RecordCreatePage'
-import { SettingsPage } from '@/pages/SettingsPage'
 import { SpecHealthPage } from '@/pages/SpecHealthPage'
+import { FeedbackPage } from '@/pages/FeedbackPage'
 
 
 /**
@@ -55,7 +55,7 @@ const router = createBrowserRouter(
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="form-engine" element={<FormEnginePage />} />
           <Route path="spec-health" element={<SpecHealthPage />} />
-          <Route path="settings" element={<SettingsPage />} />
+          <Route path="feedback" element={<FeedbackPage />} />
 
           {/* The one module served by FastAPI + PostgreSQL rather than MSW. */}
           <Route path="administration" element={<AdministrationPage />} />

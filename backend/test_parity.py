@@ -97,9 +97,45 @@ APPROVED_VALUE_CHANGES: dict[tuple[str, str], tuple[str, str]] = {
 # the register's computed_formula is a sentence of prose and pasting it into a
 # test would make the test about the prose.
 APPROVED_DEFINITION_CHANGES: dict[tuple[str, str], object] = {
+    # 0029 (16 Sep 2026) — a bid deadline is a DAY. The time of day was read by
+    # nothing, and a timestamp's "+00:00" made the form's datetime-local box
+    # render empty, which read as the dates being wiped on a stage reversal.
+    ("submission_deadline", "type"): "date",
+    ("bid_submission_date", "type"): "date",
     ("progression_pct", "type"): "number",
     ("progression_pct", "computed_formula"): None,
     ("progression_pct", "requirement"): "Optional",
+    # P1 (13 Sep 2026) — see the Pursuit Groups block below.
+    ("fx_rate_at_entry", "type"): "number",
+    ("fx_rate_at_entry", "label"): "FX Rate (local per 1 USD)",
+    ("fx_rate_at_entry", "max_length"): None,
+    ("fx_rate_at_entry", "requirement"): "Conditional",
+    ("fx_rate_at_entry", "visibility_condition"): "currency != 'USD'",
+    ("fx_rate_at_entry", "mandatory_from"): 0,
+    ("fx_rate_at_entry", "blocks_transition"): "0 → 1",
+    ("is_primary_pursuit", "requirement"): "System",
+    ("is_primary_pursuit", "editable"): False,
+    ("is_primary_pursuit", "mandatory_from"): None,
+    ("is_primary_pursuit", "blocks_transition"): None,
+    # 0022 (13 Sep 2026) — Progression % and Probability % come from the stage,
+    # and changing EITHER needs the justification, so it is no longer about
+    # probability alone. api_name unchanged: stored reasons keep their keys.
+    ("probability_override_justification", "label"): "Override Justification",
+    # 15 Sep 2026 (lead_form_review_metadata.py) — shown, and demanded, only
+    # while a number differs from the stage's. The defaults it compares with are
+    # server-stamped on every pipeline record; the frontend compiler accepts
+    # them (src/lib/spec/conditions.ts, SERVER_STAMPED). The same expression is
+    # the condition — see APPROVED_CONDITIONS.
+    ("probability_override_justification", "visibility_condition"): (
+        "(progression_default_pct != '' && progression_pct != progression_default_pct) || "
+        "(probability_default_pct != '' && probability_pct != probability_default_pct)"
+    ),
+    # 15 Sep 2026 (stage4_commercial_sections.py) — the third-party money fields
+    # say whether they are revenue or cost. Definition labels, so Deals' ON
+    # CONVERSION copies change with them.
+    ("3rd_party_one_time", "label"): "3rd-Party Revenue — One-Time",
+    ("3rd_party_recurring_per_year", "label"): "3rd-Party Revenue — Recurring (per year)",
+    ("third_party_cost", "label"): "3rd-Party Cost (paid to vendors)",
 }
 
 # ---------------------------------------------------------------- Phase A
@@ -114,7 +150,13 @@ APPROVED_DEFINITION_CHANGES: dict[tuple[str, str], object] = {
 # Undeclared drift still fails.
 
 RECORD_STATE = "RECORD STATE — each module keeps its own instance"
+#: What that section is labelled on Opportunities and Deals today.
+RECORD_STATE_SHORT = "RECORD STATE"
+READ_THROUGH = "READ THROUGH THE PARENT — resolved from the parent, never stored here"
 STAGE_0 = "STAGE 0 — CONNECT"
+HEADER = "HEADER"
+HEADER_STRIP = "__header"
+AGING = "Aging"
 
 # A1. Leads gained its own RECORD STATE section, so that changing the status of
 # a Stage 1 lead no longer means clicking back to the Stage 0 tab. Opportunities
@@ -124,14 +166,76 @@ STAGE_0 = "STAGE 0 — CONNECT"
 APPROVED_RELOCATIONS: dict[tuple[str, str], tuple[str, str]] = {
     ("leads", "project_stage"): (STAGE_0, RECORD_STATE),
     ("leads", "lead_status"): (STAGE_0, RECORD_STATE),
-    ("leads", "probability_pct"): (STAGE_0, RECORD_STATE),
     # A4. Expected Close Month joins them. A forecast reviewed monthly was
     # filed under the stage it was first asked at, so revising the close month
     # of a Stage 5 pursuit meant clicking back to Stage 0 — and, worse, a
     # capture_stage of 0 kept the placement on Leads (range 0-3) so the field
     # did not exist on Opportunities or Deals at all. See
     # close_month_record_state.py.
-    ("leads", "expected_close_month"): (STAGE_0, RECORD_STATE),
+    #
+    # A5 MOVED BOTH ON AGAIN, to HEADER, which is why these two name HEADER
+    # rather than RECORD STATE as their destination. See the block below.
+    ("leads", "probability_pct"): (STAGE_0, HEADER),
+    ("leads", "expected_close_month"): (STAGE_0, HEADER),
+    # A5. THE KEY FACTS BECOME FIELDS.
+    #
+    # Overall RAG, Next Milestone, Next Milestone Date, Expected Close Month,
+    # Progression % and Probability % were drawn by three hand-built strips
+    # above the tabs, each saving on a 300ms debounce as the user typed. One
+    # keystroke pause cost a record PUT, a refetch and a remount of every form
+    # on the screen, which is what the reviewer reported as "changing
+    # Probability feels too slow". They are ordinary placements in HEADER now,
+    # drawn by RecordForm at the top of the stage tab and saved by its Save
+    # button. Nothing about what they store or how per-stage values work
+    # changed — see backend/move_key_facts_to_header.py.
+    ("leads", "overall_rag"): (HEADER_STRIP, HEADER),
+    ("leads", "next_milestone"): (HEADER_STRIP, HEADER),
+    ("leads", "next_milestone_date"): (HEADER_STRIP, HEADER),
+    ("opportunities", "overall_rag"): (HEADER_STRIP, HEADER),
+    ("opportunities", "next_milestone"): (HEADER_STRIP, HEADER),
+    ("opportunities", "next_milestone_date"): (HEADER_STRIP, HEADER),
+    ("opportunities", "probability_pct"): (RECORD_STATE, HEADER),
+    ("deals", "overall_rag"): (HEADER_STRIP, HEADER),
+    ("deals", "next_milestone"): (HEADER_STRIP, HEADER),
+    ("deals", "next_milestone_date"): (HEADER_STRIP, HEADER),
+    ("deals", "probability_pct"): (RECORD_STATE, HEADER),
+    # 15 Sep 2026 (lead_form_review_metadata.py). Demo Completed is asked at
+    # Demo Presentation, directly before Demo Date and on Demo Date's stage
+    # rule, not at Connect — a new lead was being asked whether a demo it had
+    # not been offered yet was finished.
+    ("leads", "demo_completed"): (STAGE_0, "STAGE 1 — DEMO PRESENTATION"),
+    # 15 Sep 2026 (stage4_commercial_sections.py). Opportunities' Stage 4 held
+    # thirty fields in one section, bid logistics and money mixed, and the
+    # 3rd-party REVENUE lines sat beside 3rd-party COST with nothing to tell
+    # them apart. The money moves to two STAGE 4 sections of its own; when each
+    # field is asked for does not change.
+    **{
+        ("opportunities", api_name): ("STAGE 4 — RFP / RFI", "STAGE 4 — COMMERCIAL: REVENUE")
+        for api_name in (
+            "licence_model",
+            "platform_licence_list_price",
+            "arr_annual_recurring",
+            "licence_discount_pct",
+            "perpetual_licence_fee",
+            "one_time_revenue",
+            "contract_years",
+            "3rd_party_one_time",
+            "3rd_party_recurring_per_year",
+            "total_value_tcv",
+            "third_party_pct_of_tcv",
+            "primary_quote",
+        )
+    },
+    **{
+        ("opportunities", api_name): ("STAGE 4 — RFP / RFI", "STAGE 4 — COMMERCIAL: COST & MARGIN")
+        for api_name in (
+            "services_and_implementation_cost",
+            "third_party_cost",
+            "total_cost",
+            "gross_margin_pct",
+            "cost_model_rcm_document",
+        )
+    },
 }
 
 # A4, second half. Opportunities and Deals gain their own instance of it, so
@@ -139,9 +243,30 @@ APPROVED_RELOCATIONS: dict[tuple[str, str], tuple[str, str]] = {
 # stages a forecast is actually read at. A gained key is otherwise a FIELD
 # APPEARED failure, which is the correct default: fields do not turn up
 # unannounced.
+#
+# HEADER rather than RECORD STATE since A5 above, which is where the instance
+# each module gained now sits.
 APPROVED_ADDITIONS: dict[tuple[str, str], str] = {
-    ("opportunities", "expected_close_month"): RECORD_STATE,
-    ("deals", "expected_close_month"): RECORD_STATE,
+    ("opportunities", "expected_close_month"): HEADER,
+    ("deals", "expected_close_month"): HEADER,
+    # P1. PURSUIT GROUPS (migration 0020, pursuit_group_metadata.py). Partner-A
+    # and Partner-B bring the same project; both are pursued and only the
+    # primary counts toward pipeline (Playbook §7.2). The group decides which,
+    # so the flag it stamps must exist on every module a pursuit becomes —
+    # a flag left behind on a converted Lead is how duplicates inflated
+    # pipeline in the first place.
+    ("leads", "pursuit_group"): STAGE_0,
+    ("leads", "not_duplicate_reason"): STAGE_0,
+    ("opportunities", "is_primary_pursuit"): RECORD_STATE_SHORT,
+    ("opportunities", "pursuit_group"): RECORD_STATE_SHORT,
+    ("deals", "is_primary_pursuit"): RECORD_STATE_SHORT,
+    ("deals", "pursuit_group"): RECORD_STATE_SHORT,
+    # P1. USD pipeline totals divide by the pursuit's one FX rate, which lives on
+    # the Lead and is read through beside currency, exactly as currency is.
+    ("opportunities", "fx_rate_at_entry"): READ_THROUGH,
+    ("deals", "fx_rate_at_entry"): READ_THROUGH,
+    # P1. "Both pursued" names which registration's pursuit is primary.
+    ("partners", "primary_registration"): "CONFLICT ADJUDICATION",
 }
 
 # A4, third half. Close Date Pushback Count is deleted from the register on all
@@ -150,10 +275,47 @@ APPROVED_ADDITIONS: dict[tuple[str, str], str] = {
 # expected_close_month edits that nothing persisted. Logical delete — the rows
 # stay, and there was never a business column anywhere to preserve.
 APPROVED_DELETIONS: dict[tuple[str, str], str] = {
-    ("leads", "close_date_pushback_count"): "CROSS-CUTTING",
-    ("opportunities", "close_date_pushback_count"): "CROSS-CUTTING",
-    ("deals", "close_date_pushback_count"): "CROSS-CUTTING",
+    # P1. Superseded by pursuit_group. Logical delete; column and values kept.
+    ("leads", "parent_pursuit"): STAGE_0,
+    ("leads", "close_date_pushback_count"): AGING,
+    ("opportunities", "close_date_pushback_count"): AGING,
+    ("deals", "close_date_pushback_count"): AGING,
+    # Deleted in Administration on 15 Sep 2026 (register version 109) and
+    # confirmed as deliberate on 16 Sep. An Administration-created field, so
+    # its values were always custom_fields JSONB and no column existed to keep;
+    # the placement survives as status 'deleted' and can be restored.
+    ("opportunities", "rfp_document_file"): "STAGE 4 — RFP / RFI",
 }
+
+# A6. CROSS-CUTTING is renamed Aging.
+#
+# A RENAME IS NOT A RELOCATION, and declaring it as twenty-one relocations
+# would say something false: nothing moved. The section kept its id, its
+# sort_order and every placement in it — `sections.label` changed, which is
+# exactly the case the surrogate key on that table exists for.
+#
+# So it is applied to the BASELINE's keys as they are read, below, rather than
+# waived field by field. Every field in the section is then still compared
+# key-for-key on all eighteen COMPARED columns, and relative order inside it is
+# still checked: the rename buys the label and nothing else.
+#
+# Why the name changed: CROSS-CUTTING is workbook jargon, and after the reasons
+# were anchored beside the status they describe (A2) and the two transition
+# reasons became history_only, the heading only ever appeared above Days in
+# Current Stage and Days Since Last Update. It was named for what the register
+# files there; it is now named for what a BD user sees under it.
+APPROVED_SECTION_RENAMES: dict[tuple[str, str], str] = {
+    ("leads", "CROSS-CUTTING"): AGING,
+    ("opportunities", "CROSS-CUTTING"): AGING,
+    ("deals", "CROSS-CUTTING"): AGING,
+}
+
+
+def as_renamed(row: dict) -> dict:
+    """A baseline row under its section's current name."""
+    section = APPROVED_SECTION_RENAMES.get((row["module"], row["section"]))
+    return row if section is None else {**row, "section": section}
+
 
 # A2. The six reason placements were Conditional in the register while stating
 # no `condition`, so requirementOf() returned {required: false, unruled: true}:
@@ -163,12 +325,21 @@ APPROVED_DELETIONS: dict[tuple[str, str], str] = {
 # here. Set by anchor_reasons.py, which B3 deleted once the field editor grew
 # the control; this table is now the only record of what it approved.
 APPROVED_CONDITIONS: dict[tuple[str, str], str] = {
+    # P1. The FX rate is demanded exactly when there is a currency to convert.
+    ("leads", "fx_rate_at_entry"): "currency != 'USD'",
     ("leads", "on_hold_reason"): "lead_status == 'On Hold'",
     ("leads", "closed_lost_reason_code"): "lead_status == 'Closed Lost'",
     ("opportunities", "on_hold_reason"): "lead_status == 'On Hold'",
     ("opportunities", "closed_lost_reason_code"): "lead_status == 'Closed Lost'",
     ("deals", "on_hold_reason"): "lead_status == 'On Hold'",
     ("deals", "closed_lost_reason_code"): "lead_status == 'Closed Lost'",
+    # 15 Sep 2026 — Override Justification, demanded exactly while it is shown.
+    **{
+        (module, "probability_override_justification"): APPROVED_DEFINITION_CHANGES[
+            ("probability_override_justification", "visibility_condition")
+        ]
+        for module in ("leads", "opportunities", "deals")
+    },
 }
 
 # Modules whose ABSOLUTE sort_order may differ from the baseline because a
@@ -180,7 +351,7 @@ APPROVED_CONDITIONS: dict[tuple[str, str], str] = {
 # and is checked separately below. That is the invariant that actually matters:
 # a field is allowed to renumber, and is not allowed to move past its
 # neighbours.
-RENUMBERED_MODULES = {"leads", "opportunities", "deals"}
+RENUMBERED_MODULES = {"leads", "opportunities", "deals", "partners"}
 
 failures: list[str] = []
 
@@ -204,7 +375,7 @@ def main() -> int:
         return 1
 
     document = json.loads(BASELINE.read_text(encoding="utf-8"))
-    before = {key_of(r): r for r in document["fields"]}
+    before = {key_of(r): r for r in map(as_renamed, document["fields"])}
 
     db = SessionLocal()
     try:
@@ -311,11 +482,22 @@ def main() -> int:
     # numbers shifted, not that the layout is now unreviewed. A field may take
     # a new number; it may not overtake the field next to it. Relocated fields
     # are dropped from their old section's sequence before comparing, because
-    # leaving is what they were approved to do.
+    # leaving is what they were approved to do — and from their NEW section's,
+    # because arriving is the other half of the same approval. Dropping only
+    # the departure made an approved relocation fail a second time, under the
+    # wrong name, in whichever section it landed in: the destination's
+    # sequence gained a field the baseline's could not contain. It went
+    # unnoticed through A1 and A4 only because their destination section did
+    # not exist in the baseline at all, and the loop below skips those.
     for module in sorted(RENUMBERED_MODULES):
         moved_out = {
             (m, api): from_section
             for (m, api), (from_section, _to) in APPROVED_RELOCATIONS.items()
+            if m == module
+        }
+        moved_in = {
+            (m, api): to_section
+            for (m, api), (_from, to_section) in APPROVED_RELOCATIONS.items()
             if m == module
         }
 
@@ -343,6 +525,8 @@ def main() -> int:
                     if APPROVED_DELETIONS.get((module, api_name)) == section:
                         continue
                 else:
+                    if moved_in.get((module, api_name)) == section:
+                        continue
                     if APPROVED_ADDITIONS.get((module, api_name)) == section:
                         continue
                 out.append(api_name)

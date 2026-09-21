@@ -13,7 +13,7 @@ import { ACCOUNT_REFERRERS } from '@/lib/referrers'
 import { useSetRecordActive } from '@/lib/recordLifecycle'
 import { contactListCell } from '@/components/contacts/contactListCell'
 import { api } from '@/lib/api'
-import { displayNameOf, isPartnerAccount, labelForValue, withRecordId } from '@/lib/spec'
+import { displayNameOf, isPartnerAccount, withRecordId } from '@/lib/spec'
 import { ComingSoon } from '@/pages/ComingSoon'
 import { cn } from '@/lib/utils'
 
@@ -38,8 +38,7 @@ export function AccountDetailPage() {
   // The register calls the key field account_id; the store calls it id.
   const values = useMemo(() => (data ? withRecordId(MODULE, data) : undefined), [data])
 
-  const rawTypes = values?.account_type
-  const types = Array.isArray(rawTypes) ? (rawTypes as string[]) : []
+  const website = typeof values?.website === 'string' ? values.website.trim() : ''
   const inactive = values?.active === false
 
   const setActive = useSetRecordActive(COLLECTION, id ?? '', {
@@ -50,6 +49,7 @@ export function AccountDetailPage() {
   if (isError) {
     return (
       <PageLayout
+        back
         title={id ?? 'Account'}
         tabs={[
           {
@@ -65,6 +65,7 @@ export function AccountDetailPage() {
   return (
     <>
     <PageLayout
+      back
       title={
         <>
           {/* Dimmed, not struck through: a strikethrough reads as deleted,
@@ -72,15 +73,24 @@ export function AccountDetailPage() {
           <span className={cn(inactive && 'text-muted-foreground')}>
             {values ? displayNameOf(values) : (id ?? '')}
           </span>
-          {/* Two-party accounts: an organisation can be End Client and Partner
-              at once, so the header shows every type rather than one. */}
-          <span className="text-muted-foreground text-sm font-normal">
-            {types.map((t) => labelForValue('accounts__account_type', t)).join(' · ')}
-          </span>
+          {/* Name, then the website when one is entered. The id and the
+              account types live in the form, not the heading. */}
+          {website && (
+            <>
+              <span className="text-muted-foreground font-normal">-</span>
+              <a
+                href={/^https?:\/\//i.test(website) ? website : `https://${website}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary text-base font-normal underline-offset-2 hover:underline"
+              >
+                {website}
+              </a>
+            </>
+          )}
           {inactive && <span className="text-muted-foreground text-sm font-normal">Inactive</span>}
         </>
       }
-      subtitle={id}
       actions={
         <>
           {/* The same record, seen from the partner side. Not a second

@@ -13,7 +13,8 @@ import {
 import { FieldRow } from '@/components/form/FieldRow'
 import { RecordFormProvider, useRecordForm, visibleFieldsOf } from '@/hooks/useRecordForm'
 import { api } from '@/lib/api'
-import { collectionFor, quickCreateExtraFieldsFor, sectionsFor } from '@/lib/spec'
+import { ErrorNotice } from '@/components/ui/notice'
+import { collectionFor, fieldOf, quickCreateExtraFieldsFor, sectionsFor } from '@/lib/spec'
 import type { FieldSpec } from '@/types/field'
 
 /**
@@ -59,8 +60,7 @@ export function CreateNewDialog({ field, onClose, onCreated }: Props) {
         <DialogHeader>
           <DialogTitle>New {target.replace(/_/g, ' ')}</DialogTitle>
           <DialogDescription>
-            Created from {field.label}. Only the first section is shown, plus a few fields from
-            later sections that matter from day one — enough to make the record selectable.
+            Just the basics for now. Fill in the rest on the record later.
           </DialogDescription>
         </DialogHeader>
 
@@ -75,7 +75,7 @@ export function CreateNewDialog({ field, onClose, onCreated }: Props) {
           </RecordFormProvider>
         ) : (
           <p className="text-sm text-muted-foreground">
-            The register has no module describing a {target}, so one cannot be created here.
+            A {target.replace(/_/g, ' ')} can&apos;t be created from here.
           </p>
         )}
       </DialogContent>
@@ -128,14 +128,20 @@ function CreateNewBody({
 
   return (
     <>
-      <div className="grid gap-x-6 gap-y-4 md:grid-cols-2">
-        {fields.map((f) => (
-          <FieldRow key={f.qref} field={f} />
-        ))}
+      {/* A container, like FormSection's grid, so the rows inside can decide
+          whether their labels sit beside the values — see FieldRow. The
+          container wraps the grid because a container query cannot measure
+          the element that declares it. */}
+      <div className="@container">
+        <div className="grid gap-x-10 gap-y-5 @3xl:grid-cols-2">
+          {fields.map((f) => (
+            <FieldRow key={f.qref} field={f} />
+          ))}
+        </div>
       </div>
 
       {create.isError && (
-        <p className="text-sm text-destructive">Could not create the record.</p>
+        <ErrorNotice error={create.error} fieldLabel={(name) => fieldOf(module, name)?.label} />
       )}
 
       <DialogFooter>

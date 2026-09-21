@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { api } from '@/lib/api'
-import { errorMessage } from '@/lib/admin'
+import { Bullets, ErrorNotice } from '@/components/ui/notice'
 import { pursuitErrorOf } from '@/lib/pursuitGroups'
 import { alreadyConvertedOf, dealStageKeyOf, stageOf, STAGE_PCT_FIELDS } from '@/lib/pipeline'
 import { displayNameOf, fieldOf, fieldsOf, labelForValue } from '@/lib/spec'
@@ -128,32 +128,27 @@ export function ConvertToDealDialog({ open, opportunityId, values, onClose }: Pr
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <ArrowRightIcon className="size-4" />
-                Convert {displayNameOf(values)} to a Deal
+                Convert {displayNameOf(values)} to a Deal?
               </DialogTitle>
-              <DialogDescription>
-                Nothing happens until you confirm. This is what will happen:
-              </DialogDescription>
+              <DialogDescription>When you convert:</DialogDescription>
             </DialogHeader>
 
-            <ul className="space-y-2 text-sm">
-              <li>
-                A Deal is created at Stage {OPENING_STAGE}
-                {stageOf(OPENING_STAGE)?.name ? ` — ${stageOf(OPENING_STAGE)?.name}` : ''}, taking that
-                stage&apos;s Progression % and Probability %. Stage 8 is a move you make once delivery has
-                actually started.
-              </li>
-              <li>This opportunity becomes read-only and its status becomes {labelForValue(fieldOf('leads', 'lead_status')?.picklist, 'CONVERTED')}.</li>
-              <li>The Opportunity fields are carried into the Deal and the conversion is audited.</li>
-            </ul>
+            <Bullets
+              className="text-sm"
+              items={[
+                `A Deal opens at Stage ${OPENING_STAGE}${stageOf(OPENING_STAGE)?.name ? ` – ${stageOf(OPENING_STAGE)?.name}` : ''}.`,
+                'Its details are carried into the Deal.',
+                `This opportunity is locked and marked ${labelForValue(fieldOf('leads', 'lead_status')?.picklist, 'CONVERTED')}.`,
+                'Move the Deal to Stage 8 once delivery starts.',
+              ]}
+            />
 
             {alreadyConverted ? (
               <p className="text-sm text-destructive">{alreadyConverted.message}</p>
             ) : (
               convert.isError &&
-              !pursuitErrorOf(convert.error) && (
-                <p className="text-sm text-destructive">
-                  {errorMessage(convert.error, { fallback: 'The conversion failed.' })} Nothing was changed.
-                </p>
+              pursuitErrorOf(convert.error)?.code !== 'SECONDARY_CANNOT_WIN' && (
+                <ErrorNotice error={convert.error} suffix="Nothing was converted." />
               )
             )}
             {convert.isError && (
@@ -173,12 +168,12 @@ export function ConvertToDealDialog({ open, opportunityId, values, onClose }: Pr
                     navigate(`/deals/${dealId}`)
                   }}
                 >
-                  Go to {alreadyConverted.target_id}
+                  Open the Deal
                 </Button>
               ) : (
                 !alreadyConverted && (
                   <Button type="button" onClick={() => convert.mutate()} disabled={convert.isPending}>
-                    {convert.isPending ? 'Converting…' : 'Confirm conversion'}
+                    {convert.isPending ? 'Converting…' : 'Convert to Deal'}
                   </Button>
                 )
               )}
@@ -189,22 +184,18 @@ export function ConvertToDealDialog({ open, opportunityId, values, onClose }: Pr
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <CheckIcon className="size-4 text-emerald-600 dark:text-emerald-400" />
-                {displayNameOf(values)} converted to a Deal
+                Deal created
               </DialogTitle>
-              <DialogDescription>Here is exactly what happened.</DialogDescription>
+              <DialogDescription className="sr-only">{displayNameOf(values)} was converted to a Deal.</DialogDescription>
             </DialogHeader>
 
-            <p className="flex items-start gap-2 text-sm">
-              <CheckIcon className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-              <span>
-                A Deal was created from {displayNameOf(values)} with {result.copiedFieldCount}{' '}
-                carried field{result.copiedFieldCount === 1 ? '' : 's'}.
-              </span>
-            </p>
-            <p className="flex items-start gap-2 text-sm">
-              <CheckIcon className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-              <span>{displayNameOf(values)} is now read-only, status {labelForValue(fieldOf('leads', 'lead_status')?.picklist, 'CONVERTED')}.</span>
-            </p>
+            <Bullets
+              className="text-sm"
+              items={[
+                `${result.copiedFieldCount} ${result.copiedFieldCount === 1 ? 'detail' : 'details'} carried over from ${displayNameOf(values)}.`,
+                `${displayNameOf(values)} is now locked.`,
+              ]}
+            />
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={handleClose}>
@@ -218,7 +209,7 @@ export function ConvertToDealDialog({ open, opportunityId, values, onClose }: Pr
                   navigate(`/deals/${dealId}`)
                 }}
               >
-                Go to {result.dealId}
+                Open the Deal
               </Button>
             </DialogFooter>
           </>

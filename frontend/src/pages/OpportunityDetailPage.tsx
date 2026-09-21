@@ -28,10 +28,9 @@ function OpportunityHeader({ ctx }: { ctx: PipelineRecordContext }) {
   const revenue = ctx.values ? revenueOf(ctx.values) : null
 
   // Probability % is NOT shown here any more — see LeadHeader's own note.
-  // Neither is "From LEAD-00118": removed on instruction. NOTE that it was the
-  // only link from an Opportunity back to the Lead it came from — parent_lead
-  // is a Stage 4 field, so the form only shows it while the record sits at
-  // Stage 4. See the note in OpportunityDetailPage's export.
+  // Neither is any route back to the Lead ("From LEAD-00118", then the
+  // lineage breadcrumb): both removed on instruction. The Lead is on the
+  // Related tab, by name — see ParentRecordsPanel.
   return <>{revenue?.value != null && <span>{revenue.label}: {localAmount(revenue)}</span>}</>
 }
 
@@ -51,7 +50,7 @@ function OpportunityActions({ ctx }: { ctx: PipelineRecordContext }) {
     return dealIdText ? (
       <Button variant="outline" onClick={() => navigate(`/deals/${dealIdText}`)}>
         <ArrowRightIcon className="size-4" />
-        Go to {dealIdText}
+        Go to Deal
       </Button>
     ) : null
   }

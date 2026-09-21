@@ -25,7 +25,6 @@ const ID_PREFIXES: Record<string, { prefix: string; pad: number }> = {
   // GATE-0091's four digits; confirm it in the register correction pass.
   conflicts: { prefix: 'CONF', pad: 4 },
   transitions: { prefix: 'TRN', pad: 4 },
-  comments: { prefix: 'CMT', pad: 4 },
   // The 14-stage-review pipeline split. OPP- matches LEAD-/DEAL- at five
   // digits. CONV- has no stated convention either — four digits follows
   // TRN-0001, the other audit-log-shaped record; confirm both in the
@@ -44,24 +43,30 @@ function identify(item: unknown): string | undefined {
   return typeof key === 'string' ? key : undefined
 }
 
-function generateId(collection: string, existing: Item[]): string {
-  return nextId(ID_PREFIXES[collection] ?? { prefix: collection.toUpperCase(), pad: 5 }, existing)
+function schemeOf(collection: string) {
+  return ID_PREFIXES[collection] ?? { prefix: collection.toUpperCase(), pad: 5 }
 }
 
 interface DataState {
   data: Record<string, unknown>
+  /**
+   * The highest id number ever issued per collection — a high-water mark that
+   * deleting a row cannot lower, so a deleted record's id is never reused. See
+   * lib/idGen.ts. Persisted with the data.
+   */
+  idCounters: Record<string, number>
   list: (collection: string) => unknown
   getById: (collection: string, id: string) => Item | undefined
   create: (collection: string, item: Item) => Item | undefined
   update: (collection: string, id: string, patch: Item) => Item | undefined
   remove: (collection: string, id: string) => boolean
-  reset: () => void
 }
 
 export const useDataStore = create<DataState>()(
   persist(
     (set, get) => ({
       data: buildSeedData(),
+      idCounters: {},
 
       list: (collection) => get().data[collection],
 
@@ -74,10 +79,15 @@ export const useDataStore = create<DataState>()(
       create: (collection, item) => {
         const items = get().data[collection]
         if (!Array.isArray(items)) return undefined
-        const id = identify(item) ?? generateId(collection, items as Item[])
+        const given = identify(item)
+        const scheme = schemeOf(collection)
+        const floor = get().idCounters?.[collection] ?? 0
+        const id = given ?? nextId(scheme, items as Item[], floor)
+        const issued = given ? floor : Number.parseInt(id.slice(scheme.prefix.length + 1), 10)
         const record = { ...item, id }
         set((state) => ({
           data: { ...state.data, [collection]: [...(items as Item[]), record] },
+          idCounters: { ...state.idCounters, [collection]: Math.max(floor, issued) },
         }))
         return record
       },
@@ -105,12 +115,14 @@ export const useDataStore = create<DataState>()(
         return true
       },
 
-      // Reseed from spec/seed rather than reload from an empty store, so a
-      // reset takes effect immediately without a page refresh.
-      reset: () => {
-        localStorage.removeItem(STORAGE_KEY)
-        set({ data: buildSeedData() })
-      },
+      // NO reset() ANY MORE (18 Sep 2026). It reseeded the store from
+      // spec/seed and existed for one screen — Settings — which has been
+      // deleted. Its single real job was refreshing a browser's stale copy of
+      // the CATALOGUE, and the catalogue is no longer persisted at all: MSW
+      // reads products, prices, sizes, the rate card and regions straight from
+      // spec/seed/*.json on every request. See referenceCollection() in
+      // lib/spec/seed.ts. Nothing a user can reach writes into this store now,
+      // so there is nothing left for a reset to clear.
     }),
     {
       name: STORAGE_KEY,
@@ -162,10 +174,14 @@ export const useDataStore = create<DataState>()(
       // fall back to the freshly-seeded value. This is what makes seeding
       // "first run only" without a separate seeded flag.
       merge: (persistedState, currentState) => {
-        const persisted = (persistedState as Partial<DataState> | undefined)?.data ?? {}
+        const state = persistedState as Partial<DataState> | undefined
+        const persisted = state?.data ?? {}
         return {
           ...currentState,
           data: { ...currentState.data, ...persisted },
+          // A browser persisted before the counters existed starts from the
+          // rows it holds — nextId still takes the higher of the two.
+          idCounters: { ...currentState.idCounters, ...(state?.idCounters ?? {}) },
         }
       },
     }

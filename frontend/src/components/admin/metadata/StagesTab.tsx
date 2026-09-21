@@ -6,7 +6,10 @@ import { ErrorBox, LoadingRow, Mono, Row, StatusBadge, Table } from './shared'
 import { useMetadataStages, useUpdateStage, type MetadataStage } from '@/lib/metadata'
 
 /**
- * The ten pipeline stages.
+ * The ten pipeline stages — and THE ONE SOURCE of Progression % and
+ * Probability %. Every Lead, Opportunity and Deal takes its stage's pair on
+ * entering the stage (backend app/progression.py); a person who changes either
+ * number on a record must give a justification.
  *
  * The stage NUMBER is not editable. It is the identity every record stores, and
  * it is what the criterion codes (E4.1, X3.2) and module_split.json's ranges are
@@ -32,10 +35,11 @@ export function StagesTab() {
   return (
     <>
       <p className="text-muted-foreground mb-3 max-w-3xl text-sm">
-        Ten stages, 0 to 9. The number is the identity records store and cannot be changed;
-        name, probability band, owner role and phase can. "Applies to" is shown as the
-        register has it — see the note in this screen's source about why stages 4-7 still say
-        lead.
+        Ten stages, 0 to 9. Progression % and Probability % here are what every record takes when it
+        enters the stage — Progression moves on our work, Probability on the client's decisions. Both
+        are 0–100 in steps of 5; a change applies to records as they next enter the stage. The number
+        is the identity records store and cannot be changed. "Applies to" is shown as the register
+        has it — see the note in this screen's source about why stages 4-7 still say lead.
       </p>
 
       <Table
@@ -43,7 +47,8 @@ export function StagesTab() {
           <>
             <th className="w-16">Stage</th>
             <th>Name</th>
-            <th className="w-32">Probability</th>
+            <th className="w-28">Progression</th>
+            <th className="w-28">Probability</th>
             <th className="w-40">Owner role</th>
             <th className="w-32">Bid phase</th>
             <th className="w-28">Applies to</th>
@@ -64,16 +69,22 @@ function StageRow({ stage }: { stage: MetadataStage }) {
   const updateStage = useUpdateStage()
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(stage.name)
-  const [min, setMin] = useState(stage.prob_min?.toString() ?? '')
-  const [max, setMax] = useState(stage.prob_max?.toString() ?? '')
+  const [progression, setProgression] = useState(stage.progression_pct?.toString() ?? '')
+  const [probability, setProbability] = useState(stage.probability_pct?.toString() ?? '')
+
+  const toPct = (text: string) => (text.trim() === '' ? null : Number(text))
+  const invalid = [progression, probability].some((text) => {
+    const n = toPct(text)
+    return n !== null && (!Number.isInteger(n) || n < 0 || n > 100 || n % 5 !== 0)
+  })
 
   const save = () => {
     updateStage.mutate({
       stage: stage.stage,
       patch: {
         name: name.trim(),
-        prob_min: min.trim() === '' ? null : Number(min),
-        prob_max: max.trim() === '' ? null : Number(max),
+        progression_pct: toPct(progression),
+        probability_pct: toPct(probability),
       },
     })
     setEditing(false)
@@ -93,15 +104,16 @@ function StageRow({ stage }: { stage: MetadataStage }) {
       </td>
       <td>
         {editing ? (
-          <div className="flex items-center gap-1">
-            <Input className="h-8 w-14" value={min} onChange={(e) => setMin(e.target.value)} />
-            <span className="text-muted-foreground">–</span>
-            <Input className="h-8 w-14" value={max} onChange={(e) => setMax(e.target.value)} />
-          </div>
-        ) : stage.prob_min === null && stage.prob_max === null ? (
-          <span className="text-muted-foreground">—</span>
+          <PctInput value={progression} onChange={setProgression} label="Progression %" />
         ) : (
-          `${stage.prob_min}–${stage.prob_max}%`
+          <Pct value={stage.progression_pct} />
+        )}
+      </td>
+      <td>
+        {editing ? (
+          <PctInput value={probability} onChange={setProbability} label="Probability %" />
+        ) : (
+          <Pct value={stage.probability_pct} />
         )}
       </td>
       <td>
@@ -117,7 +129,7 @@ function StageRow({ stage }: { stage: MetadataStage }) {
       <td className="text-right">
         {editing ? (
           <>
-            <Button size="sm" onClick={save}>
+            <Button size="sm" onClick={save} disabled={invalid} title={invalid ? '0–100 in steps of 5' : undefined}>
               Save
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
@@ -142,5 +154,24 @@ function StageRow({ stage }: { stage: MetadataStage }) {
         )}
       </td>
     </Row>
+  )
+}
+
+function Pct({ value }: { value: number | null }) {
+  return value === null ? <span className="text-muted-foreground">—</span> : <span className="tabular-nums">{value}%</span>
+}
+
+function PctInput({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
+  return (
+    <Input
+      className="h-8 w-16"
+      type="number"
+      min={0}
+      max={100}
+      step={5}
+      aria-label={label}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
   )
 }

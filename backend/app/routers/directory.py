@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
+from ..messages import not_found
 from ..models import User
 from ..schemas import DirectoryUserOut
 
@@ -61,5 +62,5 @@ def list_users(response: Response, db: Session = Depends(get_db)):
 def get_user(user_id: str, db: Session = Depends(get_db)):
     user = db.get(User, user_id)
     if user is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"No user {user_id}")
+        raise not_found("person")
     return _to_directory(user)

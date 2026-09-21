@@ -74,7 +74,7 @@ spec/fields.json orders placements by sort_order across the whole module and
 sectionsFor() reads section order off each section's first appearance in that
 sequence, so sections must stay contiguous runs — see leads_record_state.py,
 which established both the invariant and this fix. Pulling a field out of
-STAGE 0 and deleting one out of CROSS-CUTTING leaves two holes; all three
+STAGE 0 and deleting one out of Aging leaves two holes; all three
 pipeline modules are renumbered contiguously in section order afterwards.
 """
 
@@ -123,7 +123,7 @@ SECTION_ORDER: dict[str, tuple[str, ...]] = {
         "STAGE 2 — POC / PILOT",
         "STAGE 3 — PRESCRIPTION",
         "__header",
-        "CROSS-CUTTING",
+        "Aging",
         "SYSTEM",
     ),
     "opportunities": (
@@ -134,7 +134,7 @@ SECTION_ORDER: dict[str, tuple[str, ...]] = {
         "STAGE 6 — COMMERCIAL EVALUATION",
         "__header",
         READ_THROUGH,
-        "CROSS-CUTTING",
+        "Aging",
         "SYSTEM",
     ),
     "deals": (
@@ -146,7 +146,7 @@ SECTION_ORDER: dict[str, tuple[str, ...]] = {
         "STAGE 9 — EXPANSION & RENEWAL",
         "__header",
         READ_THROUGH,
-        "CROSS-CUTTING",
+        "Aging",
         "SYSTEM",
     ),
 }

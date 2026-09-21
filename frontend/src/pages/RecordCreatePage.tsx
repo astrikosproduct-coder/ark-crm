@@ -12,6 +12,7 @@ interface Props {
   /** Where the list lives; a save navigates to `${basePath}/${newId}`. */
   basePath: string
   title: string
+  subtitle?: string
 }
 
 /**
@@ -22,7 +23,7 @@ interface Props {
  * Anything else in the query string is ignored rather than written into the
  * record.
  */
-export function RecordCreatePage({ module, collection, basePath, title }: Props) {
+export function RecordCreatePage({ module, collection, basePath, title, subtitle }: Props) {
   const navigate = useNavigate()
   const [search] = useSearchParams()
 
@@ -37,12 +38,8 @@ export function RecordCreatePage({ module, collection, basePath, title }: Props)
 
   return (
     <PageLayout
-      title={
-        <>
-          {title}
-        </>
-      }
-      subtitle="Nothing is required to save — only the formats are checked."
+      title={title}
+      subtitle={subtitle}
       tabs={[
         {
           key: 'new',

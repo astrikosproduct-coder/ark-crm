@@ -1,53 +1,31 @@
 import type { ListRow } from '@/components/list/ListCell'
-import { ReadThroughLookup, ReadThroughText } from '@/components/opportunities/opportunityListCell'
+import { staleDaysOf } from '@/components/leads/leadListCell'
+import { PriorityFlagMark } from '@/components/opportunities/PriorityFlagMark'
+import { PipelineCard } from '@/components/pipeline/PipelineCard'
 import { PipelineKanbanBoard } from '@/components/pipeline/PipelineKanbanBoard'
-import { money } from '@/lib/format'
-import { carriedListValue } from '@/lib/stageScope'
-import { fieldOf } from '@/lib/spec'
-
-const END_CLIENT_TARGET = fieldOf('opportunities', 'end_client')?.lookup_target ?? null
+import { RevenueAmount } from '@/components/pipeline/RevenueAmount'
+import { percent } from '@/lib/format'
 
 function OpportunityCard({ row }: { row: ListRow }) {
-  const value = row.total_value_tcv
-
   return (
-    <>
-      <p className="truncate font-medium">
-        <ReadThroughText row={row} apiName="opportunity_name" />
-      </p>
-      <p className="truncate text-xs text-muted-foreground">
-        <ReadThroughLookup row={row} apiName="end_client" lookupTarget={END_CLIENT_TARGET} />
-      </p>
-      <div className="mt-1.5 flex items-center justify-between text-xs">
-        <span className="tabular-nums">{typeof value === 'number' ? `$${money(value)}` : '—'}</span>
-        <span className="tabular-nums text-muted-foreground">
-          {typeof row.probability_pct === 'number' ? `${row.probability_pct}%` : '—'}
-        </span>
-      </div>
-      <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
-        <span className="truncate">
-          {typeof row.submission_deadline === 'string' && row.submission_deadline ? row.submission_deadline : '—'}
-        </span>
-        <span className="tabular-nums">
-          {/* Progression is editable per stage now, so a record with none of
-              its own falls back to the positional default — see stageScope. */}
-          {(() => {
-            const p = carriedListValue('opportunities', 'progression_pct', row)
-            return typeof p === 'number' ? `${p}% through` : '—'
-          })()}
-        </span>
-      </div>
-    </>
+    <PipelineCard
+      // Read-through identity, resolved onto the list row by the server —
+      // backend/app/read_through_rows.py.
+      name={String(row.opportunity_name ?? row.id)}
+      client={row.__labels?.end_client}
+      mark={<PriorityFlagMark row={row} variant="compact" />}
+      // Opportunity Revenue (TCV), served on the list row.
+      value={<RevenueAmount row={row} />}
+      aside={typeof row.probability_pct === 'number' ? percent(row.probability_pct) : '—'}
+      asideTitle="Probability"
+      owner={row.__labels?.sales_owner}
+      staleDays={staleDaysOf(row)}
+    />
   )
 }
 
-/**
- * Pipeline view for Opportunities (Stage 4-6), same shape as LeadKanbanBoard.
- * opportunity_name and end_client are read-through — see opportunityListCell
- * — so the card resolves them per row the same way the List tab does, rather
- * than reading them off the row directly.
- */
-export function OpportunityKanbanBoard() {
+/** Pipeline view for Opportunities (Stage 4-6), same shape as LeadKanbanBoard. */
+export function OpportunityKanbanBoard({ filter }: { filter?: Record<string, string | string[]> }) {
   return (
     <PipelineKanbanBoard
       module="opportunities"
@@ -57,6 +35,7 @@ export function OpportunityKanbanBoard() {
       noun="opportunity"
       nounPlural="opportunities"
       renderCard={(row) => <OpportunityCard row={row} />}
+      filter={filter}
     />
   )
 }

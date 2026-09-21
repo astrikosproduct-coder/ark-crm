@@ -187,12 +187,21 @@ async function main() {
     t.push('')
     t.push('| Column | api_name | Type | Row requirement | Options / target / formula | Where the column comes from |')
     t.push('|---|---|---|---|---|---|')
-    for (const c of resolved.columns) {
+    // Columns captured on ANOTHER module's screen are listed too, marked. They
+    // are columns of this row — payment_milestones' delivery dates are asked
+    // for on the Deal at Stage 8 — and leaving them out of the register's own
+    // documentation would read as though the fields had been deleted.
+    const listed = [
+      ...resolved.columns.map((c) => ({ c, elsewhere: false })),
+      ...resolved.elsewhereColumns.map((c) => ({ c, elsewhere: true })),
+    ]
+    for (const { c, elsewhere } of listed) {
       const f = c.field
       const from =
-        f.origin === 'Sidecar'
+        (f.origin === 'Sidecar'
           ? 'declared in extensions.json'
-          : 'register field `' + f.module + '.' + f.api_name + '`'
+          : 'register field `' + f.module + '.' + f.api_name + '`') +
+        (elsewhere ? ' · **captured on another screen** (`captured_elsewhere`)' : '')
       t.push(
         '| ' +
           [
@@ -279,7 +288,10 @@ async function main() {
   for (const [key, name] of MODULES) {
     const all = allOf(key)
     const cls = all.filter((f) => f.type === 'childlist')
-    const childCols = cls.reduce((n, f) => n + (childSpecFor(f)?.columns.length ?? 0), 0)
+    const childCols = cls.reduce((n, f) => {
+      const s = childSpecFor(f)
+      return n + (s ? s.columns.length + s.elsewhereColumns.length : 0)
+    }, 0)
     const sections = new Set(all.map((f) => f.section))
     const range = split.ranges[key]
     const stages = Array.isArray(range) ? `${range[0]}–${range[1]}` : '—'
@@ -481,10 +493,10 @@ async function main() {
   out.push('### Not settled')
   out.push('')
   out.push(
-    '- **Nomination Bid and Incumbent Only adjust probability, but `spec/stages.json` carries no uplift for either.** Every stage row holds only `prob_min`, `prob_max`, `owner_role`, `bid_phase` and `applies_to`. The boxes record the fact and probability is untouched; no number is invented. Incumbent advantage is written in the playbook as a *range*, which a single uplift field cannot hold.'
+    '- **Nomination Bid and Incumbent Only are reasons to override Probability %, not automatic boosts** (decided 13 Sep 2026). The boxes record the fact; a person who raises Probability % on the strength of either gives it as the Override Justification.'
   )
   out.push(
-    '- **Progression % is linear by stage position** — position in the ordered 0–9 list ÷ (count − 1), read from `stages.json` and never hardcoded to 9. The register states no progression curve. It is shown BESIDE Probability, never instead of it: at Stage 7 they read 78% and 90–100%, and that difference is the point.'
+    '- **Progression % and Probability % come from one table** — each stage in `stages.json` carries one pair, multiples of 5, set in Administration > Stages. A record takes its stage’s pair on entering it; changing either number needs an Override Justification. Progression moves on our work, Probability on the client’s decisions.'
   )
   out.push('')
 

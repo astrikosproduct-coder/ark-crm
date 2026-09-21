@@ -1,4 +1,17 @@
-import { differenceInCalendarDays, format, isValid, parseISO } from 'date-fns'
+import { isValid, parseISO } from 'date-fns'
+
+import { companyDate, companyDateTime, dateOnly, daysSinceCompany } from './time'
+
+/**
+ * A value that is a calendar DAY, not an instant — 'YYYY-MM-DD' with no time
+ * and no zone, which is what every `Date` column in the backend produces
+ * (expected_close_month, contract_signed_date, demo_date and 70 others).
+ *
+ * These must never be timezone-converted: a contract signed on 30 Sep was
+ * signed on 30 Sep everywhere, and shifting it would show 29 Sep to anyone far
+ * enough west of the company clock. See lib/time.ts.
+ */
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
 
 export function humanize(key: string): string {
   return key
@@ -42,20 +55,25 @@ export function percent(value: unknown): string {
  */
 export function daysSince(raw: unknown): number | null {
   if (typeof raw !== 'string' || !raw) return null
-  const d = parseISO(raw)
-  if (!isValid(d)) return null
-  return Math.max(0, differenceInCalendarDays(new Date(), d))
+  return daysSinceCompany(raw)
 }
 
-/** dd MMM yyyy — CLAUDE.md Conventions. */
+/**
+ * dd MMM yyyy — CLAUDE.md Conventions.
+ *
+ * An instant is rendered on the company clock; a date-only value is rendered
+ * exactly as stored. Both arrive here as strings and only their SHAPE tells
+ * them apart, which is why DATE_ONLY exists: converting a calendar fact would
+ * move a close date a day for anyone west of IST.
+ */
 export function date(value: unknown): string {
   if (typeof value !== 'string' || !value) return ''
-  const d = parseISO(value)
-  return isValid(d) ? format(d, 'dd MMM yyyy') : value
+  if (!isValid(parseISO(value))) return value
+  return DATE_ONLY.test(value) ? dateOnly(value) : companyDate(value)
 }
 
+/** dd MMM yyyy HH:mm on the company clock. Only ever used on instants. */
 export function dateTime(value: unknown): string {
   if (typeof value !== 'string' || !value) return ''
-  const d = parseISO(value)
-  return isValid(d) ? format(d, 'dd MMM yyyy HH:mm') : value
+  return isValid(parseISO(value)) ? companyDateTime(value) : value
 }

@@ -15,12 +15,17 @@ from .routers import (
     conflicts,
     contacts,
     conversions,
+    dashboard,
     deals,
+    feedback,
+    spreadsheets,
     directory,
     leads,
     metadata,
     opportunities,
+    pursuit_groups,
     registrations,
+    search,
     transitions,
 )
 
@@ -168,6 +173,13 @@ app.include_router(deals.router, prefix="/api", dependencies=PROTECTED)
 app.include_router(registrations.router, prefix="/api", dependencies=PROTECTED)
 app.include_router(conflicts.router, prefix="/api", dependencies=PROTECTED)
 
+# Pursuit Groups, at /api/pursuit-groups — one project at one End Client pursued
+# through more than one partner, of which only the primary counts toward
+# pipeline (Playbook §7.2). PROTECTED, not ADMIN_ONLY, by decision on 13 Sep
+# 2026: the workflow is settled first, and becomes Admin-only when role-based
+# permissions are built. See app/pursuits.py.
+app.include_router(pursuit_groups.router, prefix="/api", dependencies=PROTECTED)
+
 # Round 7's first two audit-log-shaped tables. Frontend already POSTs to both
 # paths (AdvanceStageDialog.tsx/LeadAdvanceDialog.tsx/DealDetailPage.tsx to
 # /transitions, LeadAdvanceDialog.tsx/opportunities/ConvertToDealDialog.tsx to
@@ -185,6 +197,31 @@ app.include_router(conversions.router, prefix="/api", dependencies=PROTECTED)
 # the first place since no browser-store collection named audit_log exists to
 # collide with.
 app.include_router(audit_log.router, prefix="/api", dependencies=PROTECTED)
+
+# The management dashboard, at /api/dashboard — read-only aggregates over the
+# live pipeline, computed with app/revenue.py's rule so its totals reconcile
+# with the boards. PROTECTED like every data router: anyone with a role sees it
+# until role-based permissions are built. Needs the handlers.ts passthrough and
+# the vite.config.ts proxy entry, both.
+app.include_router(dashboard.router, prefix="/api", dependencies=PROTECTED)
+
+# Global search, at /api/search — the header box, across every live module in
+# one request. PROTECTED like the modules it reads, and exactly as readable as
+# they are; when profiles arrive it needs a per-module filter of its own. Needs
+# the handlers.ts passthrough and the vite.config.ts proxy entry, both.
+app.include_router(search.router, prefix="/api", dependencies=PROTECTED)
+
+# User feedback, at /api/feedback (UX roadmap item 2, 17 Sep 2026). PROTECTED so
+# anyone with a role can send it; reading and triage are DEVELOPER-only, checked
+# per route by require_developer because they share this router with the POST.
+# Needs the handlers.ts passthrough and the vite.config.ts proxy entry, both.
+app.include_router(feedback.router, prefix="/api", dependencies=PROTECTED)
+
+# Excel / CSV import and export, at /api/spreadsheets/{module} (UX roadmap item
+# 4, 17 Sep 2026). Every imported row goes through the module's own create
+# route; see app/spreadsheets/importer.py. Needs the handlers.ts passthrough and
+# the vite.config.ts proxy entry, both.
+app.include_router(spreadsheets.router, prefix="/api", dependencies=PROTECTED)
 
 
 @app.get("/")

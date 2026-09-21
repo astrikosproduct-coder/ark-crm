@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react'
-import { LogOutIcon } from 'lucide-react'
+import { LogOutIcon, MoonIcon, SunIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { useThemeStore } from '@/store/useThemeStore'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useAuth } from '@/lib/auth'
 import { initialsOf } from '@/lib/currentUser'
@@ -17,10 +18,18 @@ const ROLE_PICKLIST = 'administration__roles'
  * roles that decide what they can reach, the way out — lives in the drawer,
  * where there is room to state it plainly rather than abbreviate it into a
  * strip of chrome.
+ *
+ * THE THEME TOGGLE MOVED IN HERE (18 Sep 2026). It sat in the bar beside
+ * Feedback, Notifications and Settings — four icons and an avatar in one
+ * corner, with the one that gets used monthly the same size as the ones used
+ * daily. Light or dark is a personal preference, which is what this drawer is
+ * for; it now reads as a labelled row rather than a glyph you have to try.
  */
 export function UserMenu() {
   const [open, setOpen] = useState(false)
   const { user, signOut } = useAuth()
+  const theme = useThemeStore((s) => s.theme)
+  const toggleTheme = useThemeStore((s) => s.toggleTheme)
 
   if (!user) return null
 
@@ -76,11 +85,17 @@ export function UserMenu() {
             </Detail>
           </dl>
 
-          <div className="mt-auto border-t pt-5">
+          <div className="mt-auto flex flex-col gap-2 border-t pt-5">
+            {/* Named, not guessed at: the button says which theme the click
+                brings, so nobody has to press it to find out. */}
+            <Button type="button" variant="outline" className="w-full justify-start" onClick={toggleTheme}>
+              {theme === 'dark' ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
+              {theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            </Button>
             <Button
               type="button"
               variant="outline"
-              className="w-full"
+              className="w-full justify-start"
               onClick={() => {
                 setOpen(false)
                 void signOut()

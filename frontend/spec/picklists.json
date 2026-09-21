@@ -183,6 +183,12 @@
    "label": "Converted",
    "sort": 4,
    "active": true
+  },
+  {
+   "key": "POC_PILOT_DEAL",
+   "label": "POC/Pilot Deal",
+   "sort": 5,
+   "active": true
   }
  ],
  "leads__currency": [
@@ -577,9 +583,21 @@
    "label": "Timing",
    "sort": 9,
    "active": true
+  },
+  {
+   "key": "PARTNER_WITHDRAWN",
+   "label": "Partner withdrew",
+   "sort": 10,
+   "active": true
   }
  ],
  "deals__deal_stage": [
+  {
+   "key": "7_CLOSE",
+   "label": "Close",
+   "sort": 0,
+   "active": true
+  },
   {
    "key": "8_PROJECT_SUCCESS",
    "label": "Project Success",
@@ -955,6 +973,12 @@
    "label": "Rejected",
    "sort": 7,
    "active": true
+  },
+  {
+   "key": "WITHDRAWN",
+   "label": "Withdrawn",
+   "sort": 8,
+   "active": true
   }
  ],
  "partners__decision": [
@@ -974,6 +998,12 @@
    "key": "BOTH_DECLINED",
    "label": "Both declined",
    "sort": 3,
+   "active": true
+  },
+  {
+   "key": "BOTH_PURSUED",
+   "label": "Both pursued",
+   "sort": 4,
    "active": true
   }
  ],
@@ -2187,6 +2217,12 @@
    "label": "Viewer",
    "sort": 9,
    "active": true
+  },
+  {
+   "key": "DEVELOPER",
+   "label": "Developer",
+   "sort": 10,
+   "active": true
   }
  ],
  "administration__owner_role": [
@@ -3173,6 +3209,216 @@
   {
    "key": "RED",
    "label": "Red",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "contacts__dial_code": [
+  {
+   "key": "+971",
+   "label": "UAE (+971)",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "+966",
+   "label": "KSA (+966)",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "+974",
+   "label": "Qatar (+974)",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "+968",
+   "label": "Oman (+968)",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "+965",
+   "label": "Kuwait (+965)",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "+973",
+   "label": "Bahrain (+973)",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "+20",
+   "label": "Egypt (+20)",
+   "sort": 7,
+   "active": true
+  },
+  {
+   "key": "+962",
+   "label": "Jordan (+962)",
+   "sort": 8,
+   "active": true
+  },
+  {
+   "key": "+961",
+   "label": "Lebanon (+961)",
+   "sort": 9,
+   "active": true
+  },
+  {
+   "key": "+212",
+   "label": "Morocco (+212)",
+   "sort": 10,
+   "active": true
+  },
+  {
+   "key": "+90",
+   "label": "Türkiye (+90)",
+   "sort": 11,
+   "active": true
+  },
+  {
+   "key": "+91",
+   "label": "India (+91)",
+   "sort": 12,
+   "active": true
+  },
+  {
+   "key": "+92",
+   "label": "Pakistan (+92)",
+   "sort": 13,
+   "active": true
+  },
+  {
+   "key": "+44",
+   "label": "UK (+44)",
+   "sort": 14,
+   "active": true
+  },
+  {
+   "key": "+1",
+   "label": "USA (+1)",
+   "sort": 15,
+   "active": true
+  }
+ ],
+ "partners__who_registered_first": [
+  {
+   "key": "REGISTRATION_A",
+   "label": "Registration A",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "REGISTRATION_B",
+   "label": "Registration B",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "SAME_DAY",
+   "label": "Same day",
+   "sort": 3,
+   "active": true
+  }
+ ],
+ "partners__relationship_assessment": [
+  {
+   "key": "REGISTRATION_A",
+   "label": "Registration A",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "REGISTRATION_B",
+   "label": "Registration B",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "COMPARABLE",
+   "label": "Comparable",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "NEITHER",
+   "label": "Neither has an established relationship",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "partners__delivery_assessment": [
+  {
+   "key": "REGISTRATION_A",
+   "label": "Registration A",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "REGISTRATION_B",
+   "label": "Registration B",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "COMPARABLE",
+   "label": "Comparable",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "NEITHER",
+   "label": "Neither meets the requirement",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "feedback__category": [
+  {
+   "key": "BUG",
+   "label": "Something is broken",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "IDEA",
+   "label": "Idea or request",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "CONFUSING",
+   "label": "Confusing",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "OTHER",
+   "label": "Other",
+   "sort": 4,
+   "active": true
+  }
+ ],
+ "feedback__status": [
+  {
+   "key": "NEW",
+   "label": "New",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "READ",
+   "label": "Read",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "DONE",
+   "label": "Done",
    "sort": 3,
    "active": true
   }

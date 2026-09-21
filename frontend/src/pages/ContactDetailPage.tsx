@@ -11,13 +11,8 @@ import { RecordEditor } from '@/components/record/RecordEditor'
 import { DeleteRecordDialog } from '@/components/record/DeleteRecordDialog'
 import { CONTACT_REFERRERS } from '@/lib/referrers'
 import { useSetRecordActive } from '@/lib/recordLifecycle'
-import {
-  ConfidentialChip,
-  ContactRoleBadge,
-  isConfidentialContact,
-} from '@/components/contacts/ContactRoleBadge'
 import { api } from '@/lib/api'
-import { displayNameOf, withRecordId } from '@/lib/spec'
+import { displayNameOf, fieldOf, labelForValue, withRecordId } from '@/lib/spec'
 import { cn } from '@/lib/utils'
 import { ComingSoon } from '@/pages/ComingSoon'
 
@@ -38,6 +33,11 @@ export function ContactDetailPage() {
 
   const values = useMemo(() => (data ? withRecordId(MODULE, data) : undefined), [data])
   const inactive = values?.active === false
+  const roleField = fieldOf(MODULE, 'contact_role')
+  const roleLabel =
+    roleField && values?.contact_role
+      ? labelForValue(roleField.picklist, values.contact_role)
+      : ''
 
   const setActive = useSetRecordActive(COLLECTION, id ?? '', {
     noun: 'contact',
@@ -55,6 +55,7 @@ export function ContactDetailPage() {
   if (isError) {
     return (
       <PageLayout
+        back
         title={id ?? 'Contact'}
         tabs={[
           {
@@ -70,6 +71,7 @@ export function ContactDetailPage() {
   return (
     <>
     <PageLayout
+      back
       title={
         <>
           {/* Dimmed, not struck through: a strikethrough reads as deleted,
@@ -77,8 +79,18 @@ export function ContactDetailPage() {
           <span className={cn(inactive && 'text-muted-foreground')}>
             {values ? displayNameOf(values) : (id ?? '')}
           </span>
-          {values && <ContactRoleBadge value={values.contact_role} />}
-          {values && isConfidentialContact(values) && <ConfidentialChip />}
+          {/* <Full Name> - <Account>, then the Contact Role beneath. */}
+          {account && (
+            <>
+              <span className="text-muted-foreground font-normal">-</span>
+              <Link
+                className="font-normal underline-offset-2 hover:underline"
+                to={`/accounts/${values?.account}`}
+              >
+                {displayNameOf(account)}
+              </Link>
+            </>
+          )}
           {inactive && (
             <Badge variant="outline" className="text-muted-foreground">
               Inactive
@@ -86,22 +98,7 @@ export function ContactDetailPage() {
           )}
         </>
       }
-      subtitle={
-        <span className="flex flex-wrap items-center gap-2">
-          <span>{id}</span>
-          {typeof values?.job_title === 'string' && values.job_title && (
-            <span>· {values.job_title}</span>
-          )}
-          {account && (
-            <>
-              <span>·</span>
-              <Link className="underline underline-offset-2" to={`/accounts/${values?.account}`}>
-                {displayNameOf(account)}
-              </Link>
-            </>
-          )}
-        </span>
-      }
+      subtitle={roleLabel || undefined}
       actions={
         !editing && (
           <>
@@ -176,18 +173,16 @@ export function ContactDetailPage() {
         referrers={CONTACT_REFERRERS}
         onDeleted={() => navigate('/contacts')}
         guidance={
-          <div className="space-y-2 text-muted-foreground">
-            <p>
-              <strong className="text-foreground">Deactivate</strong> keeps this person
-              on file. They stay on every record that already names them, and simply
-              stop appearing in the list when someone adds a new one.
-            </p>
-            <p>
-              <strong className="text-foreground">Delete permanently</strong> removes
-              them for good, and it cannot be undone. Deactivating is the safer choice
-              unless this person was added by mistake.
-            </p>
-          </div>
+          <ul className="text-muted-foreground list-disc space-y-0.5 pl-4">
+            <li>
+              <strong className="text-foreground">Deactivate</strong> keeps them on every record that names them, but
+              hides them from new picks.
+            </li>
+            <li>
+              <strong className="text-foreground">Delete permanently</strong> removes them for good. Use it only if
+              they were added by mistake.
+            </li>
+          </ul>
         }
       />
     )}

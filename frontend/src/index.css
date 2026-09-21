@@ -58,10 +58,27 @@
 }
 
 /*
- * ARK brand theme — see ARK_brand_UI.md.
+ * ARK theme — THREE ELEVATION LAYERS, NOT A GRID OF BOXES.
  *
- * Every colour in the app resolves through the variables below, so the whole
- * re-skin is a one-file change. Components never carry a hex value.
+ * Depth is carried by BACKGROUND, and only where background cannot reach is it
+ * carried by a border. That is the whole rule, and it supersedes the
+ * stroke-first palette in ARK_brand_UI.md §1.1 (Zoho's own night-mode values,
+ * where a visible mid-gray border divided every region). Three layers, in
+ * order away from the page:
+ *
+ *   1  CANVAS   --background   the app behind everything
+ *   2  SURFACE  --card         a form, a panel, a related list. NO outer border
+ *   3  RAISED   --input-bg     what the user can touch: inputs, selects, the
+ *              --raised        outline button, a kanban card
+ *
+ * In dark mode each layer is LIGHTER than the one behind it. In light mode
+ * the surface goes white against a gray canvas and takes a soft shadow
+ * (--surface-shadow, below) instead, because white-on-white has no contrast to
+ * spend. A border is a last resort: the header rule of a table, the hairline
+ * under a sticky bar, the outline of a control that must read as pressable.
+ *
+ * Every colour in the app resolves through these variables, so the re-skin is
+ * a one-file change. Components never carry a hex value.
  */
 
 :root {
@@ -71,76 +88,101 @@
   --ark-font-sans:
     'Zoho Puvi', 'Lato', -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
-  --background: #f2f2f7;
-  --foreground: #1b1c1f;
-  --card: #ffffff;
-  --card-foreground: #1b1c1f;
+  --background: #f8faff; /* 1 canvas — Zoho's cool near-white */
+  --foreground: #111213; /* one ink colour across every layer */
+  --card: #ffffff; /* 2 surface — pure white, lifted by --surface-shadow */
+  --card-foreground: #111213;
   --popover: #ffffff;
-  --popover-foreground: #1b1c1f;
-  --raised: #f4f5f7;
-  --border: #cfd2d9;
-  --input: #b9bdc7;
-  /* Fields are outlined, not filled — the border states where the box is and
-     the surface behind it shows through, so a form reads as one tone. */
-  --input-bg: transparent;
-  --input-text: #1b1c1f;
-  --placeholder: #7b7f8a;
-  --ring: #2c66dd;
-  --primary: #2c66dd;
+  --popover-foreground: #111213;
+  --raised: #ffffff; /* 3 raised — same fill as --secondary/--input-bg below */
+  --border: #e2e7ee; /* only where strictly necessary */
+  --input: #c7cedb; /* the soft outline a field needs on white */
+  --input-bg: #ffffff;
+  --input-text: #111213;
+  --placeholder: #6b6e75;
+  --ring: #338cf0; /* Zoho blue */
+  --primary: #338cf0;
   --primary-foreground: #ffffff;
-  --secondary: #eceef2;
-  --secondary-foreground: #23242a;
-  --muted: #f4f5f7;
-  --muted-foreground: #5c6069;
-  --accent: #e9ebf0;
-  --accent-foreground: #1b1c1f;
-  --destructive: #d8383d;
-  --success: #1f9d55;
-  --warning: #b8791b;
-  --info: #0e9a9a;
-  --link: #0070b8;
-  --avatar-accent: #a34fc9;
-  --dashboard-bg: #e8e8ee;
-  --radius: 0.5rem;
+  --secondary: #ffffff; /* 3 raised, Badge/TopBar's name for it — see --raised */
+  --secondary-foreground: #111213;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b6e75; /* labels and hints */
+  --accent: #e5e7eb; /* hover ground */
+  --accent-foreground: #111213;
+  --destructive: #f14949;
+  --destructive-foreground: #ffffff;
+  --success: #16a34a;
+  --warning: #d97706;
+  --info: #0891b2;
+  --link: #338cf0;
+  --avatar-accent: #7c3aed;
+  --dashboard-bg: #e5e7eb;
+  /* Dashboard charts. strong: the one hue of a single-series chart. The three
+     module hues are fixed per module, never per rank, and were checked with the
+     dataviz validator (all pairs, colour-blind safe) against --card in both
+     themes. Deals' aqua sits under 3:1 on white, so the forecast keeps its
+     legend and table view. */
+  --chart-strong: #338cf0;
+  --chart-leads: #338cf0;
+  --chart-opportunities: #eb6834;
+  --chart-deals: #1baf7a;
+  --radius: 0.375rem; /* 6px lg, 4px md — Zoho's tighter corner */
+
+  /* What lifts a white surface off a near-white canvas — doing more work now
+     that the canvas sits this close to white. Dark mode has layering to do
+     this job and sets it to nothing — see below. */
+  --surface-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
 }
 
 /*
- * Dark values are the ones extracted from Zoho's own night-mode custom
- * properties (see ARK_brand_UI.md §1.1) — the accent is blue, the page is a
- * true near-black, and the border is a visible mid-gray rather than a hairline.
- * Do not re-guess these.
+ * Dark: Zoho's own near-black chain. #111213 -> #1e1f22 -> #242529 is the
+ * whole depth system; #3c3f48 is the only border value and most surfaces
+ * should not need it at all.
  */
 .dark {
   color-scheme: dark;
 
-  --background: #1c1c1e;
-  --foreground: #f5f5f5; /* zs-primaryTextColor */
-  --card: #222427; /* zs-primaryBGColor */
-  --card-foreground: #f5f5f5;
-  --popover: #222427; /* zs-primaryPopupBGColor */
-  --popover-foreground: #f5f5f5;
-  --raised: #3a3d46; /* zs-primaryAutoSuggBGColor — kanban cards, autosuggest */
-  --border: #6d6d6d; /* zs-borderColor */
-  --input: #6d6d6d;
-  --input-bg: transparent; /* outlined, not filled — see the light theme note */
-  --input-text: #d3d6de; /* text typed inside a field, dimmer than a static value */
-  --placeholder: #808080; /* zs-lightTextColor */
-  --ring: #2c66dd;
-  --primary: #2c66dd; /* zs-primaryButtonBGColor */
+  --background: #111213; /* 1 canvas — deepest */
+  --foreground: #e4e8f1; /* one ink colour across every layer */
+  --card: #1e1f22; /* 2 surface — no outer border */
+  --card-foreground: #e4e8f1;
+  /* Same fill as --card on purpose — a floating popover reads as "above" the
+     surface through --shadow-md/--shadow-lg and its own border, not a third
+     grey. See --secondary/--input-bg below for the layer that IS a distinct
+     fill: inputs, dropdown triggers, the outline button. */
+  --popover: #1e1f22;
+  --popover-foreground: #e4e8f1;
+  --raised: #242529; /* 3 raised — same fill as --secondary/--input-bg below */
+  --border: #3c3f48;
+  --input: #545864;
+  --input-bg: #242529; /* filled, not outlined — the fill IS the affordance */
+  --input-text: #e4e8f1;
+  --placeholder: #a7acb7;
+  --ring: #6675ff; /* Zoho dark indigo */
+  --primary: #6675ff;
   --primary-foreground: #ffffff;
-  --secondary: #2f2f2f; /* zs-primaryHoverBGColor */
-  --secondary-foreground: #f5f5f5;
-  --muted: #222427;
-  --muted-foreground: #c4c4c4; /* zs-secondaryTextColor */
-  --accent: #2f2f2f;
-  --accent-foreground: #f5f5f5;
-  --destructive: #e5484d;
-  --success: #35c26a;
-  --warning: #e0a63b;
-  --info: #16c2c2;
-  --link: #00a6ff; /* zs-primaryHyperLink */
-  --avatar-accent: #a34fc9;
-  --dashboard-bg: #151415; /* zs-dashboard-bg-color — dashboards only, §5a.5 */
+  --secondary: #242529; /* 3 raised, Badge/TopBar's name for it — see --raised */
+  --secondary-foreground: #e4e8f1;
+  --muted: #2b2d32;
+  --muted-foreground: #a7acb7; /* labels and hints */
+  --accent: #2a2f46; /* hover ground */
+  --accent-foreground: #d3d6de;
+  --destructive: #ff5d5a;
+  --destructive-foreground: #ffffff;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --info: #06b6d4;
+  --link: #60a5fa; /* untouched — was already a lighter blue than --primary, not the same value */
+  --avatar-accent: #8b5cf6;
+  --dashboard-bg: #0b0d11;
+  --chart-strong: #6675ff;
+  --chart-leads: #6675ff;
+  --chart-opportunities: #d95926;
+  --chart-deals: #199e70;
+
+  /* Layering already separates the surfaces; a shadow on top of it only muddies
+     the edge. Transparent rather than `none` so the utility still composes. */
+  --surface-shadow: 0 0 #0000;
 }
 
 @theme inline {
@@ -170,12 +212,17 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-info: var(--info);
   --color-link: var(--link);
   --color-avatar-accent: var(--avatar-accent);
   --color-dashboard-bg: var(--dashboard-bg);
+  --color-chart-strong: var(--chart-strong);
+  --color-chart-leads: var(--chart-leads);
+  --color-chart-opportunities: var(--chart-opportunities);
+  --color-chart-deals: var(--chart-deals);
 
   /* Drawer motion — see the keyframes below the theme block. */
   --animate-slide-in-right: ark-slide-in-right 260ms cubic-bezier(0.32, 0.72, 0, 1);
@@ -206,11 +253,14 @@
   --text-button: 13.5px;
   --text-button--line-height: 1.2;
 
-  /* Depth comes from background layering, not shadow. Only floating surfaces
-   * — dropdowns, popovers, tooltips, modals — lift off the page. */
+  /* Depth comes from background layering first. `shadow-sm` is the ONE
+   * exception and it is theme-dependent: in light mode it is what lifts a white
+   * surface off the gray canvas, and in dark mode it resolves to nothing,
+   * because the layers already separate. Put it on a surface, never on a
+   * control. Floating things — dropdowns, popovers, modals — keep a real one. */
   --shadow-2xs: 0 0 #0000;
   --shadow-xs: 0 0 #0000;
-  --shadow-sm: 0 0 #0000;
+  --shadow-sm: var(--surface-shadow);
   --shadow-md: 0 4px 16px rgb(0 0 0 / 0.4);
   --shadow-lg: 0 8px 28px rgb(0 0 0 / 0.5);
 }
@@ -232,8 +282,46 @@ body {
   color: var(--foreground);
 }
 
-* {
-  border-color: var(--border);
+/*
+ * The default border colour, so `border` alone draws the theme's hairline
+ * rather than the browser's currentColor.
+ *
+ * IN @layer base, and that matters. Written unlayered — as it was — this rule
+ * beat every layered style in the cascade, Tailwind's `utilities` layer
+ * included, so `border-primary`, `border-destructive`, `border-l-success` and
+ * every other border-colour utility in the codebase silently painted
+ * var(--border) instead. Found when the RAG stripe came out grey. A base-layer
+ * reset loses to a utility, which is the whole point of a reset.
+ */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+}
+
+/*
+ * No spinner on a number box, anywhere.
+ *
+ * Every numeric field in the application is a NumericInput — text plus
+ * inputMode="decimal" — precisely so the arrows and the three behaviours
+ * attached to them (click-steps, wheel-steps, arrow-key-steps) are gone rather
+ * than merely hidden; see components/ui/numeric-input.tsx for why hiding alone
+ * is worse than leaving them. This rule is the backstop for a native
+ * `type="number"` slipping back in later: it removes the picture. It does NOT
+ * remove the stepping, so a field that needs this rule to look right is a field
+ * that should be using NumericInput instead.
+ */
+@layer base {
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
 }
 
 /*
@@ -294,6 +382,32 @@ body {
 }
 
 /* Someone who has asked their OS for less motion gets none of it. */
+/*
+ * "Take me to that field."
+ *
+ * A criterion in the readiness drawer names the field that proves it; clicking
+ * it scrolls the field into view and then pulses this ring, so the eye has
+ * something to land on after the page has moved underneath it. Ring only — no
+ * background wash, which on a field that already carries a red required
+ * message would read as a second error.
+ */
+@keyframes ark-field-flash {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ring) 60%, transparent);
+  }
+  20% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--ring) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--ring) 0%, transparent);
+  }
+}
+
+.ark-field-flash {
+  border-radius: 0.5rem;
+  animation: ark-field-flash 1500ms ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

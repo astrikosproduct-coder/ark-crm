@@ -50,9 +50,9 @@ function useParentLead(ctx: PipelineRecordContext) {
 function DealHeader({ ctx }: { ctx: PipelineRecordContext }) {
   const revenue = ctx.values ? revenueOf(ctx.values) : null
 
-  // "From LEAD-00118" removed on instruction. A Deal keeps a route back:
-  // parent_lead and parent_opportunity are both RECORD STATE fields, which is
-  // a Details-tab section, so they are on screen at every stage.
+  // "From LEAD-00118" and the lineage breadcrumb both removed on instruction.
+  // A Deal keeps a route back: parent_lead and parent_opportunity are RECORD
+  // STATE fields on the Details tab, and the Related tab reads through both.
   return <>{revenue?.value != null && <span>{revenue.label}: {localAmount(revenue)}</span>}</>
 }
 
@@ -88,6 +88,8 @@ function useCreateExpansionLead(ctx: PipelineRecordContext) {
         deal_source: parentLead.deal_source ?? null,
         pre_bid_alliance_partner: parentLead.pre_bid_alliance_partner ?? null,
         alliance_structure: parentLead.alliance_structure ?? null,
+        // Sized on this Deal at Stage 9 — the expansion is what it measures.
+        incremental_value: ctx.values.incremental_value ?? null,
         // The stakeholder map: leads.demo_attendees is the only childlist that
         // plausibly carries it — see spec/extensions.json's note on that field.
         demo_attendees: Array.isArray(parentLead.demo_attendees) ? parentLead.demo_attendees : [],

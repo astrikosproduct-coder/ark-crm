@@ -612,6 +612,8 @@ def _serialise_definition(definition: FieldDefinition) -> dict:
         "definition_label": definition.label,
         "field_type": definition.field_type,
         "max_length": definition.max_length,
+        "min_value": definition.min_value,
+        "max_value": definition.max_value,
         "picklist_key": definition.picklist_key,
         "lookup_target": definition.lookup_target,
         "lookup_filter": definition.lookup_filter,
@@ -785,6 +787,8 @@ def create_field(payload: FieldCreate, db: Session = Depends(get_db)):
         label=payload.label,
         field_type=payload.field_type,
         max_length=data.get("max_length"),
+        min_value=data.get("min_value"),
+        max_value=data.get("max_value"),
         picklist_key=data.get("picklist_key"),
         lookup_target=data.get("lookup_target"),
         lookup_filter=data.get("lookup_filter"),
@@ -972,6 +976,8 @@ def update_field(
         "label",
         "field_type",
         "max_length",
+        "min_value",
+        "max_value",
         "picklist_key",
         "lookup_target",
         "lookup_filter",
@@ -1814,8 +1820,8 @@ def create_stage(payload: StageCreate, db: Session = Depends(get_db)):
     stage = Stage(
         stage=payload.stage,
         name=payload.name,
-        prob_min=payload.prob_min,
-        prob_max=payload.prob_max,
+        progression_pct=payload.progression_pct,
+        probability_pct=payload.probability_pct,
         owner_role=payload.owner_role,
         bid_phase=payload.bid_phase,
         applies_to=payload.applies_to,
@@ -1836,17 +1842,14 @@ def update_stage(stage: int, payload: StageUpdate, db: Session = Depends(get_db)
     Renumbering a stage would repoint every record that sits on it, and every
     criterion code (E4.1, X3.2) and range in module_split.json built from it.
     Reordering for display is what sort_order is for.
+
+    progression_pct / probability_pct are THE source of the two numbers every
+    pipeline record takes on entering this stage (app/progression.py). A change
+    reaches records as they next enter the stage; records already in it keep
+    the value they were given.
     """
     row = _stage_or_404(db, stage)
     data = payload.model_dump(exclude_unset=True)
-
-    low = data.get("prob_min", row.prob_min)
-    high = data.get("prob_max", row.prob_max)
-    if low is not None and high is not None and low > high:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            f"prob_min {low} is above prob_max {high}",
-        )
 
     for name, value in data.items():
         setattr(row, name, value)

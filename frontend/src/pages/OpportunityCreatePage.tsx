@@ -1,12 +1,10 @@
-import { currentUserId } from '@/lib/currentUser'
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { PageLayout } from '@/components/layout/PageLayout'
 import { RecordEditor } from '@/components/record/RecordEditor'
 import {
-  probabilityMidpoint,
-  sectionForStage,
+  sectionsForStage,
   stageKeyOf,
   stagesFor,
 } from '@/lib/pipeline'
@@ -31,12 +29,16 @@ const COLLECTION = 'opportunities'
 export function OpportunityCreatePage() {
   const navigate = useNavigate()
   const firstStage = stagesFor(MODULE)[0]?.stage ?? 4
-  const section = sectionForStage(MODULE, firstStage)
+  // Plural: Stage 4 has three sections — RFP / RFI, Commercial: Revenue and
+  // Commercial: Cost & Margin. The singular sectionForStage showed only the
+  // first, so a new Opportunity silently lost every money field.
+  const sections = sectionsForStage(MODULE, firstStage)
 
   const initialValues = useMemo<Values>(
     () => ({
       project_stage: stageKeyOf(firstStage),
-      probability_pct: probabilityMidpoint(firstStage),
+      // Probability %/Progression % are NOT seeded here — the server gives
+      // the Opportunity its stage's pair when it is created.
     }),
     [firstStage]
   )
@@ -65,14 +67,10 @@ export function OpportunityCreatePage() {
               module={MODULE}
               collection={COLLECTION}
               initialValues={initialValues}
-              sections={section ? [section] : undefined}
+              sections={sections.length > 0 ? sections : undefined}
               stageScope={stageScope}
               saveLabel="Create opportunity"
               stamp={{
-                created_date: new Date().toISOString(),
-                created_by: currentUserId(),
-                modified_date: new Date().toISOString(),
-                modified_by: currentUserId(),
               }}
               onSaved={(id) => navigate(`/opportunities/${id}`, { replace: true })}
               onCancel={() => navigate('/opportunities')}

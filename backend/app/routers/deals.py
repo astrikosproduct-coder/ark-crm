@@ -5,6 +5,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..auth import current_user
+from ..list_query import run_list_query
+from ..read_through_rows import attach_read_through
+from ..messages import already_exists, not_found, picked_record_missing, refusal
 from ..changes import child_snapshot, custom_field_diff, diff, list_changes, snapshot
 from ..clock import days_since, now_utc
 from ..database import get_db
@@ -13,6 +16,7 @@ from ..custom_fields import apply_write, extras_of, merge_into_row, resolve_writ
 from ..carry_forward import locked_violations, seed_values
 from ..ids import next_reference_id
 from ..stage_entry import stage_entry_dates
+from ..thresholds import check_thresholds
 from ..progression import after_write as pct_after_write, plan_write, serialise_pct
 from ..conversion import begin_conversion, complete_conversion
 from ..pursuits import PURSUIT_STAMPED, guard_close, guard_end_client_change, guard_win, inherit_on_create
@@ -22,11 +26,13 @@ from ..models import (
     Deal,
     DealBidCommitment,
     DealExpansionUseCase,
+    FieldDefinition,
     Lead,
     Opportunity,
     User,
 )
 from ..schemas import (
+    LEAD_LOOKUPS,
     DEAL_LOOKUPS,
     DEAL_SCALARS,
     DealCreate,
@@ -40,7 +46,6 @@ router = APIRouter(tags=["deals"])
 
 DEAL_ID_PATTERN = re.compile(r"^DEAL-(\d+)$")
 
-RESERVED = {"_page", "_limit", "_sort", "_order", "_search", "q"}
 
 # extensions.json list_views.deals, once written; kept narrow and textual like
 # leads' and opportunities' own defaults.
@@ -204,7 +209,7 @@ _MONEY_LIKE = {
 def _get_or_404(db: Session, deal_id: str) -> Deal:
     deal = db.get(Deal, deal_id)
     if deal is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"No deal {deal_id}")
+        raise not_found("deal")
     return deal
 
 
@@ -235,7 +240,7 @@ def _check_links(db: Session, payload, sent: set[str]) -> None:
         value = getattr(payload, field)
         if value and db.get(models_by_collection[collection], value) is None:
             noun = singular.get(collection, collection[:-1])
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"No such {noun}: {value}")
+            raise picked_record_missing(noun)
 
 
 def _children_of(deal: Deal) -> dict[str, list[dict]]:
@@ -280,59 +285,17 @@ def list_deals(request: Request, response: Response, db: Session = Depends(get_d
     and the row total on X-Total-Count.
     """
     labels = _label_maps(db)
-    rows = [_serialise(d, labels) for d in db.scalars(select(Deal))]
+    records = list(db.scalars(select(Deal)))
+    rows = [_serialise(d, labels) for d in records]
+    # Identity is read through the root Lead — without it a filter or sort on
+    # End Client or an owner matched nothing. See app/read_through_rows.py.
+    attach_read_through(db, "deals", list(zip(records, rows)))
 
-    params = request.query_params
-
-    for key in {k for k in params if k not in RESERVED}:
-        wanted = set(params.getlist(key))
-        rows = [r for r in rows if _matches(r.get(key), wanted)]
-
-    q = (params.get("q") or "").strip().lower()
-    if q:
-        named = [f for f in (params.get("_search") or "").split(",") if f]
-        fields = named or list(DEFAULT_SEARCH)
-        rows = [r for r in rows if q in _text_of(r, fields).lower()]
-
-    sort = params.get("_sort")
-    if sort:
-        rows.sort(key=lambda r: _sort_key(r, sort))
-        if params.get("_order") == "desc":
-            rows.reverse()
-
-    total = len(rows)
-
-    page = int(params.get("_page") or 0)
-    limit = int(params.get("_limit") or 0)
-    if page > 0 and limit > 0:
-        rows = rows[(page - 1) * limit : page * limit]
-
+    rows, total = run_list_query(
+        rows, request.query_params, lookups=set(DEAL_LOOKUPS) | set(LEAD_LOOKUPS), default_search=DEFAULT_SEARCH
+    )
     response.headers["X-Total-Count"] = str(total)
     return rows
-
-
-def _matches(value, wanted: set[str]) -> bool:
-    if isinstance(value, list):
-        return any(str(v) in wanted for v in value)
-    return str(value if value is not None else "") in wanted
-
-
-def _display(row: dict, field: str) -> str:
-    if field in DEAL_LOOKUPS:
-        label = (row.get("__labels") or {}).get(field)
-        if label:
-            return label
-    value = row.get(field)
-    return "" if value is None else str(value)
-
-
-def _text_of(row: dict, fields: list[str]) -> str:
-    return " ".join(_display(row, f) for f in fields)
-
-
-def _sort_key(row: dict, field: str):
-    text = _display(row, field)
-    return (1, "") if text == "" else (0, text.lower())
 
 
 @router.get("/deals/{deal_id}", response_model=DealOut)
@@ -349,10 +312,12 @@ def create_deal(
     deal_id = payload.deal_id or _next_deal_id(db)
 
     if db.get(Deal, deal_id) is not None:
-        raise HTTPException(status.HTTP_409_CONFLICT, f"{deal_id} already exists")
+        raise already_exists()
 
     sent = set(payload.model_dump(exclude_unset=True))
     _check_links(db, payload, sent & set(DEAL_LOOKUPS))
+    # Min / Max value from the register, e.g. CSAT Score 1-10 — app/thresholds.py.
+    check_thresholds(db, "deals", payload.model_dump(include=sent))
     # Opportunity -> Deal (or a pre-split Lead -> Deal) is one transaction,
     # and never twice. See app/conversion.py.
     source_module = "opportunities" if payload.parent_opportunity else "leads"
@@ -486,6 +451,7 @@ def put_deal(
 def _write(db: Session, deal_id: str, payload: DealUpdate, sent: set[str], user: User) -> dict:
     deal = _get_or_404(db, deal_id)
     _check_links(db, payload, sent & set(DEAL_LOOKUPS))
+    check_thresholds(db, "deals", payload.model_dump(include=sent))
 
     # The before half of the diff, read before anything is applied — see
     # routers/leads.py::_write.
@@ -499,7 +465,7 @@ def _write(db: Session, deal_id: str, payload: DealUpdate, sent: set[str], user:
 
     if "lead_status" in sent:
         guard_close(db, "deals", deal, payload.lead_status)
-    guard_end_client_change(deal, sent, payload.end_client)
+    guard_end_client_change(db, deal, sent, payload.end_client)
 
     for name in DEAL_SCALARS:
         if name not in sent or name in PURSUIT_STAMPED or name in SYSTEM_STAMPED:
@@ -535,12 +501,8 @@ def _write(db: Session, deal_id: str, payload: DealUpdate, sent: set[str], user:
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             {
                 "code": "VALUE_LOCKED",
-                "message": (
-                    "These values were fixed when the pursuit was won and cannot be "
-                    "changed on the Deal: "
-                    + ", ".join(sorted(p.label_override or p.api_name for p in locked))
-                    + ". Nothing was saved."
-                ),
+                "message": "These were fixed when the deal was won and can't change here:",
+                "details": sorted(p.label_override or db.get(FieldDefinition, p.definition_id).label for p in locked),
                 "fields": sorted(p.api_name for p in locked),
             },
         )
@@ -615,11 +577,11 @@ def _schedule_of(db: Session, deal: Deal) -> Opportunity:
             status_code=status.HTTP_409_CONFLICT,
             detail={
                 "code": "NO_PARENT_OPPORTUNITY",
-                "message": (
-                    "This Deal was converted straight from a Lead, so no payment schedule "
-                    "was agreed on an Opportunity. Payment milestones are captured at "
-                    "Stage 6 — Commercial Evaluation."
-                ),
+                "message": "No payment schedule to show.",
+                "details": [
+                    "This Deal came straight from a Lead.",
+                    "Payment milestones are agreed at Stage 6 – Commercial Evaluation.",
+                ],
             },
         )
     opportunity = db.get(Opportunity, deal.parent_opportunity)
@@ -628,7 +590,7 @@ def _schedule_of(db: Session, deal: Deal) -> Opportunity:
             status_code=status.HTTP_409_CONFLICT,
             detail={
                 "code": "PARENT_OPPORTUNITY_MISSING",
-                "message": f"{deal.parent_opportunity} is named as the parent but no longer exists.",
+                "message": "The opportunity this Deal came from no longer exists, so its payment schedule is gone.",
             },
         )
     return opportunity
@@ -678,10 +640,8 @@ def set_deal_payment_milestone_delivery(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={
                 "code": "NO_SUCH_MILESTONE",
-                "message": (
-                    f"No milestone at position {', '.join(str(n) for n in unknown)} on "
-                    f"{opportunity.opportunity_id}. Reload the schedule and try again."
-                ),
+                "message": "The payment schedule changed while you were editing it.",
+                "details": ["Reload the page and try again."],
             },
         )
 
@@ -726,7 +686,12 @@ def delete_deal(
     if deal.pursuit_group:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            f"{deal_id} is in pursuit group {deal.pursuit_group}. Remove it from the group first.",
+            refusal(
+                "REMOVE_FROM_GROUP_FIRST",
+                "This deal is in a pursuit group, so it can't be deleted.",
+                ["Remove it from the group first."],
+                group_id=deal.pursuit_group,
+            ),
         )
     record_audit(db, module="deals", record_id=deal_id, action="deleted", actor=user.user_id)
     db.delete(deal)

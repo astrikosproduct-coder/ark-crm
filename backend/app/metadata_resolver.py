@@ -103,6 +103,8 @@ FIELD_JSON_KEYS: tuple[str, ...] = (
 #   computed_expr       the expression the engine evaluates, as distinct from
 #                       computed_formula, which is the register's English
 #                       sentence about the same rule and is shown beside it
+#   min_value           inclusive bounds on a number field (0023), null when
+#   max_value           unbounded on that side
 RESOLVED_KEYS: tuple[str, ...] = (
     "value_mode",
     "value_locked",
@@ -116,6 +118,8 @@ RESOLVED_KEYS: tuple[str, ...] = (
     "layout_span",
     "stage_scoped",
     "computed_expr",
+    "min_value",
+    "max_value",
 )
 
 
@@ -205,10 +209,22 @@ def _rows(
     if module_key:
         query = query.where(FieldPlacement.module_key == module_key)
 
+    # Section order, then id, break a sort_order tie. Eleven active placements
+    # share a sort_order with another (the HEADER key facts were numbered 10,
+    # 20, 30… into modules already numbered 1, 2, 3…), and without a
+    # tie-breaker PostgreSQL returned tied rows in whatever physical order an
+    # UPDATE last left them — so two publishes of an unchanged register could
+    # write different fields.json files, and even swap which section a module
+    # draws first.
     return [
         (p, d, label)
         for p, d, label in db.execute(
-            query.order_by(FieldPlacement.module_key, FieldPlacement.sort_order)
+            query.order_by(
+                FieldPlacement.module_key,
+                FieldPlacement.sort_order,
+                Section.sort_order,
+                FieldPlacement.id,
+            )
         ).all()
     ]
 
@@ -283,6 +299,8 @@ def field_row(
         "anchor_field": placement.anchor_field,
         "anchor_position": placement.anchor_position,
         "layout_span": placement.layout_span,
+        "min_value": definition.min_value,
+        "max_value": definition.max_value,
         "stage_scoped": placement.stage_scoped,
         "computed_expr": definition.computed_expr,
     }

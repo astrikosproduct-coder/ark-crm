@@ -10,8 +10,10 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: 'bg-primary text-primary-foreground shadow-xs hover:bg-primary/90',
-        outline:
-          'border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground',
+        // The RAISED layer, not the canvas: an outline button usually sits on a
+        // surface, and bg-background would paint the page colour over the card
+        // it is sitting on — darker than its own container in dark mode.
+        outline: 'border-input bg-input-bg border hover:bg-accent hover:text-accent-foreground',
         ghost: 'hover:bg-accent hover:text-accent-foreground',
         destructive: 'bg-destructive text-white shadow-xs hover:bg-destructive/90',
       },

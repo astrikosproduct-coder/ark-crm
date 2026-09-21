@@ -79,6 +79,14 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
+      // The record-level audit trail — every create, update and delete, with
+      // the before/after diff the History timeline renders. Read-only: there
+      // is no POST, because rows are written from inside the business routers
+      // and a client must not be able to write its own history.
+      '/api/audit-log': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
       // Deal registrations — a partner's claim to a deal and its exclusivity
       // window. Round 3, done out of order.
       '/api/registrations': {
@@ -88,6 +96,33 @@ export default defineConfig({
       // Registration conflicts — the adjudication when two partners register
       // the same client and project. Round 3, done out of order.
       '/api/conflicts': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      // Pursuit Groups — which of several partners' pursuits of one project
+      // counts toward pipeline. See backend/app/pursuits.py.
+      '/api/pursuit-groups': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      // The management dashboard — read-only aggregates over the live pipeline.
+      // See backend/app/routers/dashboard.py.
+      // Global search — the header box, every live module in one request.
+      '/api/search': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/api/dashboard': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      // User feedback — anyone sends, DEVELOPER reads. See backend/app/routers/feedback.py.
+      '/api/feedback': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      // Excel / CSV import and export. See backend/app/routers/spreadsheets.py.
+      '/api/spreadsheets': {
         target: 'http://localhost:8000',
         changeOrigin: true,
       },

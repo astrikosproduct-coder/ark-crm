@@ -26,11 +26,21 @@ import {
   type FormMode,
   type RecordForm,
 } from '@/hooks/useRecordForm'
+import { useResolvedRecord } from '@/hooks/useResolvedRecord'
 import { api } from '@/lib/api'
 import { date as fmtDate, dateTime as fmtDateTime, money, number, percent } from '@/lib/format'
 import { compileFor } from '@/lib/spec/conditions'
 import { computedGap } from '@/lib/spec/formula'
-import { collectionFor, displayNameOf, fieldOf, fieldOptions, idOf, labelForValue } from '@/lib/spec'
+import {
+  collectionFor,
+  displayNameOf,
+  fieldOf,
+  fieldOptions,
+  idOf,
+  labelForValue,
+  moduleForCollection,
+} from '@/lib/spec'
+import type { Values } from '@/lib/spec/conditions'
 import type { FieldSpec } from '@/types/field'
 
 /**
@@ -660,7 +670,23 @@ function LookupValue({ field, value }: { field: FieldSpec; value: unknown }) {
   })
 
   const hit = data?.find((r) => idOf(r) === value)
-  return <p className="px-3 py-2 text-sm">{hit ? displayNameOf(hit) : String(value)}</p>
+  if (!hit || !collection) return <p className="px-3 py-2 text-sm">{String(value)}</p>
+  return (
+    <p className="px-3 py-2 text-sm">
+      <RecordName module={moduleForCollection(collection) ?? collection} record={hit} />
+    </p>
+  )
+}
+
+/**
+ * A looked-up record's name, read through its parents when it stores none of
+ * its own. An Opportunity holds no opportunity_name — the name is its Lead's —
+ * so Parent Opportunity on a Deal read OPP-00003 while Parent Lead beside it
+ * read a name. A module with no parent resolves to the record as it is.
+ */
+function RecordName({ module, record }: { module: string; record: Values }) {
+  const { values } = useResolvedRecord(module, record)
+  return <>{displayNameOf(values) || displayNameOf(record)}</>
 }
 
 /**

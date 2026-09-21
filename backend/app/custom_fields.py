@@ -57,6 +57,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .messages import FORM_OUT_OF_DATE
 from .metadata_resolver import module_field_names, placements_of
 from .models import FieldPlacement
 
@@ -171,12 +172,11 @@ def resolve_write(
                     hints.append(f"{key!r} is not a field on {table}")
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
+                # The person sees one plain sentence; `rejected` keeps the
+                # exact keys for whoever debugs it from the network tab.
                 {
-                    "message": (
-                        "custom_fields may only carry fields created through "
-                        "Administration, or a per-stage value of a field this "
-                        "module has. Nothing was written."
-                    ),
+                    "code": "FORM_OUT_OF_DATE",
+                    "message": FORM_OUT_OF_DATE,
                     "rejected": hints,
                 },
             )

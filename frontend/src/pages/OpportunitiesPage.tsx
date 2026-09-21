@@ -1,19 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PageLayout } from '@/components/layout/PageLayout'
+import { ModuleActions } from '@/components/list/ModuleActions'
 import { RecordListView } from '@/components/list/RecordListView'
 import { OpportunityKanbanBoard } from '@/components/opportunities/OpportunityKanbanBoard'
 import { opportunityListCell } from '@/components/opportunities/opportunityListCell'
 import { RankedOpportunityList } from '@/components/opportunities/RankedOpportunityList'
 import { PRIORITY_ICONS } from '@/components/opportunities/priorityIcons'
-import { stageKeyOf, stagesFor } from '@/lib/pipeline'
-import { PlusIcon } from 'lucide-react'
+import { ListFilterBar } from '@/components/list/ListFilterBar'
+import { useListFilters } from '@/lib/listFilters'
 import { ragAccent } from '@/lib/rag'
-
-const ALL = '__all__'
 
 /** The same mark a flagged opportunity carries, so the tab teaches what it means. */
 function PriorityTabIcon({ flag }: { flag: string }) {
@@ -23,75 +20,58 @@ function PriorityTabIcon({ flag }: { flag: string }) {
 
 export function OpportunitiesPage() {
   const navigate = useNavigate()
-  const [stage, setStage] = useState(ALL)
+  // One filter for List and Kanban, held in the URL — see lib/listFilters.ts.
+  const filters = useListFilters({ view: 'opportunities', stageField: 'project_stage' })
+  const listFilter = useMemo(() => filters.params({ withStage: true }), [filters])
+  const boardFilter = useMemo(() => filters.params({ withStage: false }), [filters])
 
-  // Stage options come from the split range, not from the leads_stage
-  // picklist — that picklist still carries all eight of Leads' own keys
-  // (0-7), four of which an Opportunity can never hold. See
-  // spec/module_split.json's register_corrections.
-  const stages = stagesFor('opportunities')
-
-  const filter = useMemo(() => {
-    const f: Record<string, string> = {}
-    if (stage !== ALL) f.project_stage = stage
-    return f
-  }, [stage])
-
-  // An Opportunity is meant to arrive by converting a Lead — the conversion
-  // flow is the next step, not built yet. The button below exists because the
-  // route does; once conversions exist, creating one by hand from here is the
-  // exception, not the front door.
+  // An Opportunity is meant to arrive by converting a Lead. The button exists
+  // because the route does; creating one by hand is the exception.
   return (
     <PageLayout
       wide
       title="Opportunities"
-      subtitle="Stage 4 to 6 of the pipeline. A Lead converts to an Opportunity on leaving Stage 3; an Opportunity converts to a Deal on leaving Stage 6."
       actions={
-        <Button onClick={() => navigate('/opportunities/new')}>
-          <PlusIcon className="size-4" />
-          New opportunity
-        </Button>
+        <ModuleActions
+          module="opportunities"
+          plural="Opportunities"
+          noun="opportunity"
+          createLabel="New opportunity"
+          onCreate={() => navigate('/opportunities/new')}
+          exportFilter={() => listFilter}
+        />
       }
       tabs={[
         {
           key: 'list',
           label: 'List',
           content: (
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2 pt-3">
-                <Select value={stage} onValueChange={setStage}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Stage" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL}>All stages</SelectItem>
-                    {stages.map((s) => {
-                      const key = stageKeyOf(s.stage)
-                      if (!key) return null
-                      return (
-                        <SelectItem key={s.stage} value={key}>
-                          {s.stage} · {s.name}
-                        </SelectItem>
-                      )
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-
+            <>
+              <ListFilterBar filters={filters} plural="Opportunities" searchPlaceholder="Search name or client…" />
               <RecordListView
                 module="opportunities"
                 collection="opportunities"
                 basePath="/opportunities"
-                filter={filter}
+                filter={listFilter}
+                hideSearch
                 renderCell={opportunityListCell}
                 rowAccent={ragAccent}
                 pageSize={25}
-                emptyMessage="No opportunities yet — convert a Lead at Stage 3 to create one."
+                emptyMessage="No opportunities yet. Move a Lead past Stage 3 to create one."
               />
-            </div>
+            </>
           ),
         },
-        { key: 'pipeline', label: 'Kanban', content: <OpportunityKanbanBoard /> },
+        {
+          key: 'pipeline',
+          label: 'Kanban',
+          content: (
+            <>
+              <ListFilterBar filters={filters} plural="Opportunities" showStage={false} searchPlaceholder="Search name or client…" />
+              <OpportunityKanbanBoard filter={boardFilter} />
+            </>
+          ),
+        },
         {
           key: 'low-hanging',
           label: 'Low Hanging',

@@ -1,12 +1,15 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PlusIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { PageLayout } from '@/components/layout/PageLayout'
+import { ListFilterBar } from '@/components/list/ListFilterBar'
+import { ModuleActions } from '@/components/list/ModuleActions'
 import { RecordListView } from '@/components/list/RecordListView'
 import { registrationListCell } from '@/components/partners/registrationListCell'
-import { EXCLUSIVITY_DAYS } from '@/lib/partners'
-import { labelForValue, partnerAccountTypes } from '@/lib/spec'
+import { useListFilters } from '@/lib/listFilters'
+import { partnerAccountTypes } from '@/lib/spec'
 
 /**
  * Partners.
@@ -19,37 +22,55 @@ import { labelForValue, partnerAccountTypes } from '@/lib/spec'
  */
 export function PartnersPage() {
   const navigate = useNavigate()
-
-  const rosterNames = partnerAccountTypes
-    .map((t) => labelForValue('accounts__account_type', t))
-    .join(' and ')
+  // Two lists on one page, so each keeps its own filters: registration keys carry
+  // an "r." prefix in the URL. A registration is the DEAL REGISTRATION section of
+  // the partners module; a partner record is an account.
+  const registrationFilters = useListFilters({
+    view: 'registrations',
+    fieldModule: 'partners',
+    sections: ['DEAL REGISTRATION'],
+    prefix: 'r.',
+  })
+  const partnerFilters = useListFilters({
+    view: 'partners',
+    fieldModule: 'accounts',
+    choiceLimits: { account_type: partnerAccountTypes },
+  })
+  const registrationFilter = useMemo(() => registrationFilters.params(), [registrationFilters])
+  const partnerFilter = useMemo(
+    // Picking partner types narrows the roster; nothing here can widen it past partners.
+    () => ({ account_type: partnerAccountTypes, ...partnerFilters.params() }),
+    [partnerFilters]
+  )
 
   return (
     <PageLayout
       wide
       title="Partners"
-      subtitle="Deal registrations and the partner organisations behind them."
       actions={
-        <Button onClick={() => navigate('/partners/registrations/new')}>
-          <PlusIcon className="size-4" />
-          New Registration
-        </Button>
+        <>
+          {/* Import / Export are the partner RECORDS — accounts with a partner
+              type. Registrations are created one at a time, with their checks. */}
+          <ModuleActions module="partners" plural="Partners" noun="partner" exportFilter={() => partnerFilters.params()} />
+          <Button onClick={() => navigate('/partners/registrations/new')}>
+            <PlusIcon className="size-4" />
+            New Registration
+          </Button>
+        </>
       }
       tabs={[
         {
           key: 'registrations',
           label: 'Registrations',
           content: (
-            <div className="space-y-3 py-3">
-              <p className="text-sm text-muted-foreground">
-                A registration grants the partner exclusivity on one client and one project,
-                running {EXCLUSIVITY_DAYS} days from the day Astrikos acknowledges it, that day
-                included.
-              </p>
+            <div>
+              <ListFilterBar filters={registrationFilters} plural="Registrations" searchPlaceholder="Search project, partner or client…" />
               <RecordListView
                 module="registrations"
                 collection="registrations"
                 basePath="/partners/registrations"
+                filter={registrationFilter}
+                hideSearch
                 renderCell={registrationListCell}
                 emptyMessage="No deal registrations yet."
               />
@@ -60,16 +81,14 @@ export function PartnersPage() {
           key: 'partners',
           label: 'Partner records',
           content: (
-            <div className="space-y-3 py-3">
-              <p className="text-sm text-muted-foreground">
-                Accounts whose Account Type includes {rosterNames}. These are the same records as
-                on the Accounts screen — one organisation, one row, seen from the partner side.
-              </p>
+            <div>
+              <ListFilterBar filters={partnerFilters} plural="Partners" searchPlaceholder="Search name, region or segment…" />
               <RecordListView
                 module="partners"
                 collection="accounts"
                 basePath="/partners"
-                filter={{ account_type: partnerAccountTypes }}
+                filter={partnerFilter}
+                hideSearch
                 emptyMessage="No account carries a partner type yet."
               />
             </div>

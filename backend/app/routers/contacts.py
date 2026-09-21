@@ -1,12 +1,17 @@
 import re
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..auth import current_user
+from ..messages import already_exists, not_found, picked_record_missing
+from ..changes import custom_field_diff, diff, snapshot
 from ..database import get_db
+from ..list_query import run_list_query
 from ..audit import record_audit
 from ..custom_fields import apply_write, extras_of, merge_into_row, resolve_write
+from ..thresholds import check_thresholds
 from ..ids import next_reference_id
 from ..models import Account, Contact, User
 from ..schemas import (
@@ -22,7 +27,6 @@ router = APIRouter(tags=["contacts"])
 
 CONTACT_ID_PATTERN = re.compile(r"^CON-(\d+)$")
 
-RESERVED = {"_page", "_limit", "_sort", "_order", "_search", "q"}
 
 # extensions.json list_views.contacts.search. `account` is a LOOKUP, so the
 # search has to run against the account NAME the reviewer can actually see, not
@@ -72,7 +76,7 @@ def _serialise(contact: Contact, labels: dict[str, dict[str, str]]) -> dict:
 def _get_or_404(db: Session, contact_id: str) -> Contact:
     contact = db.get(Contact, contact_id)
     if contact is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"No contact {contact_id}")
+        raise not_found("contact")
     return contact
 
 
@@ -82,18 +86,13 @@ def _check_links(db: Session, payload, sent: set[str]) -> None:
     database integrity error into a message that names the field.
     """
     if "account" in sent and payload.account and db.get(Account, payload.account) is None:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, f"No such account: {payload.account}"
-        )
+        raise picked_record_missing("account")
     if (
         "engagement_owner" in sent
         and payload.engagement_owner
         and db.get(User, payload.engagement_owner) is None
     ):
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            f"No such user: {payload.engagement_owner}",
-        )
+        raise picked_record_missing("person")
 
 
 @router.get("/contacts", response_model=list[ContactOut])
@@ -109,59 +108,11 @@ def list_contacts(request: Request, response: Response, db: Session = Depends(ge
     labels = _label_maps(db)
     rows = [_serialise(c, labels) for c in db.scalars(select(Contact))]
 
-    params = request.query_params
-
-    for key in {k for k in params if k not in RESERVED}:
-        wanted = set(params.getlist(key))
-        rows = [r for r in rows if _matches(r.get(key), wanted)]
-
-    q = (params.get("q") or "").strip().lower()
-    if q:
-        named = [f for f in (params.get("_search") or "").split(",") if f]
-        fields = named or list(DEFAULT_SEARCH)
-        rows = [r for r in rows if q in _text_of(r, fields).lower()]
-
-    sort = params.get("_sort")
-    if sort:
-        rows.sort(key=lambda r: _sort_key(r, sort))
-        if params.get("_order") == "desc":
-            rows.reverse()
-
-    total = len(rows)
-
-    page = int(params.get("_page") or 0)
-    limit = int(params.get("_limit") or 0)
-    if page > 0 and limit > 0:
-        rows = rows[(page - 1) * limit : page * limit]
-
+    rows, total = run_list_query(
+        rows, request.query_params, lookups=CONTACT_LOOKUPS, default_search=DEFAULT_SEARCH
+    )
     response.headers["X-Total-Count"] = str(total)
     return rows
-
-
-def _matches(value, wanted: set[str]) -> bool:
-    if isinstance(value, list):
-        return any(str(v) in wanted for v in value)
-    return str(value if value is not None else "") in wanted
-
-
-def _display(row: dict, field: str) -> str:
-    """A field as the reviewer sees it — the joined label for a lookup."""
-    if field in CONTACT_LOOKUPS:
-        label = (row.get("__labels") or {}).get(field)
-        if label:
-            return label
-    value = row.get(field)
-    return "" if value is None else str(value)
-
-
-def _text_of(row: dict, fields: list[str]) -> str:
-    return " ".join(_display(row, f) for f in fields)
-
-
-def _sort_key(row: dict, field: str):
-    """Nulls last, then case-insensitive, on the displayed value."""
-    text = _display(row, field)
-    return (1, "") if text == "" else (0, text.lower())
 
 
 @router.get("/contacts/{contact_id}", response_model=ContactOut)
@@ -170,13 +121,18 @@ def get_contact(contact_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/contacts", response_model=ContactOut, status_code=status.HTTP_201_CREATED)
-def create_contact(payload: ContactCreate, db: Session = Depends(get_db)):
+def create_contact(
+    payload: ContactCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
     contact_id = payload.contact_id or _next_contact_id(db)
 
     if db.get(Contact, contact_id) is not None:
-        raise HTTPException(status.HTTP_409_CONFLICT, f"{contact_id} already exists")
+        raise already_exists()
 
     _check_links(db, payload, set(CONTACT_LOOKUPS))
+    check_thresholds(db, "contacts", payload.model_dump())
 
     contact = Contact(contact_id=contact_id)
     for name in CONTACT_SCALARS:
@@ -207,6 +163,7 @@ def create_contact(payload: ContactCreate, db: Session = Depends(get_db)):
         module="contacts",
         record_id=contact_id,
         action="created",
+        actor=user.user_id,
         changed_fields=sorted(payload.model_dump(exclude_unset=True)),
     )
     db.commit()
@@ -215,24 +172,41 @@ def create_contact(payload: ContactCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/contacts/{contact_id}", response_model=ContactOut)
-def patch_contact(contact_id: str, payload: ContactUpdate, db: Session = Depends(get_db)):
+def patch_contact(
+    contact_id: str,
+    payload: ContactUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
     """Applies only the fields present in the request body."""
-    return _write(db, contact_id, payload, set(payload.model_dump(exclude_unset=True)))
+    return _write(db, contact_id, payload, set(payload.model_dump(exclude_unset=True)), user)
 
 
 @router.put("/contacts/{contact_id}", response_model=ContactOut)
-def put_contact(contact_id: str, payload: ContactUpdate, db: Session = Depends(get_db)):
+def put_contact(
+    contact_id: str,
+    payload: ContactUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
     """
     Kept for the same reason accounts has one: the prototype's record editor
     PUTs when it saves. Still applies only what was sent — a caller that omits a
     field is editing a form, not asserting the field is now null.
     """
-    return _write(db, contact_id, payload, set(payload.model_dump(exclude_unset=True)))
+    return _write(db, contact_id, payload, set(payload.model_dump(exclude_unset=True)), user)
 
 
-def _write(db: Session, contact_id: str, payload: ContactUpdate, sent: set[str]) -> dict:
+def _write(db: Session, contact_id: str, payload: ContactUpdate, sent: set[str], user: User) -> dict:
     contact = _get_or_404(db, contact_id)
+
+    # The before half of the diff, read before anything is applied — see
+    # routers/leads.py::_write.
+    tracked = [name for name in CONTACT_SCALARS if name in sent]
+    before = snapshot(contact, tracked)
+    before_custom = dict(contact.custom_fields or {})
     _check_links(db, payload, sent)
+    check_thresholds(db, "contacts", payload.model_dump(include=sent))
 
     for name in CONTACT_SCALARS:
         if name not in sent:
@@ -256,29 +230,58 @@ def _write(db: Session, contact_id: str, payload: ContactUpdate, sent: set[str])
             extras=extras_of(payload),
         ),
     )
-    record_audit(db, module="contacts", record_id=contact_id, action="updated", changed_fields=sorted(sent))
+    changed = diff(before, snapshot(contact, tracked))
+    changed += custom_field_diff(before_custom, contact.custom_fields)
+
+    record_audit(
+        db,
+        module="contacts",
+        record_id=contact_id,
+        action="updated",
+        actor=user.user_id,
+        changed_fields=sorted(sent),
+        changed=changed,
+    )
     db.commit()
     db.refresh(contact)
     return _serialise(contact, _label_maps(db))
 
 
 @router.patch("/contacts/{contact_id}/active", response_model=ContactOut)
-def set_contact_active(contact_id: str, payload: ActiveFlag, db: Session = Depends(get_db)):
+def set_contact_active(
+    contact_id: str,
+    payload: ActiveFlag,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
     """
     Deactivate or reactivate. The safe way to retire someone who has left the
     client: the contact keeps its id, so a Lead naming them as Primary Contact
     still resolves to a name instead of showing a bare CON-004.
     """
     contact = _get_or_404(db, contact_id)
+    was_active = contact.active
     contact.active = payload.active
-    record_audit(db, module="contacts", record_id=contact_id, action="updated", changed_fields=["active"])
+    record_audit(
+        db,
+        module="contacts",
+        record_id=contact_id,
+        action="updated",
+        actor=user.user_id,
+        changed_fields=["active"],
+        changed=diff({"active": was_active}, {"active": contact.active}),
+    )
     db.commit()
     db.refresh(contact)
     return _serialise(contact, _label_maps(db))
 
 
 @router.delete("/contacts/{contact_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_contact(contact_id: str, db: Session = Depends(get_db)):
+def delete_contact(
+    contact_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
     """
     Hard delete. Nothing in the DATABASE holds a foreign key to a contact —
     leads.primary_contact, quotes.sent_to and the bid signatories all live in
@@ -286,7 +289,9 @@ def delete_contact(contact_id: str, db: Session = Depends(get_db)):
     those before calling this; see DeleteRecordDialog.tsx.
     """
     contact = _get_or_404(db, contact_id)
-    record_audit(db, module="contacts", record_id=contact_id, action="deleted")
+    record_audit(
+        db, module="contacts", record_id=contact_id, action="deleted", actor=user.user_id
+    )
     db.delete(contact)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -23,9 +23,8 @@ export function computeAll(module: string, values: Values, children?: Children):
   const out: Values = {}
 
   // Named resolvers run FIRST, so an ordinary computed_expr may read one of
-  // them by api_name. They take no dependency on another computed field —
-  // progression_pct reads the record's stage, which is a plain stored value —
-  // so they need no ordering among themselves.
+  // them by api_name. They take no dependency on another computed field, so
+  // they need no ordering among themselves.
   for (const field of fieldsOf(module)) {
     if (!field.computed_by) continue
     const resolve = resolverFor(field.computed_by)

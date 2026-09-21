@@ -1,5 +1,4 @@
 import extensionsData from '../../spec/extensions.json'
-import stagesData from '../../spec/stages.json'
 import { fieldsOf } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
 import { resolverFor } from '@/lib/spec/resolvers'
@@ -13,11 +12,10 @@ import type { FieldSpec } from '@/types/field'
  * The register has one column per field and one value per record, which cannot
  * express either of the two things reviewers asked for:
  *
- *   CARRY_FORWARD — Progression % and Probability % sit at the top of every
- *   stage and are editable there. A stage inherits the previous stage's number
- *   as its starting point, but writing at Stage 3 must not rewrite what Stage 1
- *   was told. One value per record makes a probability history impossible: the
- *   number the deal was given at Demo is simply gone once Prescription edits it.
+ *   CARRY_FORWARD — Expected Close Month is revised at every stage. A stage
+ *   inherits the previous stage's answer as its starting point, but writing at
+ *   Stage 3 must not rewrite what Stage 1 was told. (Progression % and
+ *   Probability % were carry-forward until 0022; they follow the stage now.)
  *
  *   STICKY — a CROSS-CUTTING reason (On Hold Reason, Stage Skip Reason…) is
  *   captured at the stage where its condition became true, and must NOT be
@@ -30,12 +28,12 @@ import type { FieldSpec } from '@/types/field'
  * stage_scoped, and the `stage_scoped` row in open_questions asking the workbook
  * to grow a column for it.
  *
- * STORAGE. `<api_name>__s<stage>` — probability_pct__s3. The suffix is a key on
+ * STORAGE. `<api_name>__s<stage>` — expected_close_month__s3. The suffix is a key on
  * the ordinary record, so nothing in the store, MSW, the API client or the query
  * layer needed a new concept. A carry_forward field ALSO writes the plain
  * api_name when the stage being edited is the record's current one, so list
- * columns, the readiness panel and the probability-band check keep reading one
- * number and know nothing about any of this. A sticky field never writes it:
+ * columns and the readiness panel keep reading one number and know nothing
+ * about any of this. A sticky field never writes it:
  * there is no single "the" on-hold reason to write.
  */
 
@@ -52,14 +50,8 @@ import type { FieldSpec } from '@/types/field'
  * describing a field, and an admin cannot write a function:
  *
  *   default_by     a resolver in lib/spec/resolvers.ts, seeding an untouched
- *                  box. Only progression_pct has one; no formula can guess a
- *                  close month, which is why expected_close_month has none.
- *   sticky.extra   gone entirely. It named probability_override_justification
- *                  with `when: probability_out_of_band`, and nothing ever read
- *                  it: StageScopedFields.tsx names that field directly and
- *                  calls probabilityBandBreach(). Metadata describing
- *                  behaviour nothing performs is worse than none — it reads as
- *                  a guarantee and is a decoration.
+ *                  box. Nothing uses one today; no formula can guess a close
+ *                  month, which is why expected_close_month has none.
  *   history_only   Stage Skip / Stage Reversal Reason. NOT per-stage at all:
  *                  the transitions table already carries one reason per move,
  *                  and the field on the record is the latest of them. Listed
@@ -89,56 +81,6 @@ const spec = (extensionsData as unknown as { stage_scoped?: StageScopedSpec }).s
   carry_forward: { fields: [] },
 }
 
-interface StageBand {
-  stage: number
-  prob_min: number | null
-  prob_max: number | null
-}
-
-const BANDS = stagesData as unknown as StageBand[]
-
-/**
- * A condition the expression language cannot reach.
- *
- * The probability entered for THIS stage against the band spec/stages.json
- * gives the stage. That is not a function of any field's value — the band is
- * not a field — so there is no expression that could say it, exactly as with
- * progression in lib/spec/resolvers.ts. extensions.json still names it, in
- * sticky.extra, as `when: "probability_out_of_band"`; until Administration can
- * express a rule like this the binding is one reviewed function, never an
- * eval().
- */
-/** A probability outside its stage's band, with the numbers, or null. */
-export interface BandBreach {
-  pct: number
-  min: number
-  max: number
-}
-
-/**
- * Is the probability entered for THIS stage outside the band the stage allows?
- *
- * Returns the numbers rather than a boolean so the surface that asks can say
- * which band was missed and by how much — "62% is outside 10–20% for Stage 1"
- * is an explanation; "justification required" is a demand.
- */
-export function probabilityBandBreach(
-  module: string,
-  values: Values,
-  stage: number
-): BandBreach | null {
-  const field = fieldsOf(module).find((f) => f.api_name === 'probability_pct')
-  if (!field) return null
-  const raw = stageScopedValue(module, field, values, stage)
-  const pct = typeof raw === 'number' ? raw : Number(raw)
-  if (!Number.isFinite(pct)) return null
-
-  const band = BANDS.find((b) => b.stage === stage)
-  if (!band || band.prob_min === null || band.prob_max === null) return null
-  if (pct >= band.prob_min && pct <= band.prob_max) return null
-  return { pct, min: band.prob_min, max: band.prob_max }
-}
-
 // DERIVED — the 'computed'/'autonumber' exclusion — lived here until B2. It
 // was part of the rule that DERIVED the sticky set from a section name; the
 // set is a column now, so the exclusion was applied once, at absorption, and
@@ -154,18 +96,13 @@ export function stageScopedKey(apiName: string, stage: number): string {
   return `${apiName}__s${stage}`
 }
 
-/**
- * The carry-forward fields of a module, in the order the REGISTER lists them.
- *
- * Was the order of the sidecar's own array. Register order gives the same
- * three in the same sequence on all three modules — Progression %,
- * Probability %, Expected Close Month — and it is the order an admin can now
- * change by dragging, which the array never was.
+/*
+ * carryForwardFieldsOf() lived here until the strips were retired. It answered
+ * "which fields does the metrics strip draw", and there is no metrics strip:
+ * the three carry-forward fields are in the register's HEADER section and the
+ * ordinary form draws them from their placement, in the order an admin set by
+ * dragging. Nothing needs a second list of them.
  */
-export function carryForwardFieldsOf(module: string): FieldSpec[] {
-  if (!isStageScopedModule(module)) return []
-  return fieldsOf(module).filter((f) => f.stage_scoped === 'carry_forward')
-}
 
 /*
  * stickyFieldsOf() lived here until Phase A3, and what replaced it is worth
@@ -260,8 +197,7 @@ export function stageScopedValue(
  *
  * The base api_name is written only when the stage being edited is the stage the
  * record is actually AT — editing Stage 1 on a record sitting at Stage 3 is
- * correcting history, and history must not become the record's current
- * probability.
+ * correcting history, and history must not become the record's current value.
  */
 export function stageScopedPatch(
   field: FieldSpec,
@@ -293,33 +229,6 @@ function isEmpty(v: unknown): boolean {
   return v === null || v === undefined || v === ''
 }
 
-/**
- * What a LIST row should show for a carry-forward field.
- *
- * Progression % stopped being computed when it was made editable, so a record
- * nobody has typed a number into stores nothing under it — and the kanban card
- * and list column that used to always have a value would read a bare dash. The
- * field's `default_by` resolver is consulted as the fallback, which is the same
- * positional number those screens showed before, now labelled as a suggestion
- * rather than an answer.
- */
-export function carriedListValue(module: string, apiName: string, row: Values): unknown {
-  if (!isEmpty(row[apiName])) return row[apiName]
-
-  const entry = spec.carry_forward.fields.find((f) => f.api_name === apiName)
-  if (!entry) return row[apiName]
-
-  const stages = Object.keys(row)
-    .filter((k) => k.startsWith(`${apiName}__s`) && !isEmpty(row[k]))
-    .map((k) => Number(k.slice(`${apiName}__s`.length)))
-    .filter((n) => Number.isInteger(n))
-    .sort((a, b) => b - a)
-  if (stages.length) return row[stageScopedKey(apiName, stages[0])]
-
-  const resolve = resolverFor(entry.default_by)
-  return resolve ? resolve(module, row) : undefined
-}
-
 // ------------------------------------------------- what a form must not draw
 
 /**
@@ -348,8 +257,8 @@ export function historyOnlyNamesOf(module: string): Set<string> {
  * Every reason and justification on this module, whether per-stage or not.
  *
  * What the read-only Reasons & Justifications panel lists. Deliberately the
- * union of three things that are asked in three different places — inline
- * beside the status, in the metrics strip, in the transition dialog — because
+ * union of things that are asked in different places — inline beside the
+ * status or the number, and in the transition dialog — because
  * the point of the panel is that the RECORD's answers are all in one place
  * even though its QUESTIONS are not.
  */
@@ -364,32 +273,24 @@ export function reasonFieldsOf(module: string): FieldSpec[] {
 }
 
 /**
- * Stage-scoped fields this module draws INLINE, next to the field that asks
- * for them — see lib/spec/anchors.ts.
- *
- * These must NOT be added to a form's hiddenFields: they are rendered by the
- * form itself now, which is the entire point of anchoring them. The ones that
- * are not anchored (the two metrics, the probability justification) still are
- * hidden, because a surface of their own draws them.
- */
-export function inlineStageScopedNamesOf(module: string): Set<string> {
-  return new Set(
-    fieldsOf(module)
-      .filter((f) => isPerStageValue(module, f) && Boolean(f.anchor_field))
-      .map((f) => f.api_name)
-  )
-}
-
-/**
  * What a pipeline form must not draw, because another surface draws it.
  *
- * The stage-scoped names MINUS the anchored ones, PLUS the transition-written
- * ones. Before anchors this was simply the per-stage set itself; the
- * subtraction is A2 and the addition is A3.
+ * ONE ENTRY LEFT, AND IT IS NOT A RENDERING PREFERENCE
+ * ----------------------------------------------------
+ * This used to subtract the anchored reasons from the per-stage set and hide
+ * everything that remained — Expected Close Month, Progression %, Probability %
+ * and the override justification — because each had a hand-built strip of its
+ * own above the tabs. Those strips are gone: the four are ordinary fields in
+ * the HEADER section now, drawn by RecordForm and saved by the same Save button
+ * as every other field, with the justification anchored to the number that
+ * demands it. Per-stage reading and writing is unchanged; it was never the
+ * strips that did that, it was the projection in useRecordForm.
+ *
+ * What stays hidden is what a form genuinely cannot own: Stage Skip Reason and
+ * Stage Reversal Reason are written by the Advance / Change stage dialog as
+ * part of the move itself, and the transitions table already carries one per
+ * move. A second box for them would be a second place to write one answer.
  */
 export function hiddenFromFormNamesOf(module: string): Set<string> {
-  const inline = inlineStageScopedNamesOf(module)
-  const hidden = new Set([...perStageValueNamesOf(module)].filter((n) => !inline.has(n)))
-  for (const name of historyOnlyNamesOf(module)) hidden.add(name)
-  return hidden
+  return historyOnlyNamesOf(module)
 }

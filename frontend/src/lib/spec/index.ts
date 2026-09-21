@@ -5,11 +5,13 @@ import type {
   FieldExtension,
   FieldSetSpec,
   FieldSpec,
+  ListScopeSpec,
   ListViewSpec,
   PartnerRegistrationSpec,
   PicklistMap,
   PicklistOption,
   RawFieldSpec,
+  ResolvedListScope,
   SeedNormalisationSpec,
   SpecNote,
 } from '@/types/field'
@@ -26,7 +28,16 @@ interface ExtensionsFile {
   partner_roster: { account_types: string[] }
   partner_registration: PartnerRegistrationSpec
   quick_create: { extra_fields: Record<string, string[]> }
-  kanban: { status_field: string; terminal_statuses: string[] }
+  kanban: {
+    status_field: string
+    terminal_statuses: string[]
+    /** Replaces terminal_statuses for one module — Deals draw Closed Lost only. */
+    terminal_statuses_by_module?: Record<string, string[]>
+  }
+  list_scopes?: {
+    field: string
+    modules: Record<string, ListScopeSpec>
+  }
   open_questions: { rows: SpecNote[] }
   precision_limits: { rows: SpecNote[] }
 }
@@ -502,6 +513,8 @@ const listViews = extensionsFile.list_views ?? {}
 export interface ListView extends ListViewSpec {
   /** columns resolved against fields.json, in order. Unknown refs dropped. */
   fields: FieldSpec[]
+  /** filters resolved the same way. */
+  filterFields: FieldSpec[]
 }
 
 /**
@@ -514,12 +527,14 @@ export function listViewFor(module: string): ListView | undefined {
   return {
     ...spec,
     fields: spec.columns.map(fieldByRef).filter((f): f is FieldSpec => Boolean(f)),
+    filterFields: (spec.filters ?? []).map(fieldByRef).filter((f): f is FieldSpec => Boolean(f)),
   }
 }
 
 for (const [module, spec] of Object.entries(listViews)) {
   if (module.startsWith('$') || typeof spec === 'string') continue
   for (const ref of spec.columns) checkRef(ref, `spec/extensions.json list_views.${module}`)
+  for (const ref of spec.filters ?? []) checkRef(ref, `spec/extensions.json list_views.${module}.filters`)
 }
 
 /** Column refs in list_views that name no field in fields.json. */
@@ -605,6 +620,28 @@ export const partnerRegistration = extensionsFile.partner_registration
  * on the block itself for why POC/Pilot Deal and On Hold are not in it.
  */
 export const kanbanBoard = extensionsFile.kanban
+
+/**
+ * Which records a module's list and board show by DEFAULT, and the named views
+ * that show the rest.
+ *
+ * A converted pursuit is not deleted and not hidden — its record, its history
+ * and its Stage 0-3 story are all still there, still searchable, still reachable
+ * from the child that replaced it. It has simply stopped being work, and a
+ * default list that keeps offering it makes every count and every scroll carry
+ * pursuits nobody can act on. So the default drops them and `Converted leads`
+ * brings them back, which is what Zoho has always done.
+ *
+ * Deliberately NOT a hard filter in the list page: a scope is a default that an
+ * explicit filter overrides. See params() in lib/listFilters.ts.
+ */
+export const listScopes = extensionsFile.list_scopes
+
+export function listScopeFor(module: string): ResolvedListScope | undefined {
+  const declared = listScopes?.modules?.[module]
+  if (!declared || !listScopes) return undefined
+  return { field: listScopes.field, ...declared }
+}
 
 /**
  * The fields of a declared field set, resolved and ordered as the sidecar names

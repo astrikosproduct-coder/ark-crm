@@ -39,11 +39,20 @@ function rankFieldNameFor(field: FieldSpec): string | undefined {
 }
 
 /**
- * The key-facts strip above the tabs: Overall RAG, Next Milestone and
- * whatever else a module declares in the __header section. Unlike every
- * other field on a pipeline record, these are edited right here, immediately
- * — no Edit button, no stage gate. They are current state, not something a
- * stage transition sets.
+ * What is left of the key-facts strip: the Opportunities priority flags.
+ *
+ * Overall RAG, Next Milestone and Next Milestone Date used to be here too, and
+ * they are ordinary HEADER fields now — drawn by RecordForm at the top of the
+ * stage tab and saved by its Save button, because a debounced PUT per keystroke
+ * cost a refetch and a full form remount every time somebody typed. `__header`
+ * is empty on Leads and Deals as a result, and this renders nothing there.
+ *
+ * The flags did NOT follow them, and the reason is the rank rather than the
+ * checkbox: Low Hanging and Top 10 are ranked 1..cap and a rank is unique
+ * ACROSS RECORDS, so the picker has to read the whole collection to know which
+ * ranks are still free. The form engine has no vocabulary for a value
+ * constrained by other records, and inventing one for two fields would be the
+ * larger mistake. They stay here, edited immediately, no Edit button.
  *
  * Wrapped in its own RecordFormProvider purely so FieldControl has the
  * context hook it always calls — every value and every write below goes
@@ -127,7 +136,7 @@ function HeaderStripBody({
   }
 
   return (
-    <div className="mb-4 rounded-lg border bg-muted/20 px-4 py-2.5">
+    <div className="bg-card mb-4 rounded-lg px-4 py-3 shadow-sm">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
         {fields.map((field) => {
           const rankFieldName = rankFieldNameFor(field)

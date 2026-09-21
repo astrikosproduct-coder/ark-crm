@@ -1,8 +1,6 @@
-import { currentUserId } from '@/lib/currentUser'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowRightIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -16,10 +14,13 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ReadinessPanel } from '@/components/leads/ReadinessPanel'
+import { useAttestations } from '@/components/leads/useAttestations'
 import { api } from '@/lib/api'
-import { probabilityMidpoint, stageKeyOf, stagesFor, type Transition } from '@/lib/pipeline'
-import { fieldsOf } from '@/lib/spec'
+import { Bullets, ErrorNotice } from '@/components/ui/notice'
+import { STAGE_PCT_FIELDS, alreadyConvertedOf, stageKeyOf, stageList, stagesFor, type NewTransition } from '@/lib/pipeline'
+import { displayNameOf, fieldOf, fieldsOf, labelForValue } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
+import type { FieldSpec } from '@/types/field'
 
 interface Props {
   open: boolean
@@ -29,11 +30,22 @@ interface Props {
   onClose: () => void
   /** Fired after a same-module move — selects the new stage on this same page. */
   onAdvancedWithinLeads: (toStage: number) => void
+  /**
+   * Drill down from a readiness criterion to the field that proves it. Only
+   * offered for a same-module move — crossing to Opportunities shows the
+   * effects list instead of the readiness panel, so there is nothing to jump
+   * to on that branch.
+   */
+  onJumpToField?: (field: FieldSpec) => void
 }
 
 const LEADS_STAGES = stagesFor('leads')
-const OPPORTUNITY_STAGES = stagesFor('opportunities')
 const LAST_LEAD_STAGE = LEADS_STAGES[LEADS_STAGES.length - 1]?.stage ?? 3
+/**
+ * The ONE Opportunity stage a Lead may cross into: the first stage that module
+ * owns. See "A CROSSING LANDS ON THE FIRST STAGE" below.
+ */
+const OPPORTUNITY_ENTRY = stagesFor('opportunities')[0]
 
 /**
  * The one place a Lead's stage — or its whole pipeline module — changes.
@@ -45,11 +57,32 @@ const LAST_LEAD_STAGE = LEADS_STAGES[LEADS_STAGES.length - 1]?.stage ?? 3
  * dropdown, not two buttons — a Lead at Stage 0 can jump straight to
  * Opportunities' RFP / RFI without ever visiting Stages 1-3 first.
  *
- * Deal stages (7-9) are deliberately NOT offered here. A Deal reads its own
- * identity through parent_opportunity, not through a Lead directly — jumping
- * a Lead straight to a Deal stage would mean synthesising an Opportunity it
- * never really had, which is a different, larger feature than "let this
- * pursuit skip ahead" and isn't built. See spec/extensions.json open_questions.
+ * A CROSSING LANDS ON THE FIRST STAGE OF THE TARGET MODULE — ONLY
+ * ---------------------------------------------------------------
+ * Skips are legal WITHIN a module. They are not legal ACROSS one. This picker
+ * used to offer all three Opportunity stages, so a Lead at Connect could land
+ * directly in Technical Evaluation. Three things broke, and the same three had
+ * already broken once on the other crossing — see the note in
+ * opportunities/ConvertToDealDialog.tsx, which fixed them there the same way:
+ *
+ *   1. G2 Commit to Bid is anchored to ENTERING Stage 4, precisely so that no
+ *      skip can bypass it. A record entering Opportunities at Stage 5 never
+ *      produces the entry event the gate fires on, so the gate never runs.
+ *   2. Stage 4 captures the commercial set. Landing at 5 leaves a Technical
+ *      Evaluation with no RFP behind it and no screen that will ever ask.
+ *   3. The readiness checks below read the LEAD's fields (useAttestations
+ *      'leads'). Against a Stage 5 or 6 target those are an Opportunity's
+ *      criteria judged on a Lead's values, which cannot be a correct answer.
+ *
+ * Nothing is lost: 4 -> 5 -> 6 skips stay legal inside Opportunities, with the
+ * recorded reason, judged against Opportunity fields by Opportunity screens.
+ *
+ * Deal stages (7-9) are deliberately NOT offered here either. A Deal reads its
+ * own identity through parent_opportunity, not through a Lead directly —
+ * jumping a Lead straight to a Deal stage would mean synthesising an
+ * Opportunity it never really had, which is a different, larger feature than
+ * "let this pursuit skip ahead" and isn't built. See spec/extensions.json
+ * open_questions.
  */
 export function LeadAdvanceDialog({
   open,
@@ -58,6 +91,7 @@ export function LeadAdvanceDialog({
   currentStage,
   onClose,
   onAdvancedWithinLeads,
+  onJumpToField,
 }: Props) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -66,12 +100,14 @@ export function LeadAdvanceDialog({
   const options = useMemo(
     () => [
       ...LEADS_STAGES.filter((s) => s.stage !== currentStage).map((s) => ({ ...s, module: 'leads' as const })),
-      ...OPPORTUNITY_STAGES.map((s) => ({ ...s, module: 'opportunities' as const })),
+      ...(OPPORTUNITY_ENTRY ? [{ ...OPPORTUNITY_ENTRY, module: 'opportunities' as const }] : []),
     ],
     [currentStage]
   )
 
-  const [target, setTarget] = useState(() => Math.min(currentStage + 1, OPPORTUNITY_STAGES[OPPORTUNITY_STAGES.length - 1]?.stage ?? currentStage))
+  const [target, setTarget] = useState(() =>
+    Math.min(currentStage + 1, OPPORTUNITY_ENTRY?.stage ?? LAST_LEAD_STAGE)
+  )
 
   const targetOption = options.find((o) => o.stage === target)
   const crossesToOpportunities = target > LAST_LEAD_STAGE
@@ -79,7 +115,13 @@ export function LeadAdvanceDialog({
   const isSkip = target > currentStage + 1
   const isReversal = target < currentStage
   const reasonRequired = isSkip || isReversal
-  const canConfirm = target !== currentStage && (!reasonRequired || reason.trim().length > 0)
+  // Read against the Lead's own register fields in both directions: these are
+  // the Lead's values, and an Opportunity field name would not resolve as proof.
+  const attestations = useAttestations('leads', values, currentStage, target)
+  const canConfirm =
+    target !== currentStage &&
+    (!reasonRequired || reason.trim().length > 0) &&
+    attestations.outstanding.length === 0
 
   const readThrough = useMemo(
     () => new Set(fieldsOf('opportunities').filter((f) => f.value_mode === 'read_through').map((f) => f.api_name)),
@@ -88,16 +130,18 @@ export function LeadAdvanceDialog({
 
   const advanceWithinLeads = useMutation({
     mutationFn: async () => {
-      const now = new Date().toISOString()
-      const patch: Values = { modified_date: now, modified_by: currentUserId() }
-      patch.project_stage = stageKeyOf(target) ?? target
-      patch.probability_pct = probabilityMidpoint(target) ?? values.probability_pct ?? null
+      // No modified_date/modified_by here any more: the server stamps both
+      // from the Entra session and its own clock, and ignores whatever the
+      // body claims. See app/routers/leads.py, SYSTEM_STAMPED.
+      const patch: Values = { project_stage: stageKeyOf(target) ?? target }
+      // Progression %/Probability % are NOT written here. The server gives the
+      // record the target stage's pair on this same PUT (app/progression.py).
       if (isSkip) patch.stage_skip_reason = reason.trim()
       if (isReversal) patch.stage_reversal_reason = reason.trim()
 
       await api.put(`/leads/${leadId}`, patch)
 
-      const transition: Transition = {
+      const transition: NewTransition = {
         module: 'leads',
         record_id: leadId,
         from: currentStage,
@@ -105,8 +149,7 @@ export function LeadAdvanceDialog({
         reason: reasonRequired ? reason.trim() : null,
         is_skip: isSkip,
         is_reversal: isReversal,
-        actor: currentUserId(),
-        timestamp: now,
+        attested: attestations.codes,
       }
       await api.post('/transitions', transition)
     },
@@ -118,56 +161,41 @@ export function LeadAdvanceDialog({
         queryClient.invalidateQueries({ queryKey: ['list', 'transitions'] }),
       ])
       onAdvancedWithinLeads(target)
-      handleClose()
+      reset()
     },
   })
 
   const moveToOpportunity = useMutation({
     mutationFn: async () => {
-      const now = new Date().toISOString()
 
       const oppPayload: Values = {}
       for (const [key, val] of Object.entries(values)) {
-        if (key === 'id' || readThrough.has(key)) continue
+        // STAGE_PCT_FIELDS, like readThrough, is excluded from the blind copy:
+        // the new Opportunity takes its own stage's pair on create.
+        if (key === 'id' || readThrough.has(key) || STAGE_PCT_FIELDS.has(key)) continue
         oppPayload[key] = val
       }
       oppPayload.parent_lead = leadId
       oppPayload.project_stage = stageKeyOf(target)
-      oppPayload.probability_pct = probabilityMidpoint(target)
       oppPayload.lead_status = 'OPEN'
-      oppPayload.created_date = now
-      oppPayload.created_by = currentUserId()
-      oppPayload.modified_date = now
-      oppPayload.modified_by = currentUserId()
+
+      // ONE request. Creating the Opportunity converts the Lead and writes the
+      // conversion record in the same server transaction, and a second press
+      // is refused rather than making a second Opportunity — see
+      // backend/app/conversion.py. This used to be three requests, and the
+      // last one failing left a converted Lead behind a dialog that said
+      // "Nothing was changed".
+      //
+      // A move into Opportunities writes a conversion, not a transition, so
+      // the checks ticked by hand are recorded on its note instead.
+      oppPayload.conversion_note =
+        (isSkip
+          ? `${leadId} moved directly from Stage ${currentStage} to Opportunity Stage ${target}, skipping its own remaining stages — ${reason.trim()}`
+          : `${leadId} moved to Opportunities from Stage ${currentStage}.`) +
+        (attestations.codes.length ? ` Confirmed by hand: ${attestations.codes.join(', ')}.` : '')
 
       const createdOpp = await api.post<Record<string, unknown>>('/opportunities', oppPayload)
-      const opportunityId = String(createdOpp.data.id)
-
-      await api.put(`/leads/${leadId}`, {
-        lead_status: 'CONVERTED',
-        modified_date: now,
-        modified_by: currentUserId(),
-      })
-
-      const copiedFields = Object.keys(oppPayload).filter(
-        (k) => !['parent_lead', 'lead_status', 'project_stage', 'probability_pct'].includes(k)
-      )
-
-      await api.post('/conversions', {
-        source_module: 'leads',
-        source_id: leadId,
-        target_module: 'opportunities',
-        target_id: opportunityId,
-        actor: currentUserId(),
-        timestamp: now,
-        copied_fields: copiedFields,
-        note: isSkip
-          ? `${leadId} moved directly from Stage ${currentStage} to Opportunity Stage ${target}, skipping its own remaining stages — ${reason.trim()}`
-          : `${leadId} moved to Opportunities from Stage ${currentStage}.`,
-      })
-
-
-      return opportunityId
+      return String(createdOpp.data.id)
     },
     onSuccess: async (opportunityId) => {
       await Promise.all([
@@ -177,7 +205,7 @@ export function LeadAdvanceDialog({
         queryClient.invalidateQueries({ queryKey: ['list', 'opportunities'] }),
         queryClient.invalidateQueries({ queryKey: ['collection', 'opportunities'] }),
       ])
-      handleClose()
+      reset()
       // Straight to the new record — no intermediate "here's what happened"
       // screen. The effects list below the Move to picker already said what
       // would happen, before the click that just fired it.
@@ -187,13 +215,26 @@ export function LeadAdvanceDialog({
 
   const pending = advanceWithinLeads.isPending || moveToOpportunity.isPending
   const isError = advanceWithinLeads.isError || moveToOpportunity.isError
+  const alreadyConverted = alreadyConvertedOf(moveToOpportunity.error)
 
-  const handleClose = () => {
-    if (pending) return
+  // The unconditional close: called once a mutation has actually settled, so
+  // there is nothing left to guard against.
+  const reset = () => {
     setReason('')
     advanceWithinLeads.reset()
     moveToOpportunity.reset()
     onClose()
+  }
+
+  // The guarded close: for the user dismissing the dialog themselves (Cancel,
+  // Escape, the backdrop) while a save may still be in flight. Read fresh at
+  // call time via `pending`, which DOM/Radix rebinds on every render — unlike
+  // a callback closed over inside a mutation's onSuccess, which would freeze
+  // on whatever `pending` was when that render fired the mutation (always
+  // `true`), and so would never actually close the dialog after a save.
+  const handleClose = () => {
+    if (pending) return
+    reset()
   }
 
   const confirm = () => {
@@ -205,17 +246,19 @@ export function LeadAdvanceDialog({
     <Dialog open={open} onOpenChange={(next) => !next && handleClose()}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ArrowRightIcon className="size-4" />
-            Advance {leadId}
-          </DialogTitle>
-          <DialogDescription>
-            Stages are states, not steps — move to any stage below, in Leads or straight into
-            Opportunities, as long as it's explained.
-          </DialogDescription>
+          <DialogTitle>Move {displayNameOf(values)} to another stage</DialogTitle>
+          <DialogDescription className="sr-only">Choose the stage this lead moves to.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 text-sm">
+          <Bullets
+            className="text-muted-foreground"
+            items={[
+              'You can move forward, skip ahead or go back.',
+              'Skipping or going back needs a short reason.',
+              OPPORTUNITY_ENTRY && `Moving to ${OPPORTUNITY_ENTRY.name} turns it into an Opportunity.`,
+            ]}
+          />
           <div className="flex items-center gap-3">
             <span className="text-muted-foreground">Move to</span>
             <Select value={String(target)} onValueChange={(v) => setTarget(Number(v))}>
@@ -234,15 +277,13 @@ export function LeadAdvanceDialog({
 
           {isSkip && (
             <p className="text-xs text-amber-700 dark:text-amber-400">
-              Skips Stage{currentStage + 1 === target - 1 ? '' : 's'}{' '}
-              {Array.from({ length: target - currentStage - 1 }, (_, i) => currentStage + 1 + i).join(', ')}.
-              Recorded as a skip — a reason is required.
+              Skipping {stageList(Array.from({ length: target - currentStage - 1 }, (_, i) => currentStage + 1 + i))}.
+              Add a reason below.
             </p>
           )}
           {isReversal && (
             <p className="text-xs text-amber-700 dark:text-amber-400">
-              Moves backward from Stage {currentStage}. Recorded as a reversal — a reason is
-              required.
+              Moving back from Stage {currentStage}. Add a reason below.
             </p>
           )}
 
@@ -255,52 +296,91 @@ export function LeadAdvanceDialog({
             />
           )}
 
-          {crossesToOpportunities ? (
-            <ul className="space-y-2 rounded-md border p-3">
-              <Effect>
-                An Opportunity is created (OPP-00001 format), opening at Stage {target} —{' '}
-                {targetOption?.name}.
-              </Effect>
-              <Effect>
-                End Client, Segment, Opportunity Name and the rest of this lead&apos;s identity are
-                not copied — the Opportunity reads them from {leadId} from now on.
-              </Effect>
-              <Effect>{leadId} becomes read-only and its status becomes Converted.</Effect>
-              <Effect>A conversion record is written for the audit trail.</Effect>
-            </ul>
-          ) : (
-            <ReadinessPanel module="leads" values={values} from={currentStage} to={target} />
+          {crossesToOpportunities && (
+            <div className="rounded-md border px-3 py-1.5">
+              <p className="font-medium">When you move it:</p>
+              <Bullets
+                items={[
+                  `An Opportunity opens at Stage ${target} – ${targetOption?.name ?? ''}.`,
+                  "It shows this lead's client and project details. Nothing to re-enter.",
+                  `This lead is locked and marked ${labelForValue(fieldOf('leads', 'lead_status')?.picklist, 'CONVERTED')}.`,
+                  'The move is kept in History.',
+                ]}
+              />
+            </div>
+          )}
+          {/* Shown for the cross into Opportunities too: leaving Stage 3 and
+              entering Stage 4 have criteria like any other move, and that was
+              the one move that showed none of them. */}
+          <ReadinessPanel
+              module="leads"
+              values={values}
+              from={currentStage}
+              to={target}
+              attested={attestations.attested}
+              onToggleAttested={attestations.toggle}
+              onJumpToField={
+                onJumpToField &&
+                ((field) => {
+                  handleClose()
+                  onJumpToField(field)
+                })
+              }
+            />
+          {attestations.outstanding.length > 0 && (
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Tick the {attestations.outstanding.length} remaining check
+              {attestations.outstanding.length === 1 ? '' : 's'} above to continue.
+            </p>
           )}
         </div>
 
-        {isError && (
-          <p className="text-sm text-destructive">The move failed — nothing was changed.</p>
+        {/* Already converted — by an earlier press, or on another screen — is
+            not a failure to retry: the dialog offers the record it became
+            instead of Confirm. */}
+        {alreadyConverted ? (
+          <p className="text-sm text-destructive">{alreadyConverted.message}</p>
+        ) : (
+          isError && (
+            <ErrorNotice
+              error={advanceWithinLeads.error ?? moveToOpportunity.error}
+              fallback="The stage wasn't changed. Try again."
+              suffix="The stage wasn't changed."
+            />
+          )
         )}
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={handleClose} disabled={pending}>
-            Cancel
+            {alreadyConverted ? 'Close' : 'Cancel'}
           </Button>
-          <Button type="button" onClick={confirm} disabled={!canConfirm || pending}>
-            {pending
-              ? crossesToOpportunities
-                ? 'Moving…'
-                : 'Advancing…'
-              : crossesToOpportunities
-                ? 'Yes, move to Opportunities'
-                : `Yes, advance to Stage ${target}`}
-          </Button>
+          {alreadyConverted ? (
+            alreadyConverted.target_module &&
+            alreadyConverted.target_id && (
+              <Button
+                type="button"
+                onClick={() => {
+                  const path = `/${alreadyConverted.target_module}/${alreadyConverted.target_id}`
+                  reset()
+                  navigate(path)
+                }}
+              >
+                Open the {alreadyConverted.target_module === 'deals' ? 'Deal' : 'Opportunity'}
+              </Button>
+            )
+          ) : (
+            <Button type="button" onClick={confirm} disabled={!canConfirm || pending}>
+              {pending
+                ? crossesToOpportunities
+                  ? 'Moving…'
+                  : 'Updating…'
+                : crossesToOpportunities
+                  ? `Move to Opportunities, Stage ${target}`
+                  : `Move to Stage ${target}`}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
-
-function Effect({ children }: { children: React.ReactNode }) {
-  return (
-    <li className="flex items-start gap-2 text-sm">
-      <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-muted-foreground" />
-      <span>{children}</span>
-    </li>
   )
 }

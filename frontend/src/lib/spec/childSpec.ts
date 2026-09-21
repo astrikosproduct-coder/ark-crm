@@ -28,6 +28,15 @@ export interface ResolvedChildSpec {
   add_label: string
   row_noun: string
   columns: ResolvedChildColumn[]
+  /**
+   * Columns of the same row that are captured on another module's screen —
+   * see ChildSpec.captured_elsewhere. Resolved exactly like `columns`, and
+   * kept apart from them: this table does not draw them, and the screen that
+   * does asks for them by name.
+   */
+  elsewhereColumns: ResolvedChildColumn[]
+  row_defaults?: ChildSpec['row_defaults']
+  total_columns: string[]
   /** Column refs that name a field the register no longer carries. Dropped. */
   orphanedColumns: string[]
 }
@@ -94,6 +103,13 @@ function resolve(field: FieldSpec): ResolvedChildSpec | undefined {
     })
   }
 
+  // Split AFTER resolution, so a column captured elsewhere is resolved by the
+  // same rules and keeps its register requirement — it is the same column of
+  // the same row, asked for on a different screen.
+  const elsewhere = new Set(spec.captured_elsewhere ?? [])
+  const here = columns.filter((c) => !elsewhere.has(c.field.api_name))
+  const elsewhereColumns = columns.filter((c) => elsewhere.has(c.field.api_name))
+
   return {
     origin: spec.origin,
     basis: spec.basis,
@@ -101,7 +117,10 @@ function resolve(field: FieldSpec): ResolvedChildSpec | undefined {
     child_module: spec.child_module,
     add_label: spec.add_label ?? 'Add row',
     row_noun: spec.row_noun ?? 'row',
-    columns,
+    columns: here,
+    elsewhereColumns,
+    row_defaults: spec.row_defaults,
+    total_columns: spec.total_columns ?? [],
     orphanedColumns,
   }
 }

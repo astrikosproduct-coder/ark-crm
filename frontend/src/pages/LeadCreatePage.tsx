@@ -1,11 +1,10 @@
-import { currentUserId } from '@/lib/currentUser'
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { PageLayout } from '@/components/layout/PageLayout'
 import { LeadAccountFieldSync, backfillAccountFieldsFromLead } from '@/components/leads/LeadAccountFieldSync'
 import { RecordEditor } from '@/components/record/RecordEditor'
-import { probabilityMidpoint, sectionForStage, stageKeyOf } from '@/lib/pipeline'
+import { sectionForStage, stageKeyOf } from '@/lib/pipeline'
 import type { Values } from '@/lib/spec/conditions'
 
 const MODULE = 'leads'
@@ -43,7 +42,13 @@ export function LeadCreatePage() {
     () => ({
       project_stage: stageKeyOf(0),
       lead_status: 'OPEN',
-      probability_pct: probabilityMidpoint(0),
+      // Defaults the user can change (14 Sep 2026). The server applies the
+      // same three to a lead created any other way — from a registration, or
+      // an expansion off a Deal — see create_lead in app/routers/leads.py.
+      currency: 'USD',
+      is_primary_pursuit: true,
+      // Probability %/Progression % are NOT seeded here — the server gives
+      // the Lead its stage's pair when it is created (app/progression.py).
     }),
     []
   )
@@ -55,7 +60,6 @@ export function LeadCreatePage() {
           New lead
         </>
       }
-      subtitle="Stage 0 — Connect. Later stages fill in as the lead advances."
       tabs={[
         {
           key: 'new',
@@ -75,10 +79,6 @@ export function LeadCreatePage() {
               afterSave={backfillAccountFieldsFromLead}
               saveLabel="Create lead"
               stamp={{
-                created_date: new Date().toISOString(),
-                created_by: currentUserId(),
-                modified_date: new Date().toISOString(),
-                modified_by: currentUserId(),
               }}
               onSaved={(id) => navigate(`/leads/${id}`, { replace: true })}
               onCancel={() => navigate('/leads')}

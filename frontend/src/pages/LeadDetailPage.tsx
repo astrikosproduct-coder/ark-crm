@@ -1,22 +1,21 @@
-import { currentUserId } from '@/lib/currentUser'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowRightIcon, LockIcon, PlusIcon } from 'lucide-react'
+import { ArrowRightIcon, LockIcon, Trash2Icon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { RecordListView } from '@/components/list/RecordListView'
-import { contactListCell } from '@/components/contacts/contactListCell'
+import { DeleteLeadDialog } from '@/components/leads/DeleteLeadDialog'
 import { backfillContactsFromDemoAttendees } from '@/components/leads/DemoAttendeeSync'
 import { LeadAdvanceDialog } from '@/components/leads/LeadAdvanceDialog'
 import { LeadAccountFieldSync, backfillAccountFieldsFromLead } from '@/components/leads/LeadAccountFieldSync'
 import { PipelineRecordPage } from '@/components/pipeline/PipelineRecordPage'
+import { PipelineRelated } from '@/components/pipeline/PipelineRelated'
+import { PursuitBanner } from '@/components/pursuits/PursuitBanner'
 import type { PipelineModuleSpec, PipelineRecordContext } from '@/components/pipeline/types'
-import { ComingSoon } from '@/pages/ComingSoon'
 import { api } from '@/lib/api'
-import { date as fmtDate, money } from '@/lib/format'
+import { date as fmtDate } from '@/lib/format'
 import { stageKeyOf, stagesFor } from '@/lib/pipeline'
-import { displayNameOf } from '@/lib/spec'
+import { localAmount, revenueOf } from '@/lib/revenue'
 import type { Values } from '@/lib/spec/conditions'
 
 const MODULE = 'leads'
@@ -76,18 +75,20 @@ function useConvertedOpportunity(ctx: PipelineRecordContext): string | undefined
 }
 
 function LeadHeader({ ctx }: { ctx: PipelineRecordContext }) {
-  const tcv = ctx.values?.total_value_tcv ?? ctx.values?.estimated_value
-  const probability = ctx.values?.probability_pct
+  // Estimated Value and nothing else — this read total_value_tcv first, a
+  // field a Lead does not carry. One revenue source per module; see lib/revenue.ts.
+  const revenue = ctx.values ? revenueOf(ctx.values) : null
   const closeMonth = ctx.values?.expected_close_month
 
+  // Probability % is NOT shown here — it is a field in the record's header
+  // section, set from the stage. See StageScopedFields.tsx.
   return (
     <>
-      {typeof tcv === 'number' && (
+      {revenue?.value != null && (
         <span>
-          {ctx.values?.total_value_tcv ? 'TCV' : 'Est. value'}: ${money(tcv)}
+          {revenue.label}: {localAmount(revenue)}
         </span>
       )}
-      {typeof probability === 'number' && <span>Probability: {probability}%</span>}
       {typeof closeMonth === 'string' && closeMonth && <span>Close: {fmtDate(closeMonth)}</span>}
     </>
   )
@@ -109,27 +110,39 @@ function LeadActions({ ctx }: { ctx: PipelineRecordContext }) {
   const dealId = useConvertedDeal(ctx)
   const oppId = useConvertedOpportunity(ctx)
   const [advanceOpen, setAdvanceOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   return (
     <>
+      {/* Offered on every lead; the dialog says what, if anything, is in the
+          way — a converted lead has its Opportunity or Deal. */}
+      <Button variant="outline" onClick={() => setDeleting(true)} disabled={ctx.isLoading || !ctx.values}>
+        <Trash2Icon className="size-4" />
+        Delete
+      </Button>
+      <DeleteLeadDialog
+        open={deleting}
+        leadId={ctx.id}
+        onClose={() => setDeleting(false)}
+        onDeleted={() => navigate('/leads', { replace: true })}
+      />
       {ctx.readOnly ? (
         dealId ? (
           <Button variant="outline" onClick={() => navigate(`/deals/${dealId}`)}>
             <ArrowRightIcon className="size-4" />
-            Go to {dealId}
+            Go to Deal
           </Button>
         ) : (
           oppId && (
             <Button variant="outline" onClick={() => navigate(`/opportunities/${oppId}`)}>
               <ArrowRightIcon className="size-4" />
-              Go to {oppId}
+              Go to Opportunity
             </Button>
           )
         )
       ) : (
         <Button onClick={() => setAdvanceOpen(true)} disabled={ctx.isLoading || !ctx.values}>
-          <ArrowRightIcon className="size-4" />
-          Advance
+          Update Stage
         </Button>
       )}
 
@@ -145,6 +158,7 @@ function LeadActions({ ctx }: { ctx: PipelineRecordContext }) {
           currentStage={ctx.currentStage}
           onClose={() => setAdvanceOpen(false)}
           onAdvancedWithinLeads={(stage) => ctx.selectStage(stage)}
+          onJumpToField={ctx.jumpToField}
         />
       )}
     </>
@@ -152,6 +166,15 @@ function LeadActions({ ctx }: { ctx: PipelineRecordContext }) {
 }
 
 function LeadBanner({ ctx }: { ctx: PipelineRecordContext }) {
+  return (
+    <>
+      <ConvertedBanner ctx={ctx} />
+      <PursuitBanner ctx={ctx} />
+    </>
+  )
+}
+
+function ConvertedBanner({ ctx }: { ctx: PipelineRecordContext }) {
   const navigate = useNavigate()
   const dealId = useConvertedDeal(ctx)
   const oppId = useConvertedOpportunity(ctx)
@@ -181,7 +204,7 @@ function LeadBanner({ ctx }: { ctx: PipelineRecordContext }) {
               className="underline underline-offset-2"
               onClick={() => navigate(`/${target.path}/${target.id}`)}
             >
-              View {target.id}
+              View the {target.module}
             </button>
           </>
         )}
@@ -190,46 +213,12 @@ function LeadBanner({ ctx }: { ctx: PipelineRecordContext }) {
   )
 }
 
+// No module-specific children any more: Quotes has its own named section in
+// PipelineRelated and the deal registration is built, so the catch-all
+// "Quotes and the deal registration" placeholder the tab used to end with said
+// less than the sections above it now do.
 function LeadRelated({ ctx }: { ctx: PipelineRecordContext }) {
-  const navigate = useNavigate()
-  if (!ctx.values) return null
-
-  const endClientId = typeof ctx.values.end_client === 'string' ? ctx.values.end_client : undefined
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          {ctx.endClient ? `Contacts at ${displayNameOf(ctx.endClient)}.` : 'No End Client set yet.'}
-        </p>
-        {endClientId && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate(`/contacts/new?account=${endClientId}`)}
-          >
-            <PlusIcon className="size-4" />
-            Add contact
-          </Button>
-        )}
-      </div>
-      {endClientId ? (
-        <RecordListView
-          module="contacts"
-          collection="contacts"
-          basePath="/contacts"
-          filter={{ account: endClientId }}
-          hiddenColumns={['account']}
-          renderCell={contactListCell}
-          pageSize={10}
-          emptyMessage="No contacts at this account yet."
-        />
-      ) : (
-        <p className="text-sm text-muted-foreground">No End Client set yet.</p>
-      )}
-      <ComingSoon label="Quotes and the deal registration" />
-    </div>
-  )
+  return <PipelineRelated ctx={ctx} />
 }
 
 export const leadsPipeline: PipelineModuleSpec = {
@@ -239,13 +228,12 @@ export const leadsPipeline: PipelineModuleSpec = {
   noun: 'lead',
   stages: LEADS_STAGES,
   stageKeyOf,
-  writesProbability: true,
   skipReasonField: 'stage_skip_reason',
   reversalReasonField: 'stage_reversal_reason',
-  stamp: () => ({ modified_date: new Date().toISOString(), modified_by: currentUserId() }),
-  detailsHeading: 'Cross-cutting and system fields',
+  recordHeading: 'Lead Information',
+  detailsHeading: 'Aging and system fields',
   showProbabilityBand: true,
-  tabs: ['current', 'details', 'history', 'related'],
+  tabs: ['current', 'details', 'related', 'history'],
   isReadOnly: isConverted,
   Header: LeadHeader,
   Actions: LeadActions,

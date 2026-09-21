@@ -98,8 +98,8 @@ step(
     f"{reason['anchor_position'] if reason else '?'} span={reason['layout_span'] if reason else '?'}",
 )
 step(
-    "…while still filed under CROSS-CUTTING in the register",
-    reason is not None and reason["section"] == "CROSS-CUTTING",
+    "…while still filed under Aging in the register",
+    reason is not None and reason["section"] == "Aging",
     f"section={reason['section'] if reason else '?'} — section says WHAT KIND, "
     f"anchor says WHERE. They disagree on purpose.",
 )

@@ -1,6 +1,6 @@
 import { useMemo, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
 import type { ListRow } from '@/components/list/ListCell'
 import { api } from '@/lib/api'
@@ -13,6 +13,12 @@ import { cn } from '@/lib/utils'
 /**
  * The list-page pipeline board, shared by Leads, Opportunities and Deals.
  *
+ * NO ARITHMETIC COMMENTARY ON THE BOARD (18 Sep 2026). Column headers show the
+ * stage, the count and the total. They no longer show how many records the
+ * total skipped or why, and no amount anywhere is struck through. Those were
+ * notes to ourselves about data quality wearing the clothes of product copy.
+ * The rules behind the totals are unchanged — see lib/revenue.ts.
+ *
  * A stage's column always comes from stagesFor(module) — the 14-stage-review
  * split's own range for that module (Leads 0-3, Opportunities 4-6, Deals
  * 7-9) — never from a module's pre-split PipelineModuleSpec.stages, which the
@@ -21,8 +27,8 @@ import { cn } from '@/lib/utils'
  * After the stages come the TERMINAL status columns — Closed Lost and
  * Converted, as spec/extensions.json `kanban` declares them. A finished record
  * goes there whatever stage it reached, so a Lead converted at Stage 3 is in
- * Converted, not still counted as a Stage 3 card. Their value is shown muted
- * and marked "not counted", because the revenue rule never counted it.
+ * Converted, not still counted as a Stage 3 card. Their total is shown muted,
+ * because the pipeline figure above covers open work.
  *
  * Under each stage name sits that stage's revenue in USD — the sum of what the
  * server says each row contributes (row.revenue, see lib/revenue.ts), so only
@@ -49,6 +55,24 @@ export interface PipelineKanbanBoardProps {
   nounPlural?: string
   /** A card's contents. The board supplies the clickable wrapper. */
   renderCard: (row: ListRow) => ReactNode
+  /** The shared filter bar's parameters, WITHOUT the stage — the columns are the stages. */
+  filter?: Record<string, string | string[]>
+}
+
+/**
+ * Does the current filter let this status through? Reads the two forms the list
+ * contract uses — repeated `<field>` is "any of", `<field>_ne` is "none of"
+ * (backend/app/list_query.py) — and says yes when neither is present.
+ */
+function statusAdmits(
+  filter: Record<string, string | string[]> | undefined,
+  field: string
+): (key: string) => boolean {
+  const list = (value: string | string[] | undefined) =>
+    value === undefined ? null : Array.isArray(value) ? value : [value]
+  const only = list(filter?.[field])
+  const not = list(filter?.[`${field}_ne`])
+  return (key) => (only ? only.includes(key) : true) && (not ? !not.includes(key) : true)
 }
 
 export function PipelineKanbanBoard({
@@ -59,26 +83,40 @@ export function PipelineKanbanBoard({
   noun,
   nounPlural,
   renderCard,
+  filter,
 }: PipelineKanbanBoardProps) {
   const stages = stagesFor(module)
+  const filtered = Object.keys(filter ?? {}).length > 0
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['collection', collection],
-    queryFn: async () => (await api.get<ListRow[]>(`/${collection}`)).data,
+  // Same endpoint and the same parameters as the List tab, so the two views
+  // can never disagree about which pursuits a filter matches. Under the
+  // 'collection' key, so every save that invalidates the collection refreshes
+  // the board whatever it is filtered to.
+  const { data, isLoading, isError, isPlaceholderData } = useQuery({
+    queryKey: ['collection', collection, filter ?? {}],
+    queryFn: async () => (await api.get<ListRow[]>(`/${collection}`, { params: filter })).data,
+    placeholderData: keepPreviousData,
   })
 
   // The terminal columns this module can show: a status the sidecar calls
-  // terminal AND the module actually offers. exclude_options already keeps
-  // POC/Pilot Deal off Leads and Opportunities, so nobody is given a column
-  // their records can never enter.
+  // terminal, the module actually offers, AND the current filter admits.
+  // exclude_options already keeps POC/Pilot Deal off Leads and Opportunities,
+  // so nobody is given a column their records can never enter.
+  //
+  // The third test is what keeps the board honest under a scope: with "Open
+  // leads" chosen, the request carries lead_status_ne=CONVERTED, so a Converted
+  // column could only ever draw empty — an empty column reads as "nothing has
+  // converted", which is the opposite of true. Read off the filter itself
+  // rather than passed in again, because the filter IS the answer.
   const statusField = fieldOf(module, kanbanBoard.status_field)
   const terminalColumns = useMemo(() => {
     if (!statusField) return []
     const offered = new Set(fieldOptions(statusField).map((option) => option.key))
-    return kanbanBoard.terminal_statuses
-      .filter((key) => offered.has(key))
+    const admits = statusAdmits(filter, statusField.api_name)
+    return (kanbanBoard.terminal_statuses_by_module?.[module] ?? kanbanBoard.terminal_statuses)
+      .filter((key) => offered.has(key) && admits(key))
       .map((key) => ({ key, label: labelForValue(statusField.picklist, key) }))
-  }, [statusField])
+  }, [statusField, module, filter])
 
   // Status first, stage second. A finished pursuit sits in one place instead of
   // being parked in whichever stage it happened to reach — which also ends the
@@ -105,12 +143,11 @@ export function PipelineKanbanBoard({
   if (isError) return <p className="py-6 text-sm text-destructive">Could not load {collection}</p>
 
   return (
-    <div className="flex gap-3 overflow-x-auto py-3">
+    <div className={cn('flex gap-3 overflow-x-auto py-3', isPlaceholderData && 'opacity-60')}>
       {stages.map((stage) => {
         const rows = byStage.get(stage.stage) ?? []
         const band = stage.probability_pct !== null ? `${stage.probability_pct}%` : null
         const total = stageTotal(rows)
-        const flagged = total.noValue + total.noCurrency + total.noFxRate
         return (
           <div key={stage.stage} className="bg-card w-64 shrink-0 rounded-lg shadow-sm">
             <div className="border-b px-3 py-2">
@@ -133,24 +170,19 @@ export function PipelineKanbanBoard({
                   </span>
                 )}
               </p>
+              {/* The total, and nothing beside it. A running tally of what the
+                  sum left out ("2 excluded · 3 incomplete") is bookkeeping about
+                  our own data quality, and a column header is not where a
+                  salesperson should meet it. What the total covers is still one
+                  hover away. */}
               <p
-                className="mt-0.5 flex items-baseline gap-1.5 text-base font-semibold tabular-nums"
+                className="mt-0.5 text-base font-semibold tabular-nums"
                 title={stageTotalExplained(total)}
               >
                 {usd(total.usd)}
-                {(total.secondary.count > 0 || flagged > 0) && (
-                  <span className="text-muted-foreground text-xs font-normal">
-                    {[
-                      total.secondary.count > 0 && `${total.secondary.count} excluded`,
-                      flagged > 0 && `${flagged} incomplete`,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </span>
-                )}
               </p>
             </div>
-            <CardList rows={rows} basePath={basePath} renderCard={renderCard} />
+            <CardList rows={rows} basePath={basePath} renderCard={renderCard} filtered={filtered} />
           </div>
         )
       })}
@@ -175,14 +207,13 @@ export function PipelineKanbanBoard({
                 </span>
               </p>
               <p
-                className="text-muted-foreground mt-0.5 flex items-baseline gap-1.5 text-base font-semibold tabular-nums"
-                title="Finished pursuits. Their value is shown for reference and is not counted toward pipeline — only open and on-hold primary pursuits are."
+                className="text-muted-foreground mt-0.5 text-base font-semibold tabular-nums"
+                title="Finished pursuits. The pipeline total covers open work."
               >
                 {usd(parked)}
-                <span className="text-xs font-normal">not counted</span>
               </p>
             </div>
-            <CardList rows={rows} basePath={basePath} renderCard={renderCard} />
+            <CardList rows={rows} basePath={basePath} renderCard={renderCard} filtered={filtered} />
           </div>
         )
       })}
@@ -195,33 +226,40 @@ function CardList({
   rows,
   basePath,
   renderCard,
+  filtered,
 }: {
   rows: ListRow[]
   basePath: string
   renderCard: (row: ListRow) => ReactNode
+  filtered: boolean
 }) {
   const navigate = useNavigate()
   return (
     <div className="space-y-2 p-2">
-      {rows.length === 0 && <p className="px-1 py-4 text-center text-xs text-muted-foreground">Empty</p>}
+      {rows.length === 0 && (
+        <p className="px-1 py-4 text-center text-xs text-muted-foreground">{filtered ? 'No matches' : 'Empty'}</p>
+      )}
       {rows.map((row) => (
         <button
           key={String(row.id)}
           type="button"
           onClick={() => navigate(`${basePath}/${row.id}`)}
           className={cn(
-            'bg-raised block w-full rounded-lg p-3 text-left text-sm hover:bg-accent',
+            'bg-raised block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-accent',
             // Overall RAG, as a stripe down the left edge — see lib/rag.ts.
             ragAccent(row)
           )}
         >
           {renderCard(row)}
+          {/* "Secondary" is the business's own word for this pursuit's place in
+              its group, and it stays. "· not counted" did not: it explained our
+              arithmetic rather than the deal. */}
           {row.pursuit_group && !row.is_primary_pursuit ? (
             <p
-              className="mt-1.5 inline-block rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground"
-              title="Same project as another pursuit. Its value is not counted in this stage's total."
+              className="mt-1 inline-block rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground"
+              title="Another partner is pursuing the same project, and theirs is the lead pursuit."
             >
-              {row.pursuit_primary ? `Secondary of ${String(row.pursuit_primary)}` : 'Secondary — no primary yet'}
+              Secondary
             </p>
           ) : null}
         </button>

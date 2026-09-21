@@ -3410,3 +3410,40 @@ class PursuitGroup(Base):
         String(20), ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True
     )
     modified_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
+
+
+class Feedback(Base):
+    """
+    One piece of feedback from anyone with a role, read by DEVELOPER only.
+
+    Written from the top bar's Feedback button (UX roadmap item 2, 17 Sep
+    2026). `category` and `status` are keys of the `feedback__category` and
+    `feedback__status` picklists. `created_by` / `created_at` and `read_by` /
+    `read_at` are stamped by the server — never taken from a request body.
+    `page_path` and `record_ref` say where the person was when they wrote it.
+    No attachment: file upload is out of scope. Migration 0032.
+    """
+
+    __tablename__ = "feedback"
+
+    feedback_id: Mapped[str] = mapped_column(String(20), primary_key=True)
+    category: Mapped[str] = mapped_column(String(40), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    page_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    record_ref: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="NEW", server_default="NEW", index=True)
+    created_by: Mapped[str] = mapped_column(
+        String(20), ForeignKey("users.user_id", ondelete="RESTRICT"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=now_utc, index=True)
+    read_by: Mapped[str | None] = mapped_column(
+        String(20), ForeignKey("users.user_id", ondelete="RESTRICT"), nullable=True
+    )
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=now_utc, onupdate=now_utc
+    )
+
+    __table_args__ = (
+        CheckConstraint("length(btrim(message)) > 0", name="ck_feedback_message_not_blank"),
+    )

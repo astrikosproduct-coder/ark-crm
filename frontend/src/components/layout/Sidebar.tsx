@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { BoxesIcon, ChevronRightIcon } from 'lucide-react'
+import { BoxesIcon, ChevronRightIcon, PanelLeftCloseIcon, PanelLeftOpenIcon } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -13,18 +13,18 @@ import {
   type ModuleDef,
 } from '@/lib/modules'
 import { useSidebarStore } from '@/store/useSidebarStore'
-import { useAuth } from '@/lib/auth'
+import { useIsDeveloper } from '@/lib/feedback'
 import { cn } from '@/lib/utils'
 
-/** roles.role_id of the seeded Developer role — see backend seed.py. */
-const DEVELOPER_ROLE = 'DEVELOPER'
 
 const moduleByKey = (key: string): ModuleDef | undefined => MODULES.find((m) => m.key === key)
 
 /**
- * One nav row. The active item is a full-width filled pill with a brighter icon
- * and white label — ARK_brand_UI.md §5a.1. Collapsed, the row is the icon alone
- * and the label moves into a tooltip so nothing becomes unreachable.
+ * One nav row. The active item is a FLOATING pill — inset from both edges of
+ * the nav, rounded, the accent at 15% behind fully opaque accent text. It was a
+ * full-width filled band, which read as a selected row in a table rather than a
+ * place in a menu. Collapsed, the row is the icon alone and the label moves into
+ * a tooltip so nothing becomes unreachable.
  */
 function NavItem({
   module,
@@ -40,15 +40,27 @@ function NavItem({
       to={`/${module.key}`}
       className={({ isActive }) =>
         cn(
-          'text-label group flex w-full items-center gap-2.5 rounded-md py-2 font-medium transition-colors',
-          collapsed ? 'justify-center px-0' : indent ? 'pr-3 pl-8' : 'px-3',
+          // Inset from both edges, so the active state reads as a pill FLOATING
+          // in the nav rather than a band spanning it — mx-2 is what makes it
+          // float, and without it the accent tint would run edge to edge and
+          // look like a selected table row.
+          'text-label group flex items-center gap-2.5 rounded-lg py-2 font-medium transition-colors',
+          // The rail already has its own px-2; a second inset there would leave
+          // the pill narrower than the icon it wraps.
+          collapsed ? 'mx-0 justify-center px-0' : indent ? 'mx-2 pr-3 pl-6' : 'mx-2 px-3',
           isActive
-            ? 'bg-secondary text-secondary-foreground'
+            ? // BRIGHTER, NOT BLUER. This was the accent tint with accent-
+              // coloured text, and a module name turning blue read as a link
+              // rather than as the page you are on — the nav was the only place
+              // in the app where being selected changed a word's hue. Selection
+              // is now the same ink as everything else, just at full strength
+              // against the muted grey of every other row, on a neutral pill.
+              'bg-accent text-foreground'
             : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
         )
       }
     >
-      <module.icon className="size-4.5 shrink-0 group-aria-[current=page]:text-foreground" />
+      <module.icon className="size-4.5 shrink-0" />
       {!collapsed && <span className="truncate">{module.label}</span>}
     </NavLink>
   )
@@ -65,6 +77,51 @@ function NavItem({
       </TooltipTrigger>
       <TooltipContent side="right">{module.label}</TooltipContent>
     </Tooltip>
+  )
+}
+
+/**
+ * The nav's own header: brand mark, wordmark, and the control that collapses
+ * the nav to an icon rail. It sits here rather than in the top bar because the
+ * reference puts it here — level with the header, inside the nav's own width,
+ * with the collapse control at the nav's right edge (ARK_brand_UI.md §2.2).
+ * Collapsed, the wordmark goes and the two controls stack.
+ */
+function SidebarBrand({ collapsed }: { collapsed: boolean }) {
+  const toggleCollapsed = useSidebarStore((s) => s.toggleCollapsed)
+  const Icon = collapsed ? PanelLeftOpenIcon : PanelLeftCloseIcon
+  const label = collapsed ? 'Show menu' : 'Hide menu'
+
+  return (
+    <div
+      className={cn(
+        'bg-card sticky top-0 z-10 mb-2 flex shrink-0 items-center',
+        collapsed ? 'flex-col justify-center gap-1 py-2' : 'h-14 gap-2 px-3'
+      )}
+    >
+      <img
+        src="/Astrikos%20logo.png"
+        alt=""
+        aria-hidden
+        className="size-8 shrink-0 rounded-md object-contain"
+      />
+      {!collapsed && (
+        <span className="text-foreground truncate text-base font-bold tracking-tight">ARK CRM</span>
+      )}
+      <button
+        type="button"
+        onClick={toggleCollapsed}
+        aria-label={label}
+        aria-expanded={!collapsed}
+        title={label}
+        className={cn(
+          'text-muted-foreground hover:bg-accent hover:text-accent-foreground flex size-8 shrink-0 items-center justify-center rounded-md transition-colors',
+          !collapsed && 'ml-auto'
+        )}
+      >
+        <Icon className="size-4.5" />
+      </button>
+    </div>
   )
 }
 
@@ -126,8 +183,7 @@ function NavGroup({
  */
 export function Sidebar() {
   const collapsed = useSidebarStore((s) => s.collapsed)
-  const { user } = useAuth()
-  const isDeveloper = user?.roles.includes(DEVELOPER_ROLE) ?? false
+  const isDeveloper = useIsDeveloper()
 
   const top = SIDEBAR_TOP.map(moduleByKey).filter((m): m is ModuleDef => Boolean(m))
   const bottom = SIDEBAR_BOTTOM.map(moduleByKey).filter((m): m is ModuleDef => Boolean(m))
@@ -142,12 +198,21 @@ export function Sidebar() {
   )
 
   return (
+    // Sticky from the very top rather than under the header: the reference runs
+    // the nav the full height of the window with the brand mark inside it, and
+    // starts the header beside it — see AppShell. The document still scrolls as
+    // one piece, so this holds its own position against that scroll instead of
+    // being handed a clipped box to scroll internally. It gets its own vertical
+    // scrollbar for a nav list taller than the window; a short list just sits
+    // there unscrolled.
     <nav
       className={cn(
-        'border-border bg-background flex shrink-0 flex-col gap-0.5 overflow-x-hidden overflow-y-auto border-r py-3 transition-[width]',
+        'bg-card sticky top-0 flex h-screen shrink-0 flex-col gap-0.5 overflow-x-hidden overflow-y-auto pb-3 transition-[width]',
         collapsed ? 'w-14 px-2' : 'w-56'
       )}
     >
+      <SidebarBrand collapsed={collapsed} />
+
       {top.map((mod) => (
         <NavItem key={mod.key} module={mod} collapsed={collapsed} />
       ))}
@@ -184,7 +249,9 @@ export function Sidebar() {
         pages — both remain reachable by typing their URL. That is deliberate
         and acceptable here: they read the spec JSON the browser already has
         and expose no business data. Anything that did would need a route
-        guard and, more to the point, a check on the API.
+        guard and, more to the point, a check on the API — which is exactly
+        what Feedback has: GET /api/feedback answers 403 to anyone who is not
+        a DEVELOPER (backend/app/auth.py::require_developer).
       */}
       {isDeveloper && (
         <div className={cn('mt-4 border-t pt-3', collapsed && 'mx-1')}>

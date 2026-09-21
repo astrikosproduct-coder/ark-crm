@@ -29,9 +29,9 @@ export function SpecHealthPage() {
           </h2>
           <p className="mt-0.5 mb-2 text-sm text-muted-foreground">{group.ask}</p>
 
-          <div className="overflow-x-auto rounded-lg border">
+          <div className="bg-card overflow-x-auto rounded-lg shadow-sm">
             <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-label">
+              <thead className="text-muted-foreground text-label [&>tr>th]:border-border [&>tr>th]:border-b">
                 <tr>
                   <th className="px-3 py-2 text-left font-medium">Module</th>
                   <th className="px-3 py-2 text-left font-medium">Field</th>

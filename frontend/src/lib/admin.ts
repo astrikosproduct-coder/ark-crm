@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '@/lib/api'
+import { refusalOf, type RefusalOptions } from '@/lib/errors'
 import { invalidateUserDirectory } from '@/mocks/userDirectory'
 
 /**
@@ -191,35 +192,12 @@ export function useReplaceUserRoles() {
 }
 
 /**
- * Pulls the server's message out of an axios error, falling back to its own.
- *
- * `fieldLabel` turns a validation error's api_name into the label on the form —
- * "Expected Timeline", never "expected_timeline".
+ * The server's refusal as ONE line of text, for places with room for a single
+ * string (a toast-like status, an input's error slot). Anywhere with room for
+ * more, render <ErrorNotice> instead — it keeps the bullets separate rather
+ * than running them together.
  */
-export function errorMessage(
-  error: unknown,
-  options: { fieldLabel?: (apiName: string) => string | undefined; fallback?: string } = {}
-): string {
-  const response = (error as { response?: { data?: { detail?: unknown } } })?.response
-  const detail = response?.data?.detail
-  if (typeof detail === 'string') return detail
-  // A rule refusal — {code, message} — carries its own sentence. Without this
-  // a withdrawal or delete dialog said "Request failed with status code 409".
-  if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
-    const message = (detail as { message?: unknown }).message
-    if (typeof message === 'string' && message) return message
-  }
-  if (Array.isArray(detail)) {
-    // FastAPI validation errors arrive as a list of {loc, msg}.
-    const first = detail[0] as { loc?: unknown[]; msg?: string } | undefined
-    if (first?.msg) {
-      const field = Array.isArray(first.loc) ? first.loc[first.loc.length - 1] : undefined
-      if (field === undefined || field === null) return first.msg
-      return `${options.fieldLabel?.(String(field)) ?? String(field)}: ${first.msg}`
-    }
-  }
-  // A status code with no sentence of its own — "Request failed with status
-  // code 500" — tells the person reading it nothing.
-  if (response) return options.fallback ?? 'The server could not complete the request.'
-  return error instanceof Error ? error.message : (options.fallback ?? 'Something went wrong')
+export function errorMessage(error: unknown, options: RefusalOptions = {}): string {
+  const refusal = refusalOf(error, options)
+  return [refusal.message, ...refusal.details].join(' ')
 }

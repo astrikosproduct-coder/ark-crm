@@ -70,6 +70,8 @@ export interface MetadataField {
   required: boolean
   sort_order: number | null
   max_length: number | null
+  min_value: number | null
+  max_value: number | null
   picklist_key: string | null
   lookup_target: string | null
   lookup_filter: string | null
@@ -155,8 +157,9 @@ export interface MetadataPicklist {
 export interface MetadataStage {
   stage: number
   name: string
-  prob_min: number | null
-  prob_max: number | null
+  /** What a record takes on entering this stage — whole percents, steps of 5. */
+  progression_pct: number | null
+  probability_pct: number | null
   owner_role: string | null
   bid_phase: string | null
   applies_to: string | null
@@ -353,6 +356,8 @@ export type DefinitionInput = Partial<{
   label: string
   field_type: string
   max_length: number | null
+  min_value: number | null
+  max_value: number | null
   picklist_key: string | null
   lookup_target: string | null
   lookup_filter: string | null
@@ -397,6 +402,8 @@ export interface MetadataFieldDetail {
   definition_label: string
   field_type: string
   max_length: number | null
+  min_value: number | null
+  max_value: number | null
   picklist_key: string | null
   lookup_target: string | null
   lookup_filter: string | null
@@ -783,6 +790,7 @@ export const FIELD_TYPES = [
   'file',
   'url',
   'email',
+  'phone',
 ] as const
 
 export const REQUIREMENTS = [

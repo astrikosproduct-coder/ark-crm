@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 
 import { Button } from '@/components/ui/button'
 import { CreateNewDialog } from '@/components/form/CreateNewDialog'
+import { PursuitSaveResolver } from '@/components/pursuits/PursuitSaveResolver'
 import { FormSection } from '@/components/form/RecordForm'
 import {
   markFormSaved,
@@ -17,6 +19,8 @@ import {
   type StageScope,
 } from '@/hooks/useRecordForm'
 import { api } from '@/lib/api'
+import { ErrorNotice } from '@/components/ui/notice'
+import { answerableRefusalOf } from '@/lib/pursuitGroups'
 import { fieldOf, fieldsOf, idOf, sectionsFor } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
 import type { ResolvedRecord } from '@/lib/spec/resolveRecord'
@@ -51,7 +55,17 @@ export interface RecordEditorProps {
   only?: string[]
   /** Overrides the register's section name in the header of a single section. */
   sectionTitle?: string
-  /** Merged into the payload on save — values ARK stamps rather than the user. */
+  /**
+   * Merged into the payload on save — values this form does not collect but
+   * the record needs, like a registration's opening status or the two records
+   * a conflict links.
+   *
+   * NEVER a system field. created_by/date and modified_by/date are stamped by
+   * the server from the Entra session and its own clock, and a value sent for
+   * one of them is discarded (app/routers/leads.py, SYSTEM_STAMPED). The
+   * pipeline specs used to stamp them here; see PipelineModuleSpec in
+   * components/pipeline/types.ts for why they no longer do.
+   */
   stamp?: Values
   /**
    * The parent chain, for a module whose identity is read through one. Its
@@ -71,6 +85,19 @@ export interface RecordEditorProps {
    * but a keystroke should not. See PipelineModuleSpec.afterSaveForStage.
    */
   afterSave?: (record: Record<string, unknown>, queryClient: QueryClient) => void | Promise<void>
+  /**
+   * Where to render Save and Cancel, when the SCREEN already owns a bar they
+   * belong in.
+   *
+   * A pipeline record has a sticky section header — "Stage 1 — Demo
+   * Presentation" with its Edit button — and the edit controls belong on that
+   * same line, replacing Edit, rather than opening a second sticky bar
+   * underneath the first. The editor still owns the buttons and everything
+   * they do; only where they are painted moves. Left undefined — every create
+   * page, the registration form, CreateNewDialog — the editor renders its own
+   * sticky bar exactly as before.
+   */
+  actionsSlot?: HTMLElement | null
 }
 
 /** Field labels for a summary line, capped so it stays one readable sentence. */
@@ -117,14 +144,12 @@ function EditorBody({
   stamp,
   sideEffects,
   afterSave,
+  actionsSlot,
 }: RecordEditorProps) {
   const form = useRecordForm()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [creatingFor, setCreatingFor] = useState<FieldSpec | null>(null)
-  /** True once Save has been pressed, so "nothing outstanding" is an answer to
-   * a question the user asked rather than an unprompted reassurance. */
-  const [attempted, setAttempted] = useState(false)
 
   /**
    * A Lead is not a quick-create. It opens at Stage 0 — Connect, with its own
@@ -204,8 +229,11 @@ function EditorBody({
   }, [formId, form.dirty, setFormDirty])
 
   const save = useMutation({
-    mutationFn: async () => {
-      const payload = { ...form.toPayload(), ...stamp }
+    // `extra` is the answer to a question the server asked on a refused save —
+    // "join this pursuit's group", "here is why it is a different project" —
+    // merged into the SAME payload. See PursuitSaveResolver.
+    mutationFn: async (extra?: Values) => {
+      const payload = { ...form.toPayload(), ...stamp, ...extra }
       for (const key of emptyOffScreenComputed) {
         if (payload[key] === null || payload[key] === undefined) delete payload[key]
       }
@@ -238,14 +266,13 @@ function EditorBody({
 
   const submit = () => {
     form.markSubmitted()
-    setAttempted(true)
     // Only a malformed value the user can actually see and fix stops the save.
     // Empty required fields never do — a half-filled record has to be savable;
     // they stop the stage move instead. Nor do problems in other sections, for
     // the reason given on elsewhereErrors.
     const blocking = Object.keys(form.allErrors).filter((k) => onScreen.has(k))
     if (blocking.length > 0) return
-    save.mutate()
+    save.mutate(undefined)
   }
 
   // Closing the editor throws the edits away, so it asks first — the same
@@ -259,10 +286,9 @@ function EditorBody({
     return { here, elsewhere }
   }
 
-  // visibleErrors/visibleRequired, not the `all` maps: an untouched field is
-  // not scolded before the first save attempt.
+  // visibleErrors, not allErrors: an untouched field is not scolded before the
+  // first save attempt.
   const shape = split(form.visibleErrors)
-  const missing = split(form.visibleRequired)
 
   // Malformed values in sections this editor cannot show. Reported, never
   // blocking — the user has no box here to fix them in, and the values are
@@ -275,13 +301,64 @@ function EditorBody({
       .filter((f): f is FieldSpec => Boolean(f))
   }, [form.allErrors, onScreen, module])
 
-  // Only leads and deals have stages, so only they have something to be "not
-  // ready" for. Derived from the register — a module whose fields never carry
-  // mandatory_from has no transition for an empty field to block.
-  const hasStages = useMemo(() => fieldsOf(module).some((f) => f.mandatory_from !== null), [module])
+  // The server's own reason, never a bare "could not be saved": a refused
+  // Submitted Date in the future said nothing about what was wrong.
+  const saveError =
+    save.isError && !answerableRefusalOf(save.error) ? (
+      <ErrorNotice
+        error={save.error}
+        fieldLabel={(name) => fieldOf(module, name.replace(/__s\d+$/, ''))?.label}
+        fallback="The record wasn't saved. Try again."
+      />
+    ) : null
+
+  /* Cancel before Save, reading order matching the destructive-then-primary
+     pair every dialog in the app already uses. */
+  const actions = (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={cancel}
+        disabled={save.isPending}
+      >
+        Cancel
+      </Button>
+      <Button type="button" size="sm" onClick={submit} disabled={save.isPending}>
+        {save.isPending ? 'Saving…' : (saveLabel ?? 'Save')}
+      </Button>
+    </>
+  )
 
   return (
     <div className="space-y-3 py-3">
+      {/* Two homes for one pair of buttons. Given a slot, they go and sit on
+          the screen's own sticky header, on the line that a moment ago held
+          Edit. Given none, the editor pins its own bar — which is what every
+          create page still does. Either way Save is reachable without
+          scrolling to the end of a form the register can make very long. */}
+      {actionsSlot === undefined ? (
+        <div className="bg-background sticky top-14 z-20 -mx-1 flex items-center justify-end gap-2 border-b px-1 py-2">
+          {saveError && <div className="mr-auto">{saveError}</div>}
+          {actions}
+        </div>
+      ) : actionsSlot ? (
+        // `undefined` means no slot was asked for; `null` means one was asked
+        // for and its element has not mounted yet. Told apart on purpose —
+        // treating both as "render my own bar" flashed a second sticky bar for
+        // one frame every time a tab remounted the editor.
+        createPortal(actions, actionsSlot)
+      ) : null}
+
+      {/* With the buttons up in the screen's header there is no room for this
+          beside them, and it is not a line to lose: it is the only thing that
+          says a save FAILED rather than quietly did nothing. */}
+      {actionsSlot !== undefined && saveError}
+      {save.isError && (
+        <PursuitSaveResolver error={save.error} pending={save.isPending} retry={(extra) => save.mutate(extra)} />
+      )}
+
       {sideEffects}
       {(sections ?? sectionsFor(module)).map((section) => (
         <FormSection
@@ -303,41 +380,15 @@ function EditorBody({
         }}
       />
 
-      <div className="space-y-2 border-t pt-3">
-        <div className="flex items-center gap-2">
-          <Button type="button" onClick={submit} disabled={save.isPending}>
-            {save.isPending ? 'Saving…' : (saveLabel ?? 'Save')}
-          </Button>
-          <Button type="button" variant="outline" onClick={cancel} disabled={save.isPending}>
-            Cancel
-          </Button>
-          {save.isError && (
-            <p className="text-sm text-destructive">The record could not be saved.</p>
-          )}
-        </div>
-
-        {/* Two different things, said separately, because they have different
-            consequences. A malformed value stops the save. An empty required
-            field does not — a half-filled record has to be savable — but it
-            does stop the record moving on. Each one is marked on the field
-            itself as well; these lines only say how many and what they cost. */}
+      <div className="space-y-2 border-t pt-3 empty:hidden">
+        {/* A malformed value stops the save, so it is said here as well as on
+            the field. An empty required field is NOT summarised: it does not
+            stop the save, and the "required" line under the field already
+            says it — a second list of the same names was removed on review. */}
         {shape.here.length > 0 && (
           <p className="text-sm text-destructive">
             {shape.here.length} {shape.here.length === 1 ? 'field needs' : 'fields need'} fixing
             before this can be saved: {nameList(module, shape.here)}. Each is marked below.
-          </p>
-        )}
-
-        {missing.here.length > 0 && (
-          <p className="text-sm text-destructive">
-            {missing.here.length} required{' '}
-            {missing.here.length === 1 ? 'field is' : 'fields are'} still empty:{' '}
-            {nameList(module, missing.here)}.{' '}
-            <span className="text-muted-foreground">
-              {hasStages
-                ? 'You can still save; each is marked below and must be filled before this record can move to the next stage.'
-                : 'You can still save; each is marked below.'}
-            </span>
           </p>
         )}
 
@@ -349,15 +400,8 @@ function EditorBody({
             {elsewhereErrors.length}{' '}
             {elsewhereErrors.length === 1 ? 'field has' : 'fields have'} an invalid value in another
             section and cannot be fixed here:{' '}
-            {elsewhereErrors.map((f) => `${f.label} (${f.section})`).join(', ')}. This does not stop
-            you saving.
-          </p>
-        )}
-
-        {shape.here.length === 0 && missing.here.length === 0 && attempted && (
-          <p className="text-success text-sm">
-            Nothing outstanding on the fields shown
-            {hasStages ? ' — ready to move to the next stage.' : '.'}
+            {elsewhereErrors.map((f) => `${f.label} (${f.section})`).join(', ')}. This
+            does not stop you saving.
           </p>
         )}
       </div>

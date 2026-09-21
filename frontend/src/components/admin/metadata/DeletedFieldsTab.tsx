@@ -4,6 +4,7 @@ import { Undo2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ErrorBox, LoadingRow, Mono, Row, Table } from './shared'
 import { errorMessage } from '@/lib/admin'
+import { dateTime as fmtDateTime } from '@/lib/format'
 import { useMetadataFields, useRestoreField, type MetadataField } from '@/lib/metadata'
 
 /**
@@ -68,7 +69,7 @@ export function DeletedFieldsTab() {
                 <Mono>{field.field_type}</Mono>
               </td>
               <td className="text-muted-foreground text-xs">
-                {field.deleted_at ? new Date(field.deleted_at).toLocaleString() : '—'}
+                {field.deleted_at ? fmtDateTime(field.deleted_at) : '—'}
                 {field.deleted_by && <div>by {field.deleted_by}</div>}
               </td>
               <td className="text-right">

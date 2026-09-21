@@ -4,7 +4,7 @@
 
 Partners · Accounts · Contacts · Leads · Opportunities · Deals — every field the prototype renders today, with its type, its picklist options and, for a child list, every column of one row.
 
-Generated on 2026-09-16 by running the application's own spec loader, not a copy of it — `npm run spec:fields`. The workbook remains the source; `spec/fields.json` is never hand-edited.
+Generated on 2026-09-17 by running the application's own spec loader, not a copy of it — `npm run spec:fields`. The workbook remains the source; `spec/fields.json` is never hand-edited.
 
 **What "live" means here.** A field is listed if the form engine puts it on a screen. Four rules shape the list:
 
@@ -304,7 +304,7 @@ Row shape: _inferred_.
 |---|---|---|---|---|---|
 | Attendee | `attendee` | lookup | **required** | → `contact` | declared in extensions.json |
 | Job Title | `job_title` | text | optional | max 100 | declared in extensions.json |
-| Organisation | `organisation` | lookup | optional | → `account` | declared in extensions.json |
+| Account | `organisation` | lookup | optional | → `account` | declared in extensions.json |
 | Role | `attendee_role` | picklist | **required** | `contacts__contact_role` — DECM Decision Maker · RECM Recommender · INFL Influencer · INTEL Intel Provider · GENL General Contact | declared in extensions.json |
 
 <details><summary><b>Why these columns</b> — the register states no row shape, so this one was derived. Correct it here or in the register.</summary>
@@ -608,7 +608,7 @@ Stages 7–9. Holds `parent_opportunity`; identity is read through the parent `o
 | Label | api_name | Type | Requirement | Stage | Options / target / formula | Carry |
 |---|---|---|---|---|---|---|
 | Expansion Suites | `expansion_suites` | text | **Mandatory** | 9 | — | — |
-| Incremental Value | `incremental_value` | currency | **Mandatory** | 9 | shown when `opportunity_type == 'Expansion'` | — |
+| Incremental Value | `incremental_value` | currency | **Mandatory** | 9 | — | — |
 | Contract Expiry Date | `contract_expiry_date` | date | **Mandatory** | 9 | — | — |
 | Renewal Signed Date | `renewal_signed_date` | date | Advisory | 9 | — | — |
 | Renewal Status | `renewal_status` | picklist | **Mandatory** | 9 | `deals__renewal_status` — Not started · In progress · Signed · Lapsed | — |
@@ -1181,7 +1181,7 @@ Stage options are derived from the module range plus `spec/stages.json`, never f
 
 ### Refs still written the old way
 
-14 sidecar refs name a module their field has left. Every one still resolves — the loader keeps a `movedRefs` fall-through, so the split needed no hand-editing of `extensions.json` — and every one is listed on Spec Health rather than silently rewritten.
+13 sidecar refs name a module their field has left. Every one still resolves — the loader keeps a `movedRefs` fall-through, so the split needed no hand-editing of `extensions.json` — and every one is listed on Spec Health rather than silently rewritten.
 
 | Written as | Now lives at | Where |
 |---|---|---|
@@ -1194,7 +1194,6 @@ Stage options are derived from the module range plus `spec/stages.json`, never f
 | `leads.bid_record` | `opportunities.bid_record` | extensions.json fields |
 | `leads.commercial_gate` | `opportunities.commercial_gate` | extensions.json fields |
 | `leads.payment_milestones` | `opportunities.payment_milestones` | extensions.json fields |
-| `leads.total_value_tcv` | `opportunities.total_value_tcv` | extensions.json list_views.leads |
 | `leads.milestone_—_planned_date` | `opportunities.milestone_—_planned_date` | child_spec of opportunities.payment_milestones |
 | `leads.milestone_—_actual_date` | `opportunities.milestone_—_actual_date` | child_spec of opportunities.payment_milestones |
 | `leads.milestone_—_invoice_date` | `opportunities.milestone_—_invoice_date` | child_spec of opportunities.payment_milestones |

@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { NumericInput } from '@/components/ui/numeric-input'
 import { CreateNewDialog } from '@/components/form/CreateNewDialog'
 import { FormSection } from '@/components/form/RecordForm'
 import { RecordFormProvider, useRecordForm } from '@/hooks/useRecordForm'
@@ -115,22 +116,16 @@ function EngineBody({ module }: { module: string }) {
             </p>
             <div className="mb-3 flex items-center gap-2 text-sm">
               <span>Stage</span>
-              <input
-                type="number"
-                min={0}
-                max={9}
+              <NumericInput
                 value={transition.from}
-                onChange={(e) => setTransition((t) => ({ ...t, from: Number(e.target.value) }))}
-                className="h-8 w-14 rounded-md border px-2"
+                onValueChange={(v) => setTransition((t) => ({ ...t, from: v === '' ? 0 : v }))}
+                className="h-8 w-14 px-2"
               />
               <span>to</span>
-              <input
-                type="number"
-                min={0}
-                max={9}
+              <NumericInput
                 value={transition.to}
-                onChange={(e) => setTransition((t) => ({ ...t, to: Number(e.target.value) }))}
-                className="h-8 w-14 rounded-md border px-2"
+                onValueChange={(v) => setTransition((t) => ({ ...t, to: v === '' ? 0 : v }))}
+                className="h-8 w-14 px-2"
               />
               {transition.to - transition.from > 1 && <Badge variant="warning">skip</Badge>}
             </div>

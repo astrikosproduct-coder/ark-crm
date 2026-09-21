@@ -22,6 +22,32 @@ export const PRIORITY_FLAGS: readonly PriorityFlag[] = [
   { flag: 'is_top_10', rank: 'top_10_rank', cap: 10, label: 'Top 10' },
 ]
 
+/** The pick a record holds, and its rank — see priorityFlagOf. */
+export interface HeldPriorityFlag {
+  pick: PriorityFlag
+  /** Null when the flag is on but no rank was stored (legacy rows). */
+  rank: number | null
+}
+
+/**
+ * Which priority pick a record holds, if any.
+ *
+ * At most one: the two are mutually exclusive, enforced here in
+ * resolvePriorityFlagPatch and on the server. A row that somehow carries both
+ * — only possible if data was written around both — reports the first in
+ * PRIORITY_FLAGS order rather than drawing two marks for a state the rules
+ * say cannot exist.
+ */
+export function priorityFlagOf(row: Item | undefined): HeldPriorityFlag | null {
+  if (!row) return null
+  for (const pick of PRIORITY_FLAGS) {
+    if (!row[pick.flag]) continue
+    const n = Number(row[pick.rank])
+    return { pick, rank: Number.isFinite(n) && n > 0 ? n : null }
+  }
+  return null
+}
+
 /** Ranks 1..cap already held by some OTHER record with this flag on. */
 export function takenRanksFor(
   allOpportunities: Item[],

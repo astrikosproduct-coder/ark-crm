@@ -71,9 +71,9 @@ export function StatusBadge({ active, labels }: { active: boolean; labels?: [str
 
 export function Table({ head, children }: { head: ReactNode; children: ReactNode }) {
   return (
-    <div className="overflow-x-auto rounded-md border">
+    <div className="bg-card overflow-x-auto rounded-lg shadow-sm">
       <table className="w-full text-sm">
-        <thead className="bg-muted/50 text-muted-foreground text-label">
+        <thead className="text-muted-foreground text-label [&>tr>th]:border-border [&>tr>th]:border-b">
           <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:text-left [&>th]:font-medium">{head}</tr>
         </thead>
         <tbody>{children}</tbody>

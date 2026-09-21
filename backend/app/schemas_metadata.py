@@ -23,6 +23,21 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+#: The longest a field's description may be, in characters.
+#:
+#: A LAYOUT contract, not a storage saving. The same sentence is read in four
+#: places and three of them have no room to grow: the ⓘ tooltip beside a field
+#: label, row 4 of the Excel import template ("what to enter"), and the export
+#: workbook. A tooltip that needs scrolling has stopped being a tooltip.
+#:
+#: 255 is about three plain sentences, which is what the house style asks for —
+#: what the field is, when to fill it, what counts. Anything needing more is
+#: either two fields or a decision that belongs in the Playbook.
+#:
+#: Repeated as a CHECK constraint in migration 0033 as a floor under this; the
+#: refusal a person actually sees comes from here. Change both together.
+DESCRIPTION_MAX_LENGTH = 255
+
 
 # ----------------------------------------------------------------- acting user
 
@@ -115,6 +130,8 @@ class FieldBase(BaseModel):
 
     sort_order: int | None = None
     max_length: int | None = None
+    min_value: float | None = None
+    max_value: float | None = None
     picklist_key: str | None = Field(default=None, max_length=120)
     lookup_target: str | None = Field(default=None, max_length=60)
     lookup_filter: str | None = None
@@ -125,7 +142,10 @@ class FieldBase(BaseModel):
     blocks_transition: str | None = Field(default=None, max_length=40)
     origin: str = Field(default="Administration", max_length=120)
     source_ref: str | None = Field(default=None, max_length=120)
-    description: str = ""
+    #: Capped so the ⓘ tooltip, the import template's "what to enter" row and
+    #: the export workbook all have somewhere to put it — see migration 0033,
+    #: which repeats the number as a CHECK. About three plain sentences.
+    description: str = Field(default="", max_length=DESCRIPTION_MAX_LENGTH)
     use_case: str = ""
     required_on_skip: bool | None = None
     visibility_condition: str | None = None
@@ -176,6 +196,8 @@ class FieldUpdate(BaseModel):
     section_id: int | None = None
     sort_order: int | None = None
     max_length: int | None = None
+    min_value: float | None = None
+    max_value: float | None = None
     picklist_key: str | None = Field(default=None, max_length=120)
     lookup_target: str | None = Field(default=None, max_length=60)
     lookup_filter: str | None = None
@@ -186,7 +208,7 @@ class FieldUpdate(BaseModel):
     blocks_transition: str | None = Field(default=None, max_length=40)
     origin: str | None = Field(default=None, max_length=120)
     source_ref: str | None = Field(default=None, max_length=120)
-    description: str | None = None
+    description: str | None = Field(default=None, max_length=DESCRIPTION_MAX_LENGTH)
     use_case: str | None = None
     required_on_skip: bool | None = None
     visibility_condition: str | None = None
@@ -317,6 +339,8 @@ class FieldDetailOut(BaseModel):
     definition_label: str
     field_type: str
     max_length: int | None = None
+    min_value: float | None = None
+    max_value: float | None = None
     picklist_key: str | None = None
     lookup_target: str | None = None
     lookup_filter: str | None = None
@@ -470,8 +494,8 @@ class StageOut(BaseModel):
 
     stage: int
     name: str
-    prob_min: int | None = None
-    prob_max: int | None = None
+    progression_pct: int | None = None
+    probability_pct: int | None = None
     owner_role: str | None = None
     bid_phase: str | None = None
     applies_to: str | None = None
@@ -482,8 +506,8 @@ class StageOut(BaseModel):
 class StageCreate(BaseModel):
     stage: int = Field(ge=0)
     name: str = Field(min_length=1, max_length=120)
-    prob_min: int | None = Field(default=None, ge=0, le=100)
-    prob_max: int | None = Field(default=None, ge=0, le=100)
+    progression_pct: int | None = Field(default=None, ge=0, le=100, multiple_of=5)
+    probability_pct: int | None = Field(default=None, ge=0, le=100, multiple_of=5)
     owner_role: str | None = Field(default=None, max_length=30)
     bid_phase: str | None = Field(default=None, max_length=60)
     applies_to: str | None = Field(default=None, max_length=20)
@@ -495,8 +519,8 @@ class StageUpdate(BaseModel):
     """`stage` is absent: the number is the identity every record stores."""
 
     name: str | None = Field(default=None, min_length=1, max_length=120)
-    prob_min: int | None = Field(default=None, ge=0, le=100)
-    prob_max: int | None = Field(default=None, ge=0, le=100)
+    progression_pct: int | None = Field(default=None, ge=0, le=100, multiple_of=5)
+    probability_pct: int | None = Field(default=None, ge=0, le=100, multiple_of=5)
     owner_role: str | None = Field(default=None, max_length=30)
     bid_phase: str | None = Field(default=None, max_length=60)
     applies_to: str | None = Field(default=None, max_length=20)

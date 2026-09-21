@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 
 import type { ListRow } from '@/components/list/ListCell'
 import { StageChip } from '@/components/leads/StageChip'
+import { RevenueAmount } from '@/components/pipeline/RevenueAmount'
 import type { FieldSpec } from '@/types/field'
 
 /**
@@ -21,6 +22,11 @@ export function dealListCell(field: FieldSpec, row: ListRow): ReactNode | undefi
 
   if (field.api_name === 'deal_stage') {
     return <StageChip value={row.deal_stage} />
+  }
+
+  // Actual Revenue, in its own currency — same amount as the Kanban card.
+  if (field.api_name === 'contract_value') {
+    return <RevenueAmount row={row} />
   }
 
   return undefined

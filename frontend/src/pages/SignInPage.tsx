@@ -27,8 +27,7 @@ export function SignInPage() {
       <div className="relative w-full max-w-sm rounded-xl bg-white p-8 shadow-2xl">
         <img src={encodeURI('/Astrikos logo.png')} alt="Astrikos" className="h-12 w-auto" />
         <h1 className="mt-4 text-xl font-semibold text-slate-900">ARK CRM</h1>
-        <p className="mt-1 text-sm text-slate-500">Astrikos · S!aP commercial pipeline</p>
-
+        
         {error && (
           <p role="alert" className="mt-6 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
             Microsoft could not sign you in ({error}). Try again; if it keeps happening, tell an
@@ -49,7 +48,7 @@ export function SignInPage() {
 }
 
 /** Drop the picture at frontend/public/login-bg.jpg. */
-const LOGIN_BACKGROUND = '/login-bg.jpg'
+const LOGIN_BACKGROUND = '/login-bg.png'
 
 /**
  * Signed in, recognised, and allowed nothing yet.

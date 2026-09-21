@@ -278,6 +278,14 @@ export function evaluate(node: Node, scope: EvalScope, expr: string): unknown {
     // sum(child, field, filter?) is the one function whose arguments are names
     // and a row-scoped predicate rather than values, so it is evaluated by
     // hand instead of through the argument list.
+    // count(child) — how many rows a child list holds. Named, like sum(), by
+    // its child rather than by a value.
+    if (n.name === 'count') {
+      const [childArg] = n.args
+      if (childArg?.k !== 'ident') throw new SpecExprError('count() takes a child name', expr)
+      return (scope.child?.(childArg.name) ?? []).length
+    }
+
     if (n.name === 'sum') {
       const [childArg, fieldArg, filterArg] = n.args
       if (childArg?.k !== 'ident' || fieldArg?.k !== 'ident') {

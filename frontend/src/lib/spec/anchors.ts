@@ -43,11 +43,20 @@ import type { FieldSpec } from '@/types/field'
 const MAX_CHAIN = 32
 
 interface ModuleAnchors {
-  /** api_name -> the section the field ends up drawing in. */
+  /**
+   * qref -> the section the field ends up drawing in.
+   *
+   * Keyed on module.section.api_name, NOT api_name. Nine api_names are defined
+   * in two sections of one module (see lib/spec/index.ts), and an api_name key
+   * let the last definition overwrite the first: partners.partner in QUARTERLY
+   * SCORECARD re-homed DEAL REGISTRATION's Partner into the scorecard, so the
+   * registration form — create, edit and view — never drew a Partner box, and
+   * every registration saved from it had no partner.
+   */
   home: Map<string, string>
   /** anchor api_name -> the fields anchored to it, in register order. */
   children: Map<string, FieldSpec[]>
-  /** api_names with a resolvable anchor — i.e. drawn somewhere else. */
+  /** qrefs with a resolvable anchor — i.e. drawn somewhere else. */
   anchored: Set<string>
 }
 
@@ -66,8 +75,16 @@ function anchorsOf(module: string): ModuleAnchors {
   if (cached) return cached
 
   const fields = fieldsOf(module)
-  const byName = new Map<string, FieldSpec>()
-  for (const f of fields) if (!byName.has(f.api_name)) byName.set(f.api_name, f)
+  const byName = new Map<string, FieldSpec[]>()
+  for (const f of fields) byName.set(f.api_name, [...(byName.get(f.api_name) ?? []), f])
+
+  // An anchor names an api_name. Where the module defines that name twice, the
+  // definition in the anchoring field's own section is the one it means.
+  const resolve = (from: FieldSpec, apiName: string | null): FieldSpec | undefined => {
+    if (!apiName) return undefined
+    const defs = byName.get(apiName) ?? []
+    return defs.find((d) => d.section === from.section) ?? defs[0]
+  }
 
   const home = new Map<string, string>()
   const children = new Map<string, FieldSpec[]>()
@@ -78,19 +95,19 @@ function anchorsOf(module: string): ModuleAnchors {
     // chain draws, which is what lets a CROSS-CUTTING field appear inside
     // STAGE 0 — CONNECT without either row being rewritten.
     let cursor: FieldSpec = field
-    const seen = new Set<string>([field.api_name])
+    const seen = new Set<string>([field.qref])
     for (let hop = 0; hop < MAX_CHAIN; hop++) {
-      const next = cursor.anchor_field ? byName.get(cursor.anchor_field) : undefined
+      const next = resolve(cursor, cursor.anchor_field)
       // Unresolvable, or a loop the API's own check somehow let through.
-      if (!next || seen.has(next.api_name)) break
-      seen.add(next.api_name)
+      if (!next || seen.has(next.qref)) break
+      seen.add(next.qref)
       cursor = next
     }
-    home.set(field.api_name, cursor.section)
+    home.set(field.qref, cursor.section)
 
-    const parent = field.anchor_field ? byName.get(field.anchor_field) : undefined
-    if (!parent || parent.api_name === field.api_name) continue
-    anchored.add(field.api_name)
+    const parent = resolve(field, field.anchor_field)
+    if (!parent || parent.qref === field.qref) continue
+    anchored.add(field.qref)
     const list = children.get(parent.api_name)
     if (list) list.push(field)
     else children.set(parent.api_name, [field])
@@ -109,12 +126,12 @@ function anchorsOf(module: string): ModuleAnchors {
  * emptiness) applies to an anchored field exactly as it always did.
  */
 export function homeSectionOf(module: string, field: FieldSpec): string {
-  return anchorsOf(module).home.get(field.api_name) ?? field.section
+  return anchorsOf(module).home.get(field.qref) ?? field.section
 }
 
 /** True when this field draws next to another one rather than in its own list. */
 export function isAnchored(module: string, field: FieldSpec): boolean {
-  return anchorsOf(module).anchored.has(field.api_name)
+  return anchorsOf(module).anchored.has(field.qref)
 }
 
 /** Every field anchored to this api_name, in register order. Empty when none. */
@@ -244,13 +261,27 @@ export function childrenByAnchor<T extends AnchorableRow>(fields: T[]): Map<stri
 /**
  * How much of the two-column grid this field takes.
  *
- * `layout_span` when the placement states one; otherwise the field type's own
- * width, which is what every field had before anchors existed.
+ * THE TYPE SETS THE CEILING, AND ONLY THE TYPE.
+ *
+ * The caller names the types that earn the whole row — FULL_WIDTH in
+ * FieldRow.tsx, which is childlist alone: a TABLE is the one thing a column
+ * cannot show. Everything else, a paragraph box included, renders inside its
+ * own column, so a form reads as two even halves rather than a staircase.
+ *
+ * `layout_span: 'full'` USED TO PROMOTE ANY FIELD and no longer does. Four
+ * placements carried it and not one was a table or a paragraph: On Hold Reason
+ * on all three pipeline modules, which the register types `text`, and Leads'
+ * Data / Site Access Confirmation Document Link, a `file`. Each rendered as a
+ * single-line box stretched across both columns beside ordinary half-width
+ * fields, which is the unevenness this rule exists to remove. A wide control
+ * has to be earned by holding wide content, not asserted.
+ *
+ * `'half'` is still honoured, because it only ever NARROWS: an admin may keep a
+ * short longtext in one column, and that costs the grid nothing.
  */
 export function spansFullWidth(field: FieldSpec, fullWidthTypes: ReadonlySet<string>): boolean {
-  if (field.layout_span === 'full') return true
-  if (field.layout_span === 'half') return false
-  return fullWidthTypes.has(field.type)
+  if (!fullWidthTypes.has(field.type)) return false
+  return field.layout_span !== 'half'
 }
 
 /**

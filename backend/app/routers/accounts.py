@@ -4,9 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..auth import current_user
+from ..messages import already_exists, not_found, picked_record_missing, refusal
+from ..changes import custom_field_diff, diff, snapshot
 from ..database import get_db
+from ..list_query import run_list_query
 from ..audit import record_audit
 from ..custom_fields import apply_write, extras_of, merge_into_row, resolve_write
+from ..thresholds import check_thresholds
 from ..ids import next_reference_id
 from ..models import Account, AccountType, Contact, DealRegistration, User
 from ..schemas import (
@@ -21,16 +26,15 @@ router = APIRouter(tags=["accounts"])
 
 ACCOUNT_ID_PATTERN = re.compile(r"^ACC-(\d+)$")
 
-# The five query parameters the list endpoint reserves. Anything else is an
-# equality filter on that field — the contract src/mocks/query.ts defines and
-# that PartnersPage relies on when it asks for two account types at once.
-RESERVED = {"_page", "_limit", "_sort", "_order", "_search", "q"}
 
 # Fields `q` searches when the caller names none. Kept narrow and textual;
 # extensions.json list_views.accounts.search asks for exactly these three.
 DEFAULT_SEARCH = ("account_name", "region", "segment")
 
 MULTISELECTS = {"account_type"}
+
+#: Lookups whose joined name search and sort read, not the id underneath.
+ACCOUNT_LOOKUPS = ("account_owner",)
 
 
 def _next_account_id(db: Session) -> str:
@@ -87,7 +91,7 @@ def _apply_multiselects(db: Session, account: Account, payload: AccountUpdate | 
 def _get_or_404(db: Session, account_id: str) -> Account:
     account = db.get(Account, account_id)
     if account is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"No account {account_id}")
+        raise not_found("account")
     return account
 
 
@@ -105,68 +109,13 @@ def list_accounts(request: Request, response: Response, db: Session = Depends(ge
     owner_names = _owner_names(db)
     rows = [_serialise(a, owner_names) for a in accounts]
 
-    params = request.query_params
-
-    # 1. equality filters. A repeated parameter is an OR over its values, so
-    #    ?account_type=PARTNER_SI&account_type=OEM_TECHNOLOGY_PARTNER matches
-    #    either — ANDing them could never match anything.
-    for key in {k for k in params if k not in RESERVED}:
-        wanted = set(params.getlist(key))
-        rows = [r for r in rows if _matches(r.get(key), wanted)]
-
-    # 2. free-text search over the named fields, or the default three.
-    q = (params.get("q") or "").strip().lower()
-    if q:
-        named = [f for f in (params.get("_search") or "").split(",") if f]
-        search_fields = named or list(DEFAULT_SEARCH)
-        rows = [r for r in rows if _text_of(r, search_fields).lower().find(q) >= 0]
-
-    # 3. sort. Picklist columns sort by their stored KEY rather than their
-    #    label, which the mock sorted by. The keys are upper-cased forms of the
-    #    same words, so the order matches for every current picklist; a label
-    #    that diverges from its key would need the vocabulary server-side.
-    sort = params.get("_sort")
-    if sort:
-        rows.sort(key=lambda r: _sort_key(r.get(sort)))
-        if params.get("_order") == "desc":
-            rows.reverse()
-
-    total = len(rows)
-
-    # 4. page
-    page = int(params.get("_page") or 0)
-    limit = int(params.get("_limit") or 0)
-    if page > 0 and limit > 0:
-        rows = rows[(page - 1) * limit : page * limit]
-
+    # Filters, search, sort and page — the one list contract every live module
+    # shares (app/list_query.py), so the Filter panel works here as on Leads.
+    rows, total = run_list_query(
+        rows, request.query_params, lookups=ACCOUNT_LOOKUPS, default_search=DEFAULT_SEARCH
+    )
     response.headers["X-Total-Count"] = str(total)
     return rows
-
-
-def _matches(value, wanted: set[str]) -> bool:
-    if isinstance(value, list):
-        return any(str(v) in wanted for v in value)
-    return str(value if value is not None else "") in wanted
-
-
-def _text_of(row: dict, fields: list[str]) -> str:
-    parts = []
-    for name in fields:
-        value = row.get(name)
-        if isinstance(value, list):
-            parts.extend(str(v) for v in value)
-        elif value is not None:
-            parts.append(str(value))
-    return " ".join(parts)
-
-
-def _sort_key(value):
-    """Nulls last, then case-insensitive text."""
-    if value is None or value == "":
-        return (1, "")
-    if isinstance(value, list):
-        return (0, ", ".join(sorted(str(v) for v in value)).lower())
-    return (0, str(value).lower())
 
 
 @router.get("/accounts/{account_id}", response_model=AccountOut)
@@ -175,13 +124,18 @@ def get_account(account_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/accounts", response_model=AccountOut, status_code=status.HTTP_201_CREATED)
-def create_account(payload: AccountCreate, db: Session = Depends(get_db)):
+def create_account(
+    payload: AccountCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
     account_id = payload.account_id or _next_account_id(db)
 
     if db.get(Account, account_id) is not None:
-        raise HTTPException(status.HTTP_409_CONFLICT, f"{account_id} already exists")
+        raise already_exists()
 
     _check_owner(db, payload.account_owner)
+    check_thresholds(db, "accounts", payload.model_dump())
 
     account = Account(account_id=account_id)
     for name in ACCOUNT_SCALARS:
@@ -212,6 +166,7 @@ def create_account(payload: AccountCreate, db: Session = Depends(get_db)):
         module="accounts",
         record_id=account_id,
         action="created",
+        actor=user.user_id,
         changed_fields=sorted(payload.model_dump(exclude_unset=True)),
     )
 
@@ -221,13 +176,23 @@ def create_account(payload: AccountCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/accounts/{account_id}", response_model=AccountOut)
-def patch_account(account_id: str, payload: AccountUpdate, db: Session = Depends(get_db)):
+def patch_account(
+    account_id: str,
+    payload: AccountUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
     """Applies only the fields present in the request body."""
-    return _write(db, account_id, payload, set(payload.model_dump(exclude_unset=True)))
+    return _write(db, account_id, payload, set(payload.model_dump(exclude_unset=True)), user)
 
 
 @router.put("/accounts/{account_id}", response_model=AccountOut)
-def put_account(account_id: str, payload: AccountUpdate, db: Session = Depends(get_db)):
+def put_account(
+    account_id: str,
+    payload: AccountUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
     """
     Full-record write, kept because the prototype's record editor and the Lead
     account sync both PUT — see LeadAccountFieldSync.tsx, which writes the
@@ -237,14 +202,21 @@ def put_account(account_id: str, payload: AccountUpdate, db: Session = Depends(g
     editing a form it rendered from the register, not asserting that every
     absent field is now null.
     """
-    return _write(db, account_id, payload, set(payload.model_dump(exclude_unset=True)))
+    return _write(db, account_id, payload, set(payload.model_dump(exclude_unset=True)), user)
 
 
-def _write(db: Session, account_id: str, payload: AccountUpdate, sent: set[str]) -> dict:
+def _write(db: Session, account_id: str, payload: AccountUpdate, sent: set[str], user: User) -> dict:
     account = _get_or_404(db, account_id)
+
+    # The before half of the diff, read before anything is applied — see
+    # routers/leads.py::_write.
+    tracked = [name for name in ACCOUNT_SCALARS if name in sent]
+    before = snapshot(account, tracked)
+    before_custom = dict(account.custom_fields or {})
 
     if "account_owner" in sent:
         _check_owner(db, payload.account_owner)
+    check_thresholds(db, "accounts", payload.model_dump(include=sent))
 
     for name in ACCOUNT_SCALARS:
         if name in sent:
@@ -267,7 +239,18 @@ def _write(db: Session, account_id: str, payload: AccountUpdate, sent: set[str])
             extras=extras_of(payload),
         ),
     )
-    record_audit(db, module="accounts", record_id=account_id, action="updated", changed_fields=sorted(sent))
+    changed = diff(before, snapshot(account, tracked))
+    changed += custom_field_diff(before_custom, account.custom_fields)
+
+    record_audit(
+        db,
+        module="accounts",
+        record_id=account_id,
+        action="updated",
+        actor=user.user_id,
+        changed_fields=sorted(sent),
+        changed=changed,
+    )
 
     db.commit()
     db.refresh(account)
@@ -280,28 +263,44 @@ def _check_owner(db: Session, owner_id: str | None) -> None:
     turns a silent integrity error into a message naming the field.
     """
     if owner_id and db.get(User, owner_id) is None:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, f"No such user: {owner_id}"
-        )
+        raise picked_record_missing("person")
 
 
 @router.patch("/accounts/{account_id}/active", response_model=AccountOut)
-def set_account_active(account_id: str, payload: ActiveFlag, db: Session = Depends(get_db)):
+def set_account_active(
+    account_id: str,
+    payload: ActiveFlag,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
     """
     Deactivate or reactivate. This is the SAFE way to retire an organisation:
     the account keeps its id, so every lead, quote and contact pointing at it
     still resolves to a name.
     """
     account = _get_or_404(db, account_id)
+    was_active = account.active
     account.active = payload.active
-    record_audit(db, module="accounts", record_id=account_id, action="updated", changed_fields=["active"])
+    record_audit(
+        db,
+        module="accounts",
+        record_id=account_id,
+        action="updated",
+        actor=user.user_id,
+        changed_fields=["active"],
+        changed=diff({"active": was_active}, {"active": account.active}),
+    )
     db.commit()
     db.refresh(account)
     return _serialise(account, _owner_names(db))
 
 
 @router.delete("/accounts/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_account(account_id: str, db: Session = Depends(get_db)):
+def delete_account(
+    account_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
     """
     Hard delete, allowed ONLY when nothing in the database depends on this
     account. A dependent record is refused with 409 and the caller is told to
@@ -321,9 +320,13 @@ def delete_account(account_id: str, db: Session = Depends(get_db)):
     if dependents:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            f"{account_id} still has {len(dependents)} contact(s): "
-            f"{', '.join(dependents[:5])}"
-            f"{'…' if len(dependents) > 5 else ''}. Deactivate it instead.",
+            refusal(
+                "ACCOUNT_HAS_CONTACTS",
+                f"This account still has {len(dependents)} "
+                f"{'contact' if len(dependents) == 1 else 'contacts'}, so it can't be deleted.",
+                ["Deactivate it instead."],
+                contacts=dependents,
+            ),
         )
 
     registration_dependents = db.scalars(
@@ -334,12 +337,18 @@ def delete_account(account_id: str, db: Session = Depends(get_db)):
     if registration_dependents:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            f"{account_id} is still named on {len(registration_dependents)} deal registration(s): "
-            f"{', '.join(registration_dependents[:5])}"
-            f"{'…' if len(registration_dependents) > 5 else ''}. Deactivate it instead.",
+            refusal(
+                "ACCOUNT_HAS_REGISTRATIONS",
+                f"This account is on {len(registration_dependents)} deal "
+                f"{'registration' if len(registration_dependents) == 1 else 'registrations'}, so it can't be deleted.",
+                ["Deactivate it instead."],
+                registrations=registration_dependents,
+            ),
         )
 
-    record_audit(db, module="accounts", record_id=account_id, action="deleted")
+    record_audit(
+        db, module="accounts", record_id=account_id, action="deleted", actor=user.user_id
+    )
     db.delete(account)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

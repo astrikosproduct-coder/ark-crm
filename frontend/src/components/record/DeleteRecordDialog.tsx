@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Bullets, ErrorNotice } from '@/components/ui/notice'
 import { api } from '@/lib/api'
 import { collectionFor, displayNameOf, fieldOf, fieldsOf, idOf } from '@/lib/spec'
 
@@ -188,21 +189,19 @@ export function DeleteRecordDialog({
   })
 
   const busy = remove.isPending || deactivate.isPending
-  const error = (remove.error ?? deactivate.error) as
-    | { response?: { data?: { detail?: string } }; message?: string }
-    | null
+  const error = remove.error ?? deactivate.error
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{recordName}</DialogTitle>
+          <DialogTitle>Delete {recordName}?</DialogTitle>
           <DialogDescription>
             {!active
-              ? `${recordId} is already inactive.`
+              ? `This ${noun} is already inactive.`
               : blocked
-                ? `${recordId} is in use, so it can be deactivated but not deleted.`
-                : `${recordId} can be deactivated, or deleted permanently.`}
+                ? `This ${noun} is used on ${references.length} ${references.length === 1 ? 'record' : 'records'}, so it can't be deleted.`
+                : `This ${noun} isn't used anywhere.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -211,15 +210,14 @@ export function DeleteRecordDialog({
             <p className="text-muted-foreground">Checking what uses this {noun}…</p>
           ) : failed ? (
             <p className="text-destructive">
-              Could not check what uses this {noun}. Deletion is blocked until that
-              check succeeds.
+              We couldn&apos;t check where this {noun} is used, so it can&apos;t be deleted right now. Try
+              again in a moment.
             </p>
           ) : blocked ? (
             <div className="border-destructive/40 bg-destructive/5 space-y-2 rounded-md border p-3">
               <p className="text-destructive flex items-center gap-1.5 font-medium">
                 <AlertTriangleIcon className="size-4 shrink-0" />
-                In use by {references.length} record
-                {references.length === 1 ? '' : 's'}
+                Used on {references.length} {references.length === 1 ? 'record' : 'records'}
               </p>
               <ul className="space-y-1">
                 {references.map((r) => (
@@ -230,37 +228,36 @@ export function DeleteRecordDialog({
                         to={`${r.basePath}/${r.id}`}
                         onClick={() => onOpenChange(false)}
                       >
-                        {r.id}
+                        {r.label || r.id}
                       </Link>
                     ) : (
-                      <span>{r.id}</span>
+                      <span>{r.label || r.id}</span>
                     )}
-                    {r.label && r.label !== r.id && <span> · {r.label}</span>}
-                    <span className="text-xs"> — {r.via}</span>
+                    <span className="text-xs"> · {r.via}</span>
                   </li>
                 ))}
               </ul>
               {active && (
-                <p className="text-muted-foreground">
-                  Deleting would leave these showing a bare {recordId}. Deactivating
-                  keeps the {noun}, so every record above still resolves to a name —
-                  it is marked Inactive rather than removed.
-                </p>
+                <Bullets
+                  className="text-muted-foreground"
+                  items={[
+                    'Deactivate it instead.',
+                    'It stops appearing in new picks.',
+                    'The records above keep showing its name.',
+                  ]}
+                />
               )}
             </div>
           ) : (
             guidance ?? (
-              <p className="text-muted-foreground">
-                Nothing uses this {noun}. It can be deleted permanently.
-              </p>
+              <Bullets
+                className="text-muted-foreground"
+                items={['Delete removes it for good.', 'Deactivate hides it but keeps it.']}
+              />
             )
           )}
 
-          {error && (
-            <p className="text-destructive mt-3">
-              {error.response?.data?.detail ?? error.message ?? 'Something went wrong'}
-            </p>
-          )}
+          {error && <ErrorNotice className="mt-3" error={error} />}
         </div>
 
         <DialogFooter>
@@ -280,7 +277,7 @@ export function DeleteRecordDialog({
             // Blocked while anything uses it, and while the check is still
             // running or has failed — never delete on an unknown.
             disabled={busy || scanning || failed || blocked}
-            title={blocked ? `In use by ${references.length} record(s)` : undefined}
+            title={blocked ? `Used on ${references.length} ${references.length === 1 ? 'record' : 'records'}` : undefined}
           >
             {remove.isPending ? 'Deleting…' : 'Delete permanently'}
           </Button>

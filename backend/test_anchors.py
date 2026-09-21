@@ -112,16 +112,17 @@ head("1  every anchored placement is where Phase A put it")
 # record of what they configured, and the assertion that it is still there.
 #
 # The Stage 1 three are the case that proves the model generalises: they are
-# ordinary register fields in an ordinary STAGE section, not CROSS-CUTTING
-# strays, and they were anchored because sort_order had already let one of
-# them drift ABOVE the field that reveals it.
+# ordinary register fields in an ordinary STAGE section, not strays out of
+# Aging (which was called CROSS-CUTTING when they were written), and they were
+# anchored because sort_order had already let one of them drift ABOVE the
+# field that reveals it.
 ANCHORED = {
-    ("leads", "on_hold_reason"): ("lead_status", "full", "CROSS-CUTTING"),
-    ("leads", "closed_lost_reason_code"): ("lead_status", "half", "CROSS-CUTTING"),
-    ("opportunities", "on_hold_reason"): ("lead_status", "full", "CROSS-CUTTING"),
-    ("opportunities", "closed_lost_reason_code"): ("lead_status", "half", "CROSS-CUTTING"),
-    ("deals", "on_hold_reason"): ("lead_status", "full", "CROSS-CUTTING"),
-    ("deals", "closed_lost_reason_code"): ("lead_status", "half", "CROSS-CUTTING"),
+    ("leads", "on_hold_reason"): ("lead_status", "full", "Aging"),
+    ("leads", "closed_lost_reason_code"): ("lead_status", "half", "Aging"),
+    ("opportunities", "on_hold_reason"): ("lead_status", "full", "Aging"),
+    ("opportunities", "closed_lost_reason_code"): ("lead_status", "half", "Aging"),
+    ("deals", "on_hold_reason"): ("lead_status", "full", "Aging"),
+    ("deals", "closed_lost_reason_code"): ("lead_status", "half", "Aging"),
     ("leads", "data_site_access_confirmation_document"): (
         "agreed_next_step",
         "full",
@@ -139,16 +140,73 @@ ANCHORED = {
     ),
 }
 
+# A5. Override Justification, anchored to the numbers that demand it, so an
+# override and its reason are in one form and one Save — the backend requires
+# both in the SAME request (app/progression.py::plan_write) and 422s otherwise.
+#
+# HELD APART FROM THE TABLE ABOVE because its condition does not name its
+# anchor. The rule is "Progression % or Probability % differs from the value the
+# stage set", and those stage values are server-stamped columns, not register
+# fields. Until 15 Sep 2026 no condition could name them, so the box was always
+# shown and never demanded by the form. The frontend compiler now accepts them
+# (src/lib/spec/conditions.ts, SERVER_STAMPED) and lead_form_review_metadata.py
+# states the rule; the backend still enforces it on its own.
+ANCHORED_ENFORCED_SERVER_SIDE = {
+    ("leads", "probability_override_justification"): (
+        "probability_pct",
+        None,
+        "Aging",
+    ),
+    ("opportunities", "probability_override_justification"): (
+        "probability_pct",
+        None,
+        "Aging",
+    ),
+    ("deals", "probability_override_justification"): (
+        "probability_pct",
+        None,
+        "Aging",
+    ),
+}
+
+EXPECTED_ANCHORS = len(ANCHORED) + len(ANCHORED_ENFORCED_SERVER_SIDE)
+
 total_anchored = db.scalar(
     select(func.count()).select_from(FieldPlacement).where(
         FieldPlacement.anchor_field.isnot(None), FieldPlacement.status == "active"
     )
 )
 check(
-    f"exactly {len(ANCHORED)} active placements are anchored, and no others drifted",
-    total_anchored == len(ANCHORED),
+    f"exactly {EXPECTED_ANCHORS} active placements are anchored, and no others drifted",
+    total_anchored == EXPECTED_ANCHORS,
     f"{total_anchored} anchored",
 )
+
+for (module, api_name), (anchor, span, section_label) in ANCHORED_ENFORCED_SERVER_SIDE.items():
+    p = placement(db, module, api_name)
+    if p is None:
+        check(f"{module}.{api_name} exists", False, "no active placement")
+        continue
+    check(
+        f"{module}.{api_name} — anchored to {anchor}, after, span {span}",
+        p.anchor_field == anchor
+        and p.anchor_position == "after"
+        and p.layout_span == span,
+        f"{p.anchor_field}/{p.anchor_position}/{p.layout_span}",
+    )
+    check(
+        f"{module}.{api_name} — shown and demanded only while overridden",
+        bool(p.condition)
+        and p.condition == p.visibility_condition
+        and "progression_default_pct" in p.condition
+        and "probability_default_pct" in p.condition,
+        repr(p.condition),
+    )
+    check(
+        f"{module}.{api_name} — still filed under {section_label}",
+        p.section.label == section_label,
+        p.section.label,
+    )
 
 for (module, api_name), (anchor, span, section_label) in ANCHORED.items():
     p = placement(db, module, api_name)
@@ -173,7 +231,7 @@ for (module, api_name), (anchor, span, section_label) in ANCHORED.items():
         repr(p.condition),
     )
     # Section says what KIND of field this is; anchor says where it draws.
-    # The reasons stay CROSS-CUTTING while rendering next to a status field
+    # The reasons stay filed under Aging while rendering next to a status field
     # in another section — that disagreement is the whole design.
     check(
         f"{module}.{api_name} — still filed under {section_label}",
@@ -209,8 +267,8 @@ check(
     str(reason_row["anchor_field"]),
 )
 check(
-    "and still reports CROSS-CUTTING as its section — the register is untouched",
-    reason_row["section"] == "CROSS-CUTTING",
+    "and still reports Aging as its section — the register is untouched",
+    reason_row["section"] == "Aging",
     reason_row["section"],
 )
 plain_row = next(r for r in rows if r["api_name"] == "lead_status")
@@ -254,7 +312,7 @@ try:
     reason = placement(db, "leads", "on_hold_reason")
     lost = placement(db, "leads", "closed_lost_reason_code")
     skip = placement(db, "leads", "stage_skip_reason")
-    assert reason and lost and skip, "the three CROSS-CUTTING reasons must exist on leads"
+    assert reason and lost and skip, "the three Aging reasons must exist on leads"
 
     head("3  setting and clearing an anchor")
 
@@ -490,13 +548,13 @@ try:
         explicit=None,
         extras={
             "on_hold_reason__s0": "Client budget freeze until Q3",
-            "probability_pct__s3": 45,
+            "expected_close_month__s3": "2027-03-01",
         },
     )
     check(
         "a per-stage value of a real field is kept",
         written.get("on_hold_reason__s0") == "Client budget freeze until Q3"
-        and written.get("probability_pct__s3") == 45,
+        and written.get("expected_close_month__s3") == "2027-03-01",
         str(written),
     )
 
@@ -540,12 +598,12 @@ finally:
             FieldPlacement.anchor_field.isnot(None), FieldPlacement.status == "active"
         )
     )
-    ok = still == len(ANCHORED)
-    print(f"\n  restore — {still} anchored placement(s), expected {len(ANCHORED)}")
+    ok = still == EXPECTED_ANCHORS
+    print(f"\n  restore — {still} anchored placement(s), expected {EXPECTED_ANCHORS}")
     if not ok:
         FAILED.append(
             f"the anchor configuration was not restored — {still} anchored, "
-            f"expected {len(ANCHORED)}. The scripts that used to set these are "
+            f"expected {EXPECTED_ANCHORS}. The scripts that used to set these are "
             f"gone (B3): roll back to the last good published version in "
             f"Administration, or set the anchors in the field editor — "
             f"'Anchor to' names the field each one draws beneath."
@@ -558,4 +616,4 @@ if FAILED:
     for line in FAILED:
         print(f"    {line}")
     sys.exit(1)
-print(f"{PASSED} passed. Anchors are wired end to end and all {len(ANCHORED)} are in place.")
+print(f"{PASSED} passed. Anchors are wired end to end and all {EXPECTED_ANCHORS} are in place.")

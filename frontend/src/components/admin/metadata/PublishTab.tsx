@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
+import { dateTime as fmtDateTime } from '@/lib/format'
 import { ErrorBox, LoadingRow, Mono, Row, Table } from './shared'
 import { errorMessage } from '@/lib/admin'
 import {
@@ -78,7 +79,7 @@ export function PublishTab() {
           ) : (
             <Badge variant="secondary">
               Published version {draft.published_version}
-              {draft.published_at && ` · ${new Date(draft.published_at).toLocaleString()}`}
+              {draft.published_at && ` · ${fmtDateTime(draft.published_at)}`}
             </Badge>
           )}
           {draft.has_changes ? (
@@ -253,7 +254,7 @@ export function PublishTab() {
                 <td>{version.field_count}</td>
                 <td className="text-muted-foreground text-xs">
                   {version.published_at
-                    ? new Date(version.published_at).toLocaleString()
+                    ? fmtDateTime(version.published_at)
                     : '—'}
                   {version.published_by && <div>by {version.published_by}</div>}
                 </td>

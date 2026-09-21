@@ -33,6 +33,9 @@ from .models import User
 SESSION_USER_KEY = "user_id"
 
 ADMIN_ROLE = "ADMIN"
+#: Reads user feedback, and nothing else is gated on it. Seeded by seed.py and
+#: migration 0032; in administration__roles alongside every other role.
+DEVELOPER_ROLE = "DEVELOPER"
 
 
 def current_user(request: Request, db: Session = Depends(get_db)) -> User:
@@ -47,7 +50,7 @@ def current_user(request: Request, db: Session = Depends(get_db)) -> User:
     if not user_id:
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED,
-            "Not signed in.",
+            "Your session has ended. Sign in again.",
             headers={"WWW-Authenticate": "Session"},
         )
 
@@ -56,12 +59,12 @@ def current_user(request: Request, db: Session = Depends(get_db)) -> User:
         # The row was deleted while the cookie lived on. Drop the stale session
         # rather than 500-ing on a null user for the rest of its lifetime.
         request.session.clear()
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Session no longer valid.")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Your session has ended. Sign in again.")
 
     if not user.active:
         # Deactivating a user in Administration must take effect on their next
         # request, not whenever their cookie happens to expire.
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "This account is deactivated.")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Your ARK account is deactivated. Contact an administrator.")
 
     return user
 
@@ -78,7 +81,7 @@ def require_access(user: User = Depends(current_user)) -> User:
     if not user.roles:
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
-            "Your account has no role yet. An administrator must grant you access.",
+            "You don't have access yet. An administrator needs to give you a role.",
         )
     return user
 
@@ -87,8 +90,22 @@ def require_admin(user: User = Depends(current_user)) -> User:
     """Administration and the metadata register — ADMIN only."""
     if not any(role.role_id == ADMIN_ROLE for role in user.roles):
         raise HTTPException(
-            status.HTTP_403_FORBIDDEN, "Administration is restricted to administrators."
+            status.HTTP_403_FORBIDDEN, "Only administrators can open Administration."
         )
+    return user
+
+
+def require_developer(user: User = Depends(require_access)) -> User:
+    """
+    User feedback — DEVELOPER only, decided 17 Sep 2026. Not ADMIN: an
+    administrator manages people and configuration; feedback is written for the
+    people building the product, and may be about the administrators.
+
+    Enforced here, on the route. The inbox's nav entry is hidden from everyone
+    else too, but that is presentation — a typed URL lands on this 403.
+    """
+    if not any(role.role_id == DEVELOPER_ROLE for role in user.roles):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only developers can read feedback.")
     return user
 
 

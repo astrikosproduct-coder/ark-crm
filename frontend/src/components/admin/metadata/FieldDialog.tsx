@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RuleBuilder } from './RuleBuilder'
 import { errorMessage } from '@/lib/admin'
+import { cn } from '@/lib/utils'
 import {
   FIELD_TYPES,
   REQUIREMENTS,
@@ -71,6 +72,15 @@ interface Props {
   sectionId?: number
 }
 
+/**
+ * Mirrors DESCRIPTION_MAX_LENGTH in backend/app/schemas_metadata.py, which is
+ * itself mirrored by a CHECK constraint in migration 0033. Three places, one
+ * number; the server is the one that refuses, this one only stops the typing.
+ */
+const DESCRIPTION_MAX_LENGTH = 255
+/** Where the counter appears — late enough that an ordinary description never sees it. */
+const DESCRIPTION_SOFT_WARN = 200
+
 interface FormState {
   section_id: number | null
   api_name: string
@@ -80,6 +90,8 @@ interface FormState {
   picklist_key: string
   lookup_target: string
   max_length: string
+  min_value: string
+  max_value: string
   capture_stage: string
   mandatory_from: string
   blocks_transition: string
@@ -109,6 +121,8 @@ const EMPTY: FormState = {
   picklist_key: '',
   lookup_target: '',
   max_length: '',
+  min_value: '',
+  max_value: '',
   capture_stage: '',
   mandatory_from: '',
   blocks_transition: '',
@@ -228,6 +242,8 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
         picklist_key: field.picklist_key ?? '',
         lookup_target: field.lookup_target ?? '',
         max_length: field.max_length?.toString() ?? '',
+        min_value: field.min_value?.toString() ?? '',
+        max_value: field.max_value?.toString() ?? '',
         capture_stage: field.capture_stage?.toString() ?? '',
         mandatory_from: field.mandatory_from?.toString() ?? '',
         blocks_transition: field.blocks_transition ?? '',
@@ -263,6 +279,7 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
 
   const needsPicklist = form.field_type === 'picklist' || form.field_type === 'multiselect'
   const needsLookup = form.field_type === 'lookup'
+  const isNumeric = ['number', 'currency', 'percent'].includes(form.field_type)
 
   /**
    * The stage the chosen section implies — 4 for "STAGE 4 — RFP / RFI".
@@ -287,6 +304,8 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
     picklist_key: needsPicklist ? orNull(form.picklist_key) : null,
     lookup_target: needsLookup ? orNull(form.lookup_target) : null,
     max_length: numberOrNull(form.max_length),
+    min_value: isNumeric ? numberOrNull(form.min_value) : null,
+    max_value: isNumeric ? numberOrNull(form.max_value) : null,
     capture_stage: numberOrNull(form.capture_stage),
     capture_any_stage: form.capture_any_stage,
     mandatory_from: numberOrNull(form.mandatory_from),
@@ -314,6 +333,8 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
     picklist_key: payload.picklist_key,
     lookup_target: payload.lookup_target,
     max_length: payload.max_length,
+    min_value: payload.min_value,
+    max_value: payload.max_value,
     computed_formula: payload.computed_formula,
     computed_expr: payload.computed_expr,
     description: payload.description,
@@ -540,6 +561,33 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
                 placeholder="account, user, contact, lead…"
                 onChange={(e) => set('lookup_target', e.target.value)}
               />
+            </div>
+          )}
+
+          {/* Both inclusive: 1 and 10 allow 1 and 10. Checked on screen and
+              refused by the API on save. */}
+          {isNumeric && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="min_value">Min value</Label>
+                <Input
+                  id="min_value"
+                  inputMode="decimal"
+                  value={form.min_value}
+                  placeholder="No minimum"
+                  onChange={(e) => set('min_value', e.target.value)}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="max_value">Max value</Label>
+                <Input
+                  id="max_value"
+                  inputMode="decimal"
+                  value={form.max_value}
+                  placeholder="No maximum"
+                  onChange={(e) => set('max_value', e.target.value)}
+                />
+              </div>
             </div>
           )}
 
@@ -883,13 +931,36 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
           )}
 
           <div className="grid gap-1.5">
-            <Label htmlFor="description">Description</Label>
+            <div className="flex items-baseline justify-between gap-2">
+              <Label htmlFor="description">Description</Label>
+              {/* Counted down, not up, and only once it starts to matter. A
+                  counter on an empty box is pressure to fill it; a counter at
+                  200 of 255 is a useful warning that a fourth sentence will not
+                  fit. The cap is a layout promise to the field tooltip and the
+                  import template — see DESCRIPTION_MAX_LENGTH in
+                  backend/app/schemas_metadata.py. */}
+              {form.description.length > DESCRIPTION_SOFT_WARN && (
+                <span
+                  className={cn(
+                    'text-xs tabular-nums',
+                    form.description.length >= DESCRIPTION_MAX_LENGTH ? 'text-destructive' : 'text-muted-foreground'
+                  )}
+                >
+                  {DESCRIPTION_MAX_LENGTH - form.description.length} left
+                </span>
+              )}
+            </div>
             <Textarea
               id="description"
-              rows={2}
+              rows={3}
+              maxLength={DESCRIPTION_MAX_LENGTH}
               value={form.description}
               onChange={(e) => set('description', e.target.value)}
             />
+            <p className="text-muted-foreground text-xs">
+              What the field is, when to fill it, and what counts. Read on the form, in the export and in
+              the import template, so keep it to about three sentences.
+            </p>
           </div>
 
           <div className="grid gap-1.5">

@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom'
 
+import { ScrollToTop } from '@/components/layout/ScrollToTop'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { TopBar } from '@/components/layout/TopBar'
 import { UnsavedChangesDialog } from '@/components/record/UnsavedChangesDialog'
@@ -19,15 +20,29 @@ export function AppShell() {
   const guard = useUnsavedChangesGuard()
 
   return (
-    <div className="flex h-screen flex-col">
+    // No h-screen, no overflow clipping anywhere in here: the DOCUMENT scrolls,
+    // exactly the length of whatever page is on screen. A short record — three
+    // fields and a Save button — is a short page, full stop; a long one scrolls
+    // the way a long page always has. The old shell fixed this whole tree to
+    // viewport height and scrolled only `main`, which meant every screen was
+    // AT LEAST a full viewport tall whether it had content for that or not —
+    // short screens ended in a slab of empty background with nothing to explain
+    // it. TopBar and Sidebar use `sticky` instead of a clipped flex row, so they
+    // still track the viewport as the page scrolls; see their own comments.
+    // The nav is a full-height column beside the header rather than under it —
+    // the reference puts the brand mark inside the nav and starts the header at
+    // the content's left edge, so the module title lines up with the content
+    // below it. ARK_brand_UI.md §2.1–2.2.
+    <div className="flex min-h-screen items-start">
       <UnsavedChangesDialog open={guard.open} onStay={guard.stay} onLeave={guard.leave} />
-      <TopBar />
-      <div className="flex min-h-0 flex-1">
-        <Sidebar />
-        <main className={cn('min-w-0 flex-1 overflow-y-auto', onDashboard && 'bg-dashboard-bg')}>
+      <Sidebar />
+      <div className="flex min-w-0 flex-1 flex-col self-stretch">
+        <TopBar />
+        <main className={cn('min-w-0 flex-1', onDashboard && 'bg-dashboard-bg')}>
           <Outlet />
         </main>
       </div>
+      <ScrollToTop />
     </div>
   )
 }

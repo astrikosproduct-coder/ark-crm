@@ -106,9 +106,9 @@ export function specHealth(): HealthGroup[] {
 
   // 2. Computed fields with nothing executable behind them.
   //
-  //    A field with a working `computed_by` is NOT a gap: progression_pct is
-  //    resolved by a named resolver because its value is a function of the stage
-  //    list rather than of any field, which no expression over api_names can
+  //    A field with a working `computed_by` is NOT a gap: days_in_current_stage
+  //    is resolved by a named resolver because its value is a function of a
+  //    derived date and the clock, which no expression over api_names can
   //    express. One whose computed_by names a resolver that does not exist still
   //    counts — computedGap() decides, so the page and the control agree.
   groups.push({

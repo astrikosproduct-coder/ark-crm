@@ -14,6 +14,7 @@ import {
   Settings,
   SquarePen,
   Stethoscope,
+  MessageSquareText,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -25,7 +26,7 @@ export interface ModuleDef {
 }
 
 export const MODULES: ModuleDef[] = [
-  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, built: false },
+  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, built: true },
   { key: 'leads', label: 'Leads', icon: Target, built: true },
   { key: 'opportunities', label: 'Opportunities', icon: Briefcase, built: true },
   { key: 'deals', label: 'Deals', icon: Handshake, built: true },
@@ -71,6 +72,8 @@ export const SIDEBAR_BOTTOM: string[] = ['administration']
 export const TOOLS: ModuleDef[] = [
   { key: 'form-engine', label: 'Form engine', icon: SquarePen, built: true },
   { key: 'spec-health', label: 'Spec health', icon: Stethoscope, built: true },
+  // DEVELOPER-only on the server (backend/app/routers/feedback.py), not just here.
+  { key: 'feedback', label: 'Feedback', icon: MessageSquareText, built: true },
 ]
 
 export function moduleFor(key: string | undefined): ModuleDef | undefined {

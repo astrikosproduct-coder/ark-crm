@@ -4,13 +4,25 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..auth import current_user
+from ..list_query import run_list_query
+from ..read_through_rows import attach_read_through
+from ..messages import already_exists, not_found, picked_record_missing, refusal
+from ..changes import child_snapshot, custom_field_diff, diff, list_changes, snapshot
+from ..clock import days_since, now_utc
 from ..database import get_db
 from ..audit import record_audit
 from ..custom_fields import apply_write, extras_of, merge_into_row, resolve_write
 from ..ids import next_reference_id
+from ..stage_entry import stage_entry_dates
+from ..progression import after_write as pct_after_write, plan_write, serialise_pct
 from ..models import Deal, Lead, Opportunity, OpportunityPaymentMilestone, User
 from ..priority_flags import PRIORITY_FLAGS, PriorityFlagError, resolve_priority_flag_patch
+from ..conversion import begin_conversion, complete_conversion
+from ..pursuits import PURSUIT_STAMPED, group_names, guard_close, inherit_on_create
+from ..revenue import revenue_context, revenue_of
 from ..schemas import (
+    LEAD_LOOKUPS,
     OPPORTUNITY_LOOKUPS,
     OPPORTUNITY_SCALARS,
     OpportunityCreate,
@@ -22,7 +34,6 @@ router = APIRouter(tags=["opportunities"])
 
 OPPORTUNITY_ID_PATTERN = re.compile(r"^OPP-(\d+)$")
 
-RESERVED = {"_page", "_limit", "_sort", "_order", "_search", "q"}
 
 # extensions.json list_views.opportunities, once written; kept narrow and
 # textual like leads' own default.
@@ -30,6 +41,10 @@ DEFAULT_SEARCH = ("project_stage", "lead_status")
 
 # Never set through the generic scalar loop — see _apply_priority_flags.
 PRIORITY_FIELD_NAMES = {pf.flag for pf in PRIORITY_FLAGS} | {pf.rank for pf in PRIORITY_FLAGS}
+
+# Stamped from the Entra session and the server clock, never from the payload.
+# See the same constant in routers/leads.py for the full account of why.
+SYSTEM_STAMPED = frozenset({"created_by", "created_date", "modified_by", "modified_date"})
 
 # Row column names of the payment_milestones childlist, in register order —
 # see models.OpportunityPaymentMilestone and extensions.json's child_spec.
@@ -65,7 +80,28 @@ def _label_maps(db: Session) -> dict[str, dict[str, str]]:
     """
     users = {u.user_id: u.name for u in db.scalars(select(User))}
     leads = {l.lead_id: l.opportunity_name for l in db.scalars(select(Lead))}
-    return {"users": users, "leads": leads}
+    # Not a lookup collection — no column points at it. It rides here because
+    # it is the same shape of join (an id resolved to a display name, once per
+    # page rather than once per row) and the alternative was passing the
+    # session into _serialise.
+    return {
+        "users": users,
+        "leads": leads,
+        # A pursuit group by name, never PG-0002 — see routers/leads.py.
+        "pursuit_groups": group_names(db),
+        # What each row contributes to its stage's total — see app/revenue.py.
+        "revenue": revenue_context(db),
+        # Nor is this a display-name join, and it is here for the same reason:
+        # one query for the page rather than one per row. See app/stage_entry.py.
+        "stage_entered": stage_entry_dates(
+            db,
+            "opportunities",
+            {
+                o.opportunity_id: o.project_stage
+                for o in db.scalars(select(Opportunity))
+            },
+        ),
+    }
 
 
 def _serialise(opp: Opportunity, labels: dict[str, dict[str, str]]) -> dict:
@@ -78,6 +114,29 @@ def _serialise(opp: Opportunity, labels: dict[str, dict[str, str]]) -> dict:
         row[name] = float(value) if name in _MONEY_LIKE and value is not None else value
     row["created_date"] = opp.created_date
     row["modified_date"] = opp.modified_date
+
+    # TCV is computed and never stored, so until now a list row simply had no
+    # total_value_tcv and every Opportunities card showed "—". Served from the
+    # same evaluation the pipeline total uses, so the card and the column
+    # header cannot disagree. See app/revenue.py.
+    revenue = revenue_of(labels["revenue"], "opportunities", opp)
+    row["revenue"] = revenue
+    row["total_value_tcv"] = revenue["value"]
+    row["pursuit_primary"] = (
+        labels["revenue"].primary_of_group.get(opp.pursuit_group) if opp.pursuit_group else None
+    )
+
+    # The two Aging fields. Served here for the first time — Opportunities
+    # rendered "No formula in the field register for this field." in that
+    # section because nothing anywhere produced them. See app/stage_entry.py.
+    entered = labels["stage_entered"].get(opp.opportunity_id) or opp.created_date
+    row["stage_entered_date"] = entered
+    row["days_in_current_stage"] = days_since(entered)
+    row["days_since_last_update"] = days_since(opp.modified_date or opp.created_date)
+
+    # The stage pair and its override state — which overwrites the raw
+    # Decimals the scalar loop just put in the row. See app/progression.py.
+    row.update(serialise_pct(opp))
 
     row["payment_milestones"] = [
         {
@@ -98,6 +157,13 @@ def _serialise(opp: Opportunity, labels: dict[str, dict[str, str]]) -> dict:
         value = getattr(opp, field)
         if value and value in labels[collection]:
             joined[field] = labels[collection][value]
+    # overridden_by is NOT in OPPORTUNITY_LOOKUPS — see leads.py's own note:
+    # that dict also drives create-time validation over every key
+    # unconditionally, and overridden_by is never a payload field.
+    if opp.overridden_by and opp.overridden_by in labels["users"]:
+        joined["overridden_by"] = labels["users"][opp.overridden_by]
+    if opp.pursuit_group and opp.pursuit_group in labels["pursuit_groups"]:
+        joined["pursuit_group"] = labels["pursuit_groups"][opp.pursuit_group]
     if joined:
         row["__labels"] = joined
 
@@ -128,7 +194,7 @@ _MONEY_LIKE = {
 def _get_or_404(db: Session, opportunity_id: str) -> Opportunity:
     opp = db.get(Opportunity, opportunity_id)
     if opp is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"No opportunity {opportunity_id}")
+        raise not_found("opportunity")
     return opp
 
 
@@ -142,13 +208,14 @@ def _check_links(db: Session, payload, sent: set[str]) -> None:
     """
     models_by_collection = {"leads": Lead, "users": User}
     for field, collection in OPPORTUNITY_LOOKUPS.items():
-        if field not in sent:
+        # SYSTEM_STAMPED fields are never written from the payload, so
+        # validating them would 422 a request over a discarded value. See the
+        # same guard in routers/leads.py::_check_links.
+        if field not in sent or field in SYSTEM_STAMPED:
             continue
         value = getattr(payload, field)
         if value and db.get(models_by_collection[collection], value) is None:
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY, f"No such {collection[:-1]}: {value}"
-            )
+            raise picked_record_missing({"accounts": "account", "users": "person", "contacts": "contact", "leads": "lead", "opportunities": "opportunity"}.get(collection, "record"))
 
 
 def _all_priority_rows(db: Session) -> list[dict[str, object]]:
@@ -213,6 +280,11 @@ def _apply_priority_flags(
         setattr(opp, key, value)
 
 
+def _children_of(opp: Opportunity) -> dict[str, list[dict]]:
+    """The child list as comparable rows — the before/after of list_changes."""
+    return {"payment_milestones": child_snapshot(opp.payment_milestones, MILESTONE_ROW_COLUMNS)}
+
+
 def _apply_payment_milestones(db: Session, opp: Opportunity, payload) -> None:
     opp.payment_milestones.clear()
     db.flush()
@@ -234,59 +306,17 @@ def list_opportunities(request: Request, response: Response, db: Session = Depen
     and the row total on X-Total-Count.
     """
     labels = _label_maps(db)
-    rows = [_serialise(o, labels) for o in db.scalars(select(Opportunity))]
+    records = list(db.scalars(select(Opportunity)))
+    rows = [_serialise(o, labels) for o in records]
+    # Identity is read through the root Lead — without it a filter or sort on
+    # End Client or an owner matched nothing. See app/read_through_rows.py.
+    attach_read_through(db, "opportunities", list(zip(records, rows)))
 
-    params = request.query_params
-
-    for key in {k for k in params if k not in RESERVED}:
-        wanted = set(params.getlist(key))
-        rows = [r for r in rows if _matches(r.get(key), wanted)]
-
-    q = (params.get("q") or "").strip().lower()
-    if q:
-        named = [f for f in (params.get("_search") or "").split(",") if f]
-        fields = named or list(DEFAULT_SEARCH)
-        rows = [r for r in rows if q in _text_of(r, fields).lower()]
-
-    sort = params.get("_sort")
-    if sort:
-        rows.sort(key=lambda r: _sort_key(r, sort))
-        if params.get("_order") == "desc":
-            rows.reverse()
-
-    total = len(rows)
-
-    page = int(params.get("_page") or 0)
-    limit = int(params.get("_limit") or 0)
-    if page > 0 and limit > 0:
-        rows = rows[(page - 1) * limit : page * limit]
-
+    rows, total = run_list_query(
+        rows, request.query_params, lookups=set(OPPORTUNITY_LOOKUPS) | set(LEAD_LOOKUPS), default_search=DEFAULT_SEARCH
+    )
     response.headers["X-Total-Count"] = str(total)
     return rows
-
-
-def _matches(value, wanted: set[str]) -> bool:
-    if isinstance(value, list):
-        return any(str(v) in wanted for v in value)
-    return str(value if value is not None else "") in wanted
-
-
-def _display(row: dict, field: str) -> str:
-    if field in OPPORTUNITY_LOOKUPS:
-        label = (row.get("__labels") or {}).get(field)
-        if label:
-            return label
-    value = row.get(field)
-    return "" if value is None else str(value)
-
-
-def _text_of(row: dict, fields: list[str]) -> str:
-    return " ".join(_display(row, f) for f in fields)
-
-
-def _sort_key(row: dict, field: str):
-    text = _display(row, field)
-    return (1, "") if text == "" else (0, text.lower())
 
 
 @router.get("/opportunities/{opportunity_id}", response_model=OpportunityOut)
@@ -295,16 +325,26 @@ def get_opportunity(opportunity_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/opportunities", response_model=OpportunityOut, status_code=status.HTTP_201_CREATED)
-def create_opportunity(payload: OpportunityCreate, db: Session = Depends(get_db)):
+def create_opportunity(
+    payload: OpportunityCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
     opportunity_id = payload.opportunity_id or _next_opportunity_id(db)
 
     if db.get(Opportunity, opportunity_id) is not None:
-        raise HTTPException(status.HTTP_409_CONFLICT, f"{opportunity_id} already exists")
+        raise already_exists()
 
     sent = set(payload.model_dump(exclude_unset=True))
     _check_links(db, payload, sent & set(OPPORTUNITY_LOOKUPS))
+    # Lead -> Opportunity is one transaction, and never twice: the Lead is
+    # locked here and refused if it already became something. See
+    # app/conversion.py.
+    converting = begin_conversion(db, "leads", payload.parent_lead)
 
     opp = Opportunity(opportunity_id=opportunity_id)
+    # Before a value is applied: validates the two numbers and any override.
+    pct_plan = plan_write(db, "opportunities", opp, payload, sent, creating=True)
     _BOOL_DEFAULTS = {
         "nomination_bid": False,
         "incumbent_only": False,
@@ -312,12 +352,26 @@ def create_opportunity(payload: OpportunityCreate, db: Session = Depends(get_db)
         "active": True,
     }
     for name in OPPORTUNITY_SCALARS:
-        if name in PRIORITY_FIELD_NAMES:
+        if name in PRIORITY_FIELD_NAMES or name in SYSTEM_STAMPED or name in PURSUIT_STAMPED:
             continue
         value = getattr(payload, name)
         if value is None and name in _BOOL_DEFAULTS:
             value = _BOOL_DEFAULTS[name]
         setattr(opp, name, value)
+    # Born open, like a Lead and a Deal — a blank status is not a state.
+    if not opp.lead_status:
+        opp.lead_status = "OPEN"
+
+    # The pursuit carries on: a secondary Lead becomes a secondary Opportunity.
+    # From the parent, never from the body — see app/pursuits.py.
+    inherit_on_create(db, "opportunities", opp)
+
+    # See SYSTEM_STAMPED.
+    stamped_at = now_utc()
+    opp.created_by = user.user_id
+    opp.created_date = stamped_at
+    opp.modified_by = user.user_id
+    opp.modified_date = stamped_at
 
     # Explicit defaults before validation: resolve_priority_flag_patch reads
     # `current_state` to know what was already on, and there is no row yet.
@@ -349,33 +403,75 @@ def create_opportunity(payload: OpportunityCreate, db: Session = Depends(get_db)
         module="opportunities",
         record_id=opportunity_id,
         action="created",
-        actor=opp.modified_by or opp.created_by,
+        actor=user.user_id,
         changed_fields=sorted(sent),
     )
+
+    # The stage's Progression %/Probability %. See app/progression.py.
+    pct_after_write(db, "opportunities", opp, pct_plan, actor=user.user_id)
+
+    if converting is not None:
+        complete_conversion(
+            db,
+            source_module="leads",
+            source=converting,
+            target_module="opportunities",
+            target_id=opportunity_id,
+            sent=sent,
+            note=payload.conversion_note,
+            actor=user.user_id,
+        )
+
     db.commit()
     db.refresh(opp)
     return _serialise(opp, _label_maps(db))
 
 
 @router.patch("/opportunities/{opportunity_id}", response_model=OpportunityOut)
-def patch_opportunity(opportunity_id: str, payload: OpportunityUpdate, db: Session = Depends(get_db)):
+def patch_opportunity(
+    opportunity_id: str,
+    payload: OpportunityUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
     """Applies only the fields present in the request body."""
-    return _write(db, opportunity_id, payload, set(payload.model_dump(exclude_unset=True)))
+    return _write(db, opportunity_id, payload, set(payload.model_dump(exclude_unset=True)), user)
 
 
 @router.put("/opportunities/{opportunity_id}", response_model=OpportunityOut)
-def put_opportunity(opportunity_id: str, payload: OpportunityUpdate, db: Session = Depends(get_db)):
+def put_opportunity(
+    opportunity_id: str,
+    payload: OpportunityUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
     """
     Kept for the same reason accounts, contacts and leads have one: the
     prototype's record editor and HeaderStrip both PUT when they save. Still
     applies only what was sent.
     """
-    return _write(db, opportunity_id, payload, set(payload.model_dump(exclude_unset=True)))
+    return _write(db, opportunity_id, payload, set(payload.model_dump(exclude_unset=True)), user)
 
 
-def _write(db: Session, opportunity_id: str, payload: OpportunityUpdate, sent: set[str]) -> dict:
+def _write(
+    db: Session,
+    opportunity_id: str,
+    payload: OpportunityUpdate,
+    sent: set[str],
+    user: User,
+) -> dict:
     opp = _get_or_404(db, opportunity_id)
     _check_links(db, payload, sent & set(OPPORTUNITY_LOOKUPS))
+
+    # The before half of the diff, read before anything is applied — including
+    # the priority flags, which _apply_priority_flags writes below and which a
+    # reviewer very much wants to see move. See routers/leads.py::_write.
+    tracked = [
+        n for n in OPPORTUNITY_SCALARS if (n in sent or n in PRIORITY_FIELD_NAMES) and n not in SYSTEM_STAMPED
+    ]
+    before = snapshot(opp, tracked)
+    before_custom = dict(opp.custom_fields or {})
+    before_children = _children_of(opp)
 
     current_state = {
         "is_low_hanging": opp.is_low_hanging,
@@ -385,8 +481,14 @@ def _write(db: Session, opportunity_id: str, payload: OpportunityUpdate, sent: s
     }
     _apply_priority_flags(db, opp, payload, sent, current_state)
 
+    # Before anything is applied — see routers/leads.py::_write.
+    pct_plan = plan_write(db, "opportunities", opp, payload, sent)
+
+    if "lead_status" in sent:
+        guard_close(db, "opportunities", opp, payload.lead_status)
+
     for name in OPPORTUNITY_SCALARS:
-        if name not in sent or name in PRIORITY_FIELD_NAMES:
+        if name not in sent or name in PRIORITY_FIELD_NAMES or name in SYSTEM_STAMPED or name in PURSUIT_STAMPED:
             continue
         setattr(opp, name, getattr(payload, name))
 
@@ -405,21 +507,43 @@ def _write(db: Session, opportunity_id: str, payload: OpportunityUpdate, sent: s
             extras=extras_of(payload),
         ),
     )
+    # See SYSTEM_STAMPED.
+    opp.modified_by = user.user_id
+    opp.modified_date = now_utc()
+
+    changed = diff(before, snapshot(opp, tracked))
+    changed += custom_field_diff(before_custom, opp.custom_fields)
+    # A child list counts as changed only when its ROWS moved — never merely
+    # because the editor's whole-section PUT carried it. See changes.list_changes.
+    db.flush()
+    # See routers/leads.py — the relationship is stale after a db.add() insert.
+    db.expire(opp, ["payment_milestones"])
+    changed += list_changes(before_children, _children_of(opp))
+
     record_audit(
         db,
         module="opportunities",
         record_id=opportunity_id,
         action="updated",
-        actor=opp.modified_by or opp.created_by,
+        actor=user.user_id,
         changed_fields=sorted(sent),
+        changed=changed,
     )
+
+    # See routers/leads.py::_write.
+    pct_after_write(db, "opportunities", opp, pct_plan, actor=user.user_id)
+
     db.commit()
     db.refresh(opp)
     return _serialise(opp, _label_maps(db))
 
 
 @router.delete("/opportunities/{opportunity_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_opportunity(opportunity_id: str, db: Session = Depends(get_db)):
+def delete_opportunity(
+    opportunity_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
     """
     Hard delete. payment_milestones rows cascade, but a converted Deal reads
     its identity through parent_opportunity under a RESTRICT constraint, so
@@ -428,15 +552,30 @@ def delete_opportunity(opportunity_id: str, db: Session = Depends(get_db)):
     """
     opp = _get_or_404(db, opportunity_id)
 
+    if opp.pursuit_group:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            refusal(
+                "REMOVE_FROM_GROUP_FIRST",
+                "This opportunity is in a pursuit group, so it can't be deleted.",
+                ["Remove it from the group first."],
+                group_id=opp.pursuit_group,
+            ),
+        )
+
     deals = db.scalars(select(Deal.deal_id).where(Deal.parent_opportunity == opportunity_id)).all()
     if deals:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            f"{opportunity_id} was converted and is still the parent of "
-            f"{len(deals)} deal(s): {', '.join(deals[:5])}"
-            f"{'…' if len(deals) > 5 else ''}. Deactivate it instead.",
+            refusal(
+                "OPPORTUNITY_HAS_DEALS",
+                "This opportunity already became a Deal, so it can't be deleted.",
+                deals=deals,
+            ),
         )
-    record_audit(db, module="opportunities", record_id=opportunity_id, action="deleted")
+    record_audit(
+        db, module="opportunities", record_id=opportunity_id, action="deleted", actor=user.user_id
+    )
     db.delete(opp)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

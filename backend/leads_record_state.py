@@ -78,7 +78,7 @@ Nothing would visibly break today, because the Details tab filters the STAGE
 sections out anyway, but the invariant would be quietly false and the next
 person to trust it would be wrong. So Leads' placements are renumbered
 contiguously in section order afterwards: HEADER, RECORD STATE, STAGE 0…3,
-__header, CROSS-CUTTING, SYSTEM — the same shape Opportunities already has.
+__header, Aging, SYSTEM — the same shape Opportunities already has.
 """
 
 from __future__ import annotations
@@ -111,7 +111,7 @@ SECTION_ORDER = (
     "STAGE 2 — POC / PILOT",
     "STAGE 3 — PRESCRIPTION",
     "__header",
-    "CROSS-CUTTING",
+    "Aging",
     "SYSTEM",
 )
 
@@ -178,7 +178,7 @@ def apply(db) -> list[str]:
         log.append(f"section {RECORD_STATE!r} already exists (id={section.id})")
 
     # Section display order, so the Details tab reads HEADER, RECORD STATE,
-    # CROSS-CUTTING, SYSTEM — the order Opportunities already has.
+    # Aging, SYSTEM — the order Opportunities already has.
     by_label = sections_of(db)
     for position, label in enumerate(SECTION_ORDER, start=1):
         row = by_label.get(label)

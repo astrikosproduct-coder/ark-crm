@@ -5,7 +5,7 @@
   "identifiers": "Bare api_name of a field in the SAME module. Leading digits (3rd_party_one_time) and em-dashes (guarantee_—_value) are legal.",
   "picklist_comparison": "In computed_expr and visibility_condition, a string literal compared against a picklist or multiselect field is normalised through spec/picklists.json - it matches on either the key or the label. So `deal_source == 'Partner-sourced'` holds whether the stored value is PARTNER_SOURCED or 'Partner-sourced'.",
   "lookup_filter_comparison": "lookup_filter_expr runs against records in the TARGET collection, which are seed rows, not spec fields - no picklist is available to normalise through. String comparison there is slug-normalised instead (case-folded, and -/_/space treated as equivalent), because the seed is inconsistent: accounts.account_types holds labels ('End Client') while users.roles holds keys ('BD_OWNER').",
-  "percent_unit": "UNRESOLVED IN THE SPEC. seed/regions.json stores region_pricing_pct as 1 meaning 100%, i.e. a fraction. Nothing states the convention for Discount % or Probability %. net_line_total below assumes discount is a fraction. Flagged on the Spec Health page.",
+  "percent_unit": "SETTLED 18 Sep 2026 for Progression % and Probability %, and the answer is that there are TWO conventions on purpose. A RECORD stores a FRACTION -- 0.70 is 70% -- written and enforced by backend/app/progression.py, which divides by 100 on the way in, normalises a whole number a caller sends, validates the range as 0..1 in steps of 0.05, and multiplies by 100 again only to print. The `stages` TABLE stores WHOLE NUMBERS (5, 10, 20 ... 100), because that is the register's own wording of the ladder and what an administrator edits in Administration -> Stages. Neither is wrong; what is wrong is code that assumes one while reading the other, which is exactly what dashboard.py did -- it divided a fraction by 100 a second time and rendered every weighted figure at a hundredth of its value. backend/test_dashboard_weighted.py now pins both conventions and the join between them. src/lib/format.ts percent() accepts either and is correct to: it renders record fractions and would still do the right thing with a stage number. STILL UNRESOLVED, separately: Discount %. seed/regions.json stores region_pricing_pct as 1 meaning 100%, and net_line_total below assumes discount is a fraction; nothing states it. That half stays on the Spec Health page.",
   "child_spec_columns": "A child_spec column is either an INLINE object (api_name, label, type, required, width, plus picklist / lookup_target / lookup_filter_expr / computed_expr as the type needs) or a '<module>.<api_name>' REF to a field the register already carries. A ref means 'this column IS that field' and inherits its type, picklist, lookup, formula and requirement - which is how the milestone_—_* and guarantee_—_* fields become row columns without being restated, and why Planned Date is required while the other three milestone dates are not. Both forms are resolved to the same shape at load, and a cell renders through the same FieldControl every other field on the screen uses.",
   "child_row_expressions": "A computed_expr on a child column is evaluated ONCE PER ROW. Its identifiers resolve to a sibling column of the row FIRST and to a field of the parent record second, so 'guarantee_—_value / contract_value' reads the row's guarantee value and the deal's contract value in one expression. A name in neither namespace throws rather than evaluating to null. lookup_filter_expr on a child column keeps its normal semantics - it runs against the TARGET collection only, so it cannot see the parent record; a filter like 'contacts at this lead's End Client' is not expressible and is recorded in open_questions."
  },
@@ -25,6 +25,13 @@
     "account_name",
     "region",
     "segment"
+   ],
+   "filters": [
+    "accounts.account_type",
+    "accounts.account_owner",
+    "accounts.segment",
+    "accounts.customer_class",
+    "accounts.region"
    ]
   },
   "contacts": {
@@ -42,6 +49,12 @@
     "job_title",
     "email",
     "account"
+   ],
+   "filters": [
+    "contacts.account",
+    "contacts.contact_role",
+    "contacts.engagement_owner",
+    "contacts.friend_foe_assessment"
    ]
   },
   "partners": {
@@ -59,6 +72,14 @@
     "account_name",
     "region",
     "segment"
+   ],
+   "filters": [
+    "accounts.account_type",
+    "accounts.partner_tier",
+    "accounts.partner_type",
+    "accounts.engagement_cadence",
+    "accounts.region",
+    "accounts.account_owner"
    ]
   },
   "registrations": {
@@ -77,6 +98,14 @@
     "project_name",
     "partner",
     "end_client"
+   ],
+   "filters": [
+    "partners.registration_status",
+    "partners.DEAL REGISTRATION.partner",
+    "partners.end_client",
+    "partners.submitted_date",
+    "partners.exclusivity_expiry_date",
+    "partners.estimated_value"
    ]
   },
   "leads": {
@@ -84,10 +113,9 @@
    "columns": [
     "leads.opportunity_name",
     "leads.end_client",
-    "leads.customer_partner_si",
     "leads.project_stage",
+    "leads.estimated_value",
     "leads.probability_pct",
-    "leads.total_value_tcv",
     "leads.expected_close_month",
     "leads.bd_owner",
     "leads.days_since_last_update"
@@ -95,43 +123,74 @@
    "default_sort": "opportunity_name",
    "search": [
     "opportunity_name",
-    "segment",
-    "theme"
-   ]
+    "end_client"
+   ],
+   "filters": [
+    "leads.bd_owner",
+    "leads.lead_status",
+    "leads.end_client",
+    "leads.segment",
+    "leads.destination_region",
+    "leads.expected_close_month",
+    "leads.estimated_value"
+   ],
+   "$columns_note": "Trimmed 17 Sep 2026 to what a reader acts on from the list. Estimated Value replaces Total Value (TCV): a Lead's revenue is estimated_value and nothing else (app/revenue.py), so the column and the pipeline total now read the same field. Customer (Partner / SI) moved to the record.",
+   "$filters_note": "The shared filter bar above List AND Kanban (UX roadmap, 17 Sep 2026). Each entry is a '<module>.<api_name>' ref; the control follows the field's type - picklist and lookup open a multi-pick, date and currency/number open a from-to range. `value_usd` adds one more range over the row's revenue in USD (app/revenue.py - the module's ONE revenue field, converted at fx_rate_at_entry), which is how a Lead's Estimated Value, an Opportunity's TCV and a Deal's Contract Value are compared on one scale. Read-through fields filter because the list endpoint resolves them per row (backend/app/read_through_rows.py). The stage filter is not listed: on the List tab it comes from the stage field, and on Kanban the columns already are the stages."
   },
   "opportunities": {
-   "$note": "opportunity_name and end_client are read_through fields (see spec/module_split.json) - an Opportunity record does not store them, so the LIST endpoint's raw-row search and sort cannot reach them (see mocks/query.ts, which reads row[api_name] directly and never walks a parent chain). The record page resolves them correctly via useResolvedRecord; this list's cells do the same, per row - see opportunityListCell.tsx. search is left empty so the query layer falls back to every STORED field of the module rather than searching a field that would silently match nothing. Recorded as an open question rather than patched here: the fix belongs in the list endpoint, not in a sidecar.",
+   "$note": "opportunity_name, end_client and sales_owner are read_through fields (spec/module_split.json). The record does not store them; the LIST endpoint resolves them onto each row from the root Lead (backend/app/read_through_rows.py, 17 Sep 2026), so they search, sort and filter like stored fields. Before that this note recorded them as unsearchable and every cell fetched its parent Lead. Pursuit Group is no longer a column: a grouped pursuit carries a small group mark beside its name. Progression % moved to the record.",
    "columns": [
     "opportunities.opportunity_name",
-    "opportunities.project_stage",
     "opportunities.end_client",
-    "opportunities.pursuit_group",
+    "opportunities.project_stage",
     "opportunities.total_value_tcv",
-    "opportunities.submission_deadline",
     "opportunities.probability_pct",
-    "opportunities.progression_pct"
+    "opportunities.submission_deadline",
+    "opportunities.sales_owner"
    ],
    "default_sort": "opportunity_name",
-   "search": []
+   "search": [
+    "opportunity_name",
+    "end_client"
+   ],
+   "filters": [
+    "opportunities.sales_owner",
+    "opportunities.lead_status",
+    "opportunities.end_client",
+    "opportunities.segment",
+    "opportunities.destination_region",
+    "opportunities.submission_deadline",
+    "opportunities.total_value_tcv"
+   ],
+   "$filters_note": "The shared filter bar above List AND Kanban (UX roadmap, 17 Sep 2026). Each entry is a '<module>.<api_name>' ref; the control follows the field's type - picklist and lookup open a multi-pick, date and currency/number open a from-to range. `value_usd` adds one more range over the row's revenue in USD (app/revenue.py - the module's ONE revenue field, converted at fx_rate_at_entry), which is how a Lead's Estimated Value, an Opportunity's TCV and a Deal's Contract Value are compared on one scale. Read-through fields filter because the list endpoint resolves them per row (backend/app/read_through_rows.py). The stage filter is not listed: on the List tab it comes from the stage field, and on Kanban the columns already are the stages."
   },
   "deals": {
    "$note": "deal_id is DELIBERATELY NOT A COLUMN, same as leads.lead_id above - the id is addressing rather than information, and the row navigates by name. dealListCell still renders it if the column is put back.",
    "columns": [
     "deals.deal_name",
     "deals.end_client",
-    "deals.customer_partner_si",
     "deals.deal_stage",
     "deals.contract_value",
-    "deals.booking_date",
-    "deals.delivery_pm"
+    "deals.go_live_date",
+    "deals.delivery_pm",
+    "deals.project_code"
    ],
    "default_sort": "deal_name",
    "search": [
     "deal_name",
-    "project_code",
-    "erp_reference",
-    "po_loi_reference"
-   ]
+    "end_client",
+    "project_code"
+   ],
+   "filters": [
+    "deals.delivery_pm",
+    "deals.lead_status",
+    "deals.end_client",
+    "deals.segment",
+    "deals.destination_region",
+    "deals.go_live_date",
+    "deals.contract_value"
+   ],
+   "$filters_note": "The shared filter bar above List AND Kanban (UX roadmap, 17 Sep 2026). Each entry is a '<module>.<api_name>' ref; the control follows the field's type - picklist and lookup open a multi-pick, date and currency/number open a from-to range. `value_usd` adds one more range over the row's revenue in USD (app/revenue.py - the module's ONE revenue field, converted at fx_rate_at_entry), which is how a Lead's Estimated Value, an Opportunity's TCV and a Deal's Contract Value are compared on one scale. Read-through fields filter because the list endpoint resolves them per row (backend/app/read_through_rows.py). The stage filter is not listed: on the List tab it comes from the stage field, and on Kanban the columns already are the stages."
   }
  },
  "partner_roster": {
@@ -189,13 +248,73 @@
   }
  },
  "kanban": {
-  "$note": "The board's columns are the module's own stages plus one column per TERMINAL status, so a pursuit that is finished sits in one place instead of being parked in whichever stage it happened to reach. The keys are named here rather than in the component for the reason every picklist key is: a status is register data. A status column is drawn only where that key is actually offered on the module, read through exclude_options - so a module that excludes a terminal status gets no column for it. Deals still offer Converted today, so their Converted column is drawn and normally empty; excluding it on deals.lead_status would remove it.",
+  "$note": "The board's columns are the module's own stages plus one column per TERMINAL status, so a pursuit that is finished sits in one place instead of being parked in whichever stage it happened to reach. The keys are named here rather than in the component for the reason every picklist key is: a status is register data. A status column is drawn only where that key is actually offered on the module, read through exclude_options - so a module that excludes a terminal status gets no column for it. Deals draw Closed Lost only - see terminal_statuses_by_module.",
   "$not_terminal_note": "POC_PILOT_DEAL is deliberately NOT terminal. A paid pilot is live, counted revenue (app/revenue.py COUNTED_STATUSES) and belongs in its stage column. ON_HOLD is not terminal either: it counts toward pipeline and the deal is still being worked.",
   "status_field": "lead_status",
   "terminal_statuses": [
    "CLOSED_LOST",
    "CONVERTED"
-  ]
+  ],
+  "terminal_statuses_by_module": {
+   "deals": [
+    "CLOSED_LOST"
+   ]
+  },
+  "$by_module_note": "Overrides terminal_statuses for one module. Deals show Closed Lost only (decided 17 Sep 2026): a Deal does not convert into anything, so a Converted column there is always empty and only reads as a stage a Deal could reach."
+ },
+ "list_scopes": {
+  "$note": "Which records a module's list and board show BY DEFAULT. A converted pursuit is still a real record with real history and it is never deleted or hidden from search - but it has stopped being work, and leaving it in the default list means every count, every scroll and every screen share carries pursuits nobody can act on. So the default view drops them and a named view brings them back, which is what Zoho does with Open Leads / Converted Leads and is the one part of this that is not a new idea. Keys, not labels, declared here rather than written into the list page for the reason every picklist key is: a status is register data.",
+  "$conflict_note": "A scope is only a DEFAULT. The moment someone filters the status field by hand in the Filter panel their condition wins and the scope adds nothing - two rules on one field would otherwise intersect silently and show an empty list for no visible reason. See params() in src/lib/listFilters.ts.",
+  "$deals_note": "Deals have no scope, deliberately. A Deal converts into nothing, so every Deal would sit in the default view and the picker would be three names for one list. Same reasoning as kanban.terminal_statuses_by_module dropping the Converted column there.",
+  "field": "lead_status",
+  "modules": {
+   "leads": {
+    "default": "open",
+    "options": [
+     {
+      "key": "open",
+      "label": "Open leads",
+      "exclude": [
+       "CONVERTED"
+      ]
+     },
+     {
+      "key": "converted",
+      "label": "Converted leads",
+      "include": [
+       "CONVERTED"
+      ]
+     },
+     {
+      "key": "all",
+      "label": "All leads"
+     }
+    ]
+   },
+   "opportunities": {
+    "default": "open",
+    "options": [
+     {
+      "key": "open",
+      "label": "Open opportunities",
+      "exclude": [
+       "CONVERTED"
+      ]
+     },
+     {
+      "key": "converted",
+      "label": "Converted opportunities",
+      "include": [
+       "CONVERTED"
+      ]
+     },
+     {
+      "key": "all",
+      "label": "All opportunities"
+     }
+    ]
+   }
+  }
  },
  "quick_create": {
   "$note": "CreateNewDialog's '+ Create new' shortcut on a lookup field shows only the target module's first section - enough to make the record selectable, not a full create form. A few fields outside that first section matter from day one, though, and skipping them just because they sit in a later section would be a real gap. Listed here, by module, as extra api_names appended after the first section's own fields; each still goes through the normal visibility/requirement rules.",
@@ -650,7 +769,7 @@
      },
      {
       "api_name": "organisation",
-      "label": "Organisation",
+      "label": "Account",
       "type": "lookup",
       "lookup_target": "account",
       "width": 200
@@ -666,7 +785,7 @@
     ]
    },
    "child_field_sync": {
-    "$note": "Mirrors Job Title, Organisation and Role between a demo_attendees ROW and the Attendee's own Contact record, once Attendee is picked. Gap-fill both ways, same rule as LeadAccountFieldSync: Contact -> row fills the row live, in ChildListTable, the moment Attendee changes and the row's own box is still empty; row -> Contact is the reverse gap-fill, run once on save (RecordEditor's afterSave for Stage 1) for every row whose columns hold something the linked Contact does not. SUPERSEDES the child_spec column note above, which said Job Title was deliberately NOT read from the contact because the use_case is about seniority on the day, not the contact's current title — that rationale is overridden here at explicit request; still editable per-row afterwards, so a row can still diverge once filled.",
+    "$note": "Mirrors Job Title, Account (key: organisation) and Role between a demo_attendees ROW and the Attendee's own Contact record, once Attendee is picked. Gap-fill both ways, same rule as LeadAccountFieldSync: Contact -> row fills the row live, in ChildListTable, the moment Attendee changes and the row's own box is still empty; row -> Contact is the reverse gap-fill, run once on save (RecordEditor's afterSave for Stage 1) for every row whose columns hold something the linked Contact does not. SUPERSEDES the child_spec column note above, which said Job Title was deliberately NOT read from the contact because the use_case is about seniority on the day, not the contact's current title — that rationale is overridden here at explicit request; still editable per-row afterwards, so a row can still diverge once filled.",
     "trigger_column": "attendee",
     "target_module": "contacts",
     "mirror": {

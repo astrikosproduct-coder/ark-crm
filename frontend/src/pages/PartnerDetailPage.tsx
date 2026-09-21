@@ -1,12 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Building2Icon, PencilIcon, PlusIcon } from 'lucide-react'
+import { Building2Icon, PlusIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { RecordForm } from '@/components/form/RecordForm'
-import { RecordEditor } from '@/components/record/RecordEditor'
 import { RecordListView } from '@/components/list/RecordListView'
 import { contactListCell } from '@/components/contacts/contactListCell'
 import { registrationListCell } from '@/components/partners/registrationListCell'
@@ -19,10 +18,18 @@ import { displayNameOf, isPartnerAccount, labelForValue, withRecordId } from '@/
 const MODULE = 'accounts'
 const COLLECTION = 'accounts'
 
+/**
+ * A partner, seen from the partner side.
+ *
+ * The profile is READ-ONLY here. Accounts is the one place an account is
+ * created, edited or deleted; this screen used to carry its own Edit, which
+ * made two doors onto the same record and meant any account rule added to the
+ * Accounts screen had to be remembered here as well. "Account record" is the
+ * way to change it.
+ */
 export function PartnerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [editing, setEditing] = useState(false)
 
   const { data, isLoading, isError, dataUpdatedAt } = useQuery({
     queryKey: ['record', COLLECTION, id],
@@ -36,6 +43,7 @@ export function PartnerDetailPage() {
   if (isError) {
     return (
       <PageLayout
+        back
         title={id ?? 'Partner'}
         tabs={[
           {
@@ -51,8 +59,8 @@ export function PartnerDetailPage() {
   if (values && !isPartnerAccount(values)) {
     return (
       <PageLayout
+        back
         title={displayNameOf(values)}
-        subtitle={id}
         tabs={[
           {
             key: 'not-a-partner',
@@ -80,28 +88,25 @@ export function PartnerDetailPage() {
 
   return (
     <PageLayout
+      back
       title={
         <>
           {values ? displayNameOf(values) : (id ?? '')}
-          <span className="text-muted-foreground text-sm font-normal">
-            {types.map((t) => labelForValue('accounts__account_type', t)).join(' · ')}
-          </span>
-        </>
-      }
-      subtitle={id}
-      actions={
-        <>
-          <Button variant="outline" onClick={() => navigate(`/accounts/${id}`)}>
-            <Building2Icon className="size-4" />
-            Account record
-          </Button>
-          {!editing && (
-            <Button variant="outline" onClick={() => setEditing(true)} disabled={isLoading}>
-              <PencilIcon className="size-4" />
-              Edit
-            </Button>
+          {types.length > 0 && (
+            <>
+              <span aria-hidden className="text-muted-foreground font-normal">-</span>
+              <span className="text-muted-foreground text-base font-normal">
+                {types.map((t) => labelForValue('accounts__account_type', t)).join(' · ')}
+              </span>
+            </>
           )}
         </>
+      }
+      actions={
+        <Button variant="outline" onClick={() => navigate(`/accounts/${id}`)}>
+          <Building2Icon className="size-4" />
+          Account record
+        </Button>
       }
       tabs={[
         {
@@ -109,20 +114,8 @@ export function PartnerDetailPage() {
           label: 'Profile',
           content: (
             <div className="space-y-3 py-3">
-              <SharedRecordNote id={id} />
-
               {isLoading ? (
                 <p className="py-6 text-sm text-muted-foreground">Loading…</p>
-              ) : editing ? (
-                <RecordEditor
-                  key={`edit:${id}:${dataUpdatedAt}`}
-                  module={MODULE}
-                  collection={COLLECTION}
-                  recordId={id}
-                  initialValues={values}
-                  onSaved={() => setEditing(false)}
-                  onCancel={() => setEditing(false)}
-                />
               ) : (
                 <RecordForm
                   key={`view:${id}:${dataUpdatedAt}`}
@@ -171,8 +164,7 @@ export function PartnerDetailPage() {
           label: 'Contacts',
           content: (
             <div className="space-y-3 py-3">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm text-muted-foreground">Everybody whose Account is {id}.</p>
+              <div className="flex items-center justify-end gap-3">
                 <Button
                   variant="outline"
                   size="sm"
@@ -198,28 +190,5 @@ export function PartnerDetailPage() {
         },
       ]}
     />
-  )
-}
-
-/**
- * The point of the whole module, said out loud on the screen.
- *
- * An organisation can be an End Client and a Partner at the same time. Both
- * screens edit the same account, so a reviewer must not be able to believe
- * there are two of it.
- */
-function SharedRecordNote({ id }: { id: string | undefined }) {
-  return (
-    <div className="rounded-lg border border-dashed p-3 text-sm">
-      <span className="font-medium">This is the account record, seen from the partner side.</span>{' '}
-      <span className="text-muted-foreground">
-        There is no separate partner organisation. The same {id} appears on the Accounts screen,
-        and an edit made here changes it there too — an organisation that is both an End Client and
-        a Partner stays one record.
-      </span>{' '}
-      <Link className="underline underline-offset-2" to={`/accounts/${id}`}>
-        Open in Accounts
-      </Link>
-    </div>
   )
 }

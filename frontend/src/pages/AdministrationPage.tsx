@@ -142,9 +142,9 @@ function UsersTab({ onEdit }: { onEdit: (user: AdminUser) => void }) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-md border">
+    <div className="bg-card overflow-x-auto rounded-lg shadow-sm">
       <table className="w-full text-sm">
-        <thead className="bg-muted/50 text-muted-foreground text-label">
+        <thead className="text-muted-foreground text-label [&>tr>th]:border-border [&>tr>th]:border-b">
           <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:text-left [&>th]:font-medium">
             <th className="w-28">User ID</th>
             {/* HR's number for this person, read from the directory on their
@@ -219,9 +219,9 @@ function RolesTab() {
         System-defined and seeded from the field register. Creating roles and editing
         permissions is not built yet.
       </p>
-      <div className="overflow-x-auto rounded-md border">
+      <div className="bg-card overflow-x-auto rounded-lg shadow-sm">
         <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-muted-foreground text-label">
+          <thead className="text-muted-foreground text-label [&>tr>th]:border-border [&>tr>th]:border-b">
             <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:text-left [&>th]:font-medium">
               <th className="w-52">Role ID</th>
               <th className="w-52">Name</th>

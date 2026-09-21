@@ -54,6 +54,7 @@ export type ExclusivityState =
   | 'expired'
   | 'superseded'
   | 'rejected'
+  | 'withdrawn'
 
 export interface RegistrationState {
   state: ExclusivityState
@@ -69,6 +70,12 @@ export interface RegistrationState {
   ackDueBy: string | null
   /** True while unacknowledged and past that deadline. */
   ackOverdue: boolean
+  /**
+   * Whole days from TODAY to ackDueBy — a live countdown, not the SLA. 2 on the
+   * day of submission, 1 the next day, 0 on the due date, negative once
+   * overdue. Null without a submitted date.
+   */
+  ackDaysLeft: number | null
   /**
    * Whole days from submission to acknowledgement, or to today while it is
    * still outstanding. Null without a submitted date. Never hours: see
@@ -91,6 +98,7 @@ const CHIP_LABEL: Record<ExclusivityState, string> = {
   expired: 'Expired',
   superseded: 'Superseded',
   rejected: 'Rejected',
+  withdrawn: 'Withdrawn',
 }
 
 /**
@@ -133,6 +141,7 @@ export function registrationState(raw: Values | undefined, now = today()): Regis
     acknowledged,
     ackDueBy,
     ackOverdue: !acknowledged && Boolean(ackDue) && now > (ackDue as Date),
+    ackDaysLeft: ackDue ? differenceInCalendarDays(ackDue, now) : null,
     ackDays,
     ackWithinSla: ackDays === null ? null : ackDays <= ACK_SLA_DAYS,
   }
@@ -145,7 +154,9 @@ export function registrationState(raw: Values | undefined, now = today()): Regis
     storedStatusDisagrees: disagrees,
   })
 
-  // A person set these deliberately; no date overrules them.
+  // A person set these deliberately; no date overrules them. Withdrawn is final
+  // and is only ever set by the Withdraw action.
+  if (status === 'WITHDRAWN') return settle('withdrawn')
   if (status === 'SUPERSEDED') return settle('superseded')
   if (status === 'REJECTED') return settle('rejected')
 

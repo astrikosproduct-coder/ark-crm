@@ -1,36 +1,47 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PlusIcon } from 'lucide-react'
-
-import { Button } from '@/components/ui/button'
 import { PageLayout } from '@/components/layout/PageLayout'
+import { ListFilterBar } from '@/components/list/ListFilterBar'
+import { ModuleActions } from '@/components/list/ModuleActions'
 import { RecordListView } from '@/components/list/RecordListView'
 import { contactListCell } from '@/components/contacts/contactListCell'
+import { useListFilters } from '@/lib/listFilters'
 
 export function ContactsPage() {
   const navigate = useNavigate()
+  const filters = useListFilters({ view: 'contacts' })
+  const listFilter = useMemo(() => filters.params(), [filters])
 
   return (
     <PageLayout
       wide
       title="Contacts"
-      subtitle="People at an account, coloured by the role they play in a pursuit."
       actions={
-        <Button onClick={() => navigate('/contacts/new')}>
-          <PlusIcon className="size-4" />
-          New contact
-        </Button>
+        <ModuleActions
+          module="contacts"
+          plural="Contacts"
+          noun="contact"
+          createLabel="New contact"
+          onCreate={() => navigate('/contacts/new')}
+          exportFilter={() => listFilter}
+        />
       }
       tabs={[
         {
           key: 'list',
           label: 'List',
           content: (
-            <RecordListView
-              module="contacts"
-              collection="contacts"
-              basePath="/contacts"
-              renderCell={contactListCell}
-            />
+            <>
+              <ListFilterBar filters={filters} plural="Contacts" searchPlaceholder="Search name, title, email or account…" />
+              <RecordListView
+                module="contacts"
+                collection="contacts"
+                basePath="/contacts"
+                filter={listFilter}
+                hideSearch
+                renderCell={contactListCell}
+              />
+            </>
           ),
         },
       ]}

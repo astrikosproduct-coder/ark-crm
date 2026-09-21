@@ -18,6 +18,7 @@ import { type Values } from '@/lib/spec/conditions'
 import { evaluate } from '@/lib/spec/evaluate'
 import { useRecordForm } from '@/hooks/useRecordForm'
 import { api } from '@/lib/api'
+import { cn } from '@/lib/utils'
 import type { ChildFieldSync, FieldSpec } from '@/types/field'
 
 interface Props {
@@ -60,11 +61,48 @@ export function ChildListTable({ field }: Props) {
 
   const setRows = (next: Values[]) => form.setChildRows(field.api_name, next)
 
+  const defaults = spec.row_defaults
+
+  /** What a row takes when its `by` column is set to this value. */
+  const presetFor = (value: unknown): Values =>
+    (defaults && typeof value === 'string' ? (defaults.values[value] as Values | undefined) : undefined) ?? {}
+
+  const isEmpty = (v: unknown) => v === undefined || v === null || v === ''
+
   const update = (index: number, apiName: string, value: unknown) => {
-    setRows(rows.map((r, i) => (i === index ? { ...r, [apiName]: value } : r)))
+    setRows(
+      rows.map((r, i) => {
+        if (i !== index) return r
+        const next: Values = { ...r, [apiName]: value }
+        // Choosing the milestone fills in its percentage and trigger. A
+        // DEFAULT, not a rule: a column the row already carries is left as it
+        // was typed, and both stay editable afterwards.
+        if (defaults && apiName === defaults.by) {
+          for (const [column, preset] of Object.entries(presetFor(value))) {
+            if (isEmpty(next[column])) next[column] = preset
+          }
+        }
+        return next
+      })
+    )
   }
 
   const addRow = () => setRows([...rows, {}])
+
+  /** Every standard row the table does not already carry, in declared order. */
+  const missingDefaults = defaults
+    ? Object.entries(defaults.values).filter(([key]) => !rows.some((r) => r[defaults.by] === key))
+    : []
+  const addAllDefaults = () =>
+    setRows([...rows, ...missingDefaults.map(([key, preset]) => ({ [defaults!.by]: key, ...(preset as Values) }))])
+
+  // Summed, never enforced — see ChildSpec.total_columns.
+  const totals = spec.total_columns
+    .map((apiName) => ({
+      column: columns.find((c) => c.field.api_name === apiName),
+      sum: rows.reduce((running, r) => running + (Number(r[apiName]) || 0), 0),
+    }))
+    .filter((t): t is { column: ResolvedChildColumn; sum: number } => Boolean(t.column))
   const deleteRow = (index: number) => {
     setRows(rows.filter((_, i) => i !== index))
     setConfirmingRow(null)
@@ -80,8 +118,12 @@ export function ChildListTable({ field }: Props) {
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-md border">
-        <table className="w-full text-sm">
+      {/* No outer box and no vertical rules — columns are separated by the
+          space between them. The only stroke left is the hairline under the
+          header row; rows are told apart by the alternating raised ground,
+          which is the same layer their inputs sit on. */}
+      <div className="overflow-x-auto">
+        <table className="w-full border-separate border-spacing-0 text-sm">
           <colgroup>
             {columns.map((c) => (
               <col key={c.key} style={c.width ? { minWidth: `${c.width}px` } : undefined} />
@@ -89,10 +131,13 @@ export function ChildListTable({ field }: Props) {
             {!readOnly && <col style={{ width: '48px' }} />}
           </colgroup>
 
-          <thead className="bg-muted/50 text-label">
+          <thead className="text-label">
             <tr>
               {columns.map((c) => (
-                <th key={c.key} className="px-3 py-2 text-left font-medium whitespace-nowrap">
+                <th
+                  key={c.key}
+                  className="border-border text-muted-foreground border-b px-4 pt-1 pb-2.5 text-left font-semibold whitespace-nowrap"
+                >
                   {c.field.description ? (
                     <Tooltip>
                       <TooltipTrigger type="button" className="cursor-help">
@@ -110,7 +155,9 @@ export function ChildListTable({ field }: Props) {
                   )}
                 </th>
               ))}
-              {!readOnly && <th className="w-12" aria-label="Actions" />}
+              {!readOnly && (
+                <th className="border-border w-12 border-b" aria-label="Actions" />
+              )}
             </tr>
           </thead>
 
@@ -119,7 +166,7 @@ export function ChildListTable({ field }: Props) {
               <tr>
                 <td
                   colSpan={columns.length + (readOnly ? 0 : 1)}
-                  className="px-3 py-4 text-center text-muted-foreground"
+                  className="px-4 py-5 text-center text-muted-foreground"
                 >
                   {readOnly ? 'Nothing linked' : 'No rows yet'}
                 </td>
@@ -127,7 +174,7 @@ export function ChildListTable({ field }: Props) {
             )}
 
             {rows.map((row, i) => (
-              <tr key={i} className="border-t align-top">
+              <tr key={i} className="align-top even:bg-raised/60">
                 {sync && !readOnly && (
                   <ChildRowSync
                     sync={sync}
@@ -139,7 +186,7 @@ export function ChildListTable({ field }: Props) {
                 {columns.map((c) => {
                   const cellError = errors.find((e) => e.row === i && e.api_name === c.field.api_name)
                   return (
-                    <td key={c.key} className="px-2 py-1.5">
+                    <td key={c.key} className="px-4 py-2.5">
                       <FieldControl
                         field={c.field}
                         scope={{
@@ -161,7 +208,7 @@ export function ChildListTable({ field }: Props) {
                 })}
 
                 {!readOnly && (
-                  <td className="px-2 py-1.5">
+                  <td className="px-4 py-2.5">
                     <Button
                       type="button"
                       variant="ghost"
@@ -181,11 +228,33 @@ export function ChildListTable({ field }: Props) {
       </div>
 
       {!readOnly && (
-        <Button type="button" variant="outline" size="sm" onClick={addRow}>
-          <PlusIcon className="size-4" />
-          {spec.add_label}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={addRow}>
+            <PlusIcon className="size-4" />
+            {spec.add_label}
+          </Button>
+          {missingDefaults.length > 0 && (
+            <Button type="button" variant="ghost" size="sm" onClick={addAllDefaults}>
+              {defaults?.add_all_label ?? 'Add the standard rows'}
+              <span className="text-muted-foreground">({missingDefaults.length})</span>
+            </Button>
+          )}
+        </div>
       )}
+
+      {rows.length > 0 &&
+        totals.map(({ column, sum }) => (
+          <p
+            key={column.key}
+            className={cn(
+              'text-xs',
+              sum === 100 ? 'text-muted-foreground' : 'text-amber-700 dark:text-amber-400'
+            )}
+          >
+            {column.field.label} totals {sum}%
+            {sum === 100 ? '' : ' — the rows do not add up to 100%.'}
+          </p>
+        ))}
 
       {field.values_note && (
         <p className="text-xs text-muted-foreground">{field.values_note}</p>

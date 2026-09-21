@@ -1,9 +1,14 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react'
 
 import { RecordForm } from '@/components/form/RecordForm'
 import type { PipelineRecordContext } from '@/components/pipeline/types'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { useResolvedRecord } from '@/hooks/useResolvedRecord'
 import { api } from '@/lib/api'
+import { stageFieldOf, stageLabel, stageNumberOf } from '@/lib/pipeline'
 import { displayNameOf, sectionsFor } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
 
@@ -55,14 +60,29 @@ export function useLineage(ctx: PipelineRecordContext) {
  * under the Lead that owns it, and a Deal finally shows its Opportunity.
  *
  * The same on Opportunities and Deals. A Lead has no parents and draws nothing.
+ *
+ * COLLAPSED UNTIL ASKED FOR (18 Sep 2026)
+ * ---------------------------------------
+ * Each parent draws as one line — its name and the stage it stopped at — and
+ * opens on click. A Deal used to open this tab with two full read-only forms
+ * stacked above its own related lists, which is a lot of screen for records
+ * whose work is finished; the lists people came here for started below the
+ * fold. Nothing was removed to fix that, because nothing here is a duplicate:
+ * a parent's STAGE sections are shown here and nowhere else, while the identity
+ * fields on the Details tab are read through the parent rather than copied from
+ * it. The two answer different questions, so both stay and one of them waits
+ * to be asked.
  */
 export function ParentRecordsPanel({ ctx }: { ctx: PipelineRecordContext }) {
   const { module, opportunityId, opportunity, leadId, lead } = useLineage(ctx)
+  // An Opportunity stores no name of its own; it is its Lead's, read through.
+  const opportunityName = displayNameOf(useResolvedRecord('opportunities', opportunity.data).values)
+  const leadName = lead.data ? displayNameOf(lead.data) : ''
 
   if (module === 'leads' || !ctx.values) return null
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {module === 'deals' &&
         (opportunityId ? (
           <ParentSection
@@ -71,6 +91,7 @@ export function ParentRecordsPanel({ ctx }: { ctx: PipelineRecordContext }) {
             basePath="/opportunities"
             noun="opportunity"
             id={opportunityId}
+            name={opportunityName}
             record={opportunity.data}
             isLoading={opportunity.isLoading}
             isError={opportunity.isError}
@@ -80,7 +101,7 @@ export function ParentRecordsPanel({ ctx }: { ctx: PipelineRecordContext }) {
             <h3 className="text-sm font-semibold">Read through Parent Opportunity</h3>
             <p className="text-muted-foreground text-sm">
               {leadId
-                ? `This Deal was made directly from ${leadId} — a paid POC / pilot — so there is no Opportunity stage to show.`
+                ? `This Deal was made directly from ${leadName || 'its Lead'} — a paid POC / pilot — so there is no Opportunity stage to show.`
                 : 'This Deal names no parent Opportunity.'}
             </p>
           </section>
@@ -93,6 +114,7 @@ export function ParentRecordsPanel({ ctx }: { ctx: PipelineRecordContext }) {
           basePath="/leads"
           noun="lead"
           id={leadId}
+          name={leadName}
           record={lead.data}
           isLoading={lead.isLoading}
           isError={lead.isError}
@@ -113,6 +135,7 @@ function ParentSection({
   basePath,
   noun,
   id,
+  name,
   record,
   isLoading,
   isError,
@@ -122,38 +145,57 @@ function ParentSection({
   basePath: string
   noun: string
   id: string
+  /** The parent's name. Falls back to the id only while it is still loading. */
+  name: string
   record: Values | undefined
   isLoading: boolean
   isError: boolean
 }) {
+  const [open, setOpen] = useState(false)
   // The parent's own stage sections, in its own order. The same prefix rule
   // the record page uses to tell stage sections from Details sections.
   const sections = sectionsFor(module).filter((section) => section.startsWith('STAGE'))
+  // Where the parent stopped. Read from ITS module's stage field, never the
+  // child's — a Deal reads deal_stage and its Opportunity reads project_stage.
+  const stage = record ? stageLabel(stageNumberOf(record[stageFieldOf(module) ?? ''])) : ''
 
   return (
-    <section className="space-y-2">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h3 className="text-sm font-semibold">
-          {title} —{' '}
-          <Link className="underline underline-offset-2" to={`${basePath}/${id}`}>
-            {id}
-          </Link>
-        </h3>
-        {record && <span className="text-muted-foreground text-xs">{displayNameOf(record)}</span>}
+    <Collapsible open={open} onOpenChange={setOpen} className="space-y-2">
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        {/* The disclosure is the heading, so the whole line is the hit area —
+            except the parent's name, which is a link out and stays one. */}
+        <CollapsibleTrigger className="group flex items-baseline gap-1.5 text-left text-sm font-semibold">
+          {open ? (
+            <ChevronDownIcon className="size-3.5 shrink-0 translate-y-0.5" />
+          ) : (
+            <ChevronRightIcon className="size-3.5 shrink-0 translate-y-0.5" />
+          )}
+          <span className="group-hover:underline underline-offset-2">{title}</span>
+        </CollapsibleTrigger>
+        {/* The parent by NAME, as every other lookup on the record reads — the
+            id is in the address bar once the link is followed. */}
+        <Link className="text-sm underline underline-offset-2" to={`${basePath}/${id}`}>
+          {name || id}
+        </Link>
+        {stage && <span className="text-muted-foreground text-xs">{stage}</span>}
       </div>
       {/* No "open it to change a value": a parent is converted, so it is
           read-only in its own module too. */}
-      <p className="text-muted-foreground text-xs">
-        Read-only: what the {noun} recorded in its own stages.
-      </p>
-
-      {isLoading && <p className="text-muted-foreground py-2 text-sm">Loading {id}…</p>}
-      {isError && <p className="py-2 text-sm text-destructive">Could not load {id}.</p>}
-      {/* No frame of its own — each stage section is already a card, and a
-          border around them drew a second, thinner box. */}
-      {record && (
-        <RecordForm key={`${module}:${id}`} module={module} mode="view" values={record} sections={sections} />
+      {open && (
+        <p className="text-muted-foreground text-xs">
+          Read-only: what the {noun} recorded in its own stages.
+        </p>
       )}
-    </section>
+
+      <CollapsibleContent className="space-y-2">
+        {isLoading && <p className="text-muted-foreground py-2 text-sm">Loading {noun}…</p>}
+        {isError && <p className="py-2 text-sm text-destructive">Could not load this {noun}.</p>}
+        {/* No frame of its own — each stage section is already a card, and a
+            border around them drew a second, thinner box. */}
+        {record && (
+          <RecordForm key={`${module}:${id}`} module={module} mode="view" values={record} sections={sections} />
+        )}
+      </CollapsibleContent>
+    </Collapsible>
   )
 }

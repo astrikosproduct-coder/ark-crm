@@ -31,6 +31,11 @@ the day is captured; the Won tile says so rather than showing a stand-in.
 
 THE DATE RANGE MEANS ONE THING PER WIDGET
 -----------------------------------------
+A range with BOTH ends also returns `comparison`: the same pipeline, deals and
+lost figures over the period of equal length immediately before it, so the tiles
+can say "up or down" rather than only "how much". Null when either end is open —
+see previous_period().
+
 `date_from` / `date_to` (either may be left out) filter each widget by the date
 that widget is about, never by one it is not:
 
@@ -148,7 +153,23 @@ class Row:
 
     @property
     def weighted(self) -> float:
-        return self.usd * float(self.record.probability_pct or 0) / 100
+        """
+        Value x Probability %.
+
+        NO DIVISION BY 100 HERE. A record's probability_pct is stored as a
+        FRACTION -- 0.70 is 70% -- and app/progression.py is the authority that
+        makes it so: it divides by 100 on the way in (``frac``), normalises a
+        whole number a caller sends (``_as_fraction``), validates the range as
+        0..1, and multiplies by 100 again only to print. The stages table is the
+        one place that holds whole numbers, because that is the register's own
+        wording of the ladder.
+
+        This line used to divide by 100 a second time, so every weighted figure
+        on the dashboard -- the tile, the forecast, the funnel tooltip -- was a
+        hundredth of the truth. An $8.4M weighted pipeline read $84,000 and
+        nothing anywhere said otherwise. Fixed 18 Sep 2026; see test_dashboard_weighted.py.
+        """
+        return self.usd * float(self.record.probability_pct or 0)
 
     @property
     def close_month(self) -> date | None:
@@ -361,6 +382,40 @@ def _item(row: Row, users: dict[str, str], stage_names: dict[int, str], **extra:
     }
 
 
+def previous_period(
+    date_from: date | None, date_to: date | None
+) -> tuple[date | None, date | None, str | None]:
+    """
+    The period this one should be compared against, and what to call it.
+
+    A WHOLE QUARTER COMPARES WITH THE QUARTER BEFORE IT, by name. Quarters are
+    not the same length -- Q1 Apr-Jun is 91 days, Q2 Jul-Sep is 92 -- so
+    stepping back "the same number of days" from Q2 lands on 31 March and
+    quietly drags one day of the previous fiscal year into the comparison. It
+    would be arithmetically defensible and useless to a reader: nobody asks how
+    this quarter compares with the 92 days before it. They ask about Q1.
+
+    Anything else -- a hand-typed range -- steps back its own inclusive length,
+    and is labelled as a period rather than given a name it does not have.
+
+    BOTH ENDS OR NOTHING. An open-ended range has no length, so there is no
+    "previous" of the same size, and inventing one would be a comparison the
+    reader never asked for, labelled as if they had. The dashboard then shows no
+    delta at all, which is the honest answer to "compared with what?".
+    """
+    if not date_from or not date_to:
+        return None, None, None
+    # Exactly one fiscal quarter? Then it is that quarter, and its predecessor
+    # is a named thing rather than a window.
+    start, end, _ = quarter_of(date_from)
+    if (start, end) == (date_from, date_to):
+        previous_start, previous_end, label = quarter_of(start - timedelta(days=1))
+        return previous_start, previous_end, label
+    length = (date_to - date_from).days
+    previous_end = date_from - timedelta(days=1)
+    return previous_end - timedelta(days=length), previous_end, None
+
+
 def _refuse(code: str, message: str) -> HTTPException:
     return HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, {"code": code, "message": message})
 
@@ -525,10 +580,44 @@ def dashboard(
 
     stale = [r for r in live if r.days_since_update > STALE_AFTER_DAYS]
 
+    # ---- the same four numbers over the period before this one
+    #
+    # Re-filters the rows already in hand rather than asking the database
+    # again: every widget's slice is a date test over `counted` / `rows`, so
+    # the previous period costs a second pass in Python and no round trip.
+    comparison = None
+    previous_from, previous_to, previous_label = previous_period(date_from, date_to)
+    if previous_from and previous_to:
+        previous_in_range = [r for r in counted if close_month_in(r.close_month, previous_from, previous_to)]
+        previous_pipeline = [r for r in previous_in_range if r.module in PIPELINE]
+        previous_actual = [r for r in previous_in_range if r.module == "deals"]
+        previous_lost = [
+            r
+            for r in rows
+            if r.record.lead_status == CLOSED_LOST
+            and not r.secondary
+            and day_in(lost_on.get((r.module, r.record_id)), previous_from, previous_to)
+        ]
+        comparison = {
+            "from": previous_from,
+            "to": previous_to,
+            #: "Q1 FY2026-27" when the period is a named quarter, else null and
+            #: the frontend says "the previous period".
+            "label": previous_label,
+            "kpis": {
+                "pipeline": _bucket(previous_pipeline),
+                "actual": _bucket(previous_actual),
+                "lost": _bucket(previous_lost),
+            },
+        }
+
     owner_ids = {l.bd_owner for l in leads.values() if l.bd_owner}
     return {
         "as_of": today,
         "range": {"from": date_from, "to": date_to, "left_out": left_out},
+        #: The same period, one length earlier — or null when the range has no
+        #: length to step back by. See previous_period().
+        "comparison": comparison,
         "quarters": quarter_presets(today),
         "fiscal_year_start_month": FISCAL_YEAR_START_MONTH,
         "revenue_labels": REVENUE_LABEL,
