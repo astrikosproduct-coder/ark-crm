@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RuleBuilder } from './RuleBuilder'
+import { PIPELINE_MODULES } from '@/lib/spec'
 import { errorMessage } from '@/lib/admin'
 import { cn } from '@/lib/utils'
 import {
@@ -102,6 +103,8 @@ interface FormState {
   description: string
   use_case: string
   capture_any_stage: boolean
+  /** Needed from a new record's first save — pipeline modules only. */
+  required_on_create: boolean
   // ---- where it draws
   anchor_field: string
   anchor_position: 'after' | 'beside'
@@ -133,6 +136,7 @@ const EMPTY: FormState = {
   description: '',
   use_case: '',
   capture_any_stage: false,
+  required_on_create: false,
   anchor_field: '',
   anchor_position: 'after',
   layout_span: '',
@@ -254,6 +258,7 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
         description: field.description ?? '',
         use_case: field.use_case ?? '',
         capture_any_stage: field.capture_any_stage,
+        required_on_create: field.required_on_create ?? false,
         anchor_field: field.anchor_field ?? '',
         anchor_position: field.anchor_position ?? 'after',
         layout_span: field.layout_span ?? '',
@@ -296,6 +301,8 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
     return match ? Number(match[1]) : null
   })()
 
+  const isPipeline = PIPELINE_MODULES.includes(moduleKey)
+
   const payload = {
     section_id: form.section_id ?? undefined,
     label: form.label.trim(),
@@ -316,6 +323,7 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
     computed_expr: orNull(form.computed_expr),
     description: form.description,
     use_case: form.use_case,
+    required_on_create: isPipeline && form.required_on_create,
   }
 
   /**
@@ -380,9 +388,12 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
    * which meant the Section dropdown on this dialog silently did nothing when
    * editing an existing field.
    */
+  // Required when creating is this module's alone: a Lead needs its name on
+  // the first save, a converted Opportunity is created from the Lead.
   const placementPatch = {
     ...sharedPlacementPatch,
     section_id: payload.section_id,
+    required_on_create: payload.required_on_create,
   }
 
   const submit = async () => {
@@ -633,6 +644,40 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
               />
             </div>
           </div>
+
+          {/* A required field on Leads, Opportunities or Deals is asked for
+              when a record leaves the field's stage. With no stage at all it
+              is asked for at EVERY stage move (app/requirements.py) — rarely
+              what anyone means, so it is said before publishing. */}
+          {/* On Leads, Opportunities and Deals a required field is asked for
+              when a record LEAVES the field's stage. Ticked, it is needed from
+              the very first save as well — a Lead's name, its End Client. */}
+          {isPipeline && (
+            <label className="flex items-start gap-2 text-sm">
+              <Checkbox
+                className="mt-0.5"
+                checked={form.required_on_create}
+                onCheckedChange={(v) => set('required_on_create', v === true)}
+              />
+              <span>
+                Required when creating
+                <span className="text-muted-foreground block text-xs">
+                  A new record can't be saved without it. Only applies while the field is required.
+                </span>
+              </span>
+            </label>
+          )}
+
+          {isPipeline &&
+            (form.requirement === 'Mandatory' || form.requirement === 'Conditional') &&
+            derivedStage === null &&
+            !form.capture_stage.trim() &&
+            !form.mandatory_from.trim() &&
+            !form.blocks_transition.trim() && (
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                Set a stage, or this field is asked for at every stage move.
+              </p>
+            )}
 
           <label className="flex items-center gap-2 text-sm">
             <Checkbox

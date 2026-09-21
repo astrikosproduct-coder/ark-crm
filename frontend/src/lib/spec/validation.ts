@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { childSpecFor, isChildColumnOnly, type ResolvedChildSpec } from './childSpec'
 import { isVisible, requirementOf, type Values } from './conditions'
-import { createRequiredFor, fieldOptions, fieldsOf, rangeOf, stageFieldOf } from './index'
+import { fieldOptions, fieldsOf, rangeOf, stageFieldOf } from './index'
 import type { FieldSpec } from '@/types/field'
 
 export interface FieldError {
@@ -415,8 +415,8 @@ export interface SaveOptions {
  * Required fields that stop a SAVE — revised 21 Sep 2026: a stage move is the
  * gate, a save is not. The server applies the same rule (app/requirements.py).
  *
- *   new record            only createRequiredFor(module) — Leads: name, End
- *                         Client, BD Owner, Currency
+ *   new record            only fields ticked "Required when creating" in
+ *                         Administration (required_on_create), any stage
  *   ordinary save         a field of a stage already LEFT may not be emptied;
  *                         the current stage may be saved half-filled
  *   pilot marked Paid     a move (the Lead becomes its Deal): the stage must
@@ -435,8 +435,14 @@ export function missingOnSave(module: string, values: Values, options: SaveOptio
   }
 
   const due = missingDue(module, values, { skipped: options.skipped })
-  const create = createRequiredFor(module)
   const out: Errors = {}
+  if (options.creating) {
+    // Ticked "Required when creating" — whatever stage the field belongs to.
+    for (const [name, message] of Object.entries(missingRequired(module, values))) {
+      const field = fieldsOf(module).find((f) => f.api_name === name)
+      if (field?.required_on_create === true && !SYSTEM_SET.has(name) && name !== stageField) out[name] = message
+    }
+  }
   for (const name of Object.keys(due)) {
     const field = fieldsOf(module).find((f) => f.api_name === name)
     if (!field) continue
@@ -445,10 +451,7 @@ export function missingOnSave(module: string, values: Values, options: SaveOptio
       out[name] = due[name]
       continue
     }
-    if (options.creating) {
-      if (create.has(name)) out[name] = due[name]
-      continue
-    }
+    if (options.creating) continue
     const at = dueStageOf(field)
     const left = at !== null && stage !== null && at < stage
     if (left && !BLANK(options.saved[name])) out[name] = due[name]
@@ -462,8 +465,8 @@ export function missingOnSave(module: string, values: Values, options: SaveOptio
  *
  *   'save'   red asterisk and "This is a required field." — the save is
  *            refused without it (the same list missingOnSave checks)
- *   'move'   grey asterisk and a quiet note — needed before the record leaves
- *            this stage, asked for again in the Update Stage dialog
+ *   'move'   no mark (Zoho's Blueprint) — needed before the record leaves this
+ *            stage, and asked for in the Update Stage dialog
  *   null     not asked for now (a later stage, a skipped one, hidden, optional)
  *
  * Marking every field the register calls required, whatever the stage, told a
@@ -486,10 +489,16 @@ export function requirementKindOf(
   const status = typeof values.lead_status === 'string' ? values.lead_status : null
   if (status === 'CONVERTED') return null
   if ((field.condition ?? '').includes('lead_status')) return 'save'
+  // Ticked "Required when creating" in Administration: red on a new record,
+  // whichever stage the field belongs to.
+  if (options.creating && field.required_on_create === true) return 'save'
 
   const stage = stageOf(values[stageField])
   const due = dueStageOf(field)
-  if (due === null || stage === null) return 'save'
+  // A required field with no stage (added in Administration without one) is
+  // asked for whenever the record leaves a stage — never on a save. The server
+  // does the same (app/requirements.py).
+  if (due === null || stage === null) return 'move'
   const range = rangeOf(module)
   if (due > stage || (range && due < range[0])) return null
   if (due !== stage && (options.skipped ?? []).includes(due)) return null
@@ -498,7 +507,7 @@ export function requirementKindOf(
 
   const paidPilot = module === 'leads' && String(values.pilot_commercial_model ?? '').toUpperCase() === 'PAID'
   if (paidPilot) return 'save'
-  if (options.creating) return createRequiredFor(module).has(field.api_name) ? 'save' : 'move'
+  if (options.creating) return 'move'
   return due < stage ? 'save' : 'move'
 }
 

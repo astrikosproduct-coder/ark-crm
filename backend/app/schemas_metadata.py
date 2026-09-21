@@ -148,6 +148,8 @@ class FieldBase(BaseModel):
     description: str = Field(default="", max_length=DESCRIPTION_MAX_LENGTH)
     use_case: str = ""
     required_on_skip: bool | None = None
+    #: Needed from the first save, not only when the record leaves its stage.
+    required_on_create: bool | None = None
     visibility_condition: str | None = None
     condition: str | None = None
     # The register's English sentence about the rule, shown as help text.
@@ -404,6 +406,7 @@ class PlacementUpdate(BaseModel):
     blocks_transition: str | None = Field(default=None, max_length=40)
     requirement: str | None = Field(default=None, max_length=20)
     required_on_skip: bool | None = None
+    required_on_create: bool | None = None
     visibility_condition: str | None = None
     condition: str | None = None
     value_mode: str | None = Field(default=None, max_length=20)

@@ -1,0 +1,32 @@
+# ARK CRM — backend. Paste into /etc/nginx/conf/astriverse.conf (Cloudflare: Gray).
+# Needs the `map $http_upgrade $connection_upgrade {…}` once at the top of that
+# file (already there for the other POCs). The app itself does not use this
+# host — it reaches the API through crm.astrikos.xyz/api — but the block keeps
+# the backend addressable per the server convention.
+#
+# Only /api/ is passed through (decided 21 Sep 2026). FastAPI's /docs and
+# /openapi.json list every route; there is no reason to publish that map.
+# Anything else on this host gets a 404 from nginx.
+server {
+    listen 8443 ssl;
+    ssl_certificate     /etc/certs/astrikos.xyz/fullchain.pem;
+    ssl_certificate_key /etc/certs/astrikos.xyz/privkey.pem;
+    server_name crm-api.astrikos.xyz;
+    location /api/ {
+        proxy_pass http://127.0.0.1:4329;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 7d;
+        proxy_send_timeout 7d;
+        proxy_read_timeout 7d;
+        proxy_buffering off;
+    }
+    location / {
+        return 404;
+    }
+}

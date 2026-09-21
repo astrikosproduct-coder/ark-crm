@@ -108,8 +108,11 @@ try:
     check("…Instructions and Leads visible, Lists hidden", book.sheetnames[:2] == ["Instructions", "Leads"] and book["Lists"].sheet_state == "hidden", str(book.sheetnames))
     ws = book["Leads"]
     check("…row 1 is the Astrikos band on every sheet", ws["A1"].value == "ASTRIKOS" and book["Instructions"]["A1"].value == "ASTRIKOS")
-    headers = [c.value for c in ws[3]]
-    check("…labels on row 3, the name first and marked required", headers[0] == "Opportunity Name *" and "opportunity_name" not in headers, str(headers[:6]))
+    starred = [c.value for c in ws[3]]
+    check("…labels on row 3, the name first and marked required", starred[0] == "Opportunity Name *" and "opportunity_name" not in starred, str(starred[:6]))
+    check("…starred exactly as a new lead's save demands (Required when creating)",
+          {"End Client *", "BD Owner *"} <= set(starred) and "Segment *" not in starred and "Currency *" not in starred, str(starred))
+    headers = [str(h).removesuffix(" *") if h else h for h in starred]
     check("…section bands on row 2", "Stage 0" in str(ws["A2"].value), str(ws["A2"].value))
     check("…no system or stage-set columns", not {"Created By", "Lead Status", "Probability (%)"} & set(headers), str(headers))
     check("…no Stage 1+ fields", "Demo Date" not in headers and "Interest Level" not in headers)
@@ -135,7 +138,10 @@ try:
     r = client.get("/api/spreadsheets/accounts/template")
     book = load_workbook(io.BytesIO(r.content))
     ws = book["Accounts"]
-    headers = [c.value for c in ws[3]]
+    starred = [c.value for c in ws[3]]
+    check("Accounts star every required field", {"Account Name *", "Region *", "Segment *"} <= set(starred), str(starred))
+    check("…but not each Yes/No column of a multi-choice", "Account Type · End Client" in starred, str(starred[:4]))
+    headers = [str(h).removesuffix(" *") if h else h for h in starred]
     conditions = dict(zip(headers, [c.value for c in ws[5]]))
     check("Account Type is one Yes/No column per choice", "Account Type · End Client" in headers and "Account Type · Partner / SI" in headers and "Account Type" not in headers, str(headers[:7]))
     check("…and Partner Tier's condition reads as one sentence", str(conditions.get("Partner Tier", "")).startswith("Only if Account Type includes Partner / SI, "), str(conditions.get("Partner Tier")))

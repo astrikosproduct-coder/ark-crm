@@ -2,11 +2,181 @@
 
 How to put ARK CRM on a server and keep it running. Written for whoever does the install: someone comfortable with a Linux command line, not necessarily with this codebase.
 
+There are two ways to install it:
+
+- **[The astrikos.xyz server](#the-astrikosxyz-server-crmastrikosxyz)**: pm2 and nginx, following the server's POC convention (`deployment_context.md`). This is how `crm.astrikos.xyz` runs.
+- **[Docker](#docker-install)**: three containers on any Linux server.
+
+[Updating](#updating-to-a-new-version), [changing the field register](#changing-the-field-register-in-production) and the release database apply to both.
+
+---
+
+## The astrikos.xyz server (crm.astrikos.xyz)
+
+### Processes, ports and names
+
+| | Port | Public address | pm2 name | Cloudflare |
+|---|---|---|---|---|
+| Frontend (built app, `serve`) | **3329** | `https://crm.astrikos.xyz:8443` | `crm_3329` | **Orange** |
+| Backend (FastAPI, uvicorn) | **4329** | `https://crm-api.astrikos.xyz:8443` | `crm_be_4329` | **Gray** |
+| PostgreSQL 17 | 5433 | none (bound to 127.0.0.1) | — (Docker) | — |
+
+Add the rows to the server's port registry (`deployment_context.md` §6) before deploying:
+
+```
+crm          | 3329 | 4329 | live      (API reached through crm.astrikos.xyz/api)
+crm-staging  | 3331 | 4331 | reserved  (a rehearsal copy; not set up yet)
+```
+
+**One difference from the standard POC setup.** The app has no `VITE_API_URL` and must not get one. It calls the relative path `/api`, and sign-in is a full-page redirect to `/api/auth/login` that sets a cookie on that host. So the frontend's nginx block sends `/api/` to the backend on 4329, and **people use only `crm.astrikos.xyz`**. The `crm-api` block exists to follow the convention, and passes only `/api/`, so FastAPI's `/docs` is not published. The app never calls it, and a request there has no session cookie. There is no websocket.
+
+### Before you start
+
+| You need | Notes |
+|---|---|
+| Node 24 and npm, pm2, `serve` | `npm i -g pm2 serve` |
+| Python 3.13 with `venv` | to match `backend/Dockerfile` |
+| Docker, or a PostgreSQL 17 on the server | the database |
+| The Entra redirect URI | `https://crm.astrikos.xyz:8443/api/auth/callback`, **with** the `:8443`, added to the app registration by its owner. Sign-in fails with a Microsoft error until it is. |
+| The release database file | `db_backups/ark_crm_release_<date>.dump`, from [step 5 below](#5-load-the-release-database) |
+
+### 1. Get the code
+
+The commands below assume the checkout is `~/ark-crm`.
+
+```sh
+cd ~
+git clone https://github.com/astrikosproduct-coder/ark-crm.git
+cd ark-crm
+git checkout main
+```
+
+### 2. Start the database
+
+PostgreSQL 17, reachable from this server only:
+
+```sh
+docker run -d --name crm-postgres --restart unless-stopped \
+  -e POSTGRES_USER=ark -e POSTGRES_PASSWORD='<strong password, no @ : />' -e POSTGRES_DB=ark_crm \
+  -p 127.0.0.1:5433:5432 \
+  -v crm_postgres_data:/var/lib/postgresql/data \
+  postgres:17
+```
+
+Using a PostgreSQL that's already on the server works too. Point `DATABASE_URL` at it in step 3.
+
+### 3. Backend settings and install
+
+```sh
+cd backend
+cp ../deploy/astrikos/backend.env.example .env
+chmod 600 .env
+# fill in .env: the database password, the three ENTRA_* values and a new SESSION_SECRET
+python3.13 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+```
+
+`APP_BASE_URL` is already `https://crm.astrikos.xyz:8443`. The port is not in `.env`: pm2 passes it in step 6.
+
+### 4. Load the release database
+
+Make the file on the development machine ([step 5 of the Docker install](#5-load-the-release-database)), copy it to the server, then:
+
+```sh
+docker exec -i crm-postgres pg_restore -U ark -d ark_crm --no-owner --no-privileges --exit-on-error \
+  < ark_crm_release_<date>.dump
+```
+
+Do this **once**, on an empty database. Delete the file from the server afterwards.
+
+### 5. Build the frontend
+
+```sh
+cd ../frontend
+npm ci && npm run build        # → frontend/dist/
+```
+
+### 6. Start both under pm2
+
+```sh
+cd ~/ark-crm/frontend
+pm2 start serve --name crm_3329 -- ./dist -s -p 3329
+
+cd ~/ark-crm/backend
+PORT=4329 pm2 start serve.py --name crm_be_4329 --interpreter "$PWD/.venv/bin/python"
+
+pm2 save
+```
+
+`backend/serve.py` reads `PORT`, listens on 127.0.0.1 only, and trusts forwarded headers from nginx on the same machine. It needs `backend/` as its working directory to find `.env`.
+
+### 7. nginx
+
+Paste the two blocks from the repository into the server's files:
+
+| Block | Paste into | Server name → port |
+|---|---|---|
+| [`deploy/astrikos/astrikos.conf.crm`](deploy/astrikos/astrikos.conf.crm) | `/etc/nginx/conf/astrikos.conf` | `crm.astrikos.xyz` → 3329, and `/api/` → 4329 |
+| [`deploy/astrikos/astriverse.conf.crm`](deploy/astrikos/astriverse.conf.crm) | `/etc/nginx/conf/astriverse.conf` | `crm-api.astrikos.xyz/api/` → 4329; anything else 404 |
+
+```sh
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+The frontend block differs from the standard one in three ways:
+
+- the `/api/` location;
+- a 25 MB upload limit and a 5-minute timeout there, for spreadsheet imports;
+- cache headers: hashed `/assets/` are kept forever, and everything else is `no-cache` so a deploy reaches browsers.
+
+### 8. Cloudflare DNS
+
+- `crm.astrikos.xyz` → **Orange** (proxied)
+- `crm-api.astrikos.xyz` → **Gray** (DNS only)
+
+### 9. Check it
+
+```sh
+pm2 ls                                                        # crm_3329 and crm_be_4329 online
+curl -k https://crm.astrikos.xyz:8443/                        # the app's HTML
+curl -k https://crm.astrikos.xyz:8443/api/auth/me             # JSON "Your session has ended...", not HTML
+curl -k https://crm-api.astrikos.xyz:8443/api/auth/me         # the same JSON: the backend answers directly
+curl -sk -o /dev/null -w '%{http_code}\n' https://crm-api.astrikos.xyz:8443/docs   # 404: the route map is not published
+curl -skI https://crm.astrikos.xyz:8443/ | grep -i cache-control   # no-cache
+```
+
+Then open `https://crm.astrikos.xyz:8443` in a browser. You're sent to Microsoft and back to the Dashboard. See [step 7 of the Docker install](#7-check-it) for what each person should see.
+
+### Updating on this server
+
+```sh
+cd ~/ark-crm
+
+# 1. Copy the database FIRST
+docker exec crm-postgres pg_dump -U ark -Fc ark_crm > ~/crm_before_update_$(date +%Y%m%d_%H%M).dump
+
+# 2. Get the new version. Publishing in Administration rewrites the fallback
+#    files in frontend/spec on this server, so discard those first. The live app
+#    reads the published version from the database, so nothing is lost.
+git checkout -- frontend/spec
+git pull
+
+# 3. Install, apply database changes, rebuild, restart
+backend/.venv/bin/pip install -r backend/requirements.txt
+(cd backend && .venv/bin/alembic upgrade head)
+(cd frontend && npm ci && npm run build)
+pm2 restart crm_be_4329 crm_3329
+```
+
+Run any register script a migration names under *DEPLOY ORDER* after the `alembic` step, e.g. `(cd backend && .venv/bin/python po_received_date_metadata.py --apply)`.
+
+---
+
+## Docker install
+
 The whole application is three containers: the **database** (PostgreSQL 17), the **backend** (FastAPI) and **web** (Caddy, which serves the app, forwards `/api` to the backend, and handles HTTPS). Only `web` is reachable from outside the server.
 
 The same steps work on an on-prem server or a cloud VM. Only `.env` changes.
-
----
 
 ## Before you start
 
@@ -145,7 +315,7 @@ Two things to know:
 
 - **Only production changes.** The development database doesn't get the edit. Make the same change there too before writing code that depends on it, or use a committed script run on both (the pattern of `pilot_po_received_date_metadata.py`).
 - **Required fields are enforced.** A field made required is asked for when a record leaves that field's stage, and can't be emptied afterwards. Check what it demands before you publish.
-- **People already working keep their page.** Nobody is interrupted. Within a few minutes, and on their next refused save, they see "The form was updated. Save your work, then reload." Publish at quiet times, or tell the team first, when you change what's required.
+- **People already working keep their page.** Nobody is interrupted. Within a few minutes, and on their next refused save, they see "There's a new update. Save your work, then reload to see it." Publish at quiet times, or tell the team first, when you change what's required.
 
 A new field that needs a database column comes with a migration. Run its script after `alembic upgrade head`, as the migration's *DEPLOY ORDER* says.
 

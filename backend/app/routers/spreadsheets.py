@@ -138,6 +138,12 @@ def _download(body: bytes, filename: str, media_type: str) -> Response:
     )
 
 
+#: Required fields the create logic fills when a row leaves them blank, so the
+#: sample does not star them: a new lead's Currency defaults to USD
+#: (app/routers/leads.py::insert_lead).
+FILLED_ON_CREATE = {"currency"}
+
+
 @router.get("/spreadsheets/{module}/template")
 def download_template(module: str, format: str = "xlsx", db: Session = Depends(get_db)):
     target = _import_target(module)
@@ -154,10 +160,24 @@ def download_template(module: str, format: str = "xlsx", db: Session = Depends(g
     labels = {c.api_name: c.label for c in columns}
     picklists = {c.api_name: c.picklist for c in columns}
 
-    # The name is the one column every row must fill; everything else follows
-    # the form's own save rule, which demands formats rather than presence.
-    required = {target.name_field}
-    later = {c.api_name for c in columns if c.requirement == "Mandatory" and c.api_name not in required}
+    # The same rule a save applies (app/requirements.py, 21 Sep 2026), read off
+    # the published register so Administration's changes show here too:
+    #   Leads              the fields ticked "Required when creating" — every
+    #                      other Mandatory one is needed when the lead moves on
+    #   Accounts, Contacts every Mandatory field, on every save
+    # A Conditional one is starred as well; row 5 says when it applies.
+    demanded = {"Mandatory", "Conditional"}
+    if target.stage_field:
+        required = {
+            c.api_name for c in columns
+            if c.required_on_create and c.requirement in demanded and c.api_name not in FILLED_ON_CREATE
+        }
+        later = {c.api_name for c in columns if c.requirement == "Mandatory" and c.api_name not in required}
+    else:
+        required = {c.api_name for c in columns if c.requirement == "Mandatory" or (c.requirement == "Conditional" and c.condition)}
+        later = set()
+    required.add(target.name_field)
+    later -= required
     conditions: dict[str, str] = {}
     for column in columns:
         if column.api_name == "not_duplicate_reason":

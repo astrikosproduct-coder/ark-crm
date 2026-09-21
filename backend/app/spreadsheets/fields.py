@@ -109,6 +109,21 @@ class Column:
     min_value: float | None = None
     max_value: float | None = None
     description: str | None = None
+    #: Ticked "Required when creating" in Administration (migration 0037).
+    required_on_create: bool = False
+
+
+def _published_rows(db: Session, module: str) -> list[dict[str, Any]]:
+    """
+    The module's fields as last PUBLISHED — what a save is checked against
+    (app/requirements.py), so the sample file and the import follow the same
+    version the app runs on. An unpublished draft changes neither. Falls back to
+    the draft only on a database never published.
+    """
+    from ..live_register import published  # local: live_register imports the metadata layer
+
+    register = published(db)
+    return register.fields_of(module) if register is not None else resolved_fields(db, module)
 
 
 def _column(row: dict[str, Any], module: str) -> Column:
@@ -131,12 +146,13 @@ def _column(row: dict[str, Any], module: str) -> Column:
         min_value=float(row["min_value"]) if row.get("min_value") is not None else None,
         max_value=float(row["max_value"]) if row.get("max_value") is not None else None,
         description=row.get("description"),
+        required_on_create=bool(row.get("required_on_create")),
     )
 
 
 def register_columns(db: Session, module: str) -> list[Column]:
     """Every active field of a module, in form order — the export's view."""
-    return [_column(row, module) for row in resolved_fields(db, module)]
+    return [_column(row, module) for row in _published_rows(db, module)]
 
 
 def import_columns(db: Session, module: str, *, max_stage: int | None) -> list[Column]:
@@ -145,7 +161,7 @@ def import_columns(db: Session, module: str, *, max_stage: int | None) -> list[C
     person, and — for a staged module — captured no later than `max_stage`.
     """
     out: list[Column] = []
-    for row in resolved_fields(db, module):
+    for row in _published_rows(db, module):
         ext = extension_of(module, row["api_name"])
         if row["value_mode"] != "own":
             continue

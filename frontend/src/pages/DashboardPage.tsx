@@ -340,7 +340,8 @@ function nothingHere(data: DashboardData, thing: string): string {
 /**
  * The headline row.
  *
- * FIVE TILES, NOT SIX, AND ONE LINE EACH (18 Sep 2026)
+ * FIVE TILES, NOT SIX, AND ONE LINE EACH (18 Sep 2026) — on ONE row from
+ * lg up (21 Sep 2026; Won had been wrapping onto a second row alone)
  * ----------------------------------------------------
  * Six tiles on a three-column grid wrapped to two rows and read as a table of
  * contents. "Stale records" left the row entirely — it is a WORKLIST, not a
@@ -368,7 +369,10 @@ function Kpis({ data, ranged }: { data: DashboardData; ranged: boolean }) {
   const leadShare = pipeline.usd > 0 ? (pipeline.by_module.leads.usd / pipeline.usd) * 100 : 0
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    // Five across from lg up. This was lg:grid-cols-4 with five tiles in it,
+    // so Won — the last one — wrapped onto a row of its own and read as an
+    // afterthought under the headline rather than part of it.
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
       <KpiTile
         label="Open pipeline"
         value={usd(pipeline.usd)}
@@ -402,18 +406,21 @@ function Kpis({ data, ranged }: { data: DashboardData; ranged: boolean }) {
         line={`${plural(actual.count, 'deal')} · contract value${closing(ranged)}`}
         caveat={actual.unpriced > 0 ? `${plural(actual.unpriced, 'deal')} still needs a value, currency or exchange rate` : null}
       />
-      <KpiTile
-        label="Closed Lost"
-        value={money(lost.count)}
-        delta={delta(lost.count, before?.lost.count, false)}
-        line={`${usd(lost.usd)} of pursuit value`}
-      />
+      {/* Beside the revenue it is a subset of — Won is Actual Revenue whose PO
+          has arrived — and ahead of Closed Lost, so the row reads pipeline,
+          then what closed, then what was lost. */}
       <KpiTile
         label="Won"
         value={usd(won.usd)}
         delta={delta(won.usd, before?.won.usd)}
         line={`${plural(won.count, 'deal')} · PO received${ranged ? ' in the selected period' : ''}`}
         caveat={won.unpriced > 0 ? `${plural(won.unpriced, 'deal')} still needs a value, currency or exchange rate` : null}
+      />
+      <KpiTile
+        label="Closed Lost"
+        value={money(lost.count)}
+        delta={delta(lost.count, before?.lost.count, false)}
+        line={`${usd(lost.usd)} of pursuit value`}
       />
     </div>
   )

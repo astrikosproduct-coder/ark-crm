@@ -397,7 +397,11 @@ def template_workbook(
         letter = get_column_letter(index)
         label = choice_header(column, choice) if choice else column.label
         must = column.api_name in required
-        header = main.cell(row=LABEL_ROW, column=index, value=f"{label} *" if must else label)
+        # A multi-choice field split into Yes/No columns is required as a GROUP
+        # (at least one Yes), so its columns are shaded but carry no star — a
+        # star on each read as "answer every one".
+        star = must and not choice
+        header = main.cell(row=LABEL_ROW, column=index, value=f"{label} *" if star else label)
         header.font = HEADER_FONT
         header.fill = REQUIRED_FILL if must else LATER_FILL if column.api_name in later else HEADER_FILL
         header.alignment = Alignment(vertical="center", wrap_text=True)
@@ -491,7 +495,7 @@ def template_workbook(
     row += 1
     for fill, name, meaning in (
         (REQUIRED_FILL, "Amber, with *", "Must be filled in, or the row isn't imported."),
-        (LATER_FILL, "Green", "Needed later in ARK. Fill it in now if you know it."),
+        (LATER_FILL, "Green", "Needed before the record moves to its next stage in ARK. Fill it in now if you know it."),
         (HEADER_FILL, "Grey", "Optional."),
     ):
         swatch = instructions.cell(row=row, column=1, value=name)

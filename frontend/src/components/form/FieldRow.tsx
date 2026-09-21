@@ -30,10 +30,6 @@ interface Props {
  */
 export const FULL_WIDTH = new Set(['childlist'])
 
-function isBlank(value: unknown): boolean {
-  return value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0)
-}
-
 export function FieldRow({ field, onCreateNew, className, requiredNow }: Props) {
   const form = useRecordForm()
   const id = `${field.module}.${field.api_name}`
@@ -42,8 +38,9 @@ export function FieldRow({ field, onCreateNew, className, requiredNow }: Props) 
   // "This is a required field." on the same field would be one message too many,
   // and the shape error is the more specific of the two.
   const missing = !error ? form.visibleRequired[field.api_name] : undefined
-  // Red: the save needs it. Grey: needed before the record leaves this stage —
-  // quiet on purpose, because nothing is wrong yet (21 Sep 2026, the Zoho split).
+  // Red only when the save needs it. A field needed to leave the stage carries
+  // no mark at all, as in Zoho's Blueprint (decided 21 Sep 2026): the Update
+  // Stage dialog asks for it when it matters.
   const kind = requiredNow ? 'save' : form.requirementKind(field)
 
   return (
@@ -131,11 +128,6 @@ export function FieldRow({ field, onCreateNew, className, requiredNow }: Props) 
               *
             </span>
           )}
-          {kind === 'move' && (
-            <span className="text-muted-foreground/70" aria-hidden title="Needed before moving to the next stage">
-              *
-            </span>
-          )}
         </Label>
         {/* The prose formula from the register, never the executable one — a
             reviewer should see the business statement they wrote.
@@ -172,9 +164,6 @@ export function FieldRow({ field, onCreateNew, className, requiredNow }: Props) 
 
         {error && <p className="text-xs text-destructive">{error}</p>}
         {missing && <p className="text-xs text-destructive">{missing}</p>}
-        {!error && !missing && kind === 'move' && form.mode === 'edit' && isBlank(form.values[field.api_name]) && (
-          <p className="text-xs text-muted-foreground">Needed to move to the next stage.</p>
-        )}
 
         {!error && !missing && form.mode === 'edit' && field.computed_formula && field.description && (
           <p className="text-xs text-muted-foreground">{field.description}</p>

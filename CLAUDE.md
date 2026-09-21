@@ -74,7 +74,9 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    move has blocking checks a sheet cannot confirm). Every row goes through the module's own
    create logic (`leads.insert_lead`, `create_account`, `create_contact`) inside one outer
    transaction with a savepoint per row: preview rolls back, commit is all-or-nothing. Rows
-   are checked like a form SAVE — formats, choices, lookups — not Mandatory fields.
+   are checked like a form SAVE — formats, choices, lookups, and the required fields a NEW record
+   needs (Leads: "Required when creating"; Accounts, Contacts: every required field), named in
+   the row's error. The sample file stars exactly those, from the PUBLISHED register.
    **The sample file** (`workbook.template_workbook`): row 1 Astrikos band · row 2 form sections ·
    row 3 labels · row 4 what to enter · row 5 "Only if …" from the visibility condition · data
    from row 6. The importer finds the label row by matching labels and skips rows 4–5 by their
@@ -149,8 +151,10 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
 2. **All data access goes through the Axios client in `src/lib/api.ts`**, to FastAPI at
    `/api`. Never add a second Axios instance. In development Vite proxies `/api` to
    `localhost:8000` (one entry, `vite.config.ts`); in production Caddy does
-   (`frontend/Caddyfile`). The built app contains no addresses — never add a
-   `VITE_API_URL`, or the image stops being portable.
+   (`frontend/Caddyfile`), or on the astrikos.xyz server nginx's `/api/` location
+   (`deploy/astrikos/astrikos.conf.crm`). The built app contains no addresses — never add a
+   `VITE_API_URL`, or the image stops being portable and sign-in breaks (the session
+   cookie is set on the host the browser signs in through, which must be the app's own).
    **Lookups, filters and pickers read a collection through `src/lib/collections.ts`**,
    which decides where it comes from: the bundled price book (`src/lib/catalogue.ts` —
    products, prices, sizes, rate card, support tiers, regions, pricing params; read-only,
@@ -191,7 +195,8 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
 React 18 + TypeScript · Vite · Tailwind + shadcn/ui · TanStack Query · Axios ·
 Zustand (UI state only — sidebar, theme, unsaved-changes guard) · React Router · Zod · date-fns
 Backend: FastAPI · SQLAlchemy · Alembic · PostgreSQL 17. Deployed as three containers —
-`docker-compose.yml`, see `DEPLOY.md`.
+`docker-compose.yml` — or, on the astrikos.xyz server (`crm.astrikos.xyz`), under pm2 on
+ports 3329 / 4329 behind nginx (`deploy/astrikos/`, `backend/serve.py`). Both in `DEPLOY.md`.
 
 Match the production stack so the code carries forward. No other state library, no CSS
 framework other than Tailwind.
@@ -301,9 +306,10 @@ to turn enforcement off, and there must not be one. A field is due at its
   (the Lead becomes its Deal on that save), which is what asks for Pilot PO Received Date;
 - an **ordinary save** may leave the current stage half-filled, but may not EMPTY a field of
   a stage the record has already left (requiring the whole stage on every save pushed people
-  to type "TBD"); a **new record** needs only `create_required` in `spec/extensions.json`
-  (Leads: Opportunity Name, End Client, BD Owner, Currency) — each still only while the
-  register marks it required;
+  to type "TBD"); a **new record** needs only the fields ticked **"Required when creating"**
+  in Administration (`field_placements.required_on_create`, migration 0037; Leads: Opportunity
+  Name, End Client, BD Owner, Currency) — each still only while the register marks it
+  required, and the create pages add any section holding one (`createFormSections`);
 - a **skipped** stage's fields are never demanded (decided 21 Sep 2026); stages below the
   module's own range belong to the parent; a **POC/Pilot Deal** is exempt through Stage 7;
 - **moving back, On Hold and Closed Lost** are never blocked by a stage's fields — only the
@@ -314,12 +320,16 @@ to turn enforcement off, and there must not be one. A field is due at its
 The create pages draw the same sections as the record's stage tab — Health & Forecast first,
 then the stage's own (`stageFormSections` in `src/lib/pipeline.ts`).
 **On screen, the Zoho split** (`requirementKindOf`): a RED asterisk and "This is a required
-field." only for what the save needs; a GREY asterisk and "Needed to move to the next
-stage." for the current stage's fields; nothing for later stages. The Update Stage dialog
+field." only for what the save needs; NO mark for a field needed to leave the stage (decided
+21 Sep 2026, as Zoho's Blueprint) — the Update Stage dialog asks for it. A required field
+with no stage, on a pipeline module, is asked for at every stage move and never blocks a
+save; the Administration field editor warns about it. Locked lookups into unbuilt modules
+(Quotes, Bids, POCs, Gates) are never demanded — the sidecar's `phase1_locked` is matched
+by the field's own module AND its register module, as the form does. The Update Stage dialog
 asks for the missing fields as inputs (Zoho's Blueprint, `RequiredBeforeMove`) and saves
 them in the move's own request. Messages give a count, never a list of labels — except when
 the server refuses a field the screen didn't mark (a publish since the page opened), which
-is named, and `RegisterUpdateBanner` then says "The form was updated… reload".
+is named, and `RegisterUpdateBanner` (app-wide) then says "There's a new update… reload".
 Layers 2–3 (criteria) stay as decided on 16 Sep 2026: a person may tick a criterion, and the
 tick is recorded. Layer 4 waits for the Gates phase.
 

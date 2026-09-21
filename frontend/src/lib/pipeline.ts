@@ -227,6 +227,19 @@ export function stageFormSections(module: string, stage: number): string[] {
   return [...(keyFacts ? [keyFacts] : []), ...sectionsForStage(module, stage).filter((s) => s !== keyFacts)]
 }
 
+/**
+ * A create page's sections: the stage form's, plus any section holding a field
+ * ticked "Required when creating" in Administration — a new record is refused
+ * without it, so it has to be on the page whatever stage it belongs to.
+ */
+export function createFormSections(module: string, stage: number): string[] {
+  const out = stageFormSections(module, stage)
+  for (const f of fieldsOf(module)) {
+    if (f.required_on_create && f.value_mode !== 'read_through' && !out.includes(f.section)) out.push(f.section)
+  }
+  return out
+}
+
 export function criteriaFor(stage: number, type: 'entry' | 'exit'): Criterion[] {
   return CRITERIA.filter((c) => c.stage === stage && c.type === type)
 }

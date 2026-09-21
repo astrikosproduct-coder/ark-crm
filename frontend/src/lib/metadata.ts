@@ -84,6 +84,7 @@ export interface MetadataField {
   description: string
   use_case: string
   required_on_skip: boolean | null
+  required_on_create: boolean
   visibility_condition: string | null
   condition: string | null
   computed_formula: string | null
@@ -380,6 +381,7 @@ export type PlacementInput = Partial<{
   blocks_transition: string | null
   requirement: string
   required_on_skip: boolean | null
+  required_on_create: boolean
   visibility_condition: string | null
   condition: string | null
   value_mode: 'own' | 'read_through' | 'carry_forward'

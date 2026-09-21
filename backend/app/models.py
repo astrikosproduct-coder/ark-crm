@@ -2968,6 +2968,12 @@ class FieldPlacement(Base):
     blocks_transition: Mapped[str | None] = mapped_column(String(40), nullable=True)
     requirement: Mapped[str] = mapped_column(String(20), nullable=False)
     required_on_skip: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    # ADDED BY 0037. "Required when creating": on a pipeline module a required
+    # field is asked for when the record leaves its stage; this one is needed
+    # from the first save as well. See app/requirements.py.
+    required_on_create: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
 
     # Conditions name sibling fields, and the sibling set differs per module —
     # a condition naming a field this module does not have cannot compile.

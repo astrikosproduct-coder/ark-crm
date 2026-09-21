@@ -21,10 +21,13 @@ when every row passed.
 
 WHAT A SAVE DEMANDS, AND NOT MORE
 ---------------------------------
-A form save checks formats, lengths, choices and lookups — never Mandatory
-fields, which bite at a stage move (src/lib/spec/validation.ts). An import
-row is checked the same way, plus one thing a sheet needs that a form does
-not: the record's name, so no nameless record is created.
+A row is checked exactly like a form save, because it goes through the same
+create logic (app/requirements.py, 21 Sep 2026): formats, lengths, choices,
+lookups, and the required fields a NEW record needs — on Leads the ones ticked
+"Required when creating", on Accounts and Contacts every required field. A
+lead's other required fields bite when it leaves Stage 0, in ARK. Plus one
+thing a sheet needs that a form does not: the record's name. A missing
+required field is named in the row's error, since a sheet has no red marks.
 
 LEADS: STAGE 0 ONLY
 -------------------
@@ -221,6 +224,12 @@ def _refusal_lines(exc: HTTPException) -> list[str]:
     detail = exc.detail
     if isinstance(detail, dict):
         message = detail.get("message") or "This row was refused."
+        # A sheet has no red marks, so a missing required field is NAMED here,
+        # where the form would only give a count.
+        if detail.get("code") == "REQUIRED_FIELDS_MISSING":
+            labels = [f.get("label") for f in detail.get("fields") or [] if isinstance(f, dict) and f.get("label")]
+            if labels:
+                return [f"Missing required: {', '.join(labels)}."]
         details = [d for d in detail.get("details") or [] if isinstance(d, str)]
         return [message, *details]
     if isinstance(detail, str):

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { PageLayout } from '@/components/layout/PageLayout'
 import { RecordEditor } from '@/components/record/RecordEditor'
-import { STAGE_PCT_FIELDS, stageFormSections, stageKeyOf, stagesFor } from '@/lib/pipeline'
+import { STAGE_PCT_FIELDS, createFormSections, stageKeyOf, stagesFor } from '@/lib/pipeline'
 import type { Values } from '@/lib/spec/conditions'
 
 const MODULE = 'opportunities'
@@ -29,7 +29,7 @@ export function OpportunityCreatePage() {
   // Commercial: Cost & Margin. The singular sectionForStage showed only the
   // first, so a new Opportunity silently lost every money field.
   // Health & Forecast first, as on the record page (21 Sep 2026).
-  const sections = stageFormSections(MODULE, firstStage)
+  const sections = createFormSections(MODULE, firstStage)
 
   const initialValues = useMemo<Values>(
     () => ({

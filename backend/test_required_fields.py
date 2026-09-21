@@ -224,6 +224,27 @@ try:
     r = client.patch(f"/api/leads/{lead_id}", json={"lead_status": "OPEN", "project_stage": "1_DEMO", "stage_reversal_reason": "x"})
     check("moving back is never blocked by a stage's fields", r.status_code == 200, r.text[:300])
 
+    # ---------------- an import row is held to the same rule, and NAMES the field
+    csv_body = "Opportunity Name,Estimated Value\r\nRequired Fields Import,5000\r\n".encode("utf-8")
+    r = client.post("/api/spreadsheets/leads/import/preview", params={"filename": "leads.csv"},
+                    content=csv_body, headers={"Content-Type": "application/octet-stream"})
+    errors = r.json().get("errors", []) if r.status_code == 200 else []
+    messages = " ".join(m for e in errors for m in e.get("messages", []))
+    check("an imported lead without End Client or BD Owner is refused, naming both",
+          "Missing required:" in messages and "End Client" in messages and "BD Owner" in messages, f"{r.status_code} {messages or r.text[:300]}")
+
+    # ---------------- locked lookups into unbuilt modules never block (Opportunities)
+    r = client.post("/api/opportunities", json={"project_stage": "4_RFP_RFI", "lead_status": "OPEN"})
+    check("a hand-made Opportunity at Stage 4 saves", r.status_code == 201, r.text[:300])
+    if r.status_code == 201:
+        opp_id = r.json()["opportunity_id"]
+        created.setdefault("opportunities", []).append(opp_id)
+        r = client.patch(f"/api/opportunities/{opp_id}", json={"project_stage": "5_TECHNICAL_EVAL"})
+        missing = missing_of(r)
+        check("leaving Stage 4 asks for Stage 4's fields", refused(r) and bool(missing), f"{r.status_code} {missing}")
+        check("…but never Primary Quote or Bid Record (Quotes and Bids are not built)",
+              not missing & {"primary_quote", "bid_record", "commercial_gate"}, str(missing))
+
     # --------------------------------- a field made Optional and published
     with RegisterGuard() as guard, SessionLocal() as db:
         placement = db.scalar(
@@ -254,6 +275,23 @@ try:
         r = client.patch(f"/api/admin/metadata/placements/{placement.id}/required", json={"required": True})
         r2 = client.post("/api/admin/metadata/publish", json={"note": "test: BD Owner required again"})
         check("put back and republished", r.status_code == 200 and r2.status_code == 200, r2.text[:200])
+
+        # "Required when creating", unticked in Administration: BD Owner stays
+        # required, but only when the Lead leaves Stage 0.
+        r = client.patch(f"/api/admin/metadata/placements/{placement.id}", json={"required_on_create": False})
+        check("Administration can untick Required when creating", r.status_code == 200 and r.json().get("required_on_create") is False, r.text[:200])
+        client.post("/api/admin/metadata/publish", json={"note": "test: BD Owner not needed on create"})
+        body3 = {**stage_0, "opportunity_name": "Required Fields Test 3", "bd_owner": None,
+                 "end_client": new_client("Required Fields Test Client 4")}
+        r = client.post("/api/leads", json=body3)
+        check("…then a new Lead saves without BD Owner", r.status_code == 201, r.text[:300])
+        if r.status_code == 201:
+            created["leads"].append(r.json()["lead_id"])
+            r = client.patch(f"/api/leads/{r.json()['lead_id']}", json={"project_stage": "1_DEMO"})
+            check("…but can't leave Stage 0 without it", refused(r) and "bd_owner" in missing_of(r), f"{r.status_code} {missing_of(r)}")
+        r = client.patch(f"/api/admin/metadata/placements/{placement.id}", json={"required_on_create": True})
+        r2 = client.post("/api/admin/metadata/publish", json={"note": "test: BD Owner needed on create again"})
+        check("ticked again and republished", r.status_code == 200 and r2.status_code == 200, r2.text[:200])
     guard.report()
 
     # ---------------------------------------------------- the paid pilot
@@ -281,6 +319,10 @@ try:
 
 finally:
     with SessionLocal() as db:
+        if created.get("opportunities"):
+            db.execute(text("DELETE FROM opportunity_payment_milestones WHERE opportunity_id = ANY(:i)"), {"i": created["opportunities"]})
+            db.execute(text("DELETE FROM stage_transitions WHERE record_id = ANY(:i)"), {"i": created["opportunities"]})
+            db.execute(text("DELETE FROM opportunities WHERE opportunity_id = ANY(:i)"), {"i": created["opportunities"]})
         ids = created["leads"]
         if ids:
             deals = [row[0] for row in db.execute(text("SELECT deal_id FROM deals WHERE parent_lead = ANY(:i)"), {"i": ids})]

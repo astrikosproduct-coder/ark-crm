@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { LeadAccountFieldSync, backfillAccountFieldsFromLead } from '@/components/leads/LeadAccountFieldSync'
 import { RecordEditor } from '@/components/record/RecordEditor'
-import { STAGE_PCT_FIELDS, stageFormSections, stageKeyOf, stagesFor } from '@/lib/pipeline'
+import { STAGE_PCT_FIELDS, createFormSections, stageKeyOf, stagesFor } from '@/lib/pipeline'
 import type { Values } from '@/lib/spec/conditions'
 
 const MODULE = 'leads'
@@ -24,7 +24,7 @@ export function LeadCreatePage() {
   // The same sections, in the same order, as the Stage 0 tab of the record
   // this becomes: Health & Forecast first, then Connect (21 Sep 2026). The
   // two percentages are hidden — the server sets them from the stage.
-  const sections = useMemo(() => stageFormSections(MODULE, 0), [])
+  const sections = useMemo(() => createFormSections(MODULE, 0), [])
   const stage = stagesFor(MODULE)[0]
 
   /**

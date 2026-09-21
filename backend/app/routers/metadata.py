@@ -663,6 +663,7 @@ def _serialise_placement(
         "requirement": placement.requirement,
         "required": placement.requirement == "Mandatory",
         "required_on_skip": placement.required_on_skip,
+        "required_on_create": bool(placement.required_on_create),
         "visibility_condition": placement.visibility_condition,
         "condition": placement.condition,
         "value_mode": placement.value_mode,
@@ -819,6 +820,7 @@ def create_field(payload: FieldCreate, db: Session = Depends(get_db)):
         blocks_transition=data.get("blocks_transition"),
         requirement=payload.requirement,
         required_on_skip=data.get("required_on_skip"),
+        required_on_create=bool(data.get("required_on_create") or False),
         visibility_condition=data.get("visibility_condition"),
         condition=data.get("condition"),
         # A field created here has no typed column and is never getting one —
@@ -1002,6 +1004,7 @@ def update_field(
         "mandatory_from",
         "blocks_transition",
         "required_on_skip",
+        "required_on_create",
         "visibility_condition",
         "condition",
     }
@@ -1084,6 +1087,7 @@ def update_placement(
         "blocks_transition",
         "requirement",
         "required_on_skip",
+        "required_on_create",
         "visibility_condition",
         "condition",
     ):

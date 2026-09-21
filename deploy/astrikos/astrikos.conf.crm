@@ -1,0 +1,44 @@
+# ARK CRM — frontend. Paste into /etc/nginx/conf/astrikos.conf (Cloudflare: Orange).
+#
+# One deliberate addition to the standard frontend block: /api/ goes straight to
+# the backend on 4329. The app calls the RELATIVE path /api and signs in with a
+# full-page redirect to /api/auth/login, so the browser must reach the API on
+# this same host. Sending it to crm-api.astrikos.xyz instead would put the
+# session cookie on a different host and sign-in would never stick.
+server {
+    listen 8443 ssl;
+    ssl_certificate     /etc/certs/astrikos.xyz/fullchain.pem;
+    ssl_certificate_key /etc/certs/astrikos.xyz/privkey.pem;
+    server_name crm.astrikos.xyz;
+
+    # The API, on the same host as the app.
+    location /api/ {
+        proxy_pass http://127.0.0.1:4329;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # Spreadsheet import: files up to a few MB, and 1,000 rows takes ~40 s.
+        client_max_body_size 25m;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+
+    # Built assets carry a content hash in their name: cache them forever.
+    location /assets/ {
+        add_header 'Access-Control-Allow-Origin' '*' always;
+        proxy_hide_header Cache-Control;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        proxy_pass http://127.0.0.1:3329;
+    }
+
+    # Everything else is the app (serve -s answers unknown paths with index.html).
+    # no-cache, or a browser keeps running last week's app after a deploy.
+    location / {
+        add_header 'Access-Control-Allow-Origin' '*' always;
+        proxy_hide_header Cache-Control;
+        add_header Cache-Control "no-cache" always;
+        proxy_pass http://127.0.0.1:3329;
+    }
+}

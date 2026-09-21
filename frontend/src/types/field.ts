@@ -302,6 +302,8 @@ export interface RawFieldSpec {
   description: string
   use_case: string
   required_on_skip: boolean | null
+  /** "Required when creating" — needed from the first save (migration 0037). */
+  required_on_create?: boolean
   visibility_condition: string | null
   condition: string | null
   computed_formula: string | null

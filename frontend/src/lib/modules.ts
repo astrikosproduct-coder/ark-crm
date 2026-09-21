@@ -62,7 +62,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
     keys: ['leads', 'opportunities', 'deals', 'accounts', 'contacts', 'partners'],
   },
   { label: 'Commercial', keys: ['products', 'quotes', 'approvals'] },
-  { label: 'POCs & Documents', keys: ['bids_pocs', 'activities_docs'] },
+  { label: "POC's & Documents", keys: ['bids_pocs', 'activities_docs'] },
 ]
 
 export const SIDEBAR_BOTTOM: string[] = ['administration']

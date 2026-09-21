@@ -18,6 +18,14 @@ export default defineConfig({
     // that does not explain itself. Fail on start instead.
     port: 5173,
     strictPort: true,
+    // Publishing in Administration rewrites these four files on disk. Watched,
+    // they made the dev server force-reload EVERY open tab on each publish —
+    // which production never does (there the app reads /api/spec and shows
+    // "There's a new update" instead). Ignored so development behaves the same.
+    // Development only: `server` options play no part in the built app.
+    watch: {
+      ignored: ['**/spec/fields.json', '**/spec/picklists.json', '**/spec/stages.json', '**/spec/module_split.json'],
+    },
     // Every /api request goes to FastAPI. One entry since MSW was removed
     // (21 Sep 2026): before that each migrated path needed its own entry here
     // AND a passthrough in the mock handlers, and missing either returned

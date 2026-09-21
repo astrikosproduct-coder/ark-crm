@@ -11,7 +11,8 @@ WHEN A FIELD IS DUE
 -------------------
 Every field names the stage its answer belongs to: `mandatory_from`, else the
 first number of `blocks_transition` ("3 → 4"), else `capture_stage`. A field
-with none of them (Accounts, Contacts) is due always.
+with none of them is due always on Accounts and Contacts; on a pipeline module
+it is asked for whenever the record leaves a stage, and never blocks a save.
 
     Move forward F -> T      every field due at F or earlier. THE GATE.
                              T's own fields are asked for when T is left.
@@ -20,8 +21,9 @@ with none of them (Accounts, Contacts) is due always.
                              (revised 21 Sep 2026 — requiring the whole
                              current stage on every save pushed people to type
                              "TBD" to get past it)
-    New record               only the sidecar's `create_required` fields
-                             (Leads: name, End Client, BD Owner, Currency)
+    New record               only fields ticked "Required when creating" in
+                             Administration (Leads: name, End Client, BD
+                             Owner, Currency — migration 0037)
     Any save                 the reason a status asks for (On Hold Reason,
                              Closed Lost Reason) when that status is set
     Move back                only that reason
@@ -103,7 +105,7 @@ NEVER_DEMANDED = {"System", "Computed", "Advisory", "Optional"}
 SYSTEM_SET = {"lead_status", "progression_pct", "probability_pct"}
 
 
-def _sidecar() -> tuple[set[str], set[str], set[str], dict[str, set[str]]]:
+def _sidecar() -> tuple[set[str], set[str], set[str]]:
     """
     Three lists from the hand-kept sidecar (spec/extensions.json) that the form
     also reads: phase-1-locked fields (module.api_name), history-only reasons,
@@ -113,7 +115,7 @@ def _sidecar() -> tuple[set[str], set[str], set[str], dict[str, set[str]]]:
     try:
         data = json.loads((SPEC_DIR / "extensions.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return set(), set(), set(), {}
+        return set(), set(), set()
     fields = data.get("fields") or {}
     locked = {key for key, ext in fields.items() if isinstance(ext, dict) and ext.get("phase1_locked")}
     history = set(((data.get("stage_scoped") or {}).get("history_only") or {}).get("fields") or [])
@@ -125,18 +127,10 @@ def _sidecar() -> tuple[set[str], set[str], set[str], dict[str, set[str]]]:
         for entry in spec.get("columns") or []:
             if isinstance(entry, str):
                 columns.add(entry.split(".")[-1])
-    create = {
-        module: set(names)
-        for module, names in (data.get("create_required") or {}).items()
-        if not module.startswith("$") and isinstance(names, list)
-    }
-    return locked, history, columns, create
+    return locked, history, columns
 
 
-#: CREATE_REQUIRED: the few fields a NEW record needs, per module — the
-#: sidecar's `create_required`. Each is still demanded only while the register
-#: marks it required, so Administration keeps the last word.
-PHASE1_LOCKED, HISTORY_ONLY, CHILD_COLUMNS, CREATE_REQUIRED = _sidecar()
+PHASE1_LOCKED, HISTORY_ONLY, CHILD_COLUMNS = _sidecar()
 
 
 def stage_number(value: Any) -> int | None:
@@ -222,7 +216,15 @@ def _applies(field: dict[str, Any], module: str) -> bool:
     name = field["api_name"]
     if name in SYSTEM_SET or name == STAGE_FIELD.get(module):
         return False
-    return f"{module}.{name}" not in PHASE1_LOCKED and name not in HISTORY_ONLY and name not in CHILD_COLUMNS
+    # The sidecar names a field by its REGISTER module as often as by the module
+    # it sits on — leads.primary_quote covers the Opportunity's Primary Quote —
+    # so both keys are tried, as the form does (sidecarKeysFor). Without the
+    # second, a locked lookup into an unbuilt module blocked Opportunities at
+    # Stage 4 with a field nobody could fill (found 21 Sep 2026).
+    keys = {f"{module}.{name}", f"{field.get('register_module') or module}.{name}"}
+    if keys & PHASE1_LOCKED:
+        return False
+    return name not in HISTORY_ONLY and name not in CHILD_COLUMNS
 
 
 def _demanded(field: dict[str, Any], rec: _Record) -> bool:
@@ -396,13 +398,14 @@ def check_save(
             visited={stage} if creating else None, status_only=True,
         )
         if creating:
-            # A new record needs only the few fields that make it a record.
-            wanted = CREATE_REQUIRED.get(module, set())
+            # A new record needs only the fields ticked "Required when
+            # creating" in Administration (placement.required_on_create) —
+            # still only while the field is required at all.
             missing += [
                 f for f in missing_fields(
-                    db, module, record, record_id=record_id, stage=stage, up_to=stage, visited={stage},
+                    db, module, record, record_id=record_id, stage=stage, up_to=None,
                 )
-                if f["api_name"] in wanted and f not in missing
+                if f.get("required_on_create") and f not in missing
             ]
         elif not moving_on and not (previous_stage is not None and stage is not None and stage < previous_stage):
             # An ordinary save may leave the current stage half-filled, but

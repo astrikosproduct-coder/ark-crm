@@ -7,7 +7,7 @@ import { REGISTER_CHECK_EVENT, publishedVersionChanged } from '@/lib/spec/source
 const EVERY_MS = 3 * 60 * 1000
 
 /**
- * "The form was updated" — shown when someone publishes in Administration
+ * "There's a new update" — an app-wide line, shown when someone publishes in Administration
  * while this page is open (decided 21 Sep 2026).
  *
  * A page keeps the field list it loaded, so nobody is interrupted mid-form.
@@ -44,7 +44,7 @@ export function RegisterUpdateBanner() {
   if (!updated) return null
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm">
-      <span>The form was updated. Save your work, then reload to see the changes.</span>
+      <span>There's a new update. Save your work, then reload to see it.</span>
       <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
         Reload
       </Button>
