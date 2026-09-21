@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog'
 import { Bullets, ErrorNotice } from '@/components/ui/notice'
 import { api } from '@/lib/api'
+import { fetchCollection } from '@/lib/collections'
 import { collectionFor, displayNameOf, fieldOf, fieldsOf, idOf } from '@/lib/spec'
 
 /**
@@ -117,7 +118,7 @@ export function DeleteRecordDialog({
         const fields = pointingFields(ref.module)
         if (fields.length === 0) return []
 
-        const rows = (await api.get<Row[]>(`/${ref.collection}`)).data
+        const rows = await fetchCollection<Row>(ref.collection)
         if (!Array.isArray(rows)) return []
 
         const hits: Reference[] = []

@@ -19,10 +19,9 @@ import { cn } from '@/lib/utils'
  * — nobody is emailed, nothing waits on a timer, and a notice appears for
  * whoever opens the record (CLAUDE.md hard rule 6).
  *
- * NOT LOGGED AS AN AUTOMATION. CLAUDE.md describes an automation log panel;
- * none exists in this build yet (other components' comments mention one, and
- * nothing writes to it). "Would have notified the BD Director" has nowhere to
- * go until it does, so it is not pretended here.
+ * NOT LOGGED AS AN AUTOMATION. There is no automation log — it was planned and
+ * dropped on 21 Sep 2026 — so "would have notified the BD Director" is not
+ * recorded anywhere, and is not pretended here.
  */
 export function PursuitBanner({ ctx }: { ctx: PipelineRecordContext }) {
   const groupId = typeof ctx.values?.pursuit_group === 'string' ? ctx.values.pursuit_group : null

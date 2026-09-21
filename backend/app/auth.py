@@ -33,7 +33,7 @@ from .models import User
 SESSION_USER_KEY = "user_id"
 
 ADMIN_ROLE = "ADMIN"
-#: Reads user feedback, and nothing else is gated on it. Seeded by seed.py and
+#: Opens Administration and reads user feedback. Seeded by seed.py and
 #: migration 0032; in administration__roles alongside every other role.
 DEVELOPER_ROLE = "DEVELOPER"
 
@@ -86,12 +86,26 @@ def require_access(user: User = Depends(current_user)) -> User:
     return user
 
 
-def require_admin(user: User = Depends(current_user)) -> User:
-    """Administration and the metadata register — ADMIN only."""
-    if not any(role.role_id == ADMIN_ROLE for role in user.roles):
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN, "Only administrators can open Administration."
-        )
+def _is_developer(user: User) -> bool:
+    return any(role.role_id == DEVELOPER_ROLE for role in user.roles)
+
+
+def require_administration(user: User = Depends(require_access)) -> User:
+    """
+    Administration — users, roles and the field register — DEVELOPER only.
+
+    Decided 21 Sep 2026 for V1: the whole module ships to developers and is
+    released to administrators in version 2. This was ADMIN_ONLY until then.
+    The ADMIN role still exists and is still granted; it simply opens nothing
+    of its own in V1.
+
+    The consequence was weighed and accepted: in V1 only a developer can grant
+    a role, so every new employee's "access pending" is resolved by a
+    developer. Enforced here, on the router mounts in main.py; the hidden nav
+    entry is presentation only.
+    """
+    if not _is_developer(user):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only developers can open Administration.")
     return user
 
 
@@ -104,7 +118,7 @@ def require_developer(user: User = Depends(require_access)) -> User:
     Enforced here, on the route. The inbox's nav entry is hidden from everyone
     else too, but that is presentation — a typed URL lands on this 403.
     """
-    if not any(role.role_id == DEVELOPER_ROLE for role in user.roles):
+    if not _is_developer(user):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Only developers can read feedback.")
     return user
 

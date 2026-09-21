@@ -1,13 +1,14 @@
 import axios from 'axios'
 
-// All data access goes through this client, MSW intercepts every request —
-// no component may read the Zustand data store directly.
+// All data access goes through this one client, to FastAPI at /api — in
+// development through Vite's proxy, in production through the reverse proxy
+// in front of the app. There is no mock layer and no browser data store.
 export const api = axios.create({
   baseURL: '/api',
 
   // An array parameter repeats its name — `?account_type=A&account_type=B` —
   // rather than axios's default `account_type[]=A`. The list endpoint reads a
-  // repeated parameter as "any of these" (see src/mocks/query.ts), which is how
+  // repeated parameter as "any of these" (see backend/app/list_query.py), which is how
   // the Partners screen asks accounts for two account types at once.
   paramsSerializer: { indexes: null },
 

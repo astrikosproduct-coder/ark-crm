@@ -65,9 +65,11 @@ WRITING = [
     "test_conversions.py",
     "test_deal_milestones.py",
     "test_dashboard.py",
+    "test_dashboard_weighted.py",
     "test_list_query.py",
     "test_feedback.py",
     "test_spreadsheets.py",
+    "test_delete_guards.py",
 ]
 
 

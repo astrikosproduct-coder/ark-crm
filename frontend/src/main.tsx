@@ -21,37 +21,6 @@ if (specProblems.length > 0) {
   )
 }
 
-/** How long to wait for the mock service worker before drawing the app anyway. */
-const MOCK_START_TIMEOUT_MS = 5000
-
-/**
- * Start the mock API, but never let it decide whether the app renders.
- *
- * This used to be `enableMocking().then(render)`. A service worker that failed
- * to register — evicted by the browser, a stale registration after a deploy, a
- * tab restored from days ago — rejected that promise, nothing was ever
- * rendered, and the app was simply a blank page until a hard refresh happened
- * to catch a good registration. That is the "goes blank, refresh fixes it"
- * failure.
- *
- * Now a worker that fails or hangs costs API responses, which surface as
- * ordinary per-screen error states, rather than the entire UI.
- */
-async function startMocking(): Promise<void> {
-  try {
-    const { worker } = await import('@/mocks/browser')
-    await Promise.race([
-      worker.start({
-        onUnhandledRequest: 'bypass',
-        serviceWorker: { url: '/mockServiceWorker.js' },
-      }),
-      new Promise((resolve) => setTimeout(resolve, MOCK_START_TIMEOUT_MS)),
-    ])
-  } catch (error) {
-    console.error('[msw] the mock API did not start; the app will render without it:', error)
-  }
-}
-
 const root = createRoot(document.getElementById('root')!)
 
 /**
@@ -73,20 +42,50 @@ if (specRefErrors.length > 0) {
     </StrictMode>
   )
 } else {
-  // Drafts used to be kept in localStorage under this key. They are gone as a
-  // concept — unsaved work is now confirmed, never quietly stored — so any left
-  // in a browser from a previous version are cleared out rather than orphaned.
-  localStorage.removeItem('arkcrm-drafts')
+  clearPrototypeLeftovers()
 
-  void startMocking().finally(() => {
-    root.render(
-      <StrictMode>
-        <ErrorBoundary>
-          <QueryClientProvider client={queryClient}>
-            <App />
-          </QueryClientProvider>
-        </ErrorBoundary>
-      </StrictMode>
-    )
-  })
+  root.render(
+    <StrictMode>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </StrictMode>
+  )
+}
+
+/**
+ * What a browser that used the prototype may still be holding, removed on
+ * every start (it costs nothing when there is nothing to remove).
+ *
+ *   arkcrm-data     the mock store — every record the prototype kept in the
+ *                   browser. Removed with MSW on 21 Sep 2026: all data is in
+ *                   PostgreSQL, and nothing business-related is stored here.
+ *   arkcrm-drafts   unsaved form drafts, retired earlier — unsaved work is now
+ *                   confirmed, never quietly stored.
+ *   the mock service worker, which a browser keeps registered after the file
+ *                   that installed it is gone. Left alone it sits between the
+ *                   page and every request, so it is unregistered.
+ *
+ * Sidebar and theme preferences stay: they are one person's display settings,
+ * not data.
+ */
+function clearPrototypeLeftovers(): void {
+  try {
+    localStorage.removeItem('arkcrm-data')
+    localStorage.removeItem('arkcrm-drafts')
+  } catch {
+    // Storage blocked (private mode, policy) — then nothing was stored either.
+  }
+  if ('serviceWorker' in navigator) {
+    void navigator.serviceWorker
+      .getRegistrations()
+      .then((registrations) =>
+        registrations
+          .filter((r) => (r.active ?? r.waiting ?? r.installing)?.scriptURL.endsWith('/mockServiceWorker.js'))
+          .forEach((r) => void r.unregister())
+      )
+      .catch(() => undefined)
+  }
 }

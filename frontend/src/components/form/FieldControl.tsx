@@ -27,7 +27,7 @@ import {
   type RecordForm,
 } from '@/hooks/useRecordForm'
 import { useResolvedRecord } from '@/hooks/useResolvedRecord'
-import { api } from '@/lib/api'
+import { fetchCollection } from '@/lib/collections'
 import { date as fmtDate, dateTime as fmtDateTime, money, number, percent } from '@/lib/format'
 import { compileFor } from '@/lib/spec/conditions'
 import { computedGap } from '@/lib/spec/formula'
@@ -652,7 +652,7 @@ export function ReadOnlyValue({ field, value }: { field: FieldSpec; value: unkno
 /**
  * The display name of a looked-up record.
  *
- * Reads through /api/<collection> with the SAME query key LookupCombobox uses,
+ * Reads through lib/collections.ts with the SAME query key LookupCombobox uses,
  * so a screen that has already opened the combobox pays nothing, and CLAUDE.md
  * rule 2 holds — no component touches the store directly.
  *
@@ -664,7 +664,7 @@ function LookupValue({ field, value }: { field: FieldSpec; value: unknown }) {
 
   const { data } = useQuery({
     queryKey: ['collection', collection],
-    queryFn: async () => (await api.get<Record<string, unknown>[]>(`/${collection}`)).data,
+    queryFn: () => fetchCollection(collection!),
     enabled: Boolean(collection),
     staleTime: 30_000,
   })

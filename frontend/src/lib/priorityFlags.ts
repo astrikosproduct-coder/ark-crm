@@ -1,8 +1,8 @@
 /**
  * Low Hanging and Top 10 — the two capped, ranked opportunity picks.
  *
- * Single source of truth for the cap sizes, shared by the MSW handler (which
- * enforces it) and the rank-picker control that only ever offers a currently
+ * Single source of truth for the cap sizes on this side — the server enforces
+ * them (app/priority_flags.py) — used by the rank-picker control that only ever offers a currently
  * open rank in the first place. Rank is always chosen by the user — never
  * assigned silently — so the handler's job is to validate the choice, not to
  * make it.

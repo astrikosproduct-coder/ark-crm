@@ -2,16 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '@/lib/api'
 import { refusalOf, type RefusalOptions } from '@/lib/errors'
-import { invalidateUserDirectory } from '@/mocks/userDirectory'
 
 /**
  * Administration data layer.
  *
- * The only module backed by a real database. It still goes through the shared
- * axios client in src/lib/api.ts — CLAUDE.md rule 2 — so React sees no
- * difference between a mocked module and this one. What differs is downstream:
- * MSW passes /api/admin/* through (src/mocks/handlers.ts) and Vite proxies it
- * to FastAPI, which reads PostgreSQL.
+ * Users, roles and the directory, through the shared axios client in
+ * src/lib/api.ts — CLAUDE.md rule 2 — to FastAPI at /api/admin/*, which is
+ * DEVELOPER-only in V1 (app/auth.py::require_administration).
  */
 
 export interface Role {
@@ -132,10 +129,6 @@ function useInvalidateUsers() {
     // The rest of the application reads users through /api/users under the
     // 'collection' key — every owner lookup, and the Leads owner filter.
     void queryClient.invalidateQueries({ queryKey: ['collection', 'users'] })
-
-    // And MSW caches the same directory to join owner names onto list rows, so
-    // a rename would otherwise keep showing the old name on a lead.
-    invalidateUserDirectory()
   }
 }
 

@@ -1,0 +1,19 @@
+# Line endings. The working copy on Windows gets CRLF (core.autocrlf), which is
+# fine for code but breaks files a Linux container reads literally: a shell
+# script with CRLF fails with "bad interpreter", and a Caddyfile or compose file
+# can misread a directive. These are always checked out with LF.
+* text=auto
+*.sh text eol=lf
+Dockerfile text eol=lf
+Caddyfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+.dockerignore text eol=lf
+
+# Binary, never touched.
+*.png binary
+*.jpg binary
+*.woff2 binary
+*.dump binary
+*.xlsx binary
+*.docx binary

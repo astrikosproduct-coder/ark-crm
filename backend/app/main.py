@@ -5,7 +5,7 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from .auth import require_access, require_admin
+from .auth import require_access, require_administration
 from .database import Base, engine
 from .routers import (
     accounts,
@@ -86,38 +86,36 @@ app.add_middleware(
 # whereas a per-route decorator silently can. A route is protected because of
 # where it is mounted.
 #
-#   PROTECTED   = signed in AND granted at least one role
-#   ADMIN_ONLY  = signed in AND holding the ADMIN role
+#   PROTECTED       = signed in AND granted at least one role
+#   DEVELOPER_ONLY  = signed in AND holding the DEVELOPER role — Administration,
+#                     for V1 (21 Sep 2026; was ADMIN). See require_administration.
 #
 # `auth.router` is mounted with NEITHER, because it is the way in: /auth/login
 # and /auth/callback must work before anyone has a session, and /auth/me must
 # answer for a signed-in user who has no roles yet, or the frontend cannot tell
 # them their access is pending.
 PROTECTED = [Depends(require_access)]
-ADMIN_ONLY = [Depends(require_admin)]
+DEVELOPER_ONLY = [Depends(require_administration)]
 
 # Sign-in itself. Unauthenticated by necessity.
 app.include_router(auth.router, prefix="/api")
 
-# Mounted under /api/admin so the frontend can keep using the one axios client
-# (baseURL '/api'). MSW passes /api/admin/* through untouched; every other
-# /api/* path still resolves to a mock handler.
-app.include_router(admin.router, prefix="/api/admin", dependencies=ADMIN_ONLY)
+# Administration — users, roles, the directory — at /api/admin. DEVELOPER-only
+# in V1; see app/auth.py::require_administration.
+app.include_router(admin.router, prefix="/api/admin", dependencies=DEVELOPER_ONLY)
 
 # The Round-6 metadata layer, at /api/admin/metadata — the field register
-# itself, as data. Mounted under the existing /api/admin prefix on purpose: MSW
-# already passes /api/admin/* through and Vite already proxies it, so this
-# needed no new handler in src/mocks/handlers.ts and no new server.proxy entry.
+# itself, as data. Under /api/admin because managing the register is
+# administration, and it carries the same DEVELOPER-only gate.
 #
 # Mounted BEFORE the /api/admin user routes would be a problem only if a user
 # could be called "metadata"; the admin router's paths are /roles and /users/*,
 # so the two cannot collide.
-app.include_router(metadata.router, prefix="/api/admin/metadata", dependencies=ADMIN_ONLY)
+app.include_router(metadata.router, prefix="/api/admin/metadata", dependencies=DEVELOPER_ONLY)
 
-# The user directory, at /api/users. Users are a real database resource now, so
-# MSW passes this path through instead of answering it from the mock store —
-# every OTHER /api/* collection is still mocked. Mounted after the admin router
-# so /api/admin/users can never be shadowed by /api/users/{user_id}.
+# The user directory, at /api/users — read by every owner lookup, so any role
+# may read it. Mounted after the admin router so /api/admin/users can never be
+# shadowed by /api/users/{user_id}.
 app.include_router(directory.router, prefix="/api", dependencies=PROTECTED)
 
 # Accounts, at /api/accounts — the second real database-backed module. Both
@@ -141,10 +139,6 @@ app.include_router(leads.router, prefix="/api", dependencies=PROTECTED)
 # names a Lead which doesn't exist. bid_record, primary_quote and
 # commercial_gate stay plain id columns, same reasoning as Leads' own
 # poc_record/ctb_gate, until bids/quotes/gates exist as tables.
-#
-# Not yet wired into the frontend — see CLAUDE.md's Round table and
-# src/mocks/handlers.ts, which still answers /api/opportunities from the
-# browser store. This is backend-only until the cutover.
 app.include_router(opportunities.router, prefix="/api", dependencies=PROTECTED)
 
 # Deals, at /api/deals — Round 4/5's table. parent_lead and parent_opportunity
@@ -157,45 +151,29 @@ app.include_router(opportunities.router, prefix="/api", dependencies=PROTECTED)
 # row shape rather than scalars on Deal itself, confirmed against
 # spec/extensions.json and src/lib/spec/childSpec.ts's isChildColumnOnly()
 # before this table was written, not assumed.
-#
-# Not yet wired into the frontend, same as Opportunities — see CLAUDE.md's
-# Round table and src/mocks/handlers.ts, which still answers /api/deals from
-# the browser store. This is backend-only until the cutover.
 app.include_router(deals.router, prefix="/api", dependencies=PROTECTED)
 
 # Round 3, done out of order: deal registrations and their conflict
 # adjudications. Both described by the register under module `partners`
 # (sections DEAL REGISTRATION and CONFLICT ADJUDICATION), not a module of
-# their own — see models.DealRegistration. Frontend already speaks these
-# paths (NewRegistrationPage.tsx, ConflictPanel.tsx, ConvertToDealDialog.tsx)
-# against the mock store; cut over via handlers.ts passthrough +
-# vite.config.ts proxy, same as every module above.
+# their own — see models.DealRegistration.
 app.include_router(registrations.router, prefix="/api", dependencies=PROTECTED)
 app.include_router(conflicts.router, prefix="/api", dependencies=PROTECTED)
 
 # Pursuit Groups, at /api/pursuit-groups — one project at one End Client pursued
 # through more than one partner, of which only the primary counts toward
-# pipeline (Playbook §7.2). PROTECTED, not ADMIN_ONLY, by decision on 13 Sep
+# pipeline (Playbook §7.2). PROTECTED, not admin-only, by decision on 13 Sep
 # 2026: the workflow is settled first, and becomes Admin-only when role-based
 # permissions are built. See app/pursuits.py.
 app.include_router(pursuit_groups.router, prefix="/api", dependencies=PROTECTED)
 
-# Round 7's first two audit-log-shaped tables. Frontend already POSTs to both
-# paths (AdvanceStageDialog.tsx/LeadAdvanceDialog.tsx/DealDetailPage.tsx to
-# /transitions, LeadAdvanceDialog.tsx/opportunities/ConvertToDealDialog.tsx to
-# /conversions) against the mock store — MSW's catch-all handled them until
-# now. Both need their MSW handlers.ts collections removed and a
-# vite.config.ts proxy entry added for the cutover to be real; see those
-# files.
+# Stage transitions and conversions — the record of every stage move, skip,
+# reversal and conversion, with its reason.
 app.include_router(transitions.router, prefix="/api", dependencies=PROTECTED)
 app.include_router(conversions.router, prefix="/api", dependencies=PROTECTED)
 
 # The record-level CRUD trail, written from inside the five routers above —
-# see app/audit.py. Not called by the frontend at all yet: there is no
-# History tab reading GET /api/audit-log. Still needs a vite.config.ts proxy
-# entry so /docs and any future UI can reach it; MSW never intercepted it in
-# the first place since no browser-store collection named audit_log exists to
-# collide with.
+# see app/audit.py. Read by each record's History tab.
 app.include_router(audit_log.router, prefix="/api", dependencies=PROTECTED)
 
 # The management dashboard, at /api/dashboard — read-only aggregates over the

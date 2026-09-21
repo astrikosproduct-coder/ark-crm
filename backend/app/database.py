@@ -13,7 +13,13 @@ if not DATABASE_URL:
 
 engine = create_engine(
     DATABASE_URL,
-    echo=True,
+    # Off unless asked for. Echo logs every statement WITH its values — client
+    # names, emails, deal figures — into the server log, and slows every
+    # request. Set SQL_ECHO=true in .env to watch the SQL while debugging.
+    echo=os.getenv("SQL_ECHO", "").lower() == "true",
+    # Test a pooled connection before handing it out, so a database restart
+    # costs one reconnect instead of a failed request per stale connection.
+    pool_pre_ping=True,
 )
 
 SessionLocal = sessionmaker(

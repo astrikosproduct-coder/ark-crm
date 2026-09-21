@@ -6,8 +6,7 @@ import { api } from '@/lib/api'
  * Administration's metadata layer — the field register itself, as data.
  *
  * Goes through the shared axios client like everything else (CLAUDE.md rule 2)
- * and reaches FastAPI at /api/admin/metadata/*, which MSW already passes
- * through and Vite already proxies because it sits under /api/admin.
+ * and reaches FastAPI at /api/admin/metadata/* — DEVELOPER-only in V1.
  *
  * WHAT THESE SCREENS ARE EDITING, AND WHAT THEY ARE NOT
  * ------------------------------------------------------

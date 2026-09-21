@@ -66,7 +66,7 @@ from app.models import (  # noqa: E402
 
 client = TestClient(app)
 
-# Every route is mounted behind require_access / require_admin, which read a
+# Every route is mounted behind require_access / require_administration, which read a
 # signed-in user from the session cookie. A TestClient has none and cannot get
 # one — sign-in goes through Entra. Without this, every request here returns
 # 401 and the suite asserts nothing. See test_support.py.
@@ -155,7 +155,9 @@ def case_2_administration_sees_the_crm(db) -> None:
     # because the columns behind them were the other two.
     # Deals 98 -> 97: po_number was retired on 16 Sep 2026
     # (deal_sections_and_locks.py) — PO / LOI Reference asks for the same number.
-    for module, expected in (("leads", 80), ("opportunities", 107), ("deals", 97)):
+    # Deals 97 -> 98: PO Received Date added on 21 Sep 2026
+    # (po_received_date_metadata.py, after migration 0034) — the Won date.
+    for module, expected in (("leads", 80), ("opportunities", 107), ("deals", 98)):
         resolved = len(R.resolved_fields(db, module))
         api = client.get(
             "/api/admin/metadata/fields", params={"module": module}

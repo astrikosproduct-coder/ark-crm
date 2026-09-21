@@ -13,7 +13,6 @@ import {
   precisionLimits,
   registerCorrections,
 } from './index'
-import { seedMismatches } from './seed'
 import type { FieldSpec } from '@/types/field'
 
 export interface HealthRow {
@@ -234,23 +233,6 @@ export function specHealth(): HealthGroup[] {
       ),
   })
 
-  // 9. The seed sheet and the register sheet disagreeing about a field.
-  groups.push({
-    id: 'seed',
-    title: 'Seed data that does not match the register',
-    ask: 'The seed sheet in the workbook and the register sheet were filled in separately and use different names and values for the same fields. Reconcile them in the workbook — until then spec/extensions.json seed_normalisation patches each one at load, which is a mapping somebody has to maintain by hand.',
-    rows: seedMismatches()
-      .filter((m) => m.kind !== 'moved_module')
-      .map((m) => ({
-        ref: `${m.collection}.${m.api_name}`,
-        module: m.collection,
-        label: '',
-        api_name: m.api_name,
-        type: m.kind.replace(/_/g, ' '),
-        detail: m.detail,
-      })),
-  })
-
   // 10. One api_name written into two sections of the same sheet.
   groups.push({
     id: 'duplicates',
@@ -344,23 +326,6 @@ export function specHealth(): HealthGroup[] {
       type: 'moved ref',
       detail: `${u.where} writes "${u.ref}"; the field is now "${u.now}".`,
     })),
-  })
-
-  // 14d. Seeded records now on the wrong side of the boundary.
-  groups.push({
-    id: 'seed-moved',
-    title: 'Seeded records holding fields that moved to another module',
-    ask: 'Not a register defect and not a broken field — the workbook seeds two Leads at Stage 4 and Stage 6, and those are Opportunities now. The values are still in the store under the Leads collection, where no screen will show them. Splitting the seeded records is the data-layer step that follows this one; nothing here is lost in the meantime.',
-    rows: seedMismatches()
-      .filter((m) => m.kind === 'moved_module')
-      .map((m) => ({
-        ref: `${m.collection}.${m.api_name}`,
-        module: m.collection,
-        api_name: m.api_name,
-        label: '',
-        type: 'moved field',
-        detail: m.detail,
-      })),
   })
 
   // 14e / 14f. The shared-equivalence and relocated-field groups used to be

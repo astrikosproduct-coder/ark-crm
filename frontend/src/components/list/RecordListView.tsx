@@ -104,8 +104,7 @@ export interface RecordListViewProps {
  * CLAUDE.md rule 3.
  *
  * Paging, sorting and searching are all done by the server. This component
- * holds the query parameters and renders what comes back, which is exactly what
- * it will do once MSW is replaced.
+ * holds the query parameters and renders what comes back.
  */
 export function RecordListView({
   module,

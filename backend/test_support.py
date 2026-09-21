@@ -13,7 +13,7 @@ guard that puts the field register back however a test leaves it.
 
 WHY THE AUTH OVERRIDE EXISTS
 -----------------------------
-Every route is mounted behind `require_access` or `require_admin`
+Every route is mounted behind `require_access` or `require_administration`
 (app/main.py), both of which resolve through `current_user`, which reads a
 signed-in user id out of the session cookie. A TestClient has no cookie and
 no way to get one: sign-in goes through Microsoft Entra, and there is no
@@ -22,9 +22,9 @@ password to post. So every HTTP-based test returned 401 and asserted nothing
 
 The fix overrides `current_user` and nothing else. FastAPI resolves overrides
 through the whole sub-dependency graph, so `require_access` and
-`require_admin` still run their own checks (roles present, ADMIN among them,
-account active) against the user this hands them. That matters: overriding
-`require_admin` directly would have stubbed out the authorisation rules as
+`require_administration` still run their own checks (roles present, DEVELOPER
+among them, account active) against the user this hands them. That matters:
+overriding `require_administration` directly would have stubbed out the authorisation rules as
 well as the authentication, and a test suite that cannot fail on a permission
 bug is worse than one that cannot run.
 
@@ -113,25 +113,26 @@ GUARDED_COLUMNS = (
 
 def admin_user():
     """
-    The real signed-in user the tests act as: active, and holding ADMIN.
+    The real signed-in user the tests act as: active, and holding DEVELOPER —
+    the role that opens Administration in V1 (it was ADMIN until 21 Sep 2026).
 
     Read fresh from the database rather than cached, so a suite that
     deactivates a user and expects a 403 gets one.
     """
-    from app.auth import ADMIN_ROLE
+    from app.auth import DEVELOPER_ROLE
     from app.models import User
 
     with SessionLocal() as db:
         candidates = db.scalars(select(User).where(User.active.is_(True))).all()
         for user in candidates:
-            if any(role.role_id == ADMIN_ROLE for role in user.roles):
+            if any(role.role_id == DEVELOPER_ROLE for role in user.roles):
                 # Detached from this session on purpose: the override hands it
                 # to a request that has a session of its own.
                 db.expunge(user)
                 return user
 
     raise RuntimeError(
-        "No active user holding ADMIN. Administration tests cannot run without "
+        "No active user holding DEVELOPER. Administration tests cannot run without "
         "one — check `users` and `user_roles`, or run seed.py."
     )
 

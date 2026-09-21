@@ -18,21 +18,27 @@ list rows already use, one field per module:
     pipeline  Leads + Opportunities whose revenue is counted (Open / On Hold,
               primary pursuit), in USD. Deals are sold work, not pipeline.
     actual    Deals whose revenue is counted
+    won       counted Deals whose PO Received Date falls in the period
     weighted  each record's USD x its own Probability %
     live      pipeline + counted Deals, less Deals whose deal_stage is CLOSED
 
-WON: THE DAY THE PO IS RECEIVED — NOT YET MEASURABLE
-----------------------------------------------------
+WON: THE DAY THE PO IS RECEIVED
+-------------------------------
 Decided 15 Sep 2026: a Deal is won on the day its purchase order is received.
-No field records that day. Booking Date is a different moment — when the order
-was booked in CRM and ERP, and both convert dialogs stamp it with the day of
-conversion — and PO Number carries no date. So nothing here computes Won until
-the day is captured; the Won tile says so rather than showing a stand-in.
+Since 21 Sep 2026 that day has a field — deals.po_received_date (migration
+0034), Mandatory at Stage 7 beside PO / LOI Reference — and Won is counted by
+it and by nothing else. Not Booking Date: that is when the order was booked in
+CRM and ERP, it lags the PO, and the convert dialogs stamp it with the day of
+conversion. Not a stage move: that is when someone updated the CRM.
+
+A Deal with no PO Received Date is not won yet, whatever its stage. Won is a
+subset of `actual` — the same counted Deals, the same revenue rule — so the two
+tiles can never disagree about what a Deal is worth.
 
 THE DATE RANGE MEANS ONE THING PER WIDGET
 -----------------------------------------
-A range with BOTH ends also returns `comparison`: the same pipeline, deals and
-lost figures over the period of equal length immediately before it, so the tiles
+A range with BOTH ends also returns `comparison`: the same pipeline, deals, won
+and lost figures over the period of equal length immediately before it, so the tiles
 can say "up or down" rather than only "how much". Null when either end is open —
 see previous_period().
 
@@ -46,6 +52,7 @@ that widget is about, never by one it is not:
                            A record with no close month cannot be placed in a
                            range and is left out; how many is `range.left_out`.
     Date lost              closed lost, why we lose — read from the audit trail.
+    PO Received Date       won.
     Due date               the due list, over every live record.
 
 With no range: every open record, the forecast's next six months, losses of
@@ -468,6 +475,14 @@ def dashboard(
     actual = [r for r in in_range if r.module == "deals"]
     live = pipeline + [r for r in actual if r.record.deal_stage != DEAL_CLOSED]
 
+    # ---- won, by the day the PO arrived
+    def won_between(start: date | None, end: date | None) -> list[Row]:
+        return [
+            r for r in counted if r.module == "deals" and day_in(_as_date(r.record.po_received_date), start, end)
+        ]
+
+    won = won_between(date_from, date_to)
+
     # ---- lost, by the date it was lost
     lost_on = _lost_on(db)
     closed_lost = [r for r in rows if r.record.lead_status == CLOSED_LOST and not r.secondary]
@@ -607,6 +622,7 @@ def dashboard(
             "kpis": {
                 "pipeline": _bucket(previous_pipeline),
                 "actual": _bucket(previous_actual),
+                "won": _bucket(won_between(previous_from, previous_to)),
                 "lost": _bucket(previous_lost),
             },
         }
@@ -637,6 +653,7 @@ def dashboard(
                 "unpriced": sum(1 for r in pipeline if r.revenue["flag"]),
             },
             "actual": {**_bucket(actual), "unpriced": sum(1 for r in actual if r.revenue["flag"])},
+            "won": {**_bucket(won), "unpriced": sum(1 for r in won if r.revenue["flag"])},
             "lost": _bucket(closed_lost),
             "stale": _bucket(stale),
         },

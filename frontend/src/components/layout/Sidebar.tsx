@@ -186,7 +186,13 @@ export function Sidebar() {
   const isDeveloper = useIsDeveloper()
 
   const top = SIDEBAR_TOP.map(moduleByKey).filter((m): m is ModuleDef => Boolean(m))
-  const bottom = SIDEBAR_BOTTOM.map(moduleByKey).filter((m): m is ModuleDef => Boolean(m))
+  // Administration is DEVELOPER-only in V1 (21 Sep 2026) and released to
+  // administrators in version 2. The server enforces it — every /api/admin
+  // route answers 403 to anyone else — so this only stops a link from being
+  // offered to people it would refuse.
+  const bottom = SIDEBAR_BOTTOM.filter((key) => key !== 'administration' || isDeveloper)
+    .map(moduleByKey)
+    .filter((m): m is ModuleDef => Boolean(m))
 
   const groups = useMemo(
     () =>

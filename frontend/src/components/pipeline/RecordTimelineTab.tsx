@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 
 import { api } from '@/lib/api'
+import { fetchCollection } from '@/lib/collections'
 import { displayNameOf, idOf } from '@/lib/spec'
 import { companyDate, companyTime, COMPANY_TZ_LABEL } from '@/lib/time'
 import {
@@ -198,7 +199,7 @@ export function RecordTimelineTab({
   const lookupQueries = useQueries({
     queries: collections.map((collection) => ({
       queryKey: ['collection', collection],
-      queryFn: async () => (await api.get<Values[]>(`/${collection}`)).data,
+      queryFn: () => fetchCollection<Values>(collection),
     })),
   })
 

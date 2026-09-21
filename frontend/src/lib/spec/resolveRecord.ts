@@ -16,8 +16,8 @@ import type { Values } from './conditions'
  * criteria engine, the formula engine, validateForTransition, the form — is
  * handed the merged values and does not need to know a parent exists.
  *
- * IT DOES NOT FETCH. CLAUDE.md rule 2 says every read goes through MSW over
- * /api, so the parent records are fetched by useResolvedRecord and passed in
+ * IT DOES NOT FETCH. CLAUDE.md rule 2 says every read goes through the API
+ * client, so the parent records are fetched by useResolvedRecord and passed in
  * here. That also keeps this function pure and the merge rule testable without
  * a network or a store.
  */

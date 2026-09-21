@@ -1,29 +1,32 @@
-# ARK CRM — clickable prototype
+# ARK CRM
 
-> Copy this file to the root of the prototype repo as `CLAUDE.md`.
-> Claude Code loads it automatically at the start of every session.
+> Claude Code loads this file automatically at the start of every session.
 
 ## What this repo is
 
-A **clickable prototype** of ARK CRM, an in-house CRM for **Astrikos** — a MEA platform
-company selling the **S!aP** suite into smart cities, datacentres, utilities, O&G and
-industrial clients.
+ARK CRM, an in-house CRM for **Astrikos** — a MEA platform company selling the **S!aP**
+suite into smart cities, datacentres, utilities, O&G and industrial clients.
 
-Its purpose is to find gaps in the field list and the business rules **before** the real
-product is built. It is shown to BD and management as if it were a real product.
-
-**It is not the real product.** There is no workflow automation — do not add it. It is
-*mostly* browser-only: Round 1 moved users, accounts and contacts onto a real FastAPI +
-PostgreSQL backend, and every other module is still MSW over `localStorage`. See hard
-rule 1 for exactly which is which.
+It began as a clickable prototype built to find gaps in the field list and the business
+rules. **Version 1 goes live on an on-prem server** (decided Sep 2026): every live module is
+real, persistent PostgreSQL data behind FastAPI, sign-in is Microsoft Entra, and nothing is
+stored in the browser. MSW, the browser data store and the prototype watermark were removed
+on 21 Sep 2026. Deploying it is described in `DEPLOY.md`. There is no workflow automation —
+do not add it.
 
 **Authentication IS real, as of Phase 1.** This file said "there is no authentication —
 do not add it" until Sep 2026, which is now wrong and was actively misleading: sign-in is
 Microsoft Entra, the session is a server-signed cookie, and `app/auth.py::current_user` is
 the single place identity is decided. Every data router is mounted with
-`dependencies=PROTECTED` (`require_access`) and Administration with `ADMIN_ONLY` — see
-`app/main.py`. A signed-in user with no roles is a real, expected state and gets nothing
-until an administrator grants one.
+`dependencies=PROTECTED` (`require_access`) and Administration with `DEVELOPER_ONLY`
+(`require_administration`) — see `app/main.py`. A signed-in user with no roles is a real,
+expected state and gets nothing until someone grants one.
+
+**Administration is DEVELOPER-only in V1** (decided 21 Sep 2026; it was ADMIN-only). Users,
+roles and the field register all need the DEVELOPER role, enforced on the router mounts;
+the nav entry and the route are hidden from everyone else as a courtesy. It is released to
+administrators in version 2. The consequence was accepted: in V1 only a developer can grant
+a role to a new employee. The ADMIN role still exists and opens nothing of its own.
 
 So **identity is available server-side on every request, and must be taken from there.**
 Never accept `created_by`, `modified_by`, an audit `actor`, or a transition `actor`/
@@ -33,9 +36,9 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
 
 ## Hard rules — do not break these
 
-1. **Browser-only, except the modules migrated to PostgreSQL.** Never add Express, Next
-   API routes or Prisma. Most modules' data lives in the browser, but these are real,
-   persistent data behind FastAPI + SQLAlchemy + PostgreSQL in `backend/`:
+1. **All data lives in PostgreSQL, behind FastAPI.** There is no browser data store and no
+   mock layer — MSW and the Zustand data store were removed on 21 Sep 2026. Never add
+   Express, Next API routes or Prisma. The tables, by when they arrived:
    | Migrated (Round 1) | Tables | Served at |
    |---|---|---|
    | Users, roles | `users`, `roles`, `user_roles` | `/api/admin/*`, `/api/users` |
@@ -93,8 +96,10 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    (removed 17 Sep 2026 at the user's request); column headers still sort. Opportunity/Deal list rows carry their
    read-through identity (`app/read_through_rows.py`) — list rows only, never a record read.
 
-   Round 1 is complete. Do not delete them, and do not migrate another module without
-   being asked.
+   **No table for a module that is not live** (decided 21 Sep 2026). Products, Quotes,
+   Gates, Bids and POCs get tables when they are built, not before; a lookup onto one of
+   them offers nothing yet (`src/lib/collections.ts`). The price book is bundled, not
+   stored — see rule 2.
    **Round 6 stores metadata, not business data.** Those seven tables define what a record
    may contain; they never hold a lead, an account or a quote. Deleting a field there is a
    logical delete — `field_metadata.status = 'deleted'` — and **never** a `DROP COLUMN`:
@@ -124,32 +129,30 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    materialised — they are projections of Leads rows, and storing them would duplicate the
    register. See `app/module_split.py`.
    **Their seed files were removed** — `spec/seed/users.json`, `accounts.json` and
-   `contacts.json` no longer exist; PostgreSQL is the source of truth. Everything else
-   still seeds from `spec/seed/*.json`.
+   `contacts.json` no longer exist; PostgreSQL is the source of truth. `spec/seed/leads.json`
+   and `registrations.json` are read only by the backend's migrate scripts; the frontend
+   bundles nothing from `spec/seed` but the price book (`src/lib/catalogue.ts`).
+   **Deleting an Account or Contact that a pursuit names is refused by the server**
+   (`app/record_references.py`): those foreign keys are ON DELETE SET NULL, so the database
+   alone would silently blank the End Client or Primary Contact on live records.
    **Users are internal ARK employees; Contacts are external people at an Account.**
    Never mix them: an `engagement_owner` is a user, a `primary_contact` is a contact.
    **Partners is a view over `accounts`**, not a table. An account is a Partner when its
    `account_type` includes a partner type. Never create a partners table.
-2. **All data access goes through the Axios client in `src/lib/api.ts`.** Components call
-   `/api/...` exactly as they will in production. MSW intercepts and answers from the store.
-   This is what makes the prototype reusable as the Phase 1 frontend — never bypass it by
-   reading the store directly from a component, and never add a second Axios instance.
-   **These paths pass through to FastAPI** — `/api/admin/*`, `/api/users`,
-   `/api/accounts` and `/api/contacts` (each with its `/*` form). Round 6's
-   `/api/admin/metadata/*` needed no new entry anywhere: the `/api/admin/*` wildcard already
-   matches it in both places, which is exactly why it was mounted under that prefix.
-   Their handlers at the top of
-   `src/mocks/handlers.ts` must stay FIRST, or the catch-alls below will swallow them.
-   Each also needs an entry in `vite.config.ts`'s `server.proxy`, or the passthrough lands
-   on Vite's HTML fallback. **Both, or it silently returns HTML.**
-   `/api/feedback` and `/api/spreadsheets/*` pass through as well (17 Sep 2026).
-   `/api/dashboard` passes through too: it is read-only aggregates over the live pipeline
+2. **All data access goes through the Axios client in `src/lib/api.ts`**, to FastAPI at
+   `/api`. Never add a second Axios instance. In development Vite proxies `/api` to
+   `localhost:8000` (one entry, `vite.config.ts`); in production Caddy does
+   (`frontend/Caddyfile`). The built app contains no addresses — never add a
+   `VITE_API_URL`, or the image stops being portable.
+   **Lookups, filters and pickers read a collection through `src/lib/collections.ts`**,
+   which decides where it comes from: the bundled price book (`src/lib/catalogue.ts` —
+   products, prices, sizes, rate card, support tiers, regions, pricing params; read-only,
+   changed by editing `spec/seed/*.json` and rebuilding), nothing yet for a module not
+   built, or `GET /api/<collection>`. It also decides where "+ Create new" is offered:
+   Accounts, Contacts and Leads only.
+   `/api/dashboard` is read-only aggregates over the live pipeline
    (`backend/app/routers/dashboard.py`), computed with `app/revenue.py`'s rule so its
-   totals reconcile with the boards. It reads only PostgreSQL modules. Gates, Quotes and
-   POCs stay off it until they migrate.
-   Every other `/api/*` collection is still answered by MSW from the store.
-   A migrated collection must also be listed in `src/mocks/userDirectory.ts`, so MSW can
-   still join its display names onto other modules' list rows.
+   totals reconcile with the boards.
 3. **Never hardcode a field.** Every form renders from `spec/fields.json`. If a field is
    missing from a screen, the fix is in the spec, not in a component.
    *Two documented exceptions, both in Administration:*
@@ -168,18 +171,20 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    roles are seeded into PostgreSQL *from* those same keys, so the two agree. Since Round 6
    `picklists.json` is itself generated from the `picklists` / `picklist_values` tables —
    change a dropdown in Administration and publish, never by editing the file.
-5. **Every screen carries the prototype watermark.** A persistent banner:
-   `PROTOTYPE — data is stored in this browser only. Not a live system.`
-   Suppressed on Administration only, where the sentence would be false — see
-   `src/components/layout/PrototypeBanner.tsx`.
-6. **Automation is simulated, never real.** No emails, no webhooks, no timers that act. Write
-   an entry to the automation log instead.
-7. **Price screens carry a second watermark:** `Price book rev4 · snapshot · do not quote from this.`
+5. **No prototype watermark.** The banner `PROTOTYPE — data is stored in this browser
+   only` was removed for go-live (21 Sep 2026) — the sentence had become false. Do not
+   reintroduce a disclaimer; an unbuilt part says "Coming in a later phase"
+   (`src/pages/ComingSoon.tsx`).
+6. **No automation.** No emails, no webhooks, no timers that act. There is no automation
+   log either — it was planned and dropped on 21 Sep 2026; do not build one to stand in.
+7. **No price-book watermark** either — removed with rule 5's banner, 21 Sep 2026.
 
 ## Stack
 
 React 18 + TypeScript · Vite · Tailwind + shadcn/ui · TanStack Query · Axios ·
-Zustand with the persist middleware (localStorage) · MSW · React Router · Zod · date-fns
+Zustand (UI state only — sidebar, theme, unsaved-changes guard) · React Router · Zod · date-fns
+Backend: FastAPI · SQLAlchemy · Alembic · PostgreSQL 17. Deployed as three containers —
+`docker-compose.yml`, see `DEPLOY.md`.
 
 Match the production stack so the code carries forward. No other state library, no CSS
 framework other than Tailwind.
@@ -203,7 +208,7 @@ Phase-1 transitional arrangement, not a permanent one (see the note below the ta
 | `spec/module_split.json` | The pipeline split | **Part generated.** `pipeline`, `ranges`, `stage_field`, `reassign` and `read_through.parent_of`/`parent_link` come from PostgreSQL; the per-field judgement blocks stay hand-authored |
 | `spec/criteria.json` | Entry and exit criteria per stage, with enforcement | Still generated from the workbook |
 | `spec/gates.json` | The three gates and their checklist items | Still generated from the workbook |
-| `spec/seed/*.json` | Products, price matrix, leads, registrations. **Not users, accounts or contacts** — those live in PostgreSQL; see `backend/seed.py` and `backend/migrate_*.py` | Still generated from the workbook |
+| `spec/seed/*.json` | The price book (bundled into the frontend by `src/lib/catalogue.ts`), plus seed leads and registrations read only by `backend/migrate_*.py`. **Not users, accounts or contacts** — those live in PostgreSQL | Still generated from the workbook |
 
 The three generated-from-PostgreSQL files are **build artefacts. Never hand-edit them.** An
 edit there has no path back into the database and the next publish overwrites it. To change
@@ -220,8 +225,10 @@ Administration UI → PostgreSQL → publish → regenerate → spec/*.json → 
 
 ## The domain in one page
 
-**Pipeline.** Ten stages, 0 to 9. **Leads carry Stages 0–7. Deals carry Stages 8–9.**
-A Lead converts to a Deal at Stage 7 and becomes read-only.
+**Pipeline.** Ten stages, 0 to 9, split across three modules (`spec/module_split.json`):
+**Leads 0–3 · Opportunities 4–6 · Deals 7–9.** A Lead converts to an Opportunity on
+leaving Stage 3 and an Opportunity to a Deal on leaving Stage 6; the converted record
+becomes read-only. A skip is legal within a module, never across one.
 
 | Stage | Name | Progression | Probability |
 |---|---|---|---|
@@ -294,6 +301,12 @@ On Hold **primary** pursuits only (a Pursuit Group's secondaries never roll up, 
 USD at `fx_rate_at_entry` = local units per 1 USD. `total_project_value` is never revenue. Third-party is
 capped at 40% of TCV. Never discount the platform licence without approval.
 
+**Won is the day the PO is received** (decided 15 Sep 2026; measurable since 21 Sep 2026).
+`deals.po_received_date` (migration 0034, "PO Received Date") sits beside PO / LOI Reference
+at Stage 7, Mandatory on the same terms. The Dashboard's Won tile counts counted Deals by
+that date and by nothing else — never Booking Date (a finance event that lags the PO), never
+a stage move. Won is a subset of Actual Revenue, same revenue rule.
+
 **Products are priced on a matrix** of catalogue item × T-shirt size (XS to Unlimited), then
 multiplied by a region factor. Six categories: Modules, Segment Libraries, User Packs,
 Add-Ons, Services, Support. Discounts apply **per category**, not per line.
@@ -307,7 +320,7 @@ approvals queue · dashboard with real prototype data.
 
 Reports · Administration CRUD · Activities and Documents beyond a stub · the POC workspace
 (weekly logs, issue register, close-out report) · partner scorecards ·
-role-based permissions beyond "signed in with any role" / "is admin" / "is developer" (feedback only) ·
+role-based permissions beyond "signed in with any role" / "is developer" (Administration and feedback) ·
 file upload to anywhere real · **comment pins** (dropped 18 Sep 2026 — see above) ·
 **a Settings screen** (deleted 18 Sep 2026 — see below).
 
@@ -318,11 +331,9 @@ the browser store and reseeded it, which stopped meaning anything once every mod
 reach moved to PostgreSQL — the button's own promise, "clears every record created or edited in
 this browser", had become false for Leads, Opportunities, Deals, Accounts, Contacts and
 Registrations alike. Its one remaining job was refreshing a stale copy of the CATALOGUE, and
-that is fixed at the source instead: **products, prices, sizes, the rate card, support tiers,
-regions and pricing params are read from `spec/seed/*.json` on every request** and never
-persisted (`referenceCollection()` in `src/lib/spec/seed.ts`). MSW refuses writes to them with
-405 — edit the file. Do not reintroduce a reset, and do not put reference data back in the
-store; `useDataStore` no longer has a `reset()` to call.
+that is fixed at the source instead: **the price book is bundled from `spec/seed/*.json` at
+build time** (`src/lib/catalogue.ts`) and never stored anywhere. Edit the file and rebuild.
+Do not reintroduce a reset; there is no browser store left to reset.
 
 ## How reviewers tell us things
 
@@ -338,12 +349,25 @@ would have added is real (*"this label is wrong", against `leads.budget_estimate
 come back, **build them in PostgreSQL, not the browser store**: on the store every reviewer's
 notes live in one browser and the CSV only ever holds one person's.
 
-**The automation log is still unbuilt**, and is now the only thing left on this list. A dockable
-panel listing every automation that *would* have fired, with timestamp, type and target;
-reviewers correct those entries and the corrections become Phase 3 requirements. Three comments
-in the code describe it (`AcknowledgeDialog.tsx`, `PursuitBanner.tsx`, `models.py`) and nothing
-implements it. It is worth deciding explicitly whether it ships or goes the way of the pins —
-an unbuilt feature named here reads as a commitment to whoever opens this file next.
+**The automation log was dropped, 21 Sep 2026.** A dockable panel listing every automation
+that *would* have fired was planned and never built; it is not coming. See rule 6.
+
+## Deploying and changing production
+
+`DEPLOY.md` is the runbook. Three things a change must respect:
+
+- **Production starts from `backend/make_release_database.py`** — a copy of this database
+  with every table emptied except the register, the roles and the first administrator. A
+  KEEP list, so a table added later is emptied by default and prototype data cannot leak.
+- **In V1, change the register only through a committed metadata script** (the pattern of
+  `po_received_date_metadata.py`), run on development and then on production. An edit in the
+  Administration screen changes only the database it was made in, and publishing updates
+  the JSON only for the next build — so a UI edit on either side makes the production
+  database and the built forms disagree. Serving the register from the API (version 2)
+  removes this rule.
+- **`test_parity.py` compares against the register as accepted for go-live** (re-frozen
+  21 Sep 2026, `freeze_parity_baseline.py --from-database --replace`). A field that moves
+  without a deliberate re-freeze fails.
 
 ## Conventions
 

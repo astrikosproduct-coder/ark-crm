@@ -13,7 +13,7 @@ import {
   CommandSeparator,
 } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { api } from '@/lib/api'
+import { canCreateIn, fetchCollection } from '@/lib/collections'
 import { applyLookupFilter } from '@/lib/spec/conditions'
 import { collectionFor, displayNameOf, idOf } from '@/lib/spec'
 import { cn } from '@/lib/utils'
@@ -33,9 +33,8 @@ interface Props {
 /**
  * Searchable lookup over the target collection.
  *
- * Reads through /api/<collection> with Axios and TanStack Query like any other
- * data access — CLAUDE.md rule 2 — so this component behaves identically once
- * a real backend replaces MSW.
+ * Reads through lib/collections.ts, which decides where a collection comes from
+ * — the API, the bundled price book, or nothing yet for a module not built.
  */
 export function LookupCombobox({ field, value, onChange, onCreateNew, disabled, id }: Props) {
   const [open, setOpen] = useState(false)
@@ -43,7 +42,7 @@ export function LookupCombobox({ field, value, onChange, onCreateNew, disabled, 
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['collection', collection],
-    queryFn: async () => (await api.get<Record_[]>(`/${collection}`)).data,
+    queryFn: () => fetchCollection<Record_>(collection!),
     enabled: Boolean(collection) && open,
     staleTime: 30_000,
   })
@@ -52,7 +51,7 @@ export function LookupCombobox({ field, value, onChange, onCreateNew, disabled, 
   // opening the popover.
   const { data: resolved } = useQuery({
     queryKey: ['collection', collection],
-    queryFn: async () => (await api.get<Record_[]>(`/${collection}`)).data,
+    queryFn: () => fetchCollection<Record_>(collection!),
     enabled: Boolean(collection) && Boolean(value),
     staleTime: 30_000,
   })
@@ -146,7 +145,7 @@ export function LookupCombobox({ field, value, onChange, onCreateNew, disabled, 
               })}
             </CommandGroup>
 
-            {onCreateNew && (
+            {onCreateNew && canCreateIn(collection) && (
               <>
                 <CommandSeparator />
                 <CommandGroup>

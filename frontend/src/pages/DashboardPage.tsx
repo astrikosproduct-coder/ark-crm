@@ -347,10 +347,10 @@ function nothingHere(data: DashboardData, thing: string): string {
  * headline: nobody reports it to a board, and someone has to go and act on it,
  * which is what the At Risk panel at the foot of the page is for.
  *
- * Won stays, and stays blank, at the user's instruction (18 Sep 2026): the
- * field that proves a win has not been chosen yet, and the empty tile is the
- * reminder. It is deliberately NOT filled with Booking Date — see the note in
- * backend/app/routers/dashboard.py.
+ * Won is counted by PO Received Date (decided 21 Sep 2026; blank until then).
+ * It is deliberately NOT Booking Date, which lags the PO — see the note in
+ * backend/app/routers/dashboard.py. A Deal with no PO Received Date is not
+ * won yet, whatever stage it has reached.
  *
  * DELTAS ONLY WHEN THERE IS SOMETHING TO COMPARE. `data.comparison` is null
  * unless the chosen period has two ends, so on "All dates" no tile claims a
@@ -358,7 +358,7 @@ function nothingHere(data: DashboardData, thing: string): string {
  * the screen that can least afford it.
  */
 function Kpis({ data, ranged }: { data: DashboardData; ranged: boolean }) {
-  const { pipeline, actual, lost } = data.kpis
+  const { pipeline, actual, won, lost } = data.kpis
   const labels = data.revenue_labels
   const before = data.comparison?.kpis
   const against = data.comparison?.label ?? null
@@ -408,8 +408,13 @@ function Kpis({ data, ranged }: { data: DashboardData; ranged: boolean }) {
         delta={delta(lost.count, before?.lost.count, false)}
         line={`${usd(lost.usd)} of pursuit value`}
       />
-      {/* Deliberately empty, and deliberately still here. */}
-      <KpiTile label="Won" value="—" line="No field records the day the PO is received yet" />
+      <KpiTile
+        label="Won"
+        value={usd(won.usd)}
+        delta={delta(won.usd, before?.won.usd)}
+        line={`${plural(won.count, 'deal')} · PO received${ranged ? ' in the selected period' : ''}`}
+        caveat={won.unpriced > 0 ? `${plural(won.unpriced, 'deal')} still needs a value, currency or exchange rate` : null}
+      />
     </div>
   )
 }

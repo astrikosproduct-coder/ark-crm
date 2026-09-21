@@ -1120,6 +1120,8 @@ DEAL_SCALARS = (
     "booking_date",
     "erp_reference",
     "po_loi_reference",
+    # ADDED BY 0034 — the Won date; see models.Deal.po_received_date.
+    "po_received_date",
     "project_code",
     "contract_value",
     "arr_annual_recurring",
@@ -1258,6 +1260,7 @@ class DealBase(CustomFieldsMixin):
     booking_date: date | None = None
     erp_reference: str | None = Field(default=None, max_length=100)
     po_loi_reference: str | None = Field(default=None, max_length=100)
+    po_received_date: date | None = None
     project_code: str | None = Field(default=None, max_length=60)
     contract_value: float | None = None
     arr_annual_recurring: float | None = None
@@ -1365,6 +1368,7 @@ class DealOut(BaseModel):
     booking_date: date | None = None
     erp_reference: str | None = None
     po_loi_reference: str | None = None
+    po_received_date: date | None = None
     project_code: str | None = None
     contract_value: float | None = None
     arr_annual_recurring: float | None = None

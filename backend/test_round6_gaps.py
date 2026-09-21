@@ -49,7 +49,7 @@ from app.module_split import (  # noqa: E402
 META = "/api/admin/metadata"
 client = TestClient(app)
 
-# Every route is mounted behind require_access / require_admin, which read a
+# Every route is mounted behind require_access / require_administration, which read a
 # signed-in user from the session cookie. A TestClient has none and cannot get
 # one — sign-in goes through Entra. Without this, every request here returns
 # 401 and the suite asserts nothing. See test_support.py.

@@ -301,7 +301,20 @@ try:
     after = dash()
     a0, a1 = base["kpis"]["actual"], after["kpis"]["actual"]
     check("Actual Revenue grows by both deals' contract value", a1["count"] == a0["count"] + 2 and close(a1["usd"] - a0["usd"], 1_050_000), f"{a0} -> {a1}")
-    check("no Won figure is served until the team defines a win", "won" not in after["kpis"])
+    w0, w1 = base["kpis"]["won"], after["kpis"]["won"]
+    check("a Deal with no PO Received Date is not won, whatever its stage", w1["count"] == w0["count"] and close(w1["usd"], w0["usd"]), f"{w0} -> {w1}")
+
+    # Won is counted by PO Received Date and nothing else (decided 21 Sep 2026).
+    put(f"/deals/{deal_c['id']}", {"po_received_date": today.isoformat()}).raise_for_status()
+    won_now = dash()["kpis"]["won"]
+    check("recording the PO date wins the Deal, at its contract value", won_now["count"] == w0["count"] + 1 and close(won_now["usd"] - w0["usd"], 1_000_000), f"{w0} -> {won_now}")
+    check("Won never exceeds the Deals it is drawn from", won_now["usd"] <= dash()["kpis"]["actual"]["usd"] + 0.01)
+    in_period = dash(date_from=month0, date_to=month_end)["kpis"]["won"]
+    check("a period holding the PO date counts it", in_period["count"] >= 1 and in_period["usd"] >= 1_000_000 - 0.01, str(in_period))
+    later = dash(date_from=next_year[0], date_to=next_year[1])["kpis"]["won"]
+    check("a period after the PO date does not", later["count"] == 0, str(later))
+    compared = dash(date_from=today, date_to=today)
+    check("the comparison period reports Won too", compared["comparison"] is not None and "won" in compared["comparison"]["kpis"])
     payment = [i for i in after["due"]["items"] if i["kind"] == "payment" and i["record_id"] == deal_c["id"]]
     check("the unpaid milestone is chased on the Deal, not the converted Opportunity", len(payment) == 1, str(payment))
     check("the converted opportunity and lead left the pipeline", after["kpis"]["pipeline"]["count"] == base["kpis"]["pipeline"]["count"])

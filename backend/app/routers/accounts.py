@@ -10,6 +10,7 @@ from ..changes import custom_field_diff, diff, snapshot
 from ..database import get_db
 from ..list_query import run_list_query
 from ..audit import record_audit
+from ..record_references import records_naming_account
 from ..custom_fields import apply_write, extras_of, merge_into_row, resolve_write
 from ..thresholds import check_thresholds
 from ..ids import next_reference_id
@@ -306,11 +307,12 @@ def delete_account(
     account. A dependent record is refused with 409 and the caller is told to
     deactivate instead.
 
-    This guards what the database can see — contacts (a real foreign key) and,
-    since Round 3, deal registrations naming this account as partner or end
-    client. Leads, deals and quotes still live in the mock store, so the
-    frontend checks those before it ever calls this; see
-    src/components/record/DeleteRecordDialog.tsx.
+    Guards every table that can name an account: contacts, deal registrations,
+    and — since 21 Sep 2026 — Leads, Deals, demo attendees and pursuit groups.
+    Those foreign keys are ON DELETE SET NULL, so without this check a delete
+    would silently blank the End Client or Partner on live pursuits. See
+    app/record_references.py. The delete dialog shows the same references
+    first, but this is the check that holds.
     """
     account = _get_or_404(db, account_id)
 
@@ -343,6 +345,19 @@ def delete_account(
                 f"{'registration' if len(registration_dependents) == 1 else 'registrations'}, so it can't be deleted.",
                 ["Deactivate it instead."],
                 registrations=registration_dependents,
+            ),
+        )
+
+    pipeline_dependents = records_naming_account(db, account_id)
+    if pipeline_dependents:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            refusal(
+                "ACCOUNT_IN_USE",
+                f"This account is named on {len(pipeline_dependents)} "
+                f"{'pursuit' if len(pipeline_dependents) == 1 else 'pursuits'}, so it can't be deleted.",
+                ["Deactivate it instead.", "Or change those records to another account first."],
+                records=pipeline_dependents,
             ),
         )
 

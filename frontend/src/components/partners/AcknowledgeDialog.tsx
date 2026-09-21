@@ -39,8 +39,8 @@ interface Props {
  * The modal says in words what confirming commits Astrikos to and what window
  * it opens, because everything it then stamps — acknowledged date, SLA met,
  * both exclusivity dates and the status — is written without further input.
- * Nothing is emailed to the partner; an entry goes to the automation log
- * instead (CLAUDE.md rule 6).
+ * Nothing is emailed to the partner (CLAUDE.md rule 6): the stamps on the
+ * registration are the record of what was committed.
  */
 export function AcknowledgeDialog({ open, registration, partnerName, clientName, onClose }: Props) {
   const queryClient = useQueryClient()

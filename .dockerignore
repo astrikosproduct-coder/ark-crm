@@ -1,0 +1,28 @@
+# What never goes into an image. The build context is the repository root, so
+# these patterns cover backend/ and frontend/ alike.
+
+# Secrets. Configuration reaches a container through its environment, never
+# through a file baked into the image.
+**/.env
+**/.env.*
+!**/.env.example
+
+# Database dumps and backups — real data.
+**/*.sql
+**/*.sql.gz
+**/*.dump
+db_backups/
+
+# Rebuilt inside the image, or never needed there.
+**/node_modules
+**/.venv
+**/__pycache__
+**/*.py[cod]
+frontend/dist
+
+# Repository and editor clutter.
+.git
+.vscode
+.idea
+**/*.log
+docs/

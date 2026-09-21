@@ -108,7 +108,7 @@ function reducer(state: State, action: Action): State {
  * Pull childlist rows out of a flat record into `children`.
  *
  * A saved record carries its child rows under the childlist's own api_name —
- * toPayload writes them there and MSW stores them there — so a form opened on
+ * toPayload writes them there and the server returns them there — so a form opened on
  * an existing record receives them inside initialValues. Splitting them here is
  * what makes the round trip work: rows saved on Monday are editable rows on
  * Tuesday rather than an opaque array sitting in values.

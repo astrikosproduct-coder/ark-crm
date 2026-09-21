@@ -57,8 +57,8 @@ function useConvertedDeal(ctx: PipelineRecordContext): string | undefined {
  *
  * A read-only Lead can now be read-only for THREE reasons: LeadAdvanceDialog's
  * Move to picker landing on an Opportunity stage, the 14-stage-review split
- * reassigning a Stage 4-6 Lead to Opportunities at seed time or via the returning-browser
- * migration (lib/spec/pipelineSeed.ts), or — for data that predates the split
+ * reassigning a Stage 4-6 Lead to Opportunities when the seed data was
+ * migrated, or — for data that predates the split
  * entirely — the old Stage-7 → Deal conversion. All three flip lead_status to
  * CONVERTED the same way, so the slots below still need to ask which target
  * actually exists: the wrong noun in a read-only banner is a small lie, but

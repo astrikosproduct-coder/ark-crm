@@ -1,0 +1,43 @@
+# ARK CRM — the one address people reach.
+#
+#   /api/*        forwarded to the backend container
+#   everything    the built app; any unknown path gets index.html, because
+#   else          the app does its own routing (/leads/LEAD-00012 is not a file)
+#
+# SITE_ADDRESS decides HTTPS:
+#   crm.example.com   Caddy obtains and renews a Let's Encrypt certificate by
+#                     itself. The name must resolve to this server from the
+#                     internet, and ports 80 and 443 must reach it.
+#   :80               plain HTTP — for trying the stack on a laptop, or behind
+#                     another proxy that already does HTTPS.
+# For a certificate from Astrikos's own certificate authority, see DEPLOY.md.
+
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	handle {
+		root * /srv/www
+		try_files {path} /index.html
+		file_server
+	}
+
+	# Built assets carry a content hash in their name, so they can be cached
+	# forever. Everything else — index.html above all — must be re-checked, or
+	# a browser keeps running last week's app after a deploy.
+	@hashed path /assets/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+	@page not path /assets/* /api/*
+	header @page Cache-Control "no-cache"
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+}

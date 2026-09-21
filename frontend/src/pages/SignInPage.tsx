@@ -47,8 +47,14 @@ export function SignInPage() {
   )
 }
 
-/** Drop the picture at frontend/public/login-bg.jpg. */
-const LOGIN_BACKGROUND = '/login-bg.png'
+/**
+ * frontend/public/login-bg.jpg. Was a 5 MB lossless PNG that every signed-out
+ * visitor downloaded before seeing the sign-in button; re-encoded 21 Sep 2026
+ * as a 274 KB JPEG at quality 88 with full colour resolution (4:4:4), which is
+ * visually identical on the flat purple ground — WebP at any size that saved
+ * anything showed blotching there.
+ */
+const LOGIN_BACKGROUND = '/login-bg.jpg'
 
 /**
  * Signed in, recognised, and allowed nothing yet.

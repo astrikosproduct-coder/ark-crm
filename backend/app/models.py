@@ -1705,6 +1705,12 @@ class Deal(StagePercentMixin, Base):
 
     po_loi_reference: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
+    # ADDED BY 0034 (21 Sep 2026). The day the client's PO or award letter
+    # reached us — the day the deal was WON. The Dashboard's Won tile counts
+    # Deals by this date and by nothing else: not booking_date (a finance event
+    # that lags the PO) and not a stage move (when someone updated the CRM).
+    po_received_date: Mapped[datetime | None] = mapped_column(Date, nullable=True, index=True)
+
     project_code: Mapped[str | None] = mapped_column(String(60), nullable=True)
 
     contract_value: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
@@ -3165,8 +3171,8 @@ class AuditLog(Base):
     write its own audit trail.
 
     Deliberately distinct from two things it could be confused with:
-    * the (browser-only, MSW) automation log, which lists SIMULATED system
-      events, not real CRUD;
+    * an automation log of SIMULATED system events — planned, never built,
+      and dropped on 21 Sep 2026; nothing here stands in for it;
     * metadata_versions, which is Round 6's history of the FIELD REGISTER
       itself, not of any lead/account/opportunity/deal/contact row.
 

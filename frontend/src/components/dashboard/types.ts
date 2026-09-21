@@ -68,7 +68,7 @@ export interface DashboardData {
     from: string
     to: string
     label: string | null
-    kpis: { pipeline: Bucket; actual: Bucket; lost: Bucket }
+    kpis: { pipeline: Bucket; actual: Bucket; won: Bucket; lost: Bucket }
   } | null
   quarters: QuarterPreset[]
   fiscal_year_start_month: number
@@ -93,6 +93,8 @@ export interface DashboardData {
       unpriced: number
     }
     actual: Bucket & { unpriced: number }
+    /** Counted Deals whose PO Received Date is in the period — see dashboard.py. */
+    won: Bucket & { unpriced: number }
     lost: Bucket
     stale: Bucket
   }

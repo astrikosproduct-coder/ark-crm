@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { lazy, useEffect } from 'react'
 import {
   createBrowserRouter,
   createRoutesFromElements,
@@ -10,30 +10,51 @@ import {
 import { AppShell } from '@/components/layout/AppShell'
 import { AuthProvider, useAuth } from '@/lib/auth'
 import { PendingAccessPage, SignInPage } from '@/pages/SignInPage'
-import { AdministrationPage } from '@/pages/AdministrationPage'
-import { AccountDetailPage } from '@/pages/AccountDetailPage'
-import { AccountsPage } from '@/pages/AccountsPage'
-import { ContactDetailPage } from '@/pages/ContactDetailPage'
-import { ContactsPage } from '@/pages/ContactsPage'
-import { DashboardPage } from '@/pages/DashboardPage'
-import { DealDetailPage } from '@/pages/DealDetailPage'
-import { DealsPage } from '@/pages/DealsPage'
-import { FormEnginePage } from '@/pages/FormEnginePage'
-import { LeadCreatePage } from '@/pages/LeadCreatePage'
-import { LeadDetailPage } from '@/pages/LeadDetailPage'
-import { LeadsPage } from '@/pages/LeadsPage'
-import { ModuleDetailPage } from '@/pages/ModuleDetailPage'
-import { ModulePage } from '@/pages/ModulePage'
-import { NewRegistrationPage } from '@/pages/NewRegistrationPage'
-import { OpportunityCreatePage } from '@/pages/OpportunityCreatePage'
-import { OpportunityDetailPage } from '@/pages/OpportunityDetailPage'
-import { OpportunitiesPage } from '@/pages/OpportunitiesPage'
-import { PartnerDetailPage } from '@/pages/PartnerDetailPage'
-import { PartnersPage } from '@/pages/PartnersPage'
-import { RegistrationDetailPage } from '@/pages/RegistrationDetailPage'
-import { RecordCreatePage } from '@/pages/RecordCreatePage'
-import { SpecHealthPage } from '@/pages/SpecHealthPage'
-import { FeedbackPage } from '@/pages/FeedbackPage'
+import { useIsDeveloper } from '@/lib/feedback'
+
+/**
+ * Every page is loaded the first time it is opened, not with the app.
+ *
+ * Someone who only works in Leads never downloads Administration, the
+ * Dashboard's charts or the spreadsheet import. The shell — sidebar, header,
+ * sign-in — is in the first download; AppShell's <Suspense> shows a quiet
+ * "Loading…" in the page area while a page's code arrives, once per session.
+ * Sign-in and Access pending stay eager: they render before the router exists.
+ */
+const AdministrationPage = lazy(() => import('@/pages/AdministrationPage').then((m) => ({ default: m.AdministrationPage })))
+const AccountDetailPage = lazy(() => import('@/pages/AccountDetailPage').then((m) => ({ default: m.AccountDetailPage })))
+const AccountsPage = lazy(() => import('@/pages/AccountsPage').then((m) => ({ default: m.AccountsPage })))
+const ContactDetailPage = lazy(() => import('@/pages/ContactDetailPage').then((m) => ({ default: m.ContactDetailPage })))
+const ContactsPage = lazy(() => import('@/pages/ContactsPage').then((m) => ({ default: m.ContactsPage })))
+const DashboardPage = lazy(() => import('@/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })))
+const DealDetailPage = lazy(() => import('@/pages/DealDetailPage').then((m) => ({ default: m.DealDetailPage })))
+const DealsPage = lazy(() => import('@/pages/DealsPage').then((m) => ({ default: m.DealsPage })))
+const FormEnginePage = lazy(() => import('@/pages/FormEnginePage').then((m) => ({ default: m.FormEnginePage })))
+const LeadCreatePage = lazy(() => import('@/pages/LeadCreatePage').then((m) => ({ default: m.LeadCreatePage })))
+const LeadDetailPage = lazy(() => import('@/pages/LeadDetailPage').then((m) => ({ default: m.LeadDetailPage })))
+const LeadsPage = lazy(() => import('@/pages/LeadsPage').then((m) => ({ default: m.LeadsPage })))
+const ModuleDetailPage = lazy(() => import('@/pages/ModuleDetailPage').then((m) => ({ default: m.ModuleDetailPage })))
+const ModulePage = lazy(() => import('@/pages/ModulePage').then((m) => ({ default: m.ModulePage })))
+const NewRegistrationPage = lazy(() => import('@/pages/NewRegistrationPage').then((m) => ({ default: m.NewRegistrationPage })))
+const OpportunityCreatePage = lazy(() => import('@/pages/OpportunityCreatePage').then((m) => ({ default: m.OpportunityCreatePage })))
+const OpportunityDetailPage = lazy(() => import('@/pages/OpportunityDetailPage').then((m) => ({ default: m.OpportunityDetailPage })))
+const OpportunitiesPage = lazy(() => import('@/pages/OpportunitiesPage').then((m) => ({ default: m.OpportunitiesPage })))
+const PartnerDetailPage = lazy(() => import('@/pages/PartnerDetailPage').then((m) => ({ default: m.PartnerDetailPage })))
+const PartnersPage = lazy(() => import('@/pages/PartnersPage').then((m) => ({ default: m.PartnersPage })))
+const RegistrationDetailPage = lazy(() => import('@/pages/RegistrationDetailPage').then((m) => ({ default: m.RegistrationDetailPage })))
+const RecordCreatePage = lazy(() => import('@/pages/RecordCreatePage').then((m) => ({ default: m.RecordCreatePage })))
+const SpecHealthPage = lazy(() => import('@/pages/SpecHealthPage').then((m) => ({ default: m.SpecHealthPage })))
+const FeedbackPage = lazy(() => import('@/pages/FeedbackPage').then((m) => ({ default: m.FeedbackPage })))
+
+/**
+ * Administration is DEVELOPER-only in V1 (21 Sep 2026). Anyone else who types
+ * the address lands on the Dashboard rather than on a screen of refusals. The
+ * boundary is the server — /api/admin/* answers 403 without the role — and
+ * this only keeps the screen from mounting and firing requests it would lose.
+ */
+function DeveloperOnly({ children }: { children: React.ReactElement }) {
+  return useIsDeveloper() ? children : <Navigate to="/dashboard" replace />
+}
 
 
 /**
@@ -57,8 +78,15 @@ const router = createBrowserRouter(
           <Route path="spec-health" element={<SpecHealthPage />} />
           <Route path="feedback" element={<FeedbackPage />} />
 
-          {/* The one module served by FastAPI + PostgreSQL rather than MSW. */}
-          <Route path="administration" element={<AdministrationPage />} />
+          {/* DEVELOPER-only in V1 — see DeveloperOnly above. */}
+          <Route
+            path="administration"
+            element={
+              <DeveloperOnly>
+                <AdministrationPage />
+              </DeveloperOnly>
+            }
+          />
 
           <Route path="leads" element={<LeadsPage />} />
           <Route path="leads/new" element={<LeadCreatePage />} />

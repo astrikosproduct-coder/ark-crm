@@ -1,5 +1,10 @@
 """
-The required parity test: the CRM before the rebuild vs the database after it.
+The required parity test: the register as accepted vs the database now.
+
+Until 21 Sep 2026 the baseline was the CRM BEFORE the Round-7 rebuild. It is
+now the register as accepted for go-live — see "ABSORBED INTO THE BASELINE"
+below, and freeze_parity_baseline.py. What follows describes the original
+cutover comparison, whose approvals are kept as the record.
 
     python test_parity.py
 
@@ -352,6 +357,30 @@ APPROVED_CONDITIONS: dict[tuple[str, str], str] = {
 # a field is allowed to renumber, and is not allowed to move past its
 # neighbours.
 RENUMBERED_MODULES = {"leads", "opportunities", "deals", "partners"}
+
+# ---------------------------------------------------------------------------
+# ABSORBED INTO THE BASELINE, 21 Sep 2026
+# ---------------------------------------------------------------------------
+# Every approval above described a change between the PRE-CUTOVER baseline and
+# the register. On 21 Sep 2026 the user accepted the register as it stood and
+# the baseline was re-frozen from the database (freeze_parity_baseline.py
+# --from-database --replace), so each of those changes is now part of "before"
+# and none can happen again. Left in force, the test would report every one of
+# them as an approval that "did not happen" — correctly, by its own design.
+#
+# The lists are kept above as the record of what was decided and why. They are
+# emptied here so this test compares the register against the accepted state
+# EXACTLY — including absolute order, since nothing has been renumbered since.
+# Approve a new deliberate change by adding it to the relevant dict below this
+# block, with its reason, exactly as D1–D4 were; or re-freeze, as a decision.
+APPROVED_VALUE_CHANGES = {}
+APPROVED_DEFINITION_CHANGES = {}
+APPROVED_RELOCATIONS = {}
+APPROVED_ADDITIONS = {}
+APPROVED_DELETIONS = {}
+APPROVED_SECTION_RENAMES = {}
+APPROVED_CONDITIONS = {}
+RENUMBERED_MODULES = set()
 
 failures: list[str] = []
 

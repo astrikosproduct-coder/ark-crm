@@ -44,8 +44,7 @@ def list_users(response: Response, db: Session = Depends(get_db)):
     The user directory, read by every user-lookup field in the application.
 
     This replaces the former spec/seed/users.json mock collection: users are a
-    real database resource and MSW passes /api/users straight through to here.
-    Every other collection is still answered by MSW from the store.
+    real database resource, read by every owner lookup in the application.
 
     Returns inactive users too. Deactivation must not make an already-assigned
     owner vanish from a record that names them — the filtering of who may be

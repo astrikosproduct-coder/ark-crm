@@ -13,8 +13,8 @@ import { Construction } from 'lucide-react'
  * "walkthrough" tells them a thing they are using is a demonstration.
  *
  * It says what is actually the case instead: this part is scheduled, not
- * skipped. Every other prototype disclaimer in the application is deliberate
- * and stays — see PrototypeBanner, and rules 5 and 7 in CLAUDE.md.
+ * skipped. The prototype watermark and the price-book watermark are gone as
+ * well — removed for go-live, 21 Sep 2026.
  */
 export function ComingSoon({ label }: { label: string }) {
   return (

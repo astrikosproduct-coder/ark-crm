@@ -1,11 +1,9 @@
 """
 The Administration metadata API — /api/admin/metadata/*.
 
-Mounted under /api/admin deliberately, and not on a path of its own: MSW
-already passes /api/admin/* straight through (src/mocks/handlers.ts) and Vite
-already proxies it to FastAPI (vite.config.ts), so the metadata layer needed
-neither a new passthrough rule nor a new proxy entry. One fewer place for the
-two-files-or-it-silently-returns-HTML trap in CLAUDE.md rule 2 to bite.
+Mounted under /api/admin deliberately, and not on a path of its own: managing
+the register is administration, and it carries the same DEVELOPER-only gate
+(app/auth.py::require_administration).
 
 WHAT THE WRITE ENDPOINTS ARE EDITING
 -------------------------------------

@@ -8,7 +8,7 @@ import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { api } from '@/lib/api'
+import { fetchCollection } from '@/lib/collections'
 import { date as fmtDate, money } from '@/lib/format'
 import {
   type Condition,
@@ -452,7 +452,7 @@ function useChoiceOptions(field: FilterField, filters: ListFilters): { options: 
   const collection = field.kind === 'choice' && spec.type === 'lookup' ? collectionFor(spec.lookup_target) : undefined
   const { data: rows, isLoading } = useQuery({
     queryKey: ['collection', collection],
-    queryFn: async () => (await api.get<Record<string, unknown>[]>(`/${collection}`)).data,
+    queryFn: () => fetchCollection(collection!),
     enabled: Boolean(collection),
     staleTime: 30_000,
   })

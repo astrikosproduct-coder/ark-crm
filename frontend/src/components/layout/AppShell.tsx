@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 
 import { ScrollToTop } from '@/components/layout/ScrollToTop'
@@ -39,7 +40,11 @@ export function AppShell() {
       <div className="flex min-w-0 flex-1 flex-col self-stretch">
         <TopBar />
         <main className={cn('min-w-0 flex-1', onDashboard && 'bg-dashboard-bg')}>
-          <Outlet />
+          {/* Each page's code is fetched the first time it is opened (App.tsx).
+              The shell stays put while it arrives; only the page area waits. */}
+          <Suspense fallback={<div className="text-muted-foreground p-6 text-sm">Loading…</div>}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
       <ScrollToTop />

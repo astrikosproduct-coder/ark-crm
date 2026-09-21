@@ -1,15 +1,16 @@
 import re
 
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..auth import current_user
-from ..messages import already_exists, not_found, picked_record_missing
+from ..messages import already_exists, not_found, picked_record_missing, refusal
 from ..changes import custom_field_diff, diff, snapshot
 from ..database import get_db
 from ..list_query import run_list_query
 from ..audit import record_audit
+from ..record_references import records_naming_contact
 from ..custom_fields import apply_write, extras_of, merge_into_row, resolve_write
 from ..thresholds import check_thresholds
 from ..ids import next_reference_id
@@ -283,12 +284,25 @@ def delete_contact(
     user: User = Depends(current_user),
 ):
     """
-    Hard delete. Nothing in the DATABASE holds a foreign key to a contact —
-    leads.primary_contact, quotes.sent_to and the bid signatories all live in
-    the mock store — so there is nothing to guard here. The frontend checks
-    those before calling this; see DeleteRecordDialog.tsx.
+    Hard delete, refused while a Lead still names this contact — as Primary
+    Contact or a demo attendee. Those foreign keys are ON DELETE SET NULL, so
+    without this check the delete would silently blank them (21 Sep 2026; see
+    app/record_references.py). The delete dialog shows the same references
+    first, but this is the check that holds.
     """
     contact = _get_or_404(db, contact_id)
+    dependents = records_naming_contact(db, contact_id)
+    if dependents:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            refusal(
+                "CONTACT_IN_USE",
+                f"This contact is named on {len(dependents)} "
+                f"{'pursuit' if len(dependents) == 1 else 'pursuits'}, so they can't be deleted.",
+                ["Deactivate them instead.", "Or change those records to another contact first."],
+                records=dependents,
+            ),
+        )
     record_audit(
         db, module="contacts", record_id=contact_id, action="deleted", actor=user.user_id
     )
