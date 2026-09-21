@@ -46,3 +46,13 @@ Thumbs.db
 
 # Generated artifacts — regenerate with `python frontend/build_split_workbook.py`
 ARK_CRM_Field_Register_Split_v1.xlsx
+
+# Database dumps — NEVER commit these. They are full copies of the live
+# database: real client organisations, real people's names, emails and phone
+# numbers, deal values. Once pushed, a file stays in git history even after it
+# is deleted, and removing it means rewriting history for everyone who cloned.
+# Backups belong in the backup destination, off this machine — not in git.
+*.sql
+*.sql.gz
+*.dump
+db_backups/
