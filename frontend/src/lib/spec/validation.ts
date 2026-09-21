@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { childSpecFor, isChildColumnOnly, type ResolvedChildSpec } from './childSpec'
 import { isVisible, requirementOf, type Values } from './conditions'
-import { fieldOptions, fieldsOf, rangeOf, stageFieldOf } from './index'
+import { createRequiredFor, fieldOptions, fieldsOf, rangeOf, stageFieldOf } from './index'
 import type { FieldSpec } from '@/types/field'
 
 export interface FieldError {
@@ -400,6 +400,106 @@ export function missingDue(module: string, values: Values, options: DueOptions =
     out[name] = REQUIRED_MESSAGE
   }
   return out
+}
+
+export interface SaveOptions {
+  /** The record is being created — nothing saved yet. */
+  creating: boolean
+  /** The values as last saved, to tell a field EMPTIED by this edit from one
+   *  that was never filled. */
+  saved: Values
+  skipped?: readonly number[]
+}
+
+/**
+ * Required fields that stop a SAVE — revised 21 Sep 2026: a stage move is the
+ * gate, a save is not. The server applies the same rule (app/requirements.py).
+ *
+ *   new record            only createRequiredFor(module) — Leads: name, End
+ *                         Client, BD Owner, Currency
+ *   ordinary save         a field of a stage already LEFT may not be emptied;
+ *                         the current stage may be saved half-filled
+ *   pilot marked Paid     a move (the Lead becomes its Deal): the stage must
+ *                         be complete, which asks for Pilot PO Received Date
+ *   any save              the reason a status asks for (On Hold, Closed Lost)
+ *   Accounts, Contacts    every required field, as before
+ */
+export function missingOnSave(module: string, values: Values, options: SaveOptions): Errors {
+  const stageField = stageFieldOf(module)
+  if (!stageField) return missingDue(module, values)
+  if (values.lead_status === 'CONVERTED') return {}
+
+  const stage = stageOf(values[stageField])
+  if (module === 'leads' && String(values.pilot_commercial_model ?? '').toUpperCase() === 'PAID') {
+    return missingDue(module, values, { skipped: options.skipped })
+  }
+
+  const due = missingDue(module, values, { skipped: options.skipped })
+  const create = createRequiredFor(module)
+  const out: Errors = {}
+  for (const name of Object.keys(due)) {
+    const field = fieldsOf(module).find((f) => f.api_name === name)
+    if (!field) continue
+    const statusReason = (field.condition ?? '').includes('lead_status')
+    if (statusReason) {
+      out[name] = due[name]
+      continue
+    }
+    if (options.creating) {
+      if (create.has(name)) out[name] = due[name]
+      continue
+    }
+    const at = dueStageOf(field)
+    const left = at !== null && stage !== null && at < stage
+    if (left && !BLANK(options.saved[name])) out[name] = due[name]
+  }
+  return out
+}
+
+/**
+ * What a field's requirement means RIGHT NOW, for the mark beside its label —
+ * the Zoho split (decided 21 Sep 2026):
+ *
+ *   'save'   red asterisk and "This is a required field." — the save is
+ *            refused without it (the same list missingOnSave checks)
+ *   'move'   grey asterisk and a quiet note — needed before the record leaves
+ *            this stage, asked for again in the Update Stage dialog
+ *   null     not asked for now (a later stage, a skipped one, hidden, optional)
+ *
+ * Marking every field the register calls required, whatever the stage, told a
+ * person creating a lead that twelve fields were missing while the save needed
+ * two — the form and its own message disagreed.
+ */
+export type RequirementKind = 'save' | 'move' | null
+
+export function requirementKindOf(
+  module: string,
+  field: FieldSpec,
+  values: Values,
+  options: { creating: boolean; skipped?: readonly number[] }
+): RequirementKind {
+  if (!isUserEditable(field) || !isVisible(field, values)) return null
+  if (!requirementOf(field, values).required) return null
+  const stageField = stageFieldOf(module)
+  if (!stageField) return 'save'
+  if (SYSTEM_SET.has(field.api_name) || field.api_name === stageField) return null
+  const status = typeof values.lead_status === 'string' ? values.lead_status : null
+  if (status === 'CONVERTED') return null
+  if ((field.condition ?? '').includes('lead_status')) return 'save'
+
+  const stage = stageOf(values[stageField])
+  const due = dueStageOf(field)
+  if (due === null || stage === null) return 'save'
+  const range = rangeOf(module)
+  if (due > stage || (range && due < range[0])) return null
+  if (due !== stage && (options.skipped ?? []).includes(due)) return null
+  if (module === 'deals' && status === 'POC_PILOT_DEAL' && due <= 7) return null
+  if (STATUS_ONLY.has(status ?? '')) return null
+
+  const paidPilot = module === 'leads' && String(values.pilot_commercial_model ?? '').toUpperCase() === 'PAID'
+  if (paidPilot) return 'save'
+  if (options.creating) return createRequiredFor(module).has(field.api_name) ? 'save' : 'move'
+  return due < stage ? 'save' : 'move'
 }
 
 function stageOf(value: unknown): number | null {

@@ -4,10 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { LeadAccountFieldSync, backfillAccountFieldsFromLead } from '@/components/leads/LeadAccountFieldSync'
 import { RecordEditor } from '@/components/record/RecordEditor'
-import { STAGE_PCT_FIELDS, stageKeyOf } from '@/lib/pipeline'
-import { fieldsOf } from '@/lib/spec'
+import { STAGE_PCT_FIELDS, stageFormSections, stageKeyOf, stagesFor } from '@/lib/pipeline'
 import type { Values } from '@/lib/spec/conditions'
-import { dueStageOf, isUserEditable } from '@/lib/spec/validation'
 
 const MODULE = 'leads'
 const COLLECTION = 'leads'
@@ -18,15 +16,16 @@ const COLLECTION = 'leads'
  * its own detail page — not offered up front, which is what letting
  * RecordCreatePage render every section of a 120-field module would do.
  */
-/** Fields initialValues fills in, which this page does not ask for. */
-const CREATE_SEEDED: Record<string, true> = { project_stage: true, lead_status: true }
-
 /** A lead opens at Stage 0. Module-level so it is one stable object. */
 const CREATE_STAGE = { stage: 0, currentStage: 0 }
 
 export function LeadCreatePage() {
   const navigate = useNavigate()
-  const sections = useMemo(createSections, [])
+  // The same sections, in the same order, as the Stage 0 tab of the record
+  // this becomes: Health & Forecast first, then Connect (21 Sep 2026). The
+  // two percentages are hidden — the server sets them from the stage.
+  const sections = useMemo(() => stageFormSections(MODULE, 0), [])
+  const stage = stagesFor(MODULE)[0]
 
   /**
    * The three RECORD STATE fields, seeded rather than asked for.
@@ -65,10 +64,11 @@ export function LeadCreatePage() {
           New lead
         </>
       }
+      subtitle={stage ? `Stage ${stage.stage} — ${stage.name}` : undefined}
       tabs={[
         {
           key: 'new',
-          label: 'Connect',
+          label: 'Current stage',
           content: (
             <RecordEditor
               module={MODULE}
@@ -94,25 +94,4 @@ export function LeadCreatePage() {
       ]}
     />
   )
-}
-
-/**
- * Every section holding a field a new lead must have — Stage 0 — Connect, and
- * Health & Forecast for Expected Close Month — in the module's order. Read
- * off the register rather than named: a save with a required Stage 0 field
- * empty is refused (decided 21 Sep 2026), so a field this page did not show
- * would make creating a lead impossible. The stage, status and percentages
- * are the system's, and are left out (see missingDue).
- */
-function createSections(): string[] {
-  const out: string[] = []
-  for (const field of fieldsOf(MODULE)) {
-    // Seeded above, never asked for: see initialValues.
-    if (field.api_name in CREATE_SEEDED) continue
-    if (STAGE_PCT_FIELDS.has(field.api_name) || !isUserEditable(field)) continue
-    if (field.requirement !== 'Mandatory' && field.requirement !== 'Conditional') continue
-    if (dueStageOf(field) !== 0 || out.includes(field.section)) continue
-    out.push(field.section)
-  }
-  return out
 }

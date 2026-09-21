@@ -49,7 +49,8 @@ export function RecordCreatePage({ module, collection, basePath, title, subtitle
               module={module}
               collection={collection}
               initialValues={initialValues}
-              saveLabel="Create"
+              // Names the result, like Create lead — "New account" -> "Create account".
+              saveLabel={title.replace(/^New /, 'Create ')}
               onSaved={(id) => navigate(`${basePath}/${id}`, { replace: true })}
               onCancel={() => navigate(basePath)}
             />

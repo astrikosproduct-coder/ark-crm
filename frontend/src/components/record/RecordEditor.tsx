@@ -21,6 +21,8 @@ import {
 import { api } from '@/lib/api'
 import { ErrorNotice } from '@/components/ui/notice'
 import { answerableRefusalOf } from '@/lib/pursuitGroups'
+import { refusalOf } from '@/lib/errors'
+import { requestRegisterCheck } from '@/lib/spec/source'
 import { fieldOf, fieldsOf, idOf, sectionsFor } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
 import type { ResolvedRecord } from '@/lib/spec/resolveRecord'
@@ -110,10 +112,11 @@ function nameList(module: string, apiNames: string[], cap = 4): string {
 /**
  * Create or edit one record, rendered entirely by the form engine.
  *
- * A save is stopped by a malformed value, and — since 21 Sep 2026 — by an
- * empty required field that is DUE at the record's stage (missingDue; the
- * server applies the same rule, app/requirements.py). A required field of a
- * later stage does not stop it: that stage's form is not open yet.
+ * A save is stopped by a malformed value, and by a required field it may not
+ * leave empty (missingOnSave; the server applies the same rule,
+ * app/requirements.py): a new record's few, a status's reason, or a field of a
+ * stage the record has already left being emptied. The current stage may be
+ * saved half-filled — the stage move is what asks for all of it.
  */
 export function RecordEditor(props: RecordEditorProps) {
   return (
@@ -264,15 +267,15 @@ function EditorBody({
     },
   })
 
-  // Empty required fields that are due now and on this screen: they stop the
-  // save. One that is due but in another section is left to the server, whose
+  // Required fields this save may not leave empty, on this screen: they stop
+  // the save. One that is due but in another section is left to the server, whose
   // refusal names it — this editor has no box to fill it in.
   const dueHere = Object.keys(form.dueRequired).filter((k) => onScreen.has(k))
 
   const submit = () => {
     form.markSubmitted()
     // A malformed value the user can see and fix stops the save, and so does
-    // an empty required field that is due (decided 21 Sep 2026). Problems in
+    // a required field it may not leave empty (see missingOnSave). Problems in
     // other sections do not, for the reason given on elsewhereErrors.
     const blocking = Object.keys(form.allErrors).filter((k) => onScreen.has(k))
     if (blocking.length > 0 || dueHere.length > 0) return
@@ -305,12 +308,33 @@ function EditorBody({
       .filter((f): f is FieldSpec => Boolean(f))
   }, [form.allErrors, onScreen, module])
 
+  // A required field the SERVER demanded and this screen didn't mark: someone
+  // published a change in Administration since the page opened. Named here —
+  // the one case where names help, since nothing below is marked — and the
+  // update banner is asked to check (RegisterUpdateBanner).
+  const unmarked = useMemo(() => {
+    if (!save.isError) return []
+    const refusal = refusalOf(save.error)
+    if (refusal.code !== 'REQUIRED_FIELDS_MISSING') return []
+    const fields = ((refusal.raw as { fields?: { api_name: string; label: string }[] } | null)?.fields ?? [])
+    return fields.filter((f) => !(f.api_name in form.dueRequired))
+  }, [save.isError, save.error, form.dueRequired])
+
+  useEffect(() => {
+    if (unmarked.length > 0) requestRegisterCheck()
+  }, [unmarked.length])
+
   // The server's own reason, never a bare "could not be saved": a refused
   // Submitted Date in the future said nothing about what was wrong.
   const saveError =
     save.isError && !answerableRefusalOf(save.error) ? (
       <ErrorNotice
         error={save.error}
+        suffix={
+          unmarked.length > 0
+            ? `Changed since this page opened: ${unmarked.map((f) => f.label).join(', ')}.`
+            : undefined
+        }
         fieldLabel={(name) => fieldOf(module, name.replace(/__s\d+$/, ''))?.label}
         fallback="The record wasn't saved. Try again."
       />
@@ -391,7 +415,7 @@ function EditorBody({
         {form.submitted && dueHere.length > 0 && (
           <p className="text-sm text-destructive">
             Fill in {dueHere.length === 1 ? 'this required field' : `these ${dueHere.length} required fields`}{' '}
-            before saving: {nameList(module, dueHere)}. Each is marked below.
+            before saving.
           </p>
         )}
         {shape.here.length > 0 && (

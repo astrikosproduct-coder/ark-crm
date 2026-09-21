@@ -144,7 +144,8 @@ docker compose run --rm backend python po_received_date_metadata.py --apply
 Two things to know:
 
 - **Only production changes.** The development database doesn't get the edit. Make the same change there too before writing code that depends on it, or use a committed script run on both (the pattern of `pilot_po_received_date_metadata.py`).
-- **Required fields are enforced.** Marking a field required in production means every save of a record at or past that field's stage needs it. Check what it demands before you publish.
+- **Required fields are enforced.** A field made required is asked for when a record leaves that field's stage, and can't be emptied afterwards. Check what it demands before you publish.
+- **People already working keep their page.** Nobody is interrupted. Within a few minutes, and on their next refused save, they see "The form was updated. Save your work, then reload." Publish at quiet times, or tell the team first, when you change what's required.
 
 A new field that needs a database column comes with a migration. Run its script after `alembic upgrade head`, as the migration's *DEPLOY ORDER* says.
 

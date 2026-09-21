@@ -316,6 +316,10 @@
    }
   }
  },
+ "create_required": {
+  "$note": "The few fields a NEW record must have before its first save (decided 21 Sep 2026). Everything else a stage requires is asked for when the record leaves that stage, not on every save - requiring the whole stage on a save pushed people to type TBD to get past it. Each name is still demanded only while the register marks it required, so making one optional in Administration and publishing wins. Read by backend/app/requirements.py and src/lib/spec/validation.ts.",
+  "leads": ["opportunity_name", "end_client", "bd_owner", "currency"]
+ },
  "quick_create": {
   "$note": "CreateNewDialog's '+ Create new' shortcut on a lookup field shows only the target module's first section - enough to make the record selectable, not a full create form. A few fields outside that first section matter from day one, though, and skipping them just because they sit in a later section would be a real gap. Listed here, by module, as extra api_names appended after the first section's own fields; each still goes through the normal visibility/requirement rules.",
   "extra_fields": {

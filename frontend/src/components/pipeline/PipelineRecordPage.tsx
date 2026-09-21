@@ -23,13 +23,14 @@ import { useResolvedRecord } from '@/hooks/useResolvedRecord'
 import { api } from '@/lib/api'
 import {
   STAGES,
-  sectionsForStage,
+  keyFactsSectionOf,
+  stageFormSections,
   skippedStagesOf,
   stageFieldOf,
   stageNumberOf,
   type Transition,
 } from '@/lib/pipeline'
-import { displayNameOf, fieldOf, fieldsOf, sectionsFor, withRecordId } from '@/lib/spec'
+import { displayNameOf, fieldsOf, sectionsFor, withRecordId } from '@/lib/spec'
 import { requestDiscard } from '@/store/useUnsavedChangesStore'
 import { revealField } from '@/lib/revealField'
 import { restoreScroll } from '@/lib/preserveScroll'
@@ -38,29 +39,6 @@ import { cn } from '@/lib/utils'
 import { type Values } from '@/lib/spec/conditions'
 import { hiddenFromFormNamesOf, isStageScopedModule } from '@/lib/stageScope'
 import type { FieldSpec } from '@/types/field'
-
-/**
- * The register section holding the record's key facts — Overall RAG, Next
- * Milestone (+ date), Expected Close Month, and Progression % / Probability %.
- * Drawn first on the stage tab and excluded from Details, so there is only ever
- * one place to edit them.
- *
- * FOUND BY A FIELD IT CONTAINS, NEVER BY ITS NAME. This was `'HEADER'`, a
- * literal section label, and renaming that section in Administration to
- * "Health & Forecast" — which is exactly what Administration is for — broke
- * this screen in two ways at once: the stage tab rendered an empty box for a
- * section that no longer existed, and the six real fields fell through to the
- * Details tab, because the filter below was excluding the old name too.
- *
- * A section's LABEL is display text a user may rewrite at any time. An
- * api_name is its key. So the section is resolved through one, per module,
- * since a rename now moves the answer rather than deleting it.
- */
-const KEY_FACTS_ANCHOR = 'overall_rag'
-
-function keyFactsSectionOf(module: string): string | null {
-  return fieldOf(module, KEY_FACTS_ANCHOR)?.section ?? null
-}
 
 /**
  * A tab's own header, pinned under the top bar: what you are looking at on the
@@ -279,10 +257,7 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
   // their own stage through the projection in useRecordForm.
   // A module whose register has no such section simply renders the stage's own
   // sections — never an empty box for a name nothing answers to.
-  const stageSections = useMemo(
-    () => [...(keyFacts ? [keyFacts] : []), ...sectionsForStage(spec.module, stageToShow)],
-    [spec.module, stageToShow, keyFacts]
-  )
+  const stageSections = useMemo(() => stageFormSections(spec.module, stageToShow), [spec.module, stageToShow])
 
   /**
    * api_names the FORM must not draw, because another surface on this screen

@@ -11,6 +11,9 @@ import type { FieldSpec } from '@/types/field'
 interface Props {
   field: FieldSpec
   onCreateNew?: (field: FieldSpec) => void
+  /** Mark it red whatever the stage says — the Update Stage dialog, where the
+   *  field is needed for the move being made now. */
+  requiredNow?: boolean
   /**
    * Grid placement supplied by the caller, when the caller knows better than
    * the field's type does. FormSection passes the cell's span; an anchored
@@ -27,7 +30,11 @@ interface Props {
  */
 export const FULL_WIDTH = new Set(['childlist'])
 
-export function FieldRow({ field, onCreateNew, className }: Props) {
+function isBlank(value: unknown): boolean {
+  return value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0)
+}
+
+export function FieldRow({ field, onCreateNew, className, requiredNow }: Props) {
   const form = useRecordForm()
   const id = `${field.module}.${field.api_name}`
   const error = form.visibleErrors[field.api_name]
@@ -35,7 +42,9 @@ export function FieldRow({ field, onCreateNew, className }: Props) {
   // "This is a required field." on the same field would be one message too many,
   // and the shape error is the more specific of the two.
   const missing = !error ? form.visibleRequired[field.api_name] : undefined
-  const required = form.isRequired(field)
+  // Red: the save needs it. Grey: needed before the record leaves this stage —
+  // quiet on purpose, because nothing is wrong yet (21 Sep 2026, the Zoho split).
+  const kind = requiredNow ? 'save' : form.requirementKind(field)
 
   return (
     <div
@@ -117,8 +126,13 @@ export function FieldRow({ field, onCreateNew, className }: Props) {
             touching. */}
         <Label htmlFor={id} className="inline leading-snug text-muted-foreground">
           {field.label}
-          {required && (
+          {kind === 'save' && (
             <span className="text-destructive" aria-hidden>
+              *
+            </span>
+          )}
+          {kind === 'move' && (
+            <span className="text-muted-foreground/70" aria-hidden title="Needed before moving to the next stage">
               *
             </span>
           )}
@@ -158,6 +172,9 @@ export function FieldRow({ field, onCreateNew, className }: Props) {
 
         {error && <p className="text-xs text-destructive">{error}</p>}
         {missing && <p className="text-xs text-destructive">{missing}</p>}
+        {!error && !missing && kind === 'move' && form.mode === 'edit' && isBlank(form.values[field.api_name]) && (
+          <p className="text-xs text-muted-foreground">Needed to move to the next stage.</p>
+        )}
 
         {!error && !missing && form.mode === 'edit' && field.computed_formula && field.description && (
           <p className="text-xs text-muted-foreground">{field.description}</p>

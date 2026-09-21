@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
@@ -21,7 +21,7 @@ import { STAGE_PCT_FIELDS, alreadyConvertedOf, stageKeyOf, stageList, stagesFor,
 import { displayNameOf, fieldOf, fieldsOf, labelForValue } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
 import type { FieldSpec } from '@/types/field'
-import { RequiredBeforeMove, requiredBeforeMove } from '@/components/pipeline/RequiredBeforeMove'
+import { RequiredBeforeMove, requiredBeforeMove, type MoveFieldsState } from '@/components/pipeline/RequiredBeforeMove'
 
 interface Props {
   open: boolean
@@ -124,12 +124,20 @@ export function LeadAdvanceDialog({
   const attestations = useAttestations('leads', values, currentStage, target)
   // Layer 1, enforced (21 Sep 2026): the stage being left must be complete —
   // on a move into Opportunities too, which the server checks as it converts.
+  // The missing fields are asked for right here and saved with the move.
+  const forward = target > currentStage
   const required = requiredBeforeMove('leads', values, currentStage, target, skipped)
+  const [moveFields, setMoveFields] = useState<MoveFieldsState | null>(null)
+  useEffect(() => {
+    if (open) setMoveFields(null)
+  }, [open])
+  const movePatch = forward ? (moveFields?.patch ?? {}) : {}
+  const stillMissing = forward ? (moveFields?.remaining ?? required.length) : 0
   const canConfirm =
     target !== currentStage &&
     (!reasonRequired || reason.trim().length > 0) &&
     attestations.outstanding.length === 0 &&
-    required.length === 0
+    stillMissing === 0
 
   const readThrough = useMemo(
     () => new Set(fieldsOf('opportunities').filter((f) => f.value_mode === 'read_through').map((f) => f.api_name)),
@@ -141,7 +149,8 @@ export function LeadAdvanceDialog({
       // No modified_date/modified_by here any more: the server stamps both
       // from the Entra session and its own clock, and ignores whatever the
       // body claims. See app/routers/leads.py, SYSTEM_STAMPED.
-      const patch: Values = { project_stage: stageKeyOf(target) ?? target }
+      // The fields filled in the dialog go in the SAME request as the move.
+      const patch: Values = { ...movePatch, project_stage: stageKeyOf(target) ?? target }
       // Progression %/Probability % are NOT written here. The server gives the
       // record the target stage's pair on this same PUT (app/progression.py).
       if (isSkip) patch.stage_skip_reason = reason.trim()
@@ -175,9 +184,12 @@ export function LeadAdvanceDialog({
 
   const moveToOpportunity = useMutation({
     mutationFn: async () => {
+      // The Lead's own missing fields, filled in the dialog, are saved on the
+      // Lead first: the conversion checks the Lead is complete as it leaves.
+      if (Object.keys(movePatch).length > 0) await api.put(`/leads/${leadId}`, movePatch)
 
       const oppPayload: Values = {}
-      for (const [key, val] of Object.entries(values)) {
+      for (const [key, val] of Object.entries({ ...values, ...movePatch })) {
         // STAGE_PCT_FIELDS, like readThrough, is excluded from the blind copy:
         // the new Opportunity takes its own stage's pair on create.
         if (key === 'id' || readThrough.has(key) || STAGE_PCT_FIELDS.has(key)) continue
@@ -320,17 +332,16 @@ export function LeadAdvanceDialog({
           {/* Shown for the cross into Opportunities too: leaving Stage 3 and
               entering Stage 4 have criteria like any other move, and that was
               the one move that showed none of them. */}
-          <RequiredBeforeMove
-            fields={required}
-            from={currentStage}
-            onJumpToField={
-              onJumpToField &&
-              ((field) => {
-                handleClose()
-                onJumpToField(field)
-              })
-            }
-          />
+          {forward && required.length > 0 && (
+            <RequiredBeforeMove
+              module="leads"
+              recordId={leadId}
+              values={values}
+              from={currentStage}
+              skipped={skipped}
+              onChange={setMoveFields}
+            />
+          )}
           <ReadinessPanel
               module="leads"
               values={values}

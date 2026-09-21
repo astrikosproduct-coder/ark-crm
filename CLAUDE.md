@@ -290,22 +290,36 @@ with a mandatory recorded reason.
 1 mandatory fields → 2 exit criteria of the current stage → 3 entry criteria of the target
 stage → 4 gate status.
 
-**Required fields are enforced — on every save and every stage move** (decided 21 Sep 2026,
-`backend/app/requirements.py`, mirrored on screen by `missingDue` in
-`src/lib/spec/validation.ts`). The rules come from the published register, so a field made
+**Required fields are enforced — the stage move is the gate** (decided 21 Sep 2026, save rule
+revised the same day; `backend/app/requirements.py`, mirrored on screen by `missingOnSave` /
+`missingDue` in `src/lib/spec/validation.ts`). The rules come from the published register, so a field made
 Optional in Administration and published stops being demanded at once — there is no switch
 to turn enforcement off, and there must not be one. A field is due at its
 `mandatory_from`, else the first number of `blocks_transition`, else `capture_stage`:
-- a **save** at stage S needs every visible required field due at S or earlier;
-- a **forward move** out of F needs F's and earlier; the stage entered asks for its own
-  once the record is there (the form does not show them before);
+- a **forward move** out of F needs every visible required field due at F or earlier;
+  the stage entered asks for its own when it is left. Marking a pilot Paid counts as a move
+  (the Lead becomes its Deal on that save), which is what asks for Pilot PO Received Date;
+- an **ordinary save** may leave the current stage half-filled, but may not EMPTY a field of
+  a stage the record has already left (requiring the whole stage on every save pushed people
+  to type "TBD"); a **new record** needs only `create_required` in `spec/extensions.json`
+  (Leads: Opportunity Name, End Client, BD Owner, Currency) — each still only while the
+  register marks it required;
 - a **skipped** stage's fields are never demanded (decided 21 Sep 2026); stages below the
   module's own range belong to the parent; a **POC/Pilot Deal** is exempt through Stage 7;
 - **moving back, On Hold and Closed Lost** are never blocked by a stage's fields — only the
   reason the status asks for; **Converted** asks for nothing;
 - Stage, Status and the two percentages are the system's and never demanded; Accounts and
   Contacts need every visible required field on every save; imports go through the same
-  create logic, so a sheet row is held to it too.
+  create logic, so a Lead row needs only the create list.
+The create pages draw the same sections as the record's stage tab — Health & Forecast first,
+then the stage's own (`stageFormSections` in `src/lib/pipeline.ts`).
+**On screen, the Zoho split** (`requirementKindOf`): a RED asterisk and "This is a required
+field." only for what the save needs; a GREY asterisk and "Needed to move to the next
+stage." for the current stage's fields; nothing for later stages. The Update Stage dialog
+asks for the missing fields as inputs (Zoho's Blueprint, `RequiredBeforeMove`) and saves
+them in the move's own request. Messages give a count, never a list of labels — except when
+the server refuses a field the screen didn't mark (a publish since the page opened), which
+is named, and `RegisterUpdateBanner` then says "The form was updated… reload".
 Layers 2–3 (criteria) stay as decided on 16 Sep 2026: a person may tick a criterion, and the
 tick is recorded. Layer 4 waits for the Gates phase.
 

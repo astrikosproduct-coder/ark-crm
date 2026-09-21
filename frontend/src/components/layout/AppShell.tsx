@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 
+import { RegisterUpdateBanner } from '@/components/layout/RegisterUpdateBanner'
 import { ScrollToTop } from '@/components/layout/ScrollToTop'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { TopBar } from '@/components/layout/TopBar'
@@ -39,6 +40,7 @@ export function AppShell() {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col self-stretch">
         <TopBar />
+        <RegisterUpdateBanner />
         <main className={cn('min-w-0 flex-1', onDashboard && 'bg-dashboard-bg')}>
           {/* Each page's code is fetched the first time it is opened (App.tsx).
               The shell stays put while it arrives; only the page area waits. */}

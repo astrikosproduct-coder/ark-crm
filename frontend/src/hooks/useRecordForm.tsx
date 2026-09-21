@@ -19,7 +19,9 @@ import { computeAll, type Children } from '@/lib/spec/formula'
 import { fieldsOf } from '@/lib/spec'
 import type { InheritedSource, ResolvedRecord } from '@/lib/spec/resolveRecord'
 import {
-  missingDue,
+  missingOnSave,
+  requirementKindOf,
+  type RequirementKind,
   missingRequired,
   validateChildrenForSave,
   validateForSave,
@@ -40,6 +42,9 @@ const EMPTY_NAMES: Set<string> = new Set()
 interface State {
   values: Values
   children: Children
+  /** The values and child rows as last saved (or as opened) — what tells a
+   *  field EMPTIED by this edit from one never filled. See missingOnSave. */
+  saved: { values: Values; children: Children }
   touched: Record<string, true>
   dirty: boolean
   submitted: boolean
@@ -89,6 +94,7 @@ function reducer(state: State, action: Action): State {
       return {
         values: action.values,
         children: action.children,
+        saved: { values: action.values, children: action.children },
         touched: {},
         dirty: false,
         submitted: false,
@@ -98,7 +104,7 @@ function reducer(state: State, action: Action): State {
     // leaves behind: the values on screen ARE the record now, so there is
     // nothing left for the leave-page guard to warn about.
     case 'clean':
-      return { ...state, touched: {}, dirty: false }
+      return { ...state, saved: { values: state.values, children: state.children }, touched: {}, dirty: false }
 
     case 'submitted':
       return { ...state, submitted: true }
@@ -152,8 +158,9 @@ export interface RecordForm {
    * save. See missingRequired. */
   visibleRequired: Errors
   allRequired: Errors
-  /** The empty required fields that are DUE at the record's stage — the ones a
-   * save is refused for (decided 21 Sep 2026). See missingDue. */
+  /** The empty required fields a SAVE is refused for — a stage already left
+   * emptied, a status's reason, a new record's few (revised 21 Sep 2026).
+   * See missingOnSave. */
   dueRequired: Errors
   /** Per-cell child-row errors, keyed by childlist api_name. Always complete —
    * the table decides for itself which of them to show, since a row the user
@@ -166,7 +173,10 @@ export interface RecordForm {
   /** Values as they should be persisted, computed fields snapshotted in. */
   toPayload: () => Values
   isVisible: (field: FieldSpec) => boolean
+  /** Red asterisk: the save is refused without it. See requirementKindOf. */
   isRequired: (field: FieldSpec) => boolean
+  /** 'save' (red), 'move' (grey — needed to leave the stage), or null. */
+  requirementKind: (field: FieldSpec) => RequirementKind
   isUnruled: (field: FieldSpec) => boolean
   /** api_names whose value was read through a parent record, not stored here. */
   inherited: Set<string>
@@ -276,9 +286,11 @@ export function RecordFormProvider({
     undefined,
     (): State => {
       const initial = splitChildren(module, initialValues)
+      const children = { ...initial.children, ...(initialChildren ?? {}) }
       return {
         values: initial.values,
-        children: { ...initial.children, ...(initialChildren ?? {}) },
+        children,
+        saved: { values: initial.values, children },
         touched: {},
         dirty: false,
         submitted: false,
@@ -380,7 +392,16 @@ export function RecordFormProvider({
   const allRequired = useMemo(() => missingRequired(module, values), [module, values])
 
   const skipped = stageScope?.skipped
-  const dueRequired = useMemo(() => missingDue(module, values, { skipped }), [module, values, skipped])
+  const creating = recordId === NEW_RECORD_ID
+  const dueRequired = useMemo(
+    () =>
+      missingOnSave(module, values, {
+        creating,
+        saved: { ...state.saved.values, ...inheritedValues, ...state.saved.children },
+        skipped,
+      }),
+    [module, values, creating, state.saved, inheritedValues, skipped]
+  )
 
   // One gate, applied to both maps: an untouched field is not scolded before
   // the first save attempt, and everything speaks up after one.
@@ -412,9 +433,13 @@ export function RecordFormProvider({
    * scolding them for not having started.
    */
   const showAllRequired = mode === 'edit' && recordId !== NEW_RECORD_ID
+  // Only what the SAVE needs speaks up in red (21 Sep 2026). A field needed to
+  // leave the stage carries a grey mark instead, and the Update Stage dialog
+  // asks for it — marking all of them red told a person creating a lead that
+  // twelve were missing while the save needed two.
   const visibleRequired = useMemo(
-    () => (showAllRequired ? allRequired : gate(allRequired)),
-    [showAllRequired, gate, allRequired]
+    () => (showAllRequired ? dueRequired : gate(dueRequired)),
+    [showAllRequired, gate, dueRequired]
   )
 
   const setValue = useCallback(
@@ -512,7 +537,8 @@ export function RecordFormProvider({
       markSubmitted,
       toPayload,
       isVisible: (field) => isVisible(field, values),
-      isRequired: (field) => requirementOf(field, values).required,
+      isRequired: (field) => requirementKindOf(module, field, values, { creating, skipped }) === 'save',
+      requirementKind: (field) => requirementKindOf(module, field, values, { creating, skipped }),
       isUnruled: (field) => requirementOf(field, values).unruled === true,
       inherited: resolved?.inherited ?? EMPTY_NAMES,
       sourceOf: (apiName: string) => resolved?.sources[apiName],
@@ -541,6 +567,8 @@ export function RecordFormProvider({
       markSubmitted,
       toPayload,
       markSaved,
+      creating,
+      skipped,
     ]
   )
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { Button } from '@/components/ui/button'
@@ -13,7 +13,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ReadinessPanel } from '@/components/leads/ReadinessPanel'
-import { RequiredBeforeMove, requiredBeforeMove } from '@/components/pipeline/RequiredBeforeMove'
+import { RequiredBeforeMove, requiredBeforeMove, type MoveFieldsState } from '@/components/pipeline/RequiredBeforeMove'
 import { useAttestations } from '@/components/leads/useAttestations'
 import type { PipelineModuleSpec } from '@/components/pipeline/types'
 import { api } from '@/lib/api'
@@ -84,13 +84,20 @@ export function AdvanceStageDialog({
   const isReversal = target < currentStage
   const reasonRequired = isSkip || isReversal
   const attestations = useAttestations(spec.module, values, currentStage, target)
-  // Layer 1, enforced (21 Sep 2026): the stage being left must be complete.
+  // Layer 1, enforced (21 Sep 2026): the stage being left must be complete. The
+  // missing fields are asked for right here and saved with the move.
+  const forward = target > currentStage
   const required = requiredBeforeMove(spec.module, values, currentStage, target, skipped)
+  const [moveFields, setMoveFields] = useState<MoveFieldsState | null>(null)
+  useEffect(() => {
+    if (open) setMoveFields(null)
+  }, [open])
+  const stillMissing = forward ? (moveFields?.remaining ?? required.length) : 0
   const canConfirm =
     target !== currentStage &&
     (!reasonRequired || reason.trim().length > 0) &&
     attestations.outstanding.length === 0 &&
-    required.length === 0
+    stillMissing === 0
 
   const stageOptions = useMemo(
     () => stages.filter((s) => s.stage !== currentStage),
@@ -102,7 +109,8 @@ export function AdvanceStageDialog({
       const stageField = stageFieldOf(spec.module)
       // No system-field stamp: the server owns modified_by/modified_date and
       // discards whatever the body claims. See PipelineModuleSpec in types.ts.
-      const patch: Values = {}
+      // The fields filled in the dialog go in the SAME request as the move.
+      const patch: Values = forward ? { ...(moveFields?.patch ?? {}) } : {}
       if (stageField) patch[stageField] = spec.stageKeyOf(target) ?? target
       // Progression %/Probability % are NOT written here: the server sets the
       // target stage's pair on this PUT (app/progression.py).
@@ -194,17 +202,16 @@ export function AdvanceStageDialog({
             />
           )}
 
-          <RequiredBeforeMove
-            fields={required}
-            from={currentStage}
-            onJumpToField={
-              onJumpToField &&
-              ((field) => {
-                onClose()
-                onJumpToField(field)
-              })
-            }
-          />
+          {forward && required.length > 0 && (
+            <RequiredBeforeMove
+              module={spec.module}
+              recordId={recordId}
+              values={values}
+              from={currentStage}
+              skipped={skipped}
+              onChange={setMoveFields}
+            />
+          )}
 
           <ReadinessPanel
             module={spec.module}

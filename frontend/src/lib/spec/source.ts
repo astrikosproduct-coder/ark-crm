@@ -44,6 +44,34 @@ function isPublishedSpec(value: unknown): value is PublishedSpec {
   return Boolean(v) && Array.isArray(v!.fields) && Array.isArray(v!.stages) && typeof v!.picklists === 'object'
 }
 
+/** Fired to ask RegisterUpdateBanner to check now — after a refused save. */
+export const REGISTER_CHECK_EVENT = 'ark:check-register'
+
+export function requestRegisterCheck(): void {
+  window.dispatchEvent(new Event(REGISTER_CHECK_EVENT))
+}
+
+/**
+ * Has a newer register been published since this page loaded? A conditional
+ * request: the same version answers 304 with no body. False whenever it can't
+ * tell — the built-in copy in use, a network error, not signed in.
+ */
+export async function publishedVersionChanged(): Promise<boolean> {
+  if (specSource.version === null) return false
+  try {
+    const response = await fetch('/api/spec', {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json', 'If-None-Match': `"register-${specSource.version}"` },
+      cache: 'no-store',
+    })
+    if (response.status !== 200) return false
+    const doc = (await response.json()) as { version?: number }
+    return typeof doc.version === 'number' && doc.version !== specSource.version
+  } catch {
+    return false
+  }
+}
+
 /**
  * Plain fetch, not the Axios client: that client's interceptors send a 401 to
  * the sign-in page, and a visitor who is not signed in yet must simply get the

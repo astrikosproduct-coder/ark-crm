@@ -205,6 +205,28 @@ export function sectionsForStage(module: string, stage: number): string[] {
   return seen
 }
 
+/**
+ * The register section holding the record's key facts — Overall RAG, Next
+ * Milestone (+ date), Expected Close Month, Progression % / Probability %.
+ * Found by a field it contains, never by its label, which Administration may
+ * rename ("HEADER" became "Health & Forecast" and broke the screen once).
+ */
+const KEY_FACTS_ANCHOR = 'overall_rag'
+
+export function keyFactsSectionOf(module: string): string | null {
+  return fieldsOf(module).find((f) => f.api_name === KEY_FACTS_ANCHOR)?.section ?? null
+}
+
+/**
+ * What a stage's form shows, in order: the key facts first, on every stage,
+ * then the stage's own sections. ONE list for the record page and the create
+ * pages, so a new record looks like the record it becomes (21 Sep 2026).
+ */
+export function stageFormSections(module: string, stage: number): string[] {
+  const keyFacts = keyFactsSectionOf(module)
+  return [...(keyFacts ? [keyFacts] : []), ...sectionsForStage(module, stage).filter((s) => s !== keyFacts)]
+}
+
 export function criteriaFor(stage: number, type: 'entry' | 'exit'): Criterion[] {
   return CRITERIA.filter((c) => c.stage === stage && c.type === type)
 }

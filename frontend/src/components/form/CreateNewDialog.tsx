@@ -157,7 +157,7 @@ function CreateNewBody({
           Cancel
         </Button>
         <Button type="button" onClick={submit} disabled={create.isPending}>
-          {create.isPending ? 'Creating…' : 'Create'}
+          {create.isPending ? 'Creating…' : `Create ${module.replace(/s$/, '')}`}
         </Button>
       </DialogFooter>
     </>

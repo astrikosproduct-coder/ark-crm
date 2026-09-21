@@ -13,13 +13,20 @@ Every field names the stage its answer belongs to: `mandatory_from`, else the
 first number of `blocks_transition` ("3 → 4"), else `capture_stage`. A field
 with none of them (Accounts, Contacts) is due always.
 
-    Save at stage S          every field due at S or an earlier stage
-    Move forward F -> T      every field due at F or earlier; T's own fields
-                             are asked for once the record is there, because
-                             the form does not show them before
-    Move back, On Hold,      never blocked by a stage's fields — only the
-    Closed Lost              reason the status itself asks for (On Hold
-                             Reason, Closed Lost Reason)
+    Move forward F -> T      every field due at F or earlier. THE GATE.
+                             T's own fields are asked for when T is left.
+    Ordinary save            the current stage may be saved half-filled; a
+                             field of a stage already LEFT may not be emptied
+                             (revised 21 Sep 2026 — requiring the whole
+                             current stage on every save pushed people to type
+                             "TBD" to get past it)
+    New record               only the sidecar's `create_required` fields
+                             (Leads: name, End Client, BD Owner, Currency)
+    Any save                 the reason a status asks for (On Hold Reason,
+                             Closed Lost Reason) when that status is set
+    Move back                only that reason
+    Pilot marked Paid        a move: the Lead converts into its Deal on that
+                             save, so its stage must be complete
     Converted                nothing: the record is read-only
 
 EXCEPTIONS, each decided by the business
@@ -96,7 +103,7 @@ NEVER_DEMANDED = {"System", "Computed", "Advisory", "Optional"}
 SYSTEM_SET = {"lead_status", "progression_pct", "probability_pct"}
 
 
-def _sidecar() -> tuple[set[str], set[str], set[str]]:
+def _sidecar() -> tuple[set[str], set[str], set[str], dict[str, set[str]]]:
     """
     Three lists from the hand-kept sidecar (spec/extensions.json) that the form
     also reads: phase-1-locked fields (module.api_name), history-only reasons,
@@ -106,7 +113,7 @@ def _sidecar() -> tuple[set[str], set[str], set[str]]:
     try:
         data = json.loads((SPEC_DIR / "extensions.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return set(), set(), set()
+        return set(), set(), set(), {}
     fields = data.get("fields") or {}
     locked = {key for key, ext in fields.items() if isinstance(ext, dict) and ext.get("phase1_locked")}
     history = set(((data.get("stage_scoped") or {}).get("history_only") or {}).get("fields") or [])
@@ -118,10 +125,18 @@ def _sidecar() -> tuple[set[str], set[str], set[str]]:
         for entry in spec.get("columns") or []:
             if isinstance(entry, str):
                 columns.add(entry.split(".")[-1])
-    return locked, history, columns
+    create = {
+        module: set(names)
+        for module, names in (data.get("create_required") or {}).items()
+        if not module.startswith("$") and isinstance(names, list)
+    }
+    return locked, history, columns, create
 
 
-PHASE1_LOCKED, HISTORY_ONLY, CHILD_COLUMNS = _sidecar()
+#: CREATE_REQUIRED: the few fields a NEW record needs, per module — the
+#: sidecar's `create_required`. Each is still demanded only while the register
+#: marks it required, so Administration keeps the last word.
+PHASE1_LOCKED, HISTORY_ONLY, CHILD_COLUMNS, CREATE_REQUIRED = _sidecar()
 
 
 def stage_number(value: Any) -> int | None:
@@ -286,12 +301,39 @@ def missing_fields(
     return out
 
 
+def _cleared(db: Session, module: str, record: Any, *, record_id: str | None, stage: int | None) -> list[dict[str, Any]]:
+    """
+    Required fields of a stage the record has already LEFT that this save
+    emptied — empty now, filled in the saved record. The saved record is read
+    in a second session, which sees the database as it was before this
+    request's uncommitted changes.
+    """
+    if record_id is None or stage is None:
+        return []
+    now = [
+        f for f in missing_fields(db, module, record, record_id=record_id, stage=stage, up_to=stage)
+        if (due_stage(f) is not None and due_stage(f) < stage)
+    ]
+    if not now:
+        return []
+    from .database import SessionLocal  # local: keeps this module free of the engine at import
+
+    with SessionLocal() as saved_db:
+        saved = saved_db.get(type(record), record_id)
+        if saved is None:
+            return []
+        empty_before = {
+            f["api_name"]
+            for f in missing_fields(saved_db, module, saved, record_id=record_id, stage=stage, up_to=stage)
+        }
+    return [f for f in now if f["api_name"] not in empty_before]
+
+
 def _refuse(fields: list[dict[str, Any]], message: str) -> HTTPException:
-    shown = [f["label"] for f in fields[:8]]
-    details = [f"Fill in: {', '.join(shown)}{'.' if len(fields) <= 8 else ''}"]
-    if len(fields) > 8:
-        details[0] += f", and {len(fields) - 8} more."
-    details.append("Required fields are marked with a red asterisk.")
+    # A count, not a list of names (asked for 21 Sep 2026): the form marks each
+    # one. `fields` below still names them, for the screen to mark.
+    count = "this required field" if len(fields) == 1 else f"these {len(fields)} required fields"
+    details = [f"Fill in {count}. Each is marked with a red asterisk."]
     return HTTPException(
         status.HTTP_422_UNPROCESSABLE_ENTITY,
         refusal(
@@ -324,37 +366,48 @@ def check_save(
         rels = list(CHILD_LISTS.get(module, {}).values())
         if rels:
             db.expire(record, rels)
-        status_now = getattr(record, "lead_status", None)
-        if status_now == CONVERTED:
+        if getattr(record, "lead_status", None) == CONVERTED:
             return
         stage = stage_number(getattr(record, STAGE_FIELD[module], None))
-        status_only = status_now in (CLOSED_LOST, ON_HOLD)
-        moving_back = previous_stage is not None and stage is not None and stage < previous_stage
         moving_on = (
             not creating and previous_stage is not None and stage is not None and stage > previous_stage
         )
-        if moving_back:
-            status_only = True
+        # A pilot marked Paid converts this Lead into its Deal on this very
+        # save (app/progression.py) — the Lead is leaving, so it is checked as
+        # a move out of its stage. That is what asks for Pilot PO Received Date.
+        if module == "leads" and str(getattr(record, "pilot_commercial_model", "") or "").upper() == "PAID":
+            moving_on, previous_stage = True, stage
+
         if moving_on:
             # The move itself: the stage being LEFT is what must be complete.
             visited = _visited(db, module, record_id, previous_stage)
+            status_only = getattr(record, "lead_status", None) in (CLOSED_LOST, ON_HOLD)
             missing = missing_fields(
                 db, module, record, record_id=record_id, stage=previous_stage,
                 up_to=previous_stage, visited=visited, status_only=status_only,
             )
             if missing:
                 raise _refuse(missing, f"Fill in Stage {previous_stage}'s required fields before moving on.")
-            # And the status's own reason, read at the stage it was given.
-            missing = missing_fields(
-                db, module, record, record_id=record_id, stage=stage, up_to=stage,
-                visited=visited | {stage}, status_only=True,
-            )
-        else:
-            visited = {stage} if creating else None
-            missing = missing_fields(
-                db, module, record, record_id=record_id, stage=stage, up_to=stage,
-                visited=visited, status_only=status_only,
-            )
+
+        # Every save: the reason a status asks for (On Hold, Closed Lost),
+        # read at the stage the record is at now.
+        missing = missing_fields(
+            db, module, record, record_id=record_id, stage=stage, up_to=stage,
+            visited={stage} if creating else None, status_only=True,
+        )
+        if creating:
+            # A new record needs only the few fields that make it a record.
+            wanted = CREATE_REQUIRED.get(module, set())
+            missing += [
+                f for f in missing_fields(
+                    db, module, record, record_id=record_id, stage=stage, up_to=stage, visited={stage},
+                )
+                if f["api_name"] in wanted and f not in missing
+            ]
+        elif not moving_on and not (previous_stage is not None and stage is not None and stage < previous_stage):
+            # An ordinary save may leave the current stage half-filled, but
+            # may not EMPTY a field of a stage the record has already left.
+            missing += [f for f in _cleared(db, module, record, record_id=record_id, stage=stage) if f not in missing]
         if missing:
             raise _refuse(missing, "Some required fields are empty.")
         return

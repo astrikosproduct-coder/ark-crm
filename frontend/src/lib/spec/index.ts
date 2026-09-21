@@ -27,6 +27,8 @@ interface ExtensionsFile {
   partner_roster: { account_types: string[] }
   partner_registration: PartnerRegistrationSpec
   quick_create: { extra_fields: Record<string, string[]> }
+  /** The few fields a NEW record needs before its first save, per module. */
+  create_required?: Record<string, string[] | string>
   kanban: {
     status_field: string
     terminal_statuses: string[]
@@ -676,6 +678,16 @@ export const orphanedFieldSetNames = [
 export function quickCreateExtraFieldsFor(module: string): FieldSpec[] {
   const names = extensionsFile.quick_create?.extra_fields?.[module] ?? []
   return names.map((name) => fieldOf(module, name)).filter((f): f is FieldSpec => Boolean(f))
+}
+
+/**
+ * The fields a NEW record of this module must have before its first save —
+ * spec/extensions.json `create_required` (decided 21 Sep 2026). The server
+ * reads the same list (backend/app/requirements.py).
+ */
+export function createRequiredFor(module: string): ReadonlySet<string> {
+  const names = extensionsFile.create_required?.[module]
+  return new Set(Array.isArray(names) ? names : [])
 }
 
 /** Gaps recorded by hand in the sidecar, shown beside the generated ones. */
