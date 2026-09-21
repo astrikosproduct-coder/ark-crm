@@ -15,6 +15,7 @@ import {
 import { api } from '@/lib/api'
 import { Bullets, ErrorNotice } from '@/components/ui/notice'
 import { fieldOf } from '@/lib/spec'
+import { EraseSection, nameMatches, useErasePursuit } from '@/components/pursuits/ErasePursuit'
 
 /** What backend/app/lead_deletion.py::deletion_plan answers. */
 interface LinkedRecord {
@@ -78,13 +79,25 @@ interface Props {
  * then only the ones nothing else uses go; every linked record is listed with
  * what will happen to it, before anyone confirms. The server decides all of it
  * again on the delete itself (backend/app/lead_deletion.py).
+ *
+ * A second checkbox deletes the whole pursuit for good — the Opportunity and
+ * Deal it became included (decided 21 Sep 2026, every role; see
+ * components/pursuits/ErasePursuit.tsx). It is the way past "This lead can't
+ * be deleted".
  */
 export function DeleteLeadDialog({ open, leadId, onClose, onDeleted }: Props) {
   const queryClient = useQueryClient()
   const [withLinked, setWithLinked] = useState(false)
+  const [erasing, setErasing] = useState(false)
+  const [typed, setTyped] = useState('')
+  const { plan: erasePlan, erase } = useErasePursuit(leadId, open, onDeleted)
 
   useEffect(() => {
-    if (open) setWithLinked(false)
+    if (open) {
+      setWithLinked(false)
+      setErasing(false)
+      setTyped('')
+    }
   }, [open])
 
   const { data: plan, isLoading, isError, error } = useQuery({
@@ -179,13 +192,27 @@ export function DeleteLeadDialog({ open, leadId, onClose, onDeleted }: Props) {
           </div>
         )}
 
+        {plan && (
+          <EraseSection plan={erasePlan.data} checked={erasing} onChecked={setErasing} typed={typed} onTyped={setTyped} />
+        )}
+
         {remove.isError && <ErrorNotice error={remove.error} />}
+        {erase.isError && <ErrorNotice error={erase.error} />}
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose} disabled={remove.isPending}>
-            {blocked ? 'Close' : 'Cancel'}
+          <Button type="button" variant="outline" onClick={onClose} disabled={remove.isPending || erase.isPending}>
+            {blocked && !erasing ? 'Close' : 'Cancel'}
           </Button>
-          {plan && !blocked && (
+          {erasing ? (
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={!nameMatches(erasePlan.data, typed) || erase.isPending}
+              onClick={() => erase.mutate(typed)}
+            >
+              {erase.isPending ? 'Deleting…' : 'Delete the whole pursuit'}
+            </Button>
+          ) : plan && !blocked && (
             <Button type="button" variant="destructive" disabled={remove.isPending} onClick={() => remove.mutate()}>
               {remove.isPending
                 ? 'Deleting…'

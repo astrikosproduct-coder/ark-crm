@@ -7,6 +7,7 @@ import { DealPaymentMilestones } from '@/components/deals/PaymentMilestonesPanel
 import { PipelineRecordPage } from '@/components/pipeline/PipelineRecordPage'
 import { PipelineRelated } from '@/components/pipeline/PipelineRelated'
 import { PursuitBanner } from '@/components/pursuits/PursuitBanner'
+import { ErasePursuitButton } from '@/components/pursuits/ErasePursuit'
 import type { PipelineModuleSpec, PipelineRecordContext } from '@/components/pipeline/types'
 import { api } from '@/lib/api'
 import { localAmount, revenueOf } from '@/lib/revenue'
@@ -127,9 +128,16 @@ function useCreateExpansionLead(ctx: PipelineRecordContext) {
 
 function DealActions({ ctx }: { ctx: PipelineRecordContext }) {
   const { mutation, hasParent } = useCreateExpansionLead(ctx)
+  const navigate = useNavigate()
 
   return (
     <>
+      <ErasePursuitButton
+        recordId={ctx.id}
+        noun="deal"
+        disabled={ctx.isLoading || !ctx.values}
+        onErased={() => navigate('/deals', { replace: true })}
+      />
       {ctx.currentStage === LAST_STAGE && (
         <Button
           variant="outline"

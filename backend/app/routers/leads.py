@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from ..auth import current_user
 from ..list_query import run_list_query
 from ..messages import already_exists, not_found, picked_record_missing
+from ..requirements import check_save
 from ..pursuits import group_names
 from ..changes import child_snapshot, custom_field_diff, diff, list_changes, snapshot
 from ..clock import days_since, now_utc
@@ -461,6 +462,8 @@ def insert_lead(payload: LeadCreate, db: Session, user: User) -> Lead:
 
     # The stage's Progression %/Probability % — and, for a Lead created with
     # its pilot already Paid, the POC/Pilot Deal. See app/progression.py.
+    # Every due Mandatory field filled, or 422 — see app/requirements.py.
+    check_save(db, "leads", lead, record_id=lead_id, creating=True)
     pct_after_write(db, "leads", lead, pct_plan, actor=user.user_id)
 
     db.commit()
@@ -581,6 +584,8 @@ def _write(db: Session, lead_id: str, payload: LeadUpdate, sent: set[str], user:
 
     # A stage move takes the new stage's pair; a status or a typed override
     # settles here; a pilot marked Paid becomes its Deal. See app/progression.py.
+    # Every due Mandatory field filled, or 422 — see app/requirements.py.
+    check_save(db, "leads", lead, record_id=lead_id, creating=False, previous_stage=pct_plan.previous_stage)
     pct_after_write(db, "leads", lead, pct_plan, actor=user.user_id)
 
     db.commit()

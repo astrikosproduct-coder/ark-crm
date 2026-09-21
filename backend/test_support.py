@@ -75,8 +75,15 @@ from typing import Any
 
 from sqlalchemy import select
 
+from app import requirements
 from app.database import SessionLocal
 from app.models import FieldPlacement
+
+# The scripts written before 21 Sep 2026 create records with the handful of
+# fields each test is about, which the required-field check now refuses. It is
+# switched off for them here, in code — never by configuration, so production
+# cannot be — and test_required_fields.py switches it back on to test it.
+requirements.ENFORCED = False
 
 # Every placement column an Administration edit can change. Identity columns
 # (id, definition_id, module_key, api_name) are deliberately absent: if one of

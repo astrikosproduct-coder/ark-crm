@@ -314,17 +314,22 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
   // form's scoped-field list, its per-stage projection and therefore its whole
   // `values` map recompute on every keystroke, dragging validation and every
   // formula along with them.
+  // Skipped stages ride along so a save does not demand their required fields
+  // (decided 21 Sep 2026) — see missingDue in lib/spec/validation.ts.
+  const skippedList = useMemo(() => [...skipped], [skipped])
   const stageScope = useMemo(
     () =>
-      isStageScopedModule(spec.module) ? { stage: stageToShow, currentStage } : undefined,
-    [spec.module, stageToShow, currentStage]
+      isStageScopedModule(spec.module)
+        ? { stage: stageToShow, currentStage, skipped: skippedList }
+        : undefined,
+    [spec.module, stageToShow, currentStage, skippedList]
   )
   const detailsStageScope = useMemo(
     () =>
       isStageScopedModule(spec.module)
-        ? { stage: currentStage, currentStage }
+        ? { stage: currentStage, currentStage, skipped: skippedList }
         : undefined,
-    [spec.module, currentStage]
+    [spec.module, currentStage, skippedList]
   )
 
   const ctx: PipelineRecordContext = {
@@ -339,6 +344,7 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
     endClient,
     partner,
     transitions,
+    skipped: skippedList,
     // Each of these unmounts or re-keys an open editor, so each asks first
     // when something is unsaved — see useUnsavedChangesStore.
     openAdvance: () => requestDiscard(() => setAdvanceOpen(true)),
@@ -612,6 +618,7 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
           recordId={id ?? ''}
           values={values}
           currentStage={currentStage}
+          skipped={skippedList}
           onJumpToField={jumpToField}
           onClose={() => setAdvanceOpen(false)}
           onAdvanced={(toStage) => setSelectedStage(toStage)}

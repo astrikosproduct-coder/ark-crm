@@ -19,6 +19,7 @@ import { computeAll, type Children } from '@/lib/spec/formula'
 import { fieldsOf } from '@/lib/spec'
 import type { InheritedSource, ResolvedRecord } from '@/lib/spec/resolveRecord'
 import {
+  missingDue,
   missingRequired,
   validateChildrenForSave,
   validateForSave,
@@ -141,13 +142,19 @@ export interface RecordForm {
    * "there is something on screen that isn't saved". The leave-page guard
    * reads this. */
   dirty: boolean
+  /** A save has been attempted since the form opened. */
+  submitted: boolean
   /** Errors for fields the user has touched, plus everything once submitted. */
   visibleErrors: Errors
   allErrors: Errors
   /** Required fields that are still empty, gated the same way visibleErrors is.
-   * These do NOT block a save — they block the stage move. See missingRequired. */
+   * Every one of them draws the red "required" line; only dueRequired stops a
+   * save. See missingRequired. */
   visibleRequired: Errors
   allRequired: Errors
+  /** The empty required fields that are DUE at the record's stage — the ones a
+   * save is refused for (decided 21 Sep 2026). See missingDue. */
+  dueRequired: Errors
   /** Per-cell child-row errors, keyed by childlist api_name. Always complete —
    * the table decides for itself which of them to show, since a row the user
    * just added has no per-row "touched" state to consult. */
@@ -235,6 +242,9 @@ export interface StageScope {
    * ALSO written to the plain api_name. Correcting history must not become
    * the record's current value — see stageScopedPatch. */
   currentStage: number
+  /** Stages the record jumped over and never stood at: their required fields
+   * are not demanded (decided 21 Sep 2026). See missingDue. */
+  skipped?: readonly number[]
 }
 
 /**
@@ -369,6 +379,9 @@ export function RecordFormProvider({
 
   const allRequired = useMemo(() => missingRequired(module, values), [module, values])
 
+  const skipped = stageScope?.skipped
+  const dueRequired = useMemo(() => missingDue(module, values, { skipped }), [module, values, skipped])
+
   // One gate, applied to both maps: an untouched field is not scolded before
   // the first save attempt, and everything speaks up after one.
   const gate = useCallback(
@@ -486,10 +499,12 @@ export function RecordFormProvider({
       values,
       children: state.children,
       dirty: state.dirty,
+      submitted: state.submitted,
       visibleErrors,
       allErrors,
       visibleRequired,
       allRequired,
+      dueRequired,
       childErrors,
       setValue,
       setChildRows,
@@ -513,10 +528,12 @@ export function RecordFormProvider({
       unresolvedInherited,
       state.children,
       state.dirty,
+      state.submitted,
       visibleErrors,
       allErrors,
       visibleRequired,
       allRequired,
+      dueRequired,
       childErrors,
       setValue,
       setChildRows,

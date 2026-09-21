@@ -135,6 +135,13 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    **Deleting an Account or Contact that a pursuit names is refused by the server**
    (`app/record_references.py`): those foreign keys are ON DELETE SET NULL, so the database
    alone would silently blank the End Client or Primary Contact on live records.
+   **A whole pursuit can be deleted for good** (decided 21 Sep 2026, any role):
+   `POST /api/pursuits/{id}/erase` from its Lead, Opportunity or Deal deletes the whole
+   chain — records, child rows, stage history, conversions, audit entries — in one
+   transaction, once the pursuit's name is typed. Accounts, Contacts, registrations,
+   expansion leads and pursuit groups stay, unlinked; one audit line records who and when.
+   A checkbox in the Lead's delete dialog, and a Delete button on Opportunities and Deals
+   (`components/pursuits/ErasePursuit.tsx`, `app/pursuit_erasure.py`).
    **Users are internal ARK employees; Contacts are external people at an Account.**
    Never mix them: an `engagement_owner` is a user, a `primary_contact` is a contact.
    **Partners is a view over `accounts`**, not a table. An account is a Partner when its
@@ -192,12 +199,18 @@ framework other than Tailwind.
 ## Where the truth lives
 
 **Editable metadata source of truth: PostgreSQL.**
-**Phase-1 frontend representation: the generated `spec/*.json` files.**
-**Supported direction: PostgreSQL → generated JSON. Unsupported: JSON → PostgreSQL.**
+**What the live app runs on: the latest PUBLISHED version** (`metadata_versions`), served
+at `GET /api/spec` and read by the browser at start-up (decided 21 Sep 2026).
+**Supported direction: PostgreSQL → published version → app. Unsupported: JSON → PostgreSQL.**
 
 Since Round 6, fields, picklists and stages are rows in PostgreSQL, edited in Administration
-and written out by publishing. The frontend still *reads* the JSON — that is a deliberate
-Phase-1 transitional arrangement, not a permanent one (see the note below the table).
+and published. Since 21 Sep 2026 **a publish reaches the live app on the next page load, with
+no rebuild**: `src/main.tsx` fetches `/api/spec` before loading the app
+(`src/lib/spec/source.ts`), and the server's required-field check reads the same version
+(`app/live_register.py`, `app/requirements.py`). An unpublished draft changes nothing.
+The generated `spec/fields.json`, `picklists.json` and `stages.json` are still written on
+publish and committed — they are the **built-in fallback** (the sign-in page, or `/api/spec`
+failing), no longer what a signed-in user sees.
 
 | File | Contains | Where it comes from |
 |---|---|---|
@@ -215,12 +228,13 @@ edit there has no path back into the database and the next publish overwrites it
 the register, change it in Administration and publish. `criteria.json`, `gates.json` and the
 seed files are still workbook output — **regenerate rather than hand-edit** those too.
 
-**Phase 2 may drop the JSON hop** and serve metadata straight from an API to the frontend, at
-which point these three files disappear. Nothing should be written that assumes the JSON
-layer is permanent.
+The API hop is done for fields, picklists and stages; `extensions.json`, `criteria.json`,
+`gates.json` and `module_split.json` are still bundled. Nothing should be written that
+assumes the JSON layer is permanent.
 
 ```
-Administration UI → PostgreSQL → publish → regenerate → spec/*.json → frontend
+Administration UI → PostgreSQL → publish → metadata_versions → /api/spec → frontend
+                                        └→ spec/*.json (fallback, committed)
 ```
 
 ## The domain in one page
@@ -256,9 +270,13 @@ work; Probability moves on the client's decisions.** Rules:
 - Closed Lost sets Probability to 0; reopening restores the stage's value.
 - **Paid POC / pilot:** marking a Lead's pilot Paid creates a Deal with status
   `POC_PILOT_DEAL` ("POC/Pilot Deal") at Stage 7 Close, Progression 95 / Probability 100,
-  contract value = pilot fee, and the Lead becomes Converted. `POC_PILOT_DEAL` is a
-  Deals-only value on the shared status picklist — hidden and refused on Leads and
-  Opportunities. How the programme after a pilot is tracked (Expansion lead vs new logo)
+  contract value = pilot fee, and the Lead becomes Converted. The same save asks for
+  **Pilot PO Received Date** (`leads.pilot_po_received_date`, migration 0035, shown beside
+  Pilot Fee once Paid), copied into the Deal's `po_received_date` — a paid pilot counts as
+  Won (decided 21 Sep 2026). `POC_PILOT_DEAL` is a Deals-only value on the shared status
+  picklist — hidden on Leads and Opportunities by their sidecar entries, and refused there by
+  the server; Deals have their own `deals.lead_status` sidecar entry so they do not inherit
+  that exclusion. How the programme after a pilot is tracked (Expansion lead vs new logo)
   is a phase-2 decision; do not build it.
 - Never reintroduce an evidence ladder, band midpoints, or automatic boosts. Nomination Bid
   and Incumbent Only are reasons to override, not uplifts. The 0016 progression ladder
@@ -271,6 +289,25 @@ with a mandatory recorded reason.
 **Four-layer transition check**, in order:
 1 mandatory fields → 2 exit criteria of the current stage → 3 entry criteria of the target
 stage → 4 gate status.
+
+**Required fields are enforced — on every save and every stage move** (decided 21 Sep 2026,
+`backend/app/requirements.py`, mirrored on screen by `missingDue` in
+`src/lib/spec/validation.ts`). The rules come from the published register, so a field made
+Optional in Administration and published stops being demanded at once — there is no switch
+to turn enforcement off, and there must not be one. A field is due at its
+`mandatory_from`, else the first number of `blocks_transition`, else `capture_stage`:
+- a **save** at stage S needs every visible required field due at S or earlier;
+- a **forward move** out of F needs F's and earlier; the stage entered asks for its own
+  once the record is there (the form does not show them before);
+- a **skipped** stage's fields are never demanded (decided 21 Sep 2026); stages below the
+  module's own range belong to the parent; a **POC/Pilot Deal** is exempt through Stage 7;
+- **moving back, On Hold and Closed Lost** are never blocked by a stage's fields — only the
+  reason the status asks for; **Converted** asks for nothing;
+- Stage, Status and the two percentages are the system's and never demanded; Accounts and
+  Contacts need every visible required field on every save; imports go through the same
+  create logic, so a sheet row is held to it too.
+Layers 2–3 (criteria) stay as decided on 16 Sep 2026: a person may tick a criterion, and the
+tick is recorded. Layer 4 waits for the Gates phase.
 
 **Three gates**, each anchored to the *entry* of a stage so that a skip cannot bypass them:
 
@@ -303,7 +340,8 @@ capped at 40% of TCV. Never discount the platform licence without approval.
 
 **Won is the day the PO is received** (decided 15 Sep 2026; measurable since 21 Sep 2026).
 `deals.po_received_date` (migration 0034, "PO Received Date") sits beside PO / LOI Reference
-at Stage 7, Mandatory on the same terms. The Dashboard's Won tile counts counted Deals by
+at Stage 7, Mandatory on the same terms (a paid pilot's comes from its Lead — see
+Progression above). The Dashboard's Won tile counts counted Deals by
 that date and by nothing else — never Booking Date (a finance event that lags the PO), never
 a stage move. Won is a subset of Actual Revenue, same revenue rule.
 
@@ -359,12 +397,16 @@ that *would* have fired was planned and never built; it is not coming. See rule 
 - **Production starts from `backend/make_release_database.py`** — a copy of this database
   with every table emptied except the register, the roles and the first administrator. A
   KEEP list, so a table added later is emptied by default and prototype data cannot leak.
-- **In V1, change the register only through a committed metadata script** (the pattern of
-  `po_received_date_metadata.py`), run on development and then on production. An edit in the
-  Administration screen changes only the database it was made in, and publishing updates
-  the JSON only for the next build — so a UI edit on either side makes the production
-  database and the built forms disagree. Serving the register from the API (version 2)
-  removes this rule.
+- **Publishing in production's Administration is live** (since 21 Sep 2026 the app reads
+  the published version at runtime — see "Where the truth lives"). It changes production
+  only: development does not get it, so repeat the change there (or use a committed
+  metadata script, the pattern of `pilot_po_received_date_metadata.py`, run on both) before
+  writing code that depends on it. A field a migration adds still needs its script run on
+  the server after `alembic upgrade head` (DEPLOY ORDER in the migration).
+- **Version 1 has no prototype history** (21 Sep 2026): `wipe_business_data.py` emptied the
+  development database and `fresh_start_register.py` collapsed 117 published versions into
+  one, dropping deleted fields and retired choices. Both are one-offs; do not rerun them on
+  a database with real data.
 - **`test_parity.py` compares against the register as accepted for go-live** (re-frozen
   21 Sep 2026, `freeze_parity_baseline.py --from-database --replace`). A field that moves
   without a deliberate re-freeze fails.

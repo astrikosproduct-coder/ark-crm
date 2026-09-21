@@ -1057,8 +1057,7 @@ def restore_snapshot(db: Session, snapshot: dict[str, Any]) -> list[str]:
             f"This version was published against snapshot schema {version}, before "
             f"fields had placements. It can be read but not rolled back to: its rows "
             f"say which register sheet each field was filed on, not which modules it "
-            f"appeared on. The pre-Round-7 configuration is preserved in the "
-            f"field_metadata_pre_round7 table."
+            f"appeared on. (Its archive table was retired at go-live, 21 Sep 2026.)"
         )
 
     actions: list[str] = []

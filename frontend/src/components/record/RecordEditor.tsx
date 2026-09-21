@@ -110,10 +110,10 @@ function nameList(module: string, apiNames: string[], cap = 4): string {
 /**
  * Create or edit one record, rendered entirely by the form engine.
  *
- * A save enforces only the shape rules — validateForSave, not
- * validateForTransition. A half-filled record must be savable: mandatory fields
- * bite at a stage transition, which is what mandatory_from in the register
- * means. Accounts and Contacts have no stages, so nothing else ever bites.
+ * A save is stopped by a malformed value, and — since 21 Sep 2026 — by an
+ * empty required field that is DUE at the record's stage (missingDue; the
+ * server applies the same rule, app/requirements.py). A required field of a
+ * later stage does not stop it: that stage's form is not open yet.
  */
 export function RecordEditor(props: RecordEditorProps) {
   return (
@@ -264,14 +264,18 @@ function EditorBody({
     },
   })
 
+  // Empty required fields that are due now and on this screen: they stop the
+  // save. One that is due but in another section is left to the server, whose
+  // refusal names it — this editor has no box to fill it in.
+  const dueHere = Object.keys(form.dueRequired).filter((k) => onScreen.has(k))
+
   const submit = () => {
     form.markSubmitted()
-    // Only a malformed value the user can actually see and fix stops the save.
-    // Empty required fields never do — a half-filled record has to be savable;
-    // they stop the stage move instead. Nor do problems in other sections, for
-    // the reason given on elsewhereErrors.
+    // A malformed value the user can see and fix stops the save, and so does
+    // an empty required field that is due (decided 21 Sep 2026). Problems in
+    // other sections do not, for the reason given on elsewhereErrors.
     const blocking = Object.keys(form.allErrors).filter((k) => onScreen.has(k))
-    if (blocking.length > 0) return
+    if (blocking.length > 0 || dueHere.length > 0) return
     save.mutate(undefined)
   }
 
@@ -382,9 +386,14 @@ function EditorBody({
 
       <div className="space-y-2 border-t pt-3 empty:hidden">
         {/* A malformed value stops the save, so it is said here as well as on
-            the field. An empty required field is NOT summarised: it does not
-            stop the save, and the "required" line under the field already
-            says it — a second list of the same names was removed on review. */}
+            the field. So does an empty required field that is due — said
+            once the user has tried to save, not before. */}
+        {form.submitted && dueHere.length > 0 && (
+          <p className="text-sm text-destructive">
+            Fill in {dueHere.length === 1 ? 'this required field' : `these ${dueHere.length} required fields`}{' '}
+            before saving: {nameList(module, dueHere)}. Each is marked below.
+          </p>
+        )}
         {shape.here.length > 0 && (
           <p className="text-sm text-destructive">
             {shape.here.length} {shape.here.length === 1 ? 'field needs' : 'fields need'} fixing

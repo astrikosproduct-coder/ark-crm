@@ -620,6 +620,12 @@
    ],
    "note": "POC/Pilot Deal is a Deals-only value on the status picklist all three pipeline modules share (one definition, one picklist). Hidden here and refused by the server (app/progression.py::plan_write); a Lead becomes one by marking its pilot Paid."
   },
+  "deals.lead_status": {
+   "exclude_options": [
+    "CONVERTED"
+   ],
+   "note": "Deals' own entry, and it must exist. Without one this field falls back to leads.lead_status (all three placements share register_module leads) and inherits ITS exclusion - which hid POC/Pilot Deal on the one module that offers it (found 21 Sep 2026). Converted is hidden instead: a Deal does not convert into anything (decided 17 Sep 2026; see kanban.terminal_statuses_by_module)."
+  },
   "$upload_to_link_note": "File-upload fields became link (url) fields prototype-wide — there is no server for an uploaded file to land on, and a pasted link is the honest equivalent. Applied only on the four that actually render on a live screen (Leads/Opportunities/Deals); the register's other file fields (bids_pocs POC workspace, administration audit-log sections) are unbuilt and left untouched. See FieldExtension.type_override/.label_override in src/types/field.ts for the override mechanism — fields.json itself is never hand-edited.",
   "leads.data_site_access_confirmation_document": {
    "type_override": "url",

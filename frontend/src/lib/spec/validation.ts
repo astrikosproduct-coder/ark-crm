@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { childSpecFor, isChildColumnOnly, type ResolvedChildSpec } from './childSpec'
 import { isVisible, requirementOf, type Values } from './conditions'
-import { fieldOptions, fieldsOf } from './index'
+import { fieldOptions, fieldsOf, rangeOf, stageFieldOf } from './index'
 import type { FieldSpec } from '@/types/field'
 
 export interface FieldError {
@@ -326,6 +326,86 @@ export function missingRequired(module: string, values: Values): Errors {
   }
 
   return out
+}
+
+// ------------------------------------------------------------ due fields
+
+/**
+ * The stage a field's answer belongs to: mandatory_from, else the first number
+ * of blocks_transition ("3 → 4"), else capture_stage. Null for a field of no
+ * stage — an Account's or a Contact's, due always.
+ */
+export function dueStageOf(field: FieldSpec): number | null {
+  if (field.mandatory_from !== null && field.mandatory_from !== undefined) return field.mandatory_from
+  const blocks = /^(\d+)/.exec(field.blocks_transition ?? '')
+  if (blocks) return Number(blocks[1])
+  return field.capture_stage ?? null
+}
+
+export interface DueOptions {
+  /** Stages the record jumped over and never stood at. Their fields are not
+   *  demanded (decided 21 Sep 2026). */
+  skipped?: readonly number[]
+  /** Read the record as if it stood here — the stage being LEFT on a move. */
+  atStage?: number | null
+}
+
+const STATUS_ONLY = new Set(['CLOSED_LOST', 'ON_HOLD'])
+
+/** Mandatory in the register, never typed by a person: the stage moves by the
+ *  Update Stage dialog, the status defaults to Open, and the percentages follow
+ *  the stage. The server skips the same four (app/requirements.py). */
+const SYSTEM_SET = new Set(['lead_status', 'progression_pct', 'probability_pct'])
+
+/**
+ * Required fields that are empty AND due now, keyed by api_name — the fields
+ * that stop a save, and on a move, the fields that stop leaving the stage.
+ *
+ * THE SAME RULE THE SERVER APPLIES (backend/app/requirements.py). This copy
+ * exists so the form can say what is missing and mark it before a request is
+ * made; the server's refusal is the one that counts.
+ *
+ *   at stage S          fields due at S or earlier, minus skipped stages and
+ *                       stages below the module's own range (the parent's)
+ *   On Hold, Closed Lost  only the reason the status asks for
+ *   Converted           nothing
+ *   POC/Pilot Deal      nothing due at Stage 7 or before (decided 21 Sep 2026)
+ *
+ * Built on missingRequired, so "required" means what the red asterisk means.
+ */
+export function missingDue(module: string, values: Values, options: DueOptions = {}): Errors {
+  const stageField = stageFieldOf(module)
+  const status = typeof values.lead_status === 'string' ? values.lead_status : null
+  if (stageField && status === 'CONVERTED') return {}
+
+  const stage = options.atStage ?? (stageField ? stageOf(values[stageField]) : null)
+  const range = rangeOf(module)
+  const skipped = new Set(options.skipped ?? [])
+  const statusOnly = Boolean(stageField && status && STATUS_ONLY.has(status))
+  const pilotThrough = module === 'deals' && status === 'POC_PILOT_DEAL' ? 7 : null
+
+  const out: Errors = {}
+  for (const name of Object.keys(missingRequired(module, values))) {
+    const field = fieldsOf(module).find((f) => f.api_name === name)
+    if (!field) continue
+    if (SYSTEM_SET.has(name) || name === stageField) continue
+    if (statusOnly && !(field.condition ?? '').includes('lead_status')) continue
+    const due = dueStageOf(field)
+    if (stageField && due !== null && stage !== null) {
+      if (due > stage) continue
+      if (range && due < range[0]) continue
+      if (due !== stage && skipped.has(due)) continue
+      if (pilotThrough !== null && due <= pilotThrough) continue
+    }
+    out[name] = REQUIRED_MESSAGE
+  }
+  return out
+}
+
+function stageOf(value: unknown): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  const m = typeof value === 'string' ? /^(\d+)/.exec(value) : null
+  return m ? Number(m[1]) : null
 }
 
 export interface TransitionOptions {

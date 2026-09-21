@@ -84,6 +84,11 @@ def begin_conversion(db: Session, source_module: str, source_id: str | None) -> 
 
     became = _became(db, source_module, source_id)
     if became is None and source.lead_status != CONVERTED:
+        # Converting moves the source out of its last stage: that stage's
+        # required fields must be filled first. See app/requirements.py.
+        from .requirements import check_leaving  # local: requirements imports models
+
+        check_leaving(db, source_module, source, record_id=source_id)
         return source
 
     target_module, target_id = became if became else (None, None)

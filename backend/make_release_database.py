@@ -53,7 +53,6 @@ KEEP = {
     "field_definitions",
     "field_placements",
     "field_metadata",
-    "field_metadata_pre_round7",
     "picklists",
     "picklist_values",
     "stages",

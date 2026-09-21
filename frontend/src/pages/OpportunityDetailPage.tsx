@@ -8,6 +8,7 @@ import { ConvertToDealDialog } from '@/components/opportunities/ConvertToDealDia
 import { PipelineRecordPage } from '@/components/pipeline/PipelineRecordPage'
 import { PipelineRelated } from '@/components/pipeline/PipelineRelated'
 import { PursuitBanner } from '@/components/pursuits/PursuitBanner'
+import { ErasePursuitButton } from '@/components/pursuits/ErasePursuit'
 import type { PipelineModuleSpec, PipelineRecordContext } from '@/components/pipeline/types'
 import { stageKeyOf, stagesFor } from '@/lib/pipeline'
 import { api } from '@/lib/api'
@@ -46,13 +47,27 @@ function OpportunityActions({ ctx }: { ctx: PipelineRecordContext }) {
   const dealId = deals?.[0]?.id
   const dealIdText = typeof dealId === 'string' ? dealId : undefined
 
+  const eraseButton = (
+    <ErasePursuitButton
+      recordId={ctx.id}
+      noun="opportunity"
+      disabled={ctx.isLoading || !ctx.values}
+      onErased={() => navigate('/opportunities', { replace: true })}
+    />
+  )
+
   if (ctx.readOnly) {
-    return dealIdText ? (
-      <Button variant="outline" onClick={() => navigate(`/deals/${dealIdText}`)}>
-        <ArrowRightIcon className="size-4" />
-        Go to Deal
-      </Button>
-    ) : null
+    return (
+      <>
+        {eraseButton}
+        {dealIdText && (
+          <Button variant="outline" onClick={() => navigate(`/deals/${dealIdText}`)}>
+            <ArrowRightIcon className="size-4" />
+            Go to Deal
+          </Button>
+        )}
+      </>
+    )
   }
 
   const updateStage = (
@@ -65,13 +80,21 @@ function OpportunityActions({ ctx }: { ctx: PipelineRecordContext }) {
     </Button>
   )
 
-  if (ctx.currentStage !== LAST_STAGE) return updateStage
+  if (ctx.currentStage !== LAST_STAGE) {
+    return (
+      <>
+        {eraseButton}
+        {updateStage}
+      </>
+    )
+  }
 
   // Convert does NOT replace Update Stage at the last stage. It did, and an
   // Opportunity at Commercial Evaluation then had no way back to an earlier
   // stage — stages are states, not steps, and a reversal is always legal.
   return (
     <>
+      {eraseButton}
       {updateStage}
       <Button
         onClick={() => setConvertOpen(true)}

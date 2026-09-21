@@ -198,7 +198,16 @@ export function PublishTab() {
 
         {result && (
           <div className="mt-3 rounded-md border border-emerald-500/40 bg-emerald-500/5 p-3">
-            <p className="text-sm font-medium">Published</p>
+            <p className="text-sm font-medium">Published — it's live now</p>
+            {/* The app loads the published register when a page opens
+                (lib/spec/source.ts), so everyone gets this on their next page
+                load — this tab included, which still runs on the old one. */}
+            <p className="text-muted-foreground mt-1 text-xs">
+              Everyone gets it the next time they open or reload a page.{' '}
+              <button type="button" className="text-primary underline" onClick={() => window.location.reload()}>
+                Reload now
+              </button>
+            </p>
             <ul className="text-muted-foreground mt-1 space-y-0.5 text-xs">
               {result.map((path) => (
                 <li key={path}>

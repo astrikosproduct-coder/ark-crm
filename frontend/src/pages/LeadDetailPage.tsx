@@ -156,6 +156,7 @@ function LeadActions({ ctx }: { ctx: PipelineRecordContext }) {
           leadId={ctx.id}
           values={ctx.values}
           currentStage={ctx.currentStage}
+          skipped={ctx.skipped}
           onClose={() => setAdvanceOpen(false)}
           onAdvancedWithinLeads={(stage) => ctx.selectStage(stage)}
           onJumpToField={ctx.jumpToField}

@@ -1,7 +1,7 @@
 {
  "$note": "The field register AS ACCEPTED FOR GO-LIVE, 21 Sep 2026 — re-frozen from the database by the user's decision, which accepted the 185 post-cutover register changes the parity test then reported. The fixed 'before' side of test_parity.py: any field that differs from this without a deliberate re-freeze is a regression. Re-freeze only as a decision (freeze_parity_baseline.py --from-database --replace).",
  "generated_by": "backend/freeze_parity_baseline.py --from-database",
- "field_count": 681,
+ "field_count": 682,
  "by_module": {
   "accounts": 18,
   "activities_docs": 21,
@@ -9,7 +9,7 @@
   "bids_pocs": 85,
   "contacts": 15,
   "deals": 98,
-  "leads": 80,
+  "leads": 81,
   "opportunities": 107,
   "partners": 39,
   "products": 50,
@@ -8445,6 +8445,28 @@
    "module": "leads",
    "section": "STAGE 1 — DEMO PRESENTATION",
    "order": 46,
+   "api_name": "pilot_po_received_date",
+   "label": "Pilot PO Received Date",
+   "type": "date",
+   "capture_stage": 1,
+   "capture_any_stage": false,
+   "mandatory_from": null,
+   "blocks_transition": "1 → 2",
+   "requirement": "Conditional",
+   "picklist": null,
+   "max_length": null,
+   "lookup_target": null,
+   "visibility_condition": "agreed_next_step == 'POC scoping' && pilot_commercial_model == 'Paid'",
+   "condition": "agreed_next_step == 'POC scoping' && pilot_commercial_model == 'Paid'",
+   "computed_formula": null,
+   "editable": true,
+   "value_mode": "own",
+   "legacy_carry": "own"
+  },
+  {
+   "module": "leads",
+   "section": "STAGE 1 — DEMO PRESENTATION",
+   "order": 47,
    "api_name": "client_feedback",
    "label": "Client Feedback",
    "type": "longtext",
@@ -8466,7 +8488,7 @@
   {
    "module": "leads",
    "section": "STAGE 1 — DEMO PRESENTATION",
-   "order": 47,
+   "order": 48,
    "api_name": "competitors_mentioned",
    "label": "Competitors Mentioned",
    "type": "text",
@@ -8488,7 +8510,7 @@
   {
    "module": "leads",
    "section": "STAGE 1 — DEMO PRESENTATION",
-   "order": 48,
+   "order": 49,
    "api_name": "feature_gaps_logged",
    "label": "Feature Gaps Logged",
    "type": "childlist",
@@ -8510,7 +8532,7 @@
   {
    "module": "leads",
    "section": "STAGE 1 — DEMO PRESENTATION",
-   "order": 49,
+   "order": 50,
    "api_name": "demo_debrief_notes",
    "label": "Demo Debrief Notes",
    "type": "longtext",
@@ -8532,7 +8554,7 @@
   {
    "module": "leads",
    "section": "STAGE 2 — POC / PILOT",
-   "order": 50,
+   "order": 51,
    "api_name": "secondary_sap_suites",
    "label": "Secondary S!aP Suites",
    "type": "multiselect",
@@ -8554,7 +8576,7 @@
   {
    "module": "leads",
    "section": "STAGE 2 — POC / PILOT",
-   "order": 51,
+   "order": 52,
    "api_name": "poc_record",
    "label": "POC Record",
    "type": "lookup",
@@ -8576,7 +8598,7 @@
   {
    "module": "leads",
    "section": "STAGE 2 — POC / PILOT",
-   "order": 52,
+   "order": 53,
    "api_name": "poc_brief_gate",
    "label": "POC Brief Gate",
    "type": "lookup",
@@ -8598,7 +8620,7 @@
   {
    "module": "leads",
    "section": "Health & Forecast",
-   "order": 52,
+   "order": 53,
    "api_name": "progression_pct",
    "label": "Progression %",
    "type": "number",
@@ -8620,7 +8642,7 @@
   {
    "module": "leads",
    "section": "STAGE 3 — PRESCRIPTION",
-   "order": 53,
+   "order": 54,
    "api_name": "consultant_specifier",
    "label": "Consultant / Specifier",
    "type": "lookup",
@@ -8642,7 +8664,7 @@
   {
    "module": "leads",
    "section": "STAGE 3 — PRESCRIPTION",
-   "order": 54,
+   "order": 55,
    "api_name": "sales_owner",
    "label": "Sales Owner",
    "type": "lookup",
@@ -8664,7 +8686,7 @@
   {
    "module": "leads",
    "section": "STAGE 3 — PRESCRIPTION",
-   "order": 55,
+   "order": 56,
    "api_name": "presales_owner",
    "label": "Presales Owner",
    "type": "lookup",
@@ -8686,7 +8708,7 @@
   {
    "module": "leads",
    "section": "STAGE 3 — PRESCRIPTION",
-   "order": 56,
+   "order": 57,
    "api_name": "client_phase",
    "label": "Client Phase",
    "type": "picklist",
@@ -8708,7 +8730,7 @@
   {
    "module": "leads",
    "section": "STAGE 3 — PRESCRIPTION",
-   "order": 57,
+   "order": 58,
    "api_name": "project_team_access_confirmed",
    "label": "Project Team Access Confirmed",
    "type": "checkbox",
@@ -8730,7 +8752,7 @@
   {
    "module": "leads",
    "section": "STAGE 3 — PRESCRIPTION",
-   "order": 58,
+   "order": 59,
    "api_name": "budget_estimate",
    "label": "Budget Estimate",
    "type": "currency",
@@ -8752,7 +8774,7 @@
   {
    "module": "leads",
    "section": "STAGE 3 — PRESCRIPTION",
-   "order": 59,
+   "order": 60,
    "api_name": "budget_confirmed",
    "label": "Budget Confirmed",
    "type": "checkbox",
@@ -8774,7 +8796,7 @@
   {
    "module": "leads",
    "section": "STAGE 3 — PRESCRIPTION",
-   "order": 60,
+   "order": 61,
    "api_name": "probable_award_date",
    "label": "Probable Award Date",
    "type": "date",
@@ -8796,7 +8818,7 @@
   {
    "module": "leads",
    "section": "STAGE 3 — PRESCRIPTION",
-   "order": 61,
+   "order": 62,
    "api_name": "pre_bid_alliance_partner",
    "label": "Pre-Bid Alliance Partner",
    "type": "lookup",
@@ -8818,7 +8840,7 @@
   {
    "module": "leads",
    "section": "STAGE 3 — PRESCRIPTION",
-   "order": 62,
+   "order": 63,
    "api_name": "alliance_structure",
    "label": "Alliance Structure",
    "type": "picklist",
@@ -8840,7 +8862,7 @@
   {
    "module": "leads",
    "section": "Health & Forecast",
-   "order": 62,
+   "order": 63,
    "api_name": "probability_pct",
    "label": "Probability (%)",
    "type": "number",
@@ -8862,7 +8884,7 @@
   {
    "module": "leads",
    "section": "STAGE 3 — PRESCRIPTION",
-   "order": 63,
+   "order": 64,
    "api_name": "pbaa_signed_date",
    "label": "PBAA Signed Date",
    "type": "date",
@@ -8884,7 +8906,7 @@
   {
    "module": "leads",
    "section": "STAGE 3 — PRESCRIPTION",
-   "order": 64,
+   "order": 65,
    "api_name": "ctb_gate",
    "label": "CTB Gate",
    "type": "lookup",
@@ -8906,7 +8928,7 @@
   {
    "module": "leads",
    "section": "STAGE 3 — PRESCRIPTION",
-   "order": 65,
+   "order": 66,
    "api_name": "ctb_approval_status",
    "label": "CTB Approval Status",
    "type": "picklist",
@@ -8928,7 +8950,7 @@
   {
    "module": "leads",
    "section": "STAGE 3 — PRESCRIPTION",
-   "order": 66,
+   "order": 67,
    "api_name": "ctb_approval_date",
    "label": "CTB Approval Date",
    "type": "date",
@@ -8950,7 +8972,7 @@
   {
    "module": "leads",
    "section": "STAGE 3 — PRESCRIPTION",
-   "order": 67,
+   "order": 68,
    "api_name": "total_project_value",
    "label": "Total Project Value",
    "type": "currency",
@@ -8972,7 +8994,7 @@
   {
    "module": "leads",
    "section": "Aging",
-   "order": 71,
+   "order": 72,
    "api_name": "probability_override_justification",
    "label": "Override Justification",
    "type": "text",
@@ -8994,7 +9016,7 @@
   {
    "module": "leads",
    "section": "Aging",
-   "order": 72,
+   "order": 73,
    "api_name": "stage_skip_reason",
    "label": "Stage Skip Reason",
    "type": "text",
@@ -9016,7 +9038,7 @@
   {
    "module": "leads",
    "section": "Aging",
-   "order": 73,
+   "order": 74,
    "api_name": "stage_reversal_reason",
    "label": "Stage Reversal Reason",
    "type": "text",
@@ -9038,7 +9060,7 @@
   {
    "module": "leads",
    "section": "Aging",
-   "order": 74,
+   "order": 75,
    "api_name": "closed_lost_reason_code",
    "label": "Closed Lost Reason Code",
    "type": "picklist",
@@ -9060,7 +9082,7 @@
   {
    "module": "leads",
    "section": "Aging",
-   "order": 75,
+   "order": 76,
    "api_name": "on_hold_reason",
    "label": "On Hold Reason",
    "type": "text",
@@ -9082,7 +9104,7 @@
   {
    "module": "leads",
    "section": "Aging",
-   "order": 76,
+   "order": 77,
    "api_name": "days_in_current_stage",
    "label": "Days in Current Stage",
    "type": "computed",
@@ -9104,7 +9126,7 @@
   {
    "module": "leads",
    "section": "Aging",
-   "order": 77,
+   "order": 78,
    "api_name": "days_since_last_update",
    "label": "Days Since Last Update",
    "type": "computed",
@@ -9126,7 +9148,7 @@
   {
    "module": "leads",
    "section": "SYSTEM",
-   "order": 78,
+   "order": 79,
    "api_name": "created_by",
    "label": "Created By",
    "type": "lookup",
@@ -9148,7 +9170,7 @@
   {
    "module": "leads",
    "section": "SYSTEM",
-   "order": 79,
+   "order": 80,
    "api_name": "created_date",
    "label": "Created Date",
    "type": "datetime",
@@ -9170,7 +9192,7 @@
   {
    "module": "leads",
    "section": "SYSTEM",
-   "order": 80,
+   "order": 81,
    "api_name": "modified_by",
    "label": "Modified By",
    "type": "lookup",
@@ -9192,7 +9214,7 @@
   {
    "module": "leads",
    "section": "SYSTEM",
-   "order": 81,
+   "order": 82,
    "api_name": "modified_date",
    "label": "Modified Date",
    "type": "datetime",

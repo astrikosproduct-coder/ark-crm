@@ -59,56 +59,7 @@
    "active": true
   }
  ],
- "sub_segment": [
-  {
-   "key": "REAL_ESTATE",
-   "label": "Real Estate",
-   "sort": 1,
-   "active": false
-  },
-  {
-   "key": "DATACENTER",
-   "label": "Datacenter",
-   "sort": 2,
-   "active": false
-  },
-  {
-   "key": "GOVERNMENT",
-   "label": "Government",
-   "sort": 3,
-   "active": false
-  },
-  {
-   "key": "MOBILITY",
-   "label": "Mobility",
-   "sort": 4,
-   "active": false
-  },
-  {
-   "key": "OANDG",
-   "label": "O&G",
-   "sort": 5,
-   "active": false
-  },
-  {
-   "key": "UTILITIES",
-   "label": "Utilities",
-   "sort": 6,
-   "active": false
-  },
-  {
-   "key": "INDUSTRIAL",
-   "label": "Industrial",
-   "sort": 7,
-   "active": false
-  },
-  {
-   "key": "DEFENSE",
-   "label": "Defense",
-   "sort": 8,
-   "active": false
-  }
- ],
+ "sub_segment": [],
  "leads_stage": [
   {
    "key": "0_CONNECT",
@@ -3085,56 +3036,7 @@
    "active": true
   }
  ],
- "accounts__country": [
-  {
-   "key": "UAE",
-   "label": "UAE",
-   "sort": 1,
-   "active": false
-  },
-  {
-   "key": "KSA",
-   "label": "KSA",
-   "sort": 2,
-   "active": false
-  },
-  {
-   "key": "QATAR",
-   "label": "Qatar",
-   "sort": 3,
-   "active": false
-  },
-  {
-   "key": "OMAN",
-   "label": "Oman",
-   "sort": 4,
-   "active": false
-  },
-  {
-   "key": "KUWAIT",
-   "label": "Kuwait",
-   "sort": 5,
-   "active": false
-  },
-  {
-   "key": "BAHRAIN",
-   "label": "Bahrain",
-   "sort": 6,
-   "active": false
-  },
-  {
-   "key": "OTHER_MEA",
-   "label": "Other MEA",
-   "sort": 7,
-   "active": false
-  },
-  {
-   "key": "OUTSIDE_MEA",
-   "label": "Outside MEA",
-   "sort": 8,
-   "active": false
-  }
- ],
+ "accounts__country": [],
  "theme": [
   {
    "key": "SMART_CITIES",

@@ -70,6 +70,8 @@ WRITING = [
     "test_feedback.py",
     "test_spreadsheets.py",
     "test_delete_guards.py",
+    "test_required_fields.py",
+    "test_pursuit_erase.py",
 ]
 
 

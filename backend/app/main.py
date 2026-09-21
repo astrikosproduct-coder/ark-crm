@@ -23,9 +23,11 @@ from .routers import (
     leads,
     metadata,
     opportunities,
+    pursuit_erase,
     pursuit_groups,
     registrations,
     search,
+    spec,
     transitions,
 )
 
@@ -118,6 +120,11 @@ app.include_router(metadata.router, prefix="/api/admin/metadata", dependencies=D
 # shadowed by /api/users/{user_id}.
 app.include_router(directory.router, prefix="/api", dependencies=PROTECTED)
 
+# The register as last published, at /api/spec — the browser loads it at
+# start-up instead of the copy built into it, so a change published in
+# Administration reaches the live app without a rebuild. See routers/spec.py.
+app.include_router(spec.router, prefix="/api", dependencies=PROTECTED)
+
 # Accounts, at /api/accounts — the second real database-backed module. Both
 # End Clients and Partners are rows in this one table; Partners is a filtered
 # view over it, not a collection of its own.
@@ -166,6 +173,10 @@ app.include_router(conflicts.router, prefix="/api", dependencies=PROTECTED)
 # 2026: the workflow is settled first, and becomes Admin-only when role-based
 # permissions are built. See app/pursuits.py.
 app.include_router(pursuit_groups.router, prefix="/api", dependencies=PROTECTED)
+
+# Deleting a whole pursuit for good — any role, confirmed by typing its name.
+# See app/pursuit_erasure.py.
+app.include_router(pursuit_erase.router, prefix="/api", dependencies=PROTECTED)
 
 # Stage transitions and conversions — the record of every stage move, skip,
 # reversal and conversion, with its reason.

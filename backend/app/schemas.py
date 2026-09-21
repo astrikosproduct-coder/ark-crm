@@ -411,6 +411,8 @@ LEAD_SCALARS = (
     "data_site_access_confirmation_document",
     "pilot_commercial_model",
     "pilot_fee",
+    # ADDED BY 0035 — the pilot's PO date, copied to its Deal's Won date.
+    "pilot_po_received_date",
     "client_feedback",
     "competitors_mentioned",
     "demo_debrief_notes",
@@ -554,6 +556,7 @@ class LeadBase(CustomFieldsMixin):
     data_site_access_confirmation_document: str | None = Field(default=None, max_length=255)
     pilot_commercial_model: str | None = None
     pilot_fee: float | None = None
+    pilot_po_received_date: date | None = None
     client_feedback: str | None = None
     competitors_mentioned: str | None = Field(default=None, max_length=255)
     demo_debrief_notes: str | None = None
@@ -676,6 +679,7 @@ class LeadOut(BaseModel):
     data_site_access_confirmation_document: str | None = None
     pilot_commercial_model: str | None = None
     pilot_fee: float | None = None
+    pilot_po_received_date: date | None = None
     client_feedback: str | None = None
     competitors_mentioned: str | None = None
     demo_debrief_notes: str | None = None

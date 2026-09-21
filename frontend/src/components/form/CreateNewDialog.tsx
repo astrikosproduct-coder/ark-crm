@@ -14,7 +14,8 @@ import { FieldRow } from '@/components/form/FieldRow'
 import { RecordFormProvider, useRecordForm, visibleFieldsOf } from '@/hooks/useRecordForm'
 import { api } from '@/lib/api'
 import { ErrorNotice } from '@/components/ui/notice'
-import { collectionFor, fieldOf, quickCreateExtraFieldsFor, sectionsFor } from '@/lib/spec'
+import { collectionFor, fieldOf, fieldsOf, quickCreateExtraFieldsFor, sectionsFor } from '@/lib/spec'
+import { isUserEditable } from '@/lib/spec/validation'
 import type { FieldSpec } from '@/types/field'
 
 /**
@@ -105,7 +106,14 @@ function CreateNewBody({
   const extraFields = quickCreateExtraFieldsFor(module).filter(
     (f) => f.section !== section && form.isVisible(f)
   )
-  const fields = [...firstSectionFields, ...extraFields]
+  // And every required field, wherever it sits: a save with one empty is
+  // refused (decided 21 Sep 2026), so a shortcut that hid one could never
+  // succeed. Classification on an Account, Engagement Owner on a Contact.
+  const shown = new Set([...firstSectionFields, ...extraFields].map((f) => f.api_name))
+  const requiredFields = fieldsOf(module).filter(
+    (f) => !shown.has(f.api_name) && isUserEditable(f) && form.isVisible(f) && form.isRequired(f)
+  )
+  const fields = [...firstSectionFields, ...extraFields, ...requiredFields]
 
   const create = useMutation({
     mutationFn: async () => (await api.post(`/${collection}`, form.toPayload())).data,
@@ -122,7 +130,7 @@ function CreateNewBody({
 
   const submit = () => {
     form.markSubmitted()
-    if (Object.keys(form.allErrors).length > 0) return
+    if (Object.keys(form.allErrors).length > 0 || Object.keys(form.dueRequired).length > 0) return
     create.mutate()
   }
 

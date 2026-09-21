@@ -1,6 +1,5 @@
-import fieldsData from '../../../spec/fields.json'
-import picklistsData from '../../../spec/picklists.json'
 import extensionsData from '../../../spec/extensions.json'
+import { specSource } from './source'
 import type {
   FieldExtension,
   FieldSetSpec,
@@ -44,7 +43,8 @@ interface ExtensionsFile {
 
 const extensionsFile = extensionsData as unknown as ExtensionsFile
 const extensions = extensionsFile.fields
-export const picklists = picklistsData as unknown as PicklistMap
+// The published register, loaded before the app — see ./source.ts.
+export const picklists = specSource.picklists as PicklistMap
 
 /**
  * The origin string the 27 gap-fix rows carry. Spec Health groups on it.
@@ -68,7 +68,7 @@ export const NEW_FIELD_ORIGIN = 'gap-fix — 14-stage review'
  * has THERE. Nothing is re-homed here — see ./moduleSplit.ts for what that
  * file used to do and why it no longer does it.
  */
-const raw: RawFieldSpec[] = fieldsData as unknown as RawFieldSpec[]
+const raw: RawFieldSpec[] = specSource.fields as RawFieldSpec[]
 
 
 

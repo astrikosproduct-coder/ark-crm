@@ -1,4 +1,4 @@
-import stagesData from '../../spec/stages.json'
+import { specSource } from '@/lib/spec/source'
 import criteriaData from '../../spec/criteria.json'
 import gatesData from '../../spec/gates.json'
 
@@ -48,7 +48,8 @@ export interface Gate {
   items: GateItem[]
 }
 
-export const STAGES = stagesData as unknown as Stage[]
+// The published stages, loaded before the app — see lib/spec/source.ts.
+export const STAGES = specSource.stages as Stage[]
 export const CRITERIA = criteriaData as unknown as Criterion[]
 export const GATES = gatesData as unknown as Gate[]
 

@@ -139,22 +139,14 @@ docker compose run --rm backend python po_received_date_metadata.py --apply
 
 ## Changing the field register in production
 
-In V1 the register exists in two places in production:
+**A change published in production's Administration is live.** The app loads the latest published field list from the server each time a page opens, and the server checks every save against that same version. There's no rebuild and no restart. A draft that hasn't been published changes nothing.
 
-- **the production database**, which the backend checks every save against
-- **the JSON files built into the web image**, which draw every form
+Two things to know:
 
-**An edit made in the Administration screen changes only the database it was made in.** Publishing on the development machine updates the JSON for the *next build*, but never touches the production database. The two then disagree about what a field is.
+- **Only production changes.** The development database doesn't get the edit. Make the same change there too before writing code that depends on it, or use a committed script run on both (the pattern of `pilot_po_received_date_metadata.py`).
+- **Required fields are enforced.** Marking a field required in production means every save of a record at or past that field's stage needs it. Check what it demands before you publish.
 
-So in V1, **change the register only through a script committed to git** (the pattern of `po_received_date_metadata.py`):
-
-1. Write the script. Run it on development with `--apply`. It publishes, which updates `frontend/spec/*.json`.
-2. Commit the script and the JSON together.
-3. On the server, during an update: `git pull`, build, then run the same script with `--apply`.
-
-Both databases and the built JSON then agree. Don't edit fields, picklists or stages in the production Administration screen. User and role management there is fine.
-
-Serving the register from the API instead of from built JSON removes this rule. That is planned for version 2.
+A new field that needs a database column comes with a migration. Run its script after `alembic upgrade head`, as the migration's *DEPLOY ORDER* says.
 
 ---
 

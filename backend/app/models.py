@@ -725,6 +725,14 @@ class Lead(StagePercentMixin, Base):
         nullable=True,
     )
 
+    # ADDED BY 0035. Asked for when the pilot is marked Paid, and copied into
+    # the POC/Pilot Deal's po_received_date — the Won date. See
+    # app/progression.py::spin_off_pilot_deal.
+    pilot_po_received_date: Mapped[datetime | None] = mapped_column(
+        Date,
+        nullable=True,
+    )
+
     client_feedback: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,

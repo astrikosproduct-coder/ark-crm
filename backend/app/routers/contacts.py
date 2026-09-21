@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from ..auth import current_user
 from ..messages import already_exists, not_found, picked_record_missing, refusal
+from ..requirements import check_save
 from ..changes import custom_field_diff, diff, snapshot
 from ..database import get_db
 from ..list_query import run_list_query
@@ -167,6 +168,8 @@ def create_contact(
         actor=user.user_id,
         changed_fields=sorted(payload.model_dump(exclude_unset=True)),
     )
+    # Every due Mandatory field filled, or 422 — see app/requirements.py.
+    check_save(db, "contacts", contact, record_id=contact_id, creating=False)
     db.commit()
     db.refresh(contact)
     return _serialise(contact, _label_maps(db))
@@ -243,6 +246,8 @@ def _write(db: Session, contact_id: str, payload: ContactUpdate, sent: set[str],
         changed_fields=sorted(sent),
         changed=changed,
     )
+    # Every due Mandatory field filled, or 422 — see app/requirements.py.
+    check_save(db, "contacts", contact, record_id=contact_id, creating=False)
     db.commit()
     db.refresh(contact)
     return _serialise(contact, _label_maps(db))

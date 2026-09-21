@@ -143,6 +143,8 @@ export interface PipelineRecordContext {
   /** The Customer (Partner / SI) account. */
   partner: Values | undefined
   transitions: Transition[] | undefined
+  /** Stages the record jumped over and never stood at. */
+  skipped: readonly number[]
   /** Open the stage-change dialog. */
   openAdvance: () => void
   selectStage: (stage: number) => void

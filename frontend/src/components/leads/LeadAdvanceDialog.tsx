@@ -21,12 +21,15 @@ import { STAGE_PCT_FIELDS, alreadyConvertedOf, stageKeyOf, stageList, stagesFor,
 import { displayNameOf, fieldOf, fieldsOf, labelForValue } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
 import type { FieldSpec } from '@/types/field'
+import { RequiredBeforeMove, requiredBeforeMove } from '@/components/pipeline/RequiredBeforeMove'
 
 interface Props {
   open: boolean
   leadId: string
   values: Values
   currentStage: number
+  /** Stages the lead jumped over — their required fields are not demanded. */
+  skipped?: readonly number[]
   onClose: () => void
   /** Fired after a same-module move — selects the new stage on this same page. */
   onAdvancedWithinLeads: (toStage: number) => void
@@ -89,6 +92,7 @@ export function LeadAdvanceDialog({
   leadId,
   values,
   currentStage,
+  skipped,
   onClose,
   onAdvancedWithinLeads,
   onJumpToField,
@@ -118,10 +122,14 @@ export function LeadAdvanceDialog({
   // Read against the Lead's own register fields in both directions: these are
   // the Lead's values, and an Opportunity field name would not resolve as proof.
   const attestations = useAttestations('leads', values, currentStage, target)
+  // Layer 1, enforced (21 Sep 2026): the stage being left must be complete —
+  // on a move into Opportunities too, which the server checks as it converts.
+  const required = requiredBeforeMove('leads', values, currentStage, target, skipped)
   const canConfirm =
     target !== currentStage &&
     (!reasonRequired || reason.trim().length > 0) &&
-    attestations.outstanding.length === 0
+    attestations.outstanding.length === 0 &&
+    required.length === 0
 
   const readThrough = useMemo(
     () => new Set(fieldsOf('opportunities').filter((f) => f.value_mode === 'read_through').map((f) => f.api_name)),
@@ -312,6 +320,17 @@ export function LeadAdvanceDialog({
           {/* Shown for the cross into Opportunities too: leaving Stage 3 and
               entering Stage 4 have criteria like any other move, and that was
               the one move that showed none of them. */}
+          <RequiredBeforeMove
+            fields={required}
+            from={currentStage}
+            onJumpToField={
+              onJumpToField &&
+              ((field) => {
+                handleClose()
+                onJumpToField(field)
+              })
+            }
+          />
           <ReadinessPanel
               module="leads"
               values={values}

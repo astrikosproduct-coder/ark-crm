@@ -446,6 +446,9 @@ def spin_off_pilot_deal(db: Session, lead: Lead, *, actor: str | None) -> Deal |
         lead_status=PILOT_STATUS,
         parent_lead=lead.lead_id,
         contract_value=lead.pilot_fee,
+        # The Won date: asked for on the Lead when the pilot is marked Paid
+        # (decided 21 Sep 2026), never defaulted to the day of the click.
+        po_received_date=lead.pilot_po_received_date,
         end_client=lead.end_client,
         customer_partner_si=lead.customer_partner_si,
         progression_pct=progression,
@@ -457,7 +460,7 @@ def spin_off_pilot_deal(db: Session, lead: Lead, *, actor: str | None) -> Deal |
     db.add(deal)
     db.flush()
 
-    copied = ["deal_name", "contract_value", "end_client", "customer_partner_si"]
+    copied = ["deal_name", "contract_value", "po_received_date", "end_client", "customer_partner_si"]
     record_audit(
         db,
         module="deals",

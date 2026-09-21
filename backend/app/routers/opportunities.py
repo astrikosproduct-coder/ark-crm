@@ -8,6 +8,7 @@ from ..auth import current_user
 from ..list_query import run_list_query
 from ..read_through_rows import attach_read_through
 from ..messages import already_exists, not_found, picked_record_missing, refusal
+from ..requirements import check_save
 from ..changes import child_snapshot, custom_field_diff, diff, list_changes, snapshot
 from ..clock import days_since, now_utc
 from ..database import get_db
@@ -407,6 +408,8 @@ def create_opportunity(
         changed_fields=sorted(sent),
     )
 
+    # Every due Mandatory field filled, or 422 — see app/requirements.py.
+    check_save(db, "opportunities", opp, record_id=opportunity_id, creating=True, converting=converting is not None)
     # The stage's Progression %/Probability %. See app/progression.py.
     pct_after_write(db, "opportunities", opp, pct_plan, actor=user.user_id)
 
@@ -530,6 +533,10 @@ def _write(
         changed=changed,
     )
 
+    # Every due Mandatory field filled, or 422 — see app/requirements.py.
+    check_save(
+        db, "opportunities", opp, record_id=opportunity_id, creating=False, previous_stage=pct_plan.previous_stage
+    )
     # See routers/leads.py::_write.
     pct_after_write(db, "opportunities", opp, pct_plan, actor=user.user_id)
 

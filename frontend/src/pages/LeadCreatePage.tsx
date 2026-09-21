@@ -4,8 +4,10 @@ import { useNavigate } from 'react-router-dom'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { LeadAccountFieldSync, backfillAccountFieldsFromLead } from '@/components/leads/LeadAccountFieldSync'
 import { RecordEditor } from '@/components/record/RecordEditor'
-import { sectionForStage, stageKeyOf } from '@/lib/pipeline'
+import { STAGE_PCT_FIELDS, stageKeyOf } from '@/lib/pipeline'
+import { fieldsOf } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
+import { dueStageOf, isUserEditable } from '@/lib/spec/validation'
 
 const MODULE = 'leads'
 const COLLECTION = 'leads'
@@ -16,12 +18,15 @@ const COLLECTION = 'leads'
  * its own detail page — not offered up front, which is what letting
  * RecordCreatePage render every section of a 120-field module would do.
  */
+/** Fields initialValues fills in, which this page does not ask for. */
+const CREATE_SEEDED: Record<string, true> = { project_stage: true, lead_status: true }
+
 /** A lead opens at Stage 0. Module-level so it is one stable object. */
 const CREATE_STAGE = { stage: 0, currentStage: 0 }
 
 export function LeadCreatePage() {
   const navigate = useNavigate()
-  const section = sectionForStage(MODULE, 0)
+  const sections = useMemo(createSections, [])
 
   /**
    * The three RECORD STATE fields, seeded rather than asked for.
@@ -69,7 +74,8 @@ export function LeadCreatePage() {
               module={MODULE}
               collection={COLLECTION}
               initialValues={initialValues}
-              sections={section ? [section] : undefined}
+              sections={sections.length ? sections : undefined}
+              hiddenFields={STAGE_PCT_FIELDS}
               // A lead is created AT Stage 0, so a per-stage answer given on
               // this form belongs to Stage 0. Without this the inline On Hold
               // Reason would write the plain api_name here and the record page
@@ -88,4 +94,25 @@ export function LeadCreatePage() {
       ]}
     />
   )
+}
+
+/**
+ * Every section holding a field a new lead must have — Stage 0 — Connect, and
+ * Health & Forecast for Expected Close Month — in the module's order. Read
+ * off the register rather than named: a save with a required Stage 0 field
+ * empty is refused (decided 21 Sep 2026), so a field this page did not show
+ * would make creating a lead impossible. The stage, status and percentages
+ * are the system's, and are left out (see missingDue).
+ */
+function createSections(): string[] {
+  const out: string[] = []
+  for (const field of fieldsOf(MODULE)) {
+    // Seeded above, never asked for: see initialValues.
+    if (field.api_name in CREATE_SEEDED) continue
+    if (STAGE_PCT_FIELDS.has(field.api_name) || !isUserEditable(field)) continue
+    if (field.requirement !== 'Mandatory' && field.requirement !== 'Conditional') continue
+    if (dueStageOf(field) !== 0 || out.includes(field.section)) continue
+    out.push(field.section)
+  }
+  return out
 }

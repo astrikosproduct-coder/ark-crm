@@ -157,7 +157,10 @@ def case_2_administration_sees_the_crm(db) -> None:
     # (deal_sections_and_locks.py) — PO / LOI Reference asks for the same number.
     # Deals 97 -> 98: PO Received Date added on 21 Sep 2026
     # (po_received_date_metadata.py, after migration 0034) — the Won date.
-    for module, expected in (("leads", 80), ("opportunities", 107), ("deals", 98)):
+    # Leads 80 -> 81: Pilot PO Received Date added on 21 Sep 2026
+    # (pilot_po_received_date_metadata.py, after migration 0035) — a paid
+    # pilot's Won date, copied to its Deal.
+    for module, expected in (("leads", 81), ("opportunities", 107), ("deals", 98)):
         resolved = len(R.resolved_fields(db, module))
         api = client.get(
             "/api/admin/metadata/fields", params={"module": module}
@@ -495,54 +498,27 @@ def case_10_shared(db) -> None:
 
 # =====================================================================
 def case_11_admin_created(db) -> None:
-    head("11  Administration-created field, deleted in the register")
+    head("11  Administration-deleted fields, purged at go-live")
 
-    definition = db.scalar(
-        select(FieldDefinition).where(FieldDefinition.api_name == "rfp_document_file")
-    )
-    check("one definition", definition is not None)
-    active = [p for p in definition.placements if p.status == "active"]
-    deleted = [p for p in definition.placements if p.status == "deleted"]
-
-    # RFP Document File was deleted in Administration on 15 Sep 2026 (register
-    # version 109) and confirmed deliberate on 16 Sep. The case is kept rather
-    # than removed, because what it now proves is the thing that matters about
-    # an Administration field: deleting one is LOGICAL. No DDL ran, the
-    # definition is still here, the placement is still here marked deleted, and
-    # every value ever stored under this api_name is untouched in the JSONB —
-    # which is what makes Administration's restore real rather than a promise.
-    check("no active placement — it renders nowhere", not active, str(len(active)))
-    check("exactly one deleted placement", len(deleted) == 1, str(len(deleted)))
+    # RFP Document File (an Administration field on Opportunities) and Demo
+    # Field (Leads) were deleted in Administration in September 2026, and this
+    # case proved a delete was LOGICAL — the rows kept, marked deleted, ready to
+    # restore. Version 1 went live with no prototype history
+    # (fresh_start_register.py, 21 Sep 2026), which removed deleted fields for
+    # good. Logical delete and restore are still tested, on a field those tests
+    # create themselves: test_metadata_round6.py and test_round6_gaps.py.
+    for name in ("rfp_document_file", "demo_field"):
+        check(
+            f"{name} is gone from the register",
+            db.scalar(select(FieldDefinition).where(FieldDefinition.api_name == name)) is None,
+        )
     check(
-        "it was placed on Opportunities — a Stage 4 field",
-        deleted[0].module_key == "opportunities",
-        deleted[0].module_key,
+        "no deleted placement is left over from the prototype",
+        not db.execute(text("SELECT count(*) FROM field_placements WHERE status = 'deleted'")).scalar(),
     )
     check(
-        "its values live in custom_fields, never a column",
-        deleted[0].storage == "custom_fields",
-        str(deleted[0].storage),
-    )
-    check(
-        "the custom-field writer no longer accepts it on Opportunities",
-        "rfp_document_file" not in custom_field_defs(db, "opportunities"),
-    )
-    check(
-        "and it never reached Leads",
-        "rfp_document_file" not in custom_field_defs(db, "leads", include_deleted=True),
-    )
-    check(
-        "the deleted placement is still there to restore from",
-        "rfp_document_file" in custom_field_defs(db, "opportunities", include_deleted=True),
-    )
-    # demo_field has been deleted in Administration too, so the scoping is read
-    # through the deleted placements. The rule under test is unchanged and is
-    # the one that matters: a placement belongs to ONE module, and deleting it
-    # does not smear it across the others.
-    check(
-        "demo_field, a Stage 0 field, is scoped to Leads alone",
-        "demo_field" in custom_field_defs(db, "leads", include_deleted=True)
-        and "demo_field" not in custom_field_defs(db, "opportunities", include_deleted=True),
+        "the custom-field writer does not accept it on Opportunities",
+        "rfp_document_file" not in custom_field_defs(db, "opportunities", include_deleted=True),
     )
 
 
@@ -1051,16 +1027,12 @@ def case_15_architecture(db) -> None:
         "def source_modules_for" not in sources[app_dir / "module_split.py"],
     )
 
-    # the archive is still there and still complete
+    # The pre-Round-7 archive was retired at go-live (migration 0036, 21 Sep
+    # 2026): version 1 ships with no earlier history for it to explain.
     archived = db.execute(
-        text("SELECT count(*) FROM field_metadata_pre_round7")
+        text("SELECT to_regclass('field_metadata_pre_round7') IS NULL")
     ).scalar()
-    live = db.execute(text("SELECT count(*) FROM field_metadata")).scalar()
-    check(
-        f"the pre-Round-7 archive is intact ({archived} rows)",
-        archived == live == 568,
-        f"archive={archived} field_metadata={live}",
-    )
+    check("the pre-Round-7 archive is retired", archived is True, str(archived))
 
 
 def _strip_comments(source: str) -> str:

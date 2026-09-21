@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from ..auth import current_user
 from ..messages import already_exists, not_found, picked_record_missing, refusal
+from ..requirements import check_save
 from ..changes import custom_field_diff, diff, snapshot
 from ..database import get_db
 from ..list_query import run_list_query
@@ -171,6 +172,8 @@ def create_account(
         changed_fields=sorted(payload.model_dump(exclude_unset=True)),
     )
 
+    # Every due Mandatory field filled, or 422 — see app/requirements.py.
+    check_save(db, "accounts", account, record_id=account_id, creating=False)
     db.commit()
     db.refresh(account)
     return _serialise(account, _owner_names(db))
@@ -253,6 +256,8 @@ def _write(db: Session, account_id: str, payload: AccountUpdate, sent: set[str],
         changed=changed,
     )
 
+    # Every due Mandatory field filled, or 422 — see app/requirements.py.
+    check_save(db, "accounts", account, record_id=account_id, creating=False)
     db.commit()
     db.refresh(account)
     return _serialise(account, _owner_names(db))

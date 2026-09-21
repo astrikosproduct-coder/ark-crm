@@ -13,6 +13,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ReadinessPanel } from '@/components/leads/ReadinessPanel'
+import { RequiredBeforeMove, requiredBeforeMove } from '@/components/pipeline/RequiredBeforeMove'
 import { useAttestations } from '@/components/leads/useAttestations'
 import type { PipelineModuleSpec } from '@/components/pipeline/types'
 import { api } from '@/lib/api'
@@ -28,6 +29,8 @@ interface Props {
   recordId: string
   values: Values
   currentStage: number
+  /** Stages the record jumped over — their required fields are not demanded. */
+  skipped?: readonly number[]
   onClose: () => void
   onAdvanced?: (toStage: number) => void
   /**
@@ -66,6 +69,7 @@ export function AdvanceStageDialog({
   recordId,
   values,
   currentStage,
+  skipped,
   onClose,
   onAdvanced,
   onJumpToField,
@@ -80,10 +84,13 @@ export function AdvanceStageDialog({
   const isReversal = target < currentStage
   const reasonRequired = isSkip || isReversal
   const attestations = useAttestations(spec.module, values, currentStage, target)
+  // Layer 1, enforced (21 Sep 2026): the stage being left must be complete.
+  const required = requiredBeforeMove(spec.module, values, currentStage, target, skipped)
   const canConfirm =
     target !== currentStage &&
     (!reasonRequired || reason.trim().length > 0) &&
-    attestations.outstanding.length === 0
+    attestations.outstanding.length === 0 &&
+    required.length === 0
 
   const stageOptions = useMemo(
     () => stages.filter((s) => s.stage !== currentStage),
@@ -186,6 +193,18 @@ export function AdvanceStageDialog({
               rows={3}
             />
           )}
+
+          <RequiredBeforeMove
+            fields={required}
+            from={currentStage}
+            onJumpToField={
+              onJumpToField &&
+              ((field) => {
+                onClose()
+                onJumpToField(field)
+              })
+            }
+          />
 
           <ReadinessPanel
             module={spec.module}
