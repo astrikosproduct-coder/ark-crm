@@ -148,7 +148,7 @@ Partners                      stays — the parent; the Partners screen is uncha
 
 ---
 
-## D. Picklists: 6 global, 7 local (decided 24 Sep, G3/G4)
+## D. Picklists: 7 global, 7 local (decided 24 Sep, G3/G4)
 
 | Picklist (key unchanged) | Label today → after | Used by after v2 | Outcome |
 |---|---|---|---|
@@ -158,9 +158,10 @@ Partners                      stays — the parent; the Partners screen is uncha
 | `overall_rag` | Overall Rag → **Overall RAG** | Leads · Opportunities · Deals | **Global** |
 | `region` | Region | Accounts · Leads (Booking and Destination Region) | **Global** |
 | `segment` | Segment | Accounts · Leads | **Global** |
+| `contacts__dial_code` | → **Dial Code** | Contacts (Phone and Mobile) | **Global** — *found on the dry run: two fields share it* |
 | `leads__lead_status` | → **Lead Status** | Leads only | **Local** (G3) |
-| *new* `opportunities__status` | **Opportunity Status** | Opportunities only | **Local** (G3) — starts as a copy of today's values minus POC/Pilot Deal |
-| *new* `deals__status` | **Deal Status** | Deals only | **Local** (G3) — starts as a copy of today's values; the only list holding POC/Pilot Deal |
+| *new* `opportunities__lead_status` | **Opportunity Status** | Opportunities only | **Local** (G3) — starts as a copy of today's values minus POC/Pilot Deal |
+| *new* `deals__lead_status` | **Deal Status** | Deals only | **Local** (G3) — starts as a copy of today's values; the only list holding POC/Pilot Deal |
 | `leads__alliance_structure` | → **Alliance Structure** | Leads only | Local |
 | `leads__deal_source` | → **Deal Source** | Leads only | Local |
 | `leads__opportunity_type` | → **Opportunity Type** | Leads only | Local |
@@ -210,7 +211,7 @@ row kept. Nothing is dropped.
 | **G1** | End Client and Customer (Partner / SI) on the Deal | **Show the Lead's value live** (24 Sep). End Client: done, see A1. Customer (Partner / SI) **stays the Deal's own field** (confirmed 24 Sep) |
 | **G2** | Paid-pilot mapping rows | **Locked** (24 Sep): shown in Setup, copy happens exactly as today, nobody can change or remove the row |
 | **G3** | Status picklists | **Local, one list per module** (24 Sep): see D |
-| **G4** | Global / local split | Settled by G3: 6 global, 7 local |
+| **G4** | Global / local split | Settled by G3: 7 global, 7 local (Dial Code added on the dry run) |
 
 **G1 consequence, for confirmation.** A converted record is read-only, so a field shown live
 from the Lead can no longer be changed anywhere once the Lead converts at Stage 3.

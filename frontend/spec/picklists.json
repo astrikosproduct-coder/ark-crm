@@ -110,6 +110,38 @@
    "active": true
   }
  ],
+ "deals__lead_status": [
+  {
+   "key": "OPEN",
+   "label": "Open",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "ON_HOLD",
+   "label": "On Hold",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "CLOSED_LOST",
+   "label": "Closed Lost",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "CONVERTED",
+   "label": "Converted",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "POC_PILOT_DEAL",
+   "label": "POC/Pilot Deal",
+   "sort": 5,
+   "active": true
+  }
+ ],
  "leads__lead_status": [
   {
    "key": "OPEN",
@@ -139,6 +171,32 @@
    "key": "POC_PILOT_DEAL",
    "label": "POC/Pilot Deal",
    "sort": 5,
+   "active": false
+  }
+ ],
+ "opportunities__lead_status": [
+  {
+   "key": "OPEN",
+   "label": "Open",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "ON_HOLD",
+   "label": "On Hold",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "CLOSED_LOST",
+   "label": "Closed Lost",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "CONVERTED",
+   "label": "Converted",
+   "sort": 4,
    "active": true
   }
  ],
