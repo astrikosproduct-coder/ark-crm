@@ -52,7 +52,34 @@ branch_labels = None
 depends_on = None
 
 
+def _clear_premature(table: str) -> None:
+    """
+    Drop `table` if the application already created it, empty.
+
+    app/main.py runs Base.metadata.create_all() on start-up, so a server
+    started on this code BEFORE this migration ran creates `layouts` and
+    `conversion_mappings` itself — with no rows, no backfill and no partial
+    index. That happened to the development database on 24 Sep 2026 (its
+    auto-reloading server picked up the phase-2 branch), and it will happen in
+    production if the app is started before `alembic upgrade`. An empty table
+    is dropped and created properly here; one with rows stops the migration,
+    because rows mean someone used it and a person must look.
+    """
+    bind = op.get_bind()
+    if not sa.inspect(bind).has_table(table):
+        return
+    rows = bind.execute(sa.text(f"SELECT count(*) FROM {table}")).scalar()
+    if rows:
+        raise RuntimeError(
+            f"{table} already exists with {rows} rows. It was created outside this "
+            f"migration. Look at it before running 0038."
+        )
+    op.drop_table(table)
+
+
 def upgrade() -> None:
+    _clear_premature("conversion_mappings")
+    _clear_premature("layouts")
     op.add_column(
         "modules",
         sa.Column("hidden", sa.Boolean(), nullable=False, server_default=sa.false()),
