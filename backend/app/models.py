@@ -2052,6 +2052,19 @@ class Module(Base):
     )
     parent_link: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
+    # Metadata v2 (0038). `hidden` keeps a module out of Administration without
+    # retiring it: not built yet, or not a module at all (`administration`
+    # describes hand-built screens). `setup_parent` files a module under another
+    # in Administration — Deal Registrations under Partners. It is NOT
+    # parent_module: that is the pipeline's record lineage and drives
+    # read-through, and a registration inherits nothing from a partner.
+    hidden: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    setup_parent: Mapped[str | None] = mapped_column(
+        String(60), ForeignKey("modules.module_key"), nullable=True
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=_now
     )
@@ -2103,6 +2116,12 @@ class Section(Base):
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default="true"
+    )
+
+    # The layout this section belongs to (0038). One Standard layout per module
+    # for now; several per module, per profile, is a later phase.
+    layout_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("layouts.id"), nullable=False, index=True
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -2343,6 +2362,12 @@ class Picklist(Base):
         Integer, nullable=False, default=0, server_default="0"
     )
 
+    # A global list serves fields on several modules (Zoho's Global Sets); a
+    # local one serves exactly one field. 0038.
+    is_global: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+
     active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default="true"
     )
@@ -2400,6 +2425,12 @@ class PicklistValue(Base):
         Boolean, nullable=False, default=True, server_default="true"
     )
 
+    # A value the server's own rules read by key (Open, On Hold, Closed Lost,
+    # Converted, POC/Pilot Deal). It can be relabelled; it cannot be retired.
+    is_system: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=_now
     )
@@ -2408,6 +2439,99 @@ class PicklistValue(Base):
     )
 
     picklist = relationship("Picklist", back_populates="values")
+
+
+class Layout(Base):
+    """
+    A module's form: which sections, in which order. Metadata v2 (0038).
+
+    One per module today, labelled "Standard" as in Zoho. Sections belong to a
+    layout rather than straight to a module, so several layouts per module —
+    per profile, or per record type — become rows later rather than a redesign.
+    """
+
+    __tablename__ = "layouts"
+    __table_args__ = (UniqueConstraint("module_key", "label", name="uq_layouts_module_label"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    module_key: Mapped[str] = mapped_column(
+        String(60), ForeignKey("modules.module_key"), nullable=False, index=True
+    )
+    label: Mapped[str] = mapped_column(String(120), nullable=False)
+    is_default: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_now
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
+    )
+
+
+class ConversionMapping(Base):
+    """
+    What a conversion copies, one row per target field. Metadata v2 (0038).
+
+    Zoho's "Lead Conversion Mapping". Before this the answer was spread across
+    placement flags (value_mode='carry_forward') and code (the paid-pilot Deal
+    in app/progression.py); now it is rows an administrator can read.
+
+    path       lead_to_opportunity | opportunity_to_deal | lead_to_deal_pilot
+    kind       copy — the source's value is copied once, when the new record is
+               created, and the new record owns it from then on.
+               system — the server sets the target (parent link, stage,
+               status, the two percentages); shown so nothing is hidden.
+    source     the module that HOLDS the value, which need not be the record
+               converting: a Deal's Customer (Partner / SI) is held by the Lead
+               and shown live on the Opportunity in between.
+    transform  a copy that is not plain, named so the screen can say so.
+    locked     shown greyed and refused by the API: it carries a business rule.
+
+    A field shown live "from the Lead" is NOT a mapping. It is never copied;
+    see FieldPlacement.value_mode = 'read_through'.
+    """
+
+    __tablename__ = "conversion_mappings"
+    __table_args__ = (
+        UniqueConstraint("path", "target_module", "target_api_name", name="uq_conversion_mappings_target"),
+        CheckConstraint(
+            "path IN ('lead_to_opportunity', 'opportunity_to_deal', 'lead_to_deal_pilot')",
+            name="ck_conversion_mappings_path",
+        ),
+        CheckConstraint("kind IN ('copy', 'system')", name="ck_conversion_mappings_kind"),
+        CheckConstraint(
+            "kind = 'system' OR (source_module IS NOT NULL AND source_api_name IS NOT NULL)",
+            name="ck_conversion_mappings_source",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    path: Mapped[str] = mapped_column(String(40), nullable=False)
+    kind: Mapped[str] = mapped_column(String(10), nullable=False, default="copy", server_default="copy")
+    source_module: Mapped[str | None] = mapped_column(
+        String(60), ForeignKey("modules.module_key"), nullable=True
+    )
+    source_api_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    target_module: Mapped[str] = mapped_column(
+        String(60), ForeignKey("modules.module_key"), nullable=False
+    )
+    target_api_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    transform: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    locked: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    note: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_now
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
+    )
 
 
 class Stage(Base):
@@ -3467,3 +3591,36 @@ class Feedback(Base):
     __table_args__ = (
         CheckConstraint("length(btrim(message)) > 0", name="ck_feedback_message_not_blank"),
     )
+
+
+# --------------------------------------------------------------------------
+# Metadata v2: every module has a Standard layout, every section is in one.
+# --------------------------------------------------------------------------
+#
+# Done with mapper events rather than in each caller, because modules and
+# sections are created in six places — the Administration API, a rollback
+# restoring a snapshot, and four one-off metadata scripts — and a section with
+# no layout is refused by the database (sections.layout_id is NOT NULL). One
+# rule here means none of them can forget it.
+
+from sqlalchemy import event as _event, insert as _insert, select as _select  # noqa: E402
+
+
+@_event.listens_for(Module, "after_insert")
+def _module_gets_standard_layout(mapper, connection, target) -> None:
+    connection.execute(
+        _insert(Layout.__table__).values(
+            module_key=target.module_key, label="Standard", is_default=True
+        )
+    )
+
+
+@_event.listens_for(Section, "before_insert")
+def _section_joins_default_layout(mapper, connection, target) -> None:
+    if target.layout_id is None:
+        target.layout_id = connection.scalar(
+            _select(Layout.__table__.c.id).where(
+                Layout.__table__.c.module_key == target.module_key,
+                Layout.__table__.c.is_default.is_(True),
+            )
+        )
