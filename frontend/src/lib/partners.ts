@@ -116,7 +116,7 @@ export function registrationState(raw: Values | undefined, now = today()): Regis
   // never say different things. They otherwise would: seed REG-00042 stores
   // 12 Apr 2026 where add_days(13 Jan, 90) is the 13th. The register's formula
   // wins and the stored value is reported on the Spec Health page.
-  const record = raw ? withComputed('partners', raw) : undefined
+  const record = raw ? withComputed('registrations', raw) : undefined
 
   const status = String(record?.registration_status ?? '')
   const expiryDate = asDate(record?.exclusivity_expiry_date)
@@ -234,7 +234,7 @@ export function acknowledgementPatch(record: Values, at = today()): Values {
     registration_status: 'ACTIVE',
   }
 
-  const computed = withComputed('partners', patch)
+  const computed = withComputed('registrations', patch)
   return {
     acknowledged_date: start,
     exclusivity_start_date: start,

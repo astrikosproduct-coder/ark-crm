@@ -55,6 +55,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Account, Contact, Deal, Lead, Opportunity
+from ..pursuits import end_client_of
 
 router = APIRouter(tags=["search"])
 
@@ -170,6 +171,19 @@ def _search_opportunities(db: Session, term: str, account_ids: Iterable[str], li
 
 
 def _search_deals(db: Session, term: str, account_ids: Iterable[str], limit: int):
+    # A Deal's End Client is its Lead's, shown live (G1, 24 Sep 2026), so a
+    # match on the client is a match on the Lead — directly for a paid pilot's
+    # Deal, through the Opportunity otherwise.
+    ids = list(account_ids)
+    by_client = False
+    if ids:
+        leads = select(Lead.lead_id).where(Lead.end_client.in_(ids))
+        opportunities = select(Opportunity.opportunity_id).where(Opportunity.parent_lead.in_(leads))
+        by_client = or_(
+            Deal.end_client.in_(ids),
+            Deal.parent_lead.in_(leads),
+            Deal.parent_opportunity.in_(opportunities),
+        )
     query = (
         select(Deal)
         .where(
@@ -177,7 +191,7 @@ def _search_deals(db: Session, term: str, account_ids: Iterable[str], limit: int
                 Deal.deal_name.ilike(_like(term), escape="\\"),
                 Deal.project_code.ilike(_like(term), escape="\\"),
                 cast(Deal.deal_id, String).ilike(_like(term), escape="\\"),
-                Deal.end_client.in_(list(account_ids)) if account_ids else False,
+                by_client,
             )
         )
         .order_by(Deal.deal_name)
@@ -188,7 +202,7 @@ def _search_deals(db: Session, term: str, account_ids: Iterable[str], limit: int
             module="deals",
             record_id=r.deal_id,
             title=r.deal_name,
-            subtitle=r.end_client,
+            subtitle=end_client_of(db, "deals", r),
             meta=_stage_meta(r.deal_stage, r.lead_status),
         )
         for r in rows

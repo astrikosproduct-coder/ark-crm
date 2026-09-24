@@ -429,6 +429,7 @@ def spin_off_pilot_deal(db: Session, lead: Lead, *, actor: str | None) -> Deal |
     if existing is not None:
         return None
 
+    from .carry_forward import apply_mapping  # local: carry_forward imports the resolver
     from .ids import next_reference_id  # local: ids imports models
 
     highest = 0
@@ -441,26 +442,24 @@ def spin_off_pilot_deal(db: Session, lead: Lead, *, actor: str | None) -> Deal |
     progression, _ = stage_pair(db, stage_number(PILOT_DEAL_STAGE))
     deal = Deal(
         deal_id=deal_id,
-        deal_name=f"{lead.opportunity_name} — Paid POC",
         deal_stage=PILOT_DEAL_STAGE,
         lead_status=PILOT_STATUS,
         parent_lead=lead.lead_id,
-        contract_value=lead.pilot_fee,
-        # The Won date: asked for on the Lead when the pilot is marked Paid
-        # (decided 21 Sep 2026), never defaulted to the day of the click.
-        po_received_date=lead.pilot_po_received_date,
-        end_client=lead.end_client,
-        customer_partner_si=lead.customer_partner_si,
         progression_pct=progression,
         progression_default_pct=progression,
         probability_pct=ONE,
         probability_default_pct=ONE,
         is_overridden=False,
     )
+    # What the Deal takes from its Lead is the locked Lead -> Deal (paid pilot)
+    # rows of Conversion Mapping (metadata v2; G2, 24 Sep 2026): Pilot Fee as
+    # the contract value, the pilot's PO date as the Won date (decided 21 Sep —
+    # asked for on the Lead, never defaulted to the day of the click), the name
+    # with " — Paid POC", and Customer (Partner / SI). End Client is not
+    # copied: the Deal shows the Lead's, live (G1).
+    copied = apply_mapping(db, "lead_to_deal_pilot", lead, deal)
     db.add(deal)
     db.flush()
-
-    copied = ["deal_name", "contract_value", "po_received_date", "end_client", "customer_partner_si"]
     record_audit(
         db,
         module="deals",

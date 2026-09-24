@@ -176,6 +176,26 @@ try:
 
         deal = client.get(f"/api/deals/{deal_id}").json()
         check("the pilot Deal counts as revenue", deal["revenue"]["excluded"] is None, str(deal["revenue"]))
+        # Metadata v2: these come from the locked Lead -> Deal (paid pilot)
+        # rows of Conversion Mapping, not from code (G2, 24 Sep 2026).
+        check("…named from the Lead, with \" — Paid POC\"", deal["deal_name"] == "Paid Pilot Pursuit — Paid POC",
+              deal["deal_name"])
+        from app import carry_forward
+        from app.models import Deal as _Deal, Lead as _Lead
+        with SessionLocal() as db:
+            # This Lead was made without an End Client; lend it one for the
+            # read, then put it back — nothing is committed.
+            lead_row = db.get(_Lead, pilot["lead_id"])
+            lead_row.end_client = db.execute(text("select account_id from accounts limit 1")).scalar()
+            db.flush()
+            shown = carry_forward.effective_value(db, "deals", db.get(_Deal, deal_id), "end_client")
+            lead_client = lead_row.end_client
+            db.rollback()
+        # G1: the Deal shows its Lead's End Client. A pilot Deal has no
+        # Opportunity, so this is reached through parent_lead directly.
+        check("…showing its Lead's End Client, with no Opportunity in between",
+              deal["end_client"] is None and shown == lead_client and shown is not None,
+              f"stored={deal['end_client']} shown={shown} lead={lead_client}")
         row = client.patch(f"/api/deals/{deal_id}", json={"erp_reference": "ERP-1"}).json()
         check("saving the pilot Deal keeps it at 95 / 100", pair(row) == (95, 100), str(pair(row)))
 

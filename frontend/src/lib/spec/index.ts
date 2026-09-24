@@ -715,10 +715,10 @@ const MODULE_OF_COLLECTION: Record<string, string> = {
   quotes: 'quotes',
   products: 'products',
   users: 'administration',
-  registrations: 'partners',
-  // Both live on the Partners sheet, in different sections of it — a
-  // registration is DEAL REGISTRATION, an adjudication is CONFLICT ADJUDICATION.
-  conflicts: 'partners',
+  // Their own modules since metadata v2 (24 Sep 2026), filed under Partners in
+  // Administration. Until then both were sections of the Partners sheet.
+  registrations: 'registrations',
+  conflicts: 'conflicts',
   bids: 'bids_pocs',
   pocs: 'bids_pocs',
 }

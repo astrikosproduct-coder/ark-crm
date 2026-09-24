@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from ..auth import current_user
 from ..list_query import run_list_query
-from ..read_through_rows import attach_read_through
+from ..read_through_rows import attach_read_through, read_through_names
 from ..messages import already_exists, not_found, picked_record_missing, refusal
 from ..requirements import check_save
 from ..changes import child_snapshot, custom_field_diff, diff, list_changes, snapshot
@@ -20,7 +20,7 @@ from ..stage_entry import stage_entry_dates
 from ..thresholds import check_thresholds
 from ..progression import after_write as pct_after_write, plan_write, serialise_pct
 from ..conversion import begin_conversion, complete_conversion
-from ..pursuits import PURSUIT_STAMPED, guard_close, guard_end_client_change, guard_win, inherit_on_create
+from ..pursuits import PURSUIT_STAMPED, guard_close, guard_win, inherit_on_create
 from ..revenue import guard_final_value_matches_tcv, revenue_context, revenue_of
 from ..models import (
     Account,
@@ -334,8 +334,11 @@ def create_deal(
         "payment_schedule_confirmed": False,
         "active": True,
     }
+    # A field the Deal shows live from its Lead stores nothing here (metadata
+    # v2; End Client since G1, 24 Sep 2026). A value sent for one is not kept.
+    shown_live = set(read_through_names(db, "deals"))
     for name in DEAL_SCALARS:
-        if name in PURSUIT_STAMPED or name in SYSTEM_STAMPED:
+        if name in PURSUIT_STAMPED or name in SYSTEM_STAMPED or name in shown_live:
             continue
         value = getattr(payload, name)
         if value is None and name in _BOOL_DEFAULTS:
@@ -468,10 +471,12 @@ def _write(db: Session, deal_id: str, payload: DealUpdate, sent: set[str], user:
 
     if "lead_status" in sent:
         guard_close(db, "deals", deal, payload.lead_status)
-    guard_end_client_change(db, deal, sent, payload.end_client)
+    # No End Client guard here: a Deal's End Client is the Lead's, shown live
+    # and never written on the Deal (G1, 24 Sep 2026), so it cannot change.
+    shown_live = set(read_through_names(db, "deals"))
 
     for name in DEAL_SCALARS:
-        if name not in sent or name in PURSUIT_STAMPED or name in SYSTEM_STAMPED:
+        if name not in sent or name in PURSUIT_STAMPED or name in SYSTEM_STAMPED or name in shown_live:
             continue
         setattr(deal, name, getattr(payload, name))
 

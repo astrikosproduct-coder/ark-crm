@@ -7,7 +7,7 @@ import { isoDate, today } from '@/lib/partners'
 import { fieldAt, partnerRegistration } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
 
-const MODULE = 'partners'
+const MODULE = 'registrations'
 const COLLECTION = 'registrations'
 
 /**

@@ -63,6 +63,10 @@ class ModuleOut(BaseModel):
     label: str
     sort_order: int
     active: bool
+    # Metadata v2 (0038): kept but not offered in Administration, and where
+    # Administration files it (Deal Registrations under Partners).
+    hidden: bool = False
+    setup_parent: str | None = None
     # Counts, so the Administration list can say "58 fields, 3 deleted" without
     # fetching 566 rows to count them in the browser.
     field_count: int = 0
@@ -441,6 +445,8 @@ class PicklistValueOut(BaseModel):
     label: str
     sort_order: int
     active: bool
+    # A value the server reads by key: it can be relabelled, never retired.
+    is_system: bool = False
 
 
 class PicklistValueCreate(BaseModel):
@@ -471,6 +477,9 @@ class PicklistOut(BaseModel):
     label: str | None = None
     sort_order: int
     active: bool
+    # Shared by fields on several modules (Zoho's Global Sets). A local list
+    # serves one field.
+    is_global: bool = False
     values: list[PicklistValueOut] = []
     # How many register fields name this picklist. Deactivating one that 40
     # fields use should look different from deactivating an unused one.
@@ -488,6 +497,7 @@ class PicklistUpdate(BaseModel):
     label: str | None = Field(default=None, max_length=200)
     sort_order: int | None = None
     active: bool | None = None
+    is_global: bool | None = None
 
 
 # ----------------------------------------------------------------------- stages

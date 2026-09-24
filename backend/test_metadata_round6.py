@@ -128,15 +128,15 @@ def main() -> int:
         db.add(Opportunity(opportunity_id=opportunity_id, licence_model="PERPETUAL"))
         db.commit()
 
-    # Round 7: licence_model is one field_definitions row (scope 'pipeline',
-    # origin_module 'leads' — the register sheet it was historically filed
-    # on) with ONE placement, on opportunities — the module carry='moved'
+    # Metadata v2: licence_model is one field_definitions row owned by
+    # Opportunities (scope 'opportunities'; origin_module still 'leads', the
+    # register sheet it was historically filed on) with ONE placement, on opportunities — the module carry='moved'
     # actually routes it to. Delete/restore act on the DEFINITION; the
     # required-toggle acts on the PLACEMENT, because that is what is checked
     # against the opportunities.licence_model column below.
     licence_definition = sql(
         "SELECT id FROM field_definitions WHERE api_name = 'licence_model' "
-        "AND scope_key = 'pipeline'"
+        "AND scope_key = 'opportunities'"
     )
     licence_definition_id = licence_definition[0][0]
     licence_placement = sql(

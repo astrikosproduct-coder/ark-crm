@@ -128,14 +128,14 @@ Only the register rows that *describe* their fields move.
 Partners                      stays — the parent; the Partners screen is unchanged
  ├─ Deal Registrations        new module — 18 fields, own layout
  │    └─ Conflicts            new module — 13 fields, own layout
- └─ Partner Scorecards        new module — 8 fields, HIDDEN until built
+ └─ Partner Scorecards        new module — 8 fields (not built yet; stays visible)
 ```
 
 | Moves to | Fields |
 |---|---|
 | **Deal Registrations** | Registration ID · Partner · End Client · Project Name · **Currency** · Estimated Value · Expected Timeline · Partner Role · Submitted Date · Acknowledged Date · Acknowledgement SLA Met · Exclusivity Start Date · Exclusivity Expiry Date · Registration Status · Withdrawn Date · Withdrawal Reason · Extension Reason · Linked Lead |
 | **Conflicts** | Conflict ID · Registration A · Registration B · Who Registered First · Stronger Client Relationship · Better Delivery Capability · Decision · Primary Registration · Decision Rationale & Evidence · Evidence Link · Decision Date · Decided By · Both Partners Notified |
-| **Partner Scorecards** (hidden) | Scorecard ID · Partner · Quarter · Leads Registered · Conversion Rate to Stage 4+ · Revenue Closed · Partner Satisfaction Score · QBR Date |
+| **Partner Scorecards** | Scorecard ID · Partner · Quarter · Leads Registered · Conversion Rate to Stage 4+ · Revenue Closed · Partner Satisfaction Score · QBR Date |
 
 - **Currency on a registration** borrows the *Lead's* Currency definition today. It becomes
   the registration's own field, on the global Currency list (D).
@@ -148,7 +148,7 @@ Partners                      stays — the parent; the Partners screen is uncha
 
 ---
 
-## D. Picklists: 7 global, 7 local (decided 24 Sep, G3/G4)
+## D. Picklists: 8 global, 7 local (decided 24 Sep, G3/G4)
 
 | Picklist (key unchanged) | Label today → after | Used by after v2 | Outcome |
 |---|---|---|---|
@@ -159,6 +159,7 @@ Partners                      stays — the parent; the Partners screen is uncha
 | `region` | Region | Accounts · Leads (Booking and Destination Region) | **Global** |
 | `segment` | Segment | Accounts · Leads | **Global** |
 | `contacts__dial_code` | → **Dial Code** | Contacts (Phone and Mobile) | **Global** — *found on the dry run: two fields share it* |
+| `bids_pocs__status` | unchanged | Bids & POCs (Bid, Gate and POC status) | **Global** — *found once no module was hidden* |
 | `leads__lead_status` | → **Lead Status** | Leads only | **Local** (G3) |
 | *new* `opportunities__lead_status` | **Opportunity Status** | Opportunities only | **Local** (G3) — starts as a copy of today's values minus POC/Pilot Deal |
 | *new* `deals__lead_status` | **Deal Status** | Deals only | **Local** (G3) — starts as a copy of today's values; the only list holding POC/Pilot Deal |
@@ -180,17 +181,13 @@ Partners                      stays — the parent; the Partners screen is uncha
 Keys never change, because every stored value is written under them. Only labels change.
 The other 102 picklists are already used by one module and become local.
 
-## E. Modules hidden, not deleted
+## E. No module is hidden (changed 24 Sep 2026)
 
-Hidden means: not shown in Setup's module list, not in the spec the app reads, and every
-row kept. Nothing is dropped.
-
-| Module | Why hidden | Placements kept |
-|---|---|---|
-| `administration` | Users and Roles are hand-built screens; nothing reads these rows | 100 |
-| `demo_module` | Leftover, empty | 0 |
-| `bids_pocs` · `quotes` · `products` · `activities_docs` | Not built yet; each is un-hidden when its phase starts | 85 · 68 · 50 · 21 |
-| `partner_scorecards` (new, C) | Not built yet | 8 |
+The first version of this list hid unbuilt modules in Administration. **Decided
+24 Sep: they stay exactly as they are.** Quotes, Products, Bids & POCs,
+Activities & Documents, `administration`, `demo_module` and the new Partner
+Scorecards all remain visible. The `hidden` flag exists in the schema but
+nothing sets it.
 
 ---
 
@@ -211,7 +208,7 @@ row kept. Nothing is dropped.
 | **G1** | End Client and Customer (Partner / SI) on the Deal | **Show the Lead's value live** (24 Sep). End Client: done, see A1. Customer (Partner / SI) **stays the Deal's own field** (confirmed 24 Sep) |
 | **G2** | Paid-pilot mapping rows | **Locked** (24 Sep): shown in Setup, copy happens exactly as today, nobody can change or remove the row |
 | **G3** | Status picklists | **Local, one list per module** (24 Sep): see D |
-| **G4** | Global / local split | Settled by G3: 7 global, 7 local (Dial Code added on the dry run) |
+| **G4** | Global / local split | Settled by G3: 8 global, 7 local (Dial Code and Bids & POCs status added during the run) |
 
 **G1 consequence, for confirmation.** A converted record is read-only, so a field shown live
 from the Lead can no longer be changed anywhere once the Lead converts at Stage 3.

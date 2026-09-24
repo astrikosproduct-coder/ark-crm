@@ -149,14 +149,19 @@ def is_open(record: Any) -> bool:
 
 
 def end_client_of(db: Session, module: str, record: Any) -> str | None:
-    """Opportunities read End Client through their Lead; Deals carry their own."""
+    """
+    Opportunities and Deals both show their Lead's End Client, live (a Deal
+    since G1, 24 Sep 2026 — it used to keep a locked copy). A Deal with no Lead
+    at all is the only one whose own column still answers.
+    """
     if module == "opportunities":
         lead = db.get(Lead, record.parent_lead) if record.parent_lead else None
         return lead.end_client if lead else None
-    if module == "deals" and not record.end_client:
+    if module == "deals":
         root = root_of(db, module, record)
         lead = db.get(Lead, root) if root.startswith("LEAD-") else None
-        return lead.end_client if lead else None
+        if lead is not None:
+            return lead.end_client
     return record.end_client
 
 

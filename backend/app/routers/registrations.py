@@ -239,7 +239,7 @@ def create_registration(
         reg,
         resolve_write(
             db,
-            "partners",
+            "registrations",
             explicit=payload.custom_fields,
             extras=extras_of(payload),
         ),
@@ -325,7 +325,7 @@ def _write(
         reg,
         resolve_write(
             db,
-            "partners",
+            "registrations",
             explicit=payload.custom_fields,
             extras=extras_of(payload),
         ),

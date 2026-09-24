@@ -37,10 +37,9 @@ import { displayNameOf, idOf, withRecordId } from '@/lib/spec'
 import type { AuditRow } from '@/lib/timeline'
 import { cn } from '@/lib/utils'
 
-const MODULE = 'partners'
+const MODULE = 'registrations'
 const COLLECTION = 'registrations'
 const SECTION = 'DEAL REGISTRATION'
-const CONFLICT_SECTION = 'CONFLICT ADJUDICATION'
 
 type Row = Record<string, unknown>
 type Labels = Record<string, string> | undefined
@@ -123,8 +122,7 @@ export function RegistrationDetailPage() {
       conflicts.map((c) => ({
         auditModule: 'conflicts',
         recordId: String(c.id),
-        module: MODULE,
-        sections: [CONFLICT_SECTION],
+        module: 'conflicts',
         noun: String(c.name ?? 'conflict adjudication'),
       })),
     [conflicts]

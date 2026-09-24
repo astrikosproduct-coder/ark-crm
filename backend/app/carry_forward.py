@@ -138,20 +138,41 @@ def effective_value(db: Session, module_key: str, record: Any, api_name: str) ->
     return getattr(record, attribute, None) if attribute else None
 
 
-def _from_parent(db: Session, module_key: str, record: Any, api_name: str) -> Any:
-    """Walk one link up and ask again."""
+def parent_record(db: Session, module_key: str, record: Any) -> tuple[str | None, Any]:
+    """
+    (the module above this record, that record) — or (None, None).
+
+    One link up, with ONE fallback: when the direct link is empty, the
+    grandparent's link on this same record. A paid pilot's Deal has no
+    Opportunity — it was created straight from its Lead — but it does carry
+    parent_lead, the very link an Opportunity uses to name its Lead. Without
+    the fallback everything a Deal shows "from the Lead" came back empty for
+    those Deals; the list rows never had that gap, because app/revenue.py's
+    root_lead_of already reads parent_lead first.
+    """
     from .metadata_resolver import parent_of
 
     parent_module, parent_link = parent_of(db, module_key)
     if not parent_module or not parent_link:
-        return None
+        return None, None
     parent_id = getattr(record, parent_link, None)
     if not parent_id:
-        return None
+        grand_module, grand_link = parent_of(db, parent_module)
+        grand_id = getattr(record, grand_link, None) if grand_link else None
+        if not grand_module or not grand_id:
+            return None, None
+        parent_module, parent_id = grand_module, grand_id
     model, _ = _model(parent_module)
     if model is None:
+        return None, None
+    return parent_module, db.get(model, parent_id)
+
+
+def _from_parent(db: Session, module_key: str, record: Any, api_name: str) -> Any:
+    """Walk one link up and ask again."""
+    parent_module, parent = parent_record(db, module_key, record)
+    if parent is None:
         return None
-    parent = db.get(model, parent_id)
     return effective_value(db, parent_module, parent, api_name)
 
 
@@ -186,7 +207,7 @@ def seed_values(
     written: dict[str, Any] = {}
     custom: dict[str, Any] = {}
 
-    for api_name, source_module in plan.items():
+    for api_name, (source_module, source_api) in plan.items():
         # `supplied` arrives in the CALLER's vocabulary — Pydantic field names,
         # which are ORM attribute names — while the plan is in api_names. They
         # differ for the two fields whose api_name is not a valid identifier,
@@ -196,7 +217,7 @@ def seed_values(
         if api_name in supplied or (attribute and attribute in supplied):
             continue
 
-        value = _walk_to_source(db, module_key, record, api_name, source_module)
+        value = _walk_to_source(db, module_key, record, source_api, source_module)
         if value is None:
             continue
 
@@ -230,25 +251,45 @@ def _walk_to_source(
     source_module: str,
 ) -> Any:
     """Follow parent links from `record` up to `source_module` and read there."""
-    from .metadata_resolver import parent_of
-
     current_module, current = module_key, record
     while current_module != source_module:
-        parent_module, parent_link = parent_of(db, current_module)
-        if not parent_module or not parent_link:
+        parent_module, parent = parent_record(db, current_module, current)
+        if parent is None:
             return None
-        parent_id = getattr(current, parent_link, None)
-        if not parent_id:
-            return None
-        model, _ = _model(parent_module)
-        if model is None:
-            return None
-        current = db.get(model, parent_id)
-        if current is None:
-            return None
-        current_module = parent_module
-
+        current_module, current = parent_module, parent
     return effective_value(db, source_module, current, api_name)
+
+
+#: Named transforms a mapping row may carry. Named so the screen can say what
+#: happens, rather than a formula nobody can read.
+TRANSFORMS = {
+    "paid_poc_name": lambda value: f"{value} — Paid POC" if value else value,
+}
+
+
+def apply_mapping(db: Session, path: str, source: Any, target: Any) -> list[str]:
+    """
+    Copy one conversion path's rows from `source` onto a new `target`.
+
+    For the paid pilot's Deal, whose source is the Lead itself: every row's
+    source module is `leads`. Returns the target api_names written. The rows
+    are locked (decided 24 Sep 2026, G2), so this copies exactly what it
+    copied when the rule lived in code: Pilot Fee, the PO date, the name and
+    Customer (Partner / SI).
+    """
+    from .metadata_resolver import conversion_rows
+
+    written: list[str] = []
+    for row in conversion_rows(db, path):
+        value = effective_value(db, row.source_module, source, row.source_api_name)
+        if row.transform:
+            value = TRANSFORMS[row.transform](value)
+        attribute = attribute_for(type(target), row.target_api_name)
+        if attribute is None or value is None:
+            continue
+        setattr(target, attribute, value)
+        written.append(row.target_api_name)
+    return written
 
 
 def locked_violations(

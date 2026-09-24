@@ -44,7 +44,7 @@ from typing import Any, Iterable
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .models import FieldDefinition, FieldPlacement, Module, Section
+from .models import ConversionMapping, FieldDefinition, FieldPlacement, Module, Section
 
 # The keys spec/fields.json carries for every field, in the order build_spec.py
 # wrote them. Unchanged from the register's own 24 — a regenerated file is still
@@ -364,23 +364,49 @@ def placements_of(
     return {p.api_name: p for p in db.scalars(query)}
 
 
-def carry_forward_plan(db: Session, module_key: str) -> dict[str, str]:
+#: The conversion that creates a record of each module in the ordinary way.
+#: A paid pilot's Deal is the other path — see app/progression.py.
+CONVERSION_PATH = {
+    "opportunities": "lead_to_opportunity",
+    "deals": "opportunity_to_deal",
+}
+
+
+def conversion_rows(db: Session, path: str) -> list[ConversionMapping]:
+    """The copy rows of one conversion path, in order. Metadata v2."""
+    return list(
+        db.scalars(
+            select(ConversionMapping)
+            .where(
+                ConversionMapping.path == path,
+                ConversionMapping.kind == "copy",
+                ConversionMapping.active.is_(True),
+            )
+            .order_by(ConversionMapping.sort_order, ConversionMapping.id)
+        )
+    )
+
+
+def carry_forward_plan(db: Session, module_key: str) -> dict[str, tuple[str, str]]:
     """
     What a new record on this module inherits, and from where.
 
-    api_name -> the module its opening value is copied from. Empty for Leads,
-    which has no parent to inherit from.
+    target api_name -> (the module holding the value, its api_name there).
+    Empty for Leads, which has no parent to inherit from.
 
-    Called once when a record is created. See app/carry_forward.py, which is
-    what actually copies the values — this only says what and from where, so
-    the rule stays readable and testable without a record in hand.
+    Metadata v2: read from Conversion Mapping, the rows Administration shows,
+    rather than derived from placement flags. The placement's value_mode is
+    still 'carry_forward' on a mapped target — that is what tells the screen
+    the value arrived with the record — and validation checks the two agree.
     """
-    plan: dict[str, str] = {}
-    for api_name in placements_of(db, module_key, value_mode="carry_forward"):
-        source = value_source(db, module_key, api_name)
-        if source:
-            plan[api_name] = source
-    return plan
+    path = CONVERSION_PATH.get(module_key)
+    if path is None:
+        return {}
+    return {
+        row.target_api_name: (row.source_module, row.source_api_name)
+        for row in conversion_rows(db, path)
+        if row.target_module == module_key
+    }
 
 
 def read_through_plan(db: Session, module_key: str) -> dict[str, str]:

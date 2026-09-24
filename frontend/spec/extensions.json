@@ -83,15 +83,15 @@
    ]
   },
   "registrations": {
-   "$note": "The registrations collection is described by the partners MODULE, section DEAL REGISTRATION - see MODULE_OF_COLLECTION in src/lib/spec/index.ts. The partner column is FULLY QUALIFIED because partners.partner is defined twice - here and in QUARTERLY SCORECARD - and the loader refuses to resolve the short form.",
+   "$note": "The registrations collection is described by the partners MODULE, section DEAL REGISTRATION - see MODULE_OF_COLLECTION in src/lib/spec/index.ts. The partner column is FULLY QUALIFIED because registrations.partner is defined twice - here and in QUARTERLY SCORECARD - and the loader refuses to resolve the short form.",
    "columns": [
-    "partners.DEAL REGISTRATION.partner",
-    "partners.end_client",
-    "partners.project_name",
-    "partners.estimated_value",
-    "partners.submitted_date",
-    "partners.exclusivity_expiry_date",
-    "partners.registration_status"
+    "registrations.partner",
+    "registrations.end_client",
+    "registrations.project_name",
+    "registrations.estimated_value",
+    "registrations.submitted_date",
+    "registrations.exclusivity_expiry_date",
+    "registrations.registration_status"
    ],
    "default_sort": "submitted_date",
    "search": [
@@ -100,12 +100,12 @@
     "end_client"
    ],
    "filters": [
-    "partners.registration_status",
-    "partners.DEAL REGISTRATION.partner",
-    "partners.end_client",
-    "partners.submitted_date",
-    "partners.exclusivity_expiry_date",
-    "partners.estimated_value"
+    "registrations.registration_status",
+    "registrations.partner",
+    "registrations.end_client",
+    "registrations.submitted_date",
+    "registrations.exclusivity_expiry_date",
+    "registrations.estimated_value"
    ]
   },
   "leads": {
@@ -201,15 +201,15 @@
   ]
  },
  "partner_registration": {
-  "$note": "Numbers the Partner Playbook §6.2 states and the register does not carry as data. exclusivity_days duplicates what partners.exclusivity_expiry_date's computed_expr already encodes; it is repeated here because the chip and the acknowledgement modal need the number before any record exists.",
-  "$exclusivity_days_note": "89, NOT 90. The window includes the start day, so a registration acknowledged on 13 Jan runs to 12 Apr. The journey document is authoritative on this. The register's own prose still reads 'Start date plus 90 days' on partners.exclusivity_expiry_date and is wrong by one day - flagged in open_questions and shown in the field's tooltip so a reviewer sees both.",
+  "$note": "Numbers the Partner Playbook §6.2 states and the register does not carry as data. exclusivity_days duplicates what registrations.exclusivity_expiry_date's computed_expr already encodes; it is repeated here because the chip and the acknowledgement modal need the number before any record exists.",
+  "$exclusivity_days_note": "89, NOT 90. The window includes the start day, so a registration acknowledged on 13 Jan runs to 12 Apr. The journey document is authoritative on this. The register's own prose still reads 'Start date plus 90 days' on registrations.exclusivity_expiry_date and is wrong by one day - flagged in open_questions and shown in the field's tooltip so a reviewer sees both.",
   "exclusivity_days": 89,
-  "$acknowledgement_sla_note": "§6.2 states 48 HOURS. partners.submitted_date and acknowledged_date are both typed `date`, so the rule can only be applied to whole days and is expressed as 2 days everywhere on screen. Nothing displays or computes hours - see precision_limits.",
+  "$acknowledgement_sla_note": "§6.2 states 48 HOURS. registrations.submitted_date and acknowledged_date are both typed `date`, so the rule can only be applied to whole days and is expressed as 2 days everywhere on screen. Nothing displays or computes hours - see precision_limits.",
   "acknowledgement_sla_days": 2,
   "expiring_within_days": 15,
   "capture_fields": {
    "$note": "The eight fields a partner supplies when registering. Everything else in DEAL REGISTRATION is stamped by ARK on acknowledgement, so a create form that offered them would invite somebody to type an exclusivity date by hand.",
-   "module": "partners",
+   "module": "registrations",
    "section": "DEAL REGISTRATION",
    "fields": [
     "partner",
@@ -223,8 +223,8 @@
    ]
   },
   "adjudication_criteria": {
-   "$note": "The three criteria §6.2 says an adjudication is recorded against. These ARE in the register - partners.who_registered_first, stronger_client_relationship, better_delivery_capability, orders 19-21 - so they are rendered from it rather than invented here. This block only records that these three, and no others, are the criteria.",
-   "module": "partners",
+   "$note": "The three criteria §6.2 says an adjudication is recorded against. These ARE in the register - conflicts.who_registered_first, stronger_client_relationship, better_delivery_capability, orders 19-21 - so they are rendered from it rather than invented here. This block only records that these three, and no others, are the criteria.",
+   "module": "conflicts",
    "section": "CONFLICT ADJUDICATION",
    "fields": [
     "who_registered_first",
@@ -234,7 +234,7 @@
   },
   "adjudication_outcome": {
    "$note": "The rest of a CONFLICT ADJUDICATION record - what the BD Director decides once the three criteria above are assessed. Split from the criteria only so the screen can label them separately; both sets render from the register. conflict_id is excluded because it is an autonumber ARK assigns, and registration_a / registration_b because the pair is determined by the collision that raised the adjudication, not typed by hand - the screen stamps them.",
-   "module": "partners",
+   "module": "conflicts",
    "section": "CONFLICT ADJUDICATION",
    "fields": [
     "decision",
@@ -341,8 +341,8 @@
    }
   },
   "registrations": {
-   "$note": "No renames needed - every key in seed/registrations.json is a real partners api_name. The entry exists for the picklist coercion: the seed writes partner_role \"Prime\" and registration_status \"Active\", both labels, where the register's keys are PRIME and ACTIVE.",
-   "module": "partners"
+   "$note": "No renames needed - every key in seed/registrations.json is a real registrations api_name. The entry exists for the picklist coercion: the seed writes partner_role \"Prime\" and registration_status \"Active\", both labels, where the register's keys are PRIME and ACTIVE.",
+   "module": "registrations"
   },
   "leads": {
    "$note": "seed/leads.json was filled in against an earlier draft of the register: it spells the suite fields 'saap' where the register settled on 'sap', and writes 'probability' where the register calls the field probability_pct. project_stage is seeded as a bare integer (3) rather than the picklist key (3_PRESCRIPTION) - the generic picklist coercion below now stringifies a numeric value first, so it resolves through the same key-prefix match already used for contact_role codes.",
@@ -362,11 +362,11 @@
   "$note": "Places where the register's chosen TYPE cannot carry the rule the playbook states. These are not gaps to fill and not defects to correct - the type is a reasonable choice and changing it would cost more than the precision is worth. They are listed so nobody later reads a screen as claiming more accuracy than the data has.",
   "rows": [
    {
-    "ref": "partners.submitted_date",
+    "ref": "registrations.submitted_date",
     "detail": "§6.2 gives acknowledgement a 48-HOUR SLA. submitted_date and acknowledged_date are both `date`, so elapsed time is only knowable to the whole day. The prototype states the rule as 2 days and reads results as 'acknowledged in 1 day, inside the 2-day rule'. It never displays or computes hours. A registration submitted at 23:00 and acknowledged 26 hours later counts as 1 day; one submitted at 01:00 and acknowledged 46 hours later counts as 2. Both are inside the rule, and neither is distinguishable from the data. Making this exact would mean typing both fields datetime, which is a real change to the register - raise it only if 48 hours is meant literally rather than as 'within two working days'."
    },
    {
-    "ref": "partners.submitted_date",
+    "ref": "registrations.submitted_date",
     "detail": "The 2-day rule counts CALENDAR days, not business days. bids_pocs.sla_met uses business_days() for its own SLA, so the register is inconsistent about which it means. A registration submitted on a Friday is late by Sunday. Left as calendar days because §6.2 says 48 hours, which is a wall-clock measure."
    }
   ]
@@ -391,23 +391,23 @@
     "detail": "The Partners sheet defines no partner-ORGANISATION fields. Its three sections are DEAL REGISTRATION, CONFLICT ADJUDICATION and QUARTERLY SCORECARD - all child records of a partner. The partner-only attributes (Partner Tier, Partner Type, Platform Depth, Partner Satisfaction Score, Engagement Cadence, Post-Award Protection, Protected Until) are a section of the ACCOUNTS sheet. The prototype therefore keeps them on the account and does NOT create a second partner record keyed by account_id, which would store the same seven values in two places. Decide: move them to a PARTNER PROFILE section on the Partners sheet, or confirm they belong on Accounts."
    },
    {
-    "ref": "partners.partner",
+    "ref": "registrations.partner",
     "detail": "No lookup_filter, so any account at all can be named as the partner on a deal registration - including one whose account_type is End Client only. leads.customer_partner_si does carry a filter (Account Type must include Partner / SI). Should the registration lookup match it, and should it also admit OEM / Technology Partner? Left unfiltered rather than guessed at."
    },
    {
-    "ref": "partners.end_client",
-    "detail": "No lookup_filter, where leads.end_client has one. Same question as partners.partner. Left unfiltered."
+    "ref": "registrations.end_client",
+    "detail": "No lookup_filter, where leads.end_client has one. Same question as registrations.partner. Left unfiltered."
    },
    {
-    "ref": "partners.exclusivity_expiry_date",
+    "ref": "registrations.exclusivity_expiry_date",
     "detail": "THE REGISTER IS WRONG BY ONE DAY. Its prose reads 'Start date plus 90 days', which would make a registration acknowledged on 13 Jan expire on the 13th of April. The journey document says 12 Apr, because the 90 days INCLUDE the start day. The sidecar therefore computes add_days(start, 89) and the seed rows agree; the register's prose still says 90 and is shown in the field's tooltip beside a note saying so. Restate it as 'start date plus 89 days' or as '90 days inclusive of the start date' - the ambiguity is the actual defect, and it will recur wherever else the register counts a window."
    },
    {
-    "ref": "partners.registration_status",
+    "ref": "registrations.registration_status",
     "detail": "The picklist carries Submitted, Acknowledged, Active, Extended, Expired, Superseded and Rejected, but nothing states which transitions ARK performs and which a person sets. In particular NO RULE EXPIRES A REGISTRATION - a row can sit at Active forever with a date months behind it. The chip is derived from the dates and shows the stored status alongside it when the two disagree, rather than believing either. The seed no longer trips this, since it is rebased to demo day, so a warning appearing on screen now means a real contradiction rather than stale seed data."
    },
    {
-    "ref": "partners.extension_reason",
+    "ref": "registrations.extension_reason",
     "detail": "requirement = Conditional with no condition, and nothing anywhere says how long an extension runs or who may grant one. No extend action is offered, because the length of the window it would create is not stated."
    },
    {
@@ -423,7 +423,7 @@
     "detail": "seed/leads.json writes project_stage as a bare integer (3) and deal_source as a label (\"Partner-sourced\"), where the register types both as picklists whose keys are 3_PRESCRIPTION and PARTNER_SOURCED. Create Lead From Registration writes the register's keys, because that is what the form engine reads - so a lead created that way does not match the seed rows beside it. The leads collection has no seed_normalisation entry yet; adding one belongs with the Leads module. Note that resolvePicklistValue only coerces strings, so the integer stages pass through silently and are not currently reported."
    },
    {
-    "ref": "partners.conflict_id",
+    "ref": "conflicts.conflict_id",
     "detail": "CONFLICT ADJUDICATION describes a record with no seed data and no stated trigger beyond 'created when two partners register the same client and project'. The registration screen detects that collision and warns, but does not create a conflict record: nothing says whether ARK raises one automatically or a person does."
    },
    {
@@ -443,15 +443,15 @@
     "detail": "NOT FILTERED, where sap_solution_suite now is. Suite Demonstrated at Stage 1 is a product lookup with no lookup_filter in the register, so it still offers the whole catalogue - modules, add-ons and user packs included. That may be deliberate, since a demo can cover a module rather than a whole suite. Decide whether it should be restricted to the same seven, and note leads.secondary_sap_suites has the same question: it is a multiselect with no picklist behind it at all."
    },
    {
-    "ref": "partners.decision",
+    "ref": "conflicts.decision",
     "detail": "NOTHING SAYS WHAT AN ADJUDICATION DOES TO THE LOSING REGISTRATION. The decision picklist awards the deal to Registration A, Registration B or neither, but no rule anywhere changes the other registration's registration_status, releases its exclusivity window, or stops it being used to create a lead. The screen therefore records the decision and then OFFERS 'Mark REG-000nn Superseded' as a separate, explicit action rather than applying it as a side effect - superseding is what SUPERSEDED plainly means and what Convert to Deal already does on award, but here it is an inference and is left to a person. State the rule: does an adjudication supersede the loser automatically, and does it also end that partner's exclusivity early?"
    },
    {
-    "ref": "partners.conflict_id",
+    "ref": "conflicts.conflict_id",
     "detail": "PROTOTYPE ID CONVENTION, not from the register. Conflict records are created as CONF-0001 (four digits, following GATE-0091). CLAUDE.md's Conventions list ids for leads, deals, quotes, registrations and gates but not for a conflict. Confirm or replace the prefix."
    },
    {
-    "ref": "partners.registration_a",
+    "ref": "conflicts.registration_a",
     "detail": "THE REGISTER DOES NOT SAY WHICH SIDE OF A COLLISION IS A AND WHICH IS B, and the decision picklist is written entirely in those terms (Awarded to Registration A). The screen stamps the registration being viewed as A and the colliding one as B, which means the same conflict reached from the other registration's screen would name the slots the other way round if a second record were created. The prototype prevents that by matching an existing adjudication in EITHER direction, so one pair only ever has one record - but the register should still state the rule, for instance that A is always the earlier submitted_date."
    },
    {
@@ -608,23 +608,11 @@
    "max_length": 40,
    "note": "ABG Advance and PBG Performance are the two the register names, and a bid can be asked for a retention, a warranty, a mobilisation or a payment guarantee that none of them covers. The Bid Commitments Register therefore offers the register's options plus '+ Other', and what is typed is stored verbatim in deal_bid_commitments.guarantee_—_type - String(40), and no server-side value check, which is why max_length is stated here. A typed value is NOT a new picklist value: it lives on that row, nobody else's dropdown gains it, and a condition comparing against ABG_ADVANCE will not match it. When a typed value keeps coming back, add it as a real option in Administration > Picklists and publish."
   },
-  "leads.lead_status": {
-   "exclude_options": [
-    "POC_PILOT_DEAL"
-   ],
-   "note": "POC/Pilot Deal is a Deals-only value on the status picklist all three pipeline modules share (one definition, one picklist). Hidden here and refused by the server (app/progression.py::plan_write); a Lead becomes one by marking its pilot Paid."
-  },
-  "opportunities.lead_status": {
-   "exclude_options": [
-    "POC_PILOT_DEAL"
-   ],
-   "note": "POC/Pilot Deal is a Deals-only value on the status picklist all three pipeline modules share (one definition, one picklist). Hidden here and refused by the server (app/progression.py::plan_write); a Lead becomes one by marking its pilot Paid."
-  },
   "deals.lead_status": {
    "exclude_options": [
     "CONVERTED"
    ],
-   "note": "Deals' own entry, and it must exist. Without one this field falls back to leads.lead_status (all three placements share register_module leads) and inherits ITS exclusion - which hid POC/Pilot Deal on the one module that offers it (found 21 Sep 2026). Converted is hidden instead: a Deal does not convert into anything (decided 17 Sep 2026; see kanban.terminal_statuses_by_module)."
+   "note": "Converted is hidden: a Deal does not convert into anything (decided 17 Sep 2026; see kanban.terminal_statuses_by_module). Since metadata v2 (24 Sep 2026) each pipeline module has its own status list, so POC/Pilot Deal is simply not on the Lead or Opportunity list - the exclusions that hid it there are gone."
   },
   "$upload_to_link_note": "File-upload fields became link (url) fields prototype-wide — there is no server for an uploaded file to land on, and a pasted link is the honest equivalent. Applied only on the four that actually render on a live screen (Leads/Opportunities/Deals); the register's other file fields (bids_pocs POC workspace, administration audit-log sections) are unbuilt and left untouched. See FieldExtension.type_override/.label_override in src/types/field.ts for the override mechanism — fields.json itself is never hand-edited.",
   "leads.data_site_access_confirmation_document": {
@@ -655,10 +643,10 @@
   "leads.third_party_pct_of_tcv": {
    "note": "Depends on another computed field - exercises the topological sort."
   },
-  "partners.exclusivity_expiry_date": {
+  "registrations.exclusivity_expiry_date": {
    "note": "89, not the 90 the register's prose states. The window INCLUDES the start day: acknowledged 13 Jan, expires 12 Apr, which is 90 days of protection counted inclusively. The journey document is authoritative. The register should restate this as 'start date plus 89 days', or as '90 days inclusive of the start date'."
   },
-  "partners.acknowledgement_sla_met": {
+  "registrations.acknowledgement_sla_met": {
    "note": "§6.2 states 48 hours. Both dates are typed `date`, so the rule is applied as 2 whole days and is stated that way on screen - never in hours. This is a precision limit of the register, not a gap to fill: see the Spec Health page."
   },
   "products.is_derived": {

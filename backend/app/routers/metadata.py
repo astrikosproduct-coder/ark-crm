@@ -47,6 +47,7 @@ from ..metadata_spec import (
     write_spec_documents,
 )
 from .. import metadata_resolver
+from ..messages import refusal
 from ..models import (
     ANCHOR_POSITIONS,
     LAYOUT_SPANS,
@@ -178,10 +179,11 @@ def _validation_out(snapshot: dict) -> ValidationOut:
 
 STAGE_SECTION = re.compile(r"^STAGE (\d+)")
 
-# The scope Leads, Opportunities and Deals share. One namespace across the three
-# is what lets ONE definition of One-Time Revenue serve all of them; every other
-# module is its own namespace. Mirrors rebuild_metadata.PIPELINE_SCOPE.
-PIPELINE_SCOPE = "pipeline"
+# Metadata v2 (24 Sep 2026): there is no shared scope any more. Every field is
+# owned by exactly one module and is unique within it, as in Zoho — the shared
+# `pipeline` namespace Leads, Opportunities and Deals had was dissolved by
+# metadata_v2.py. A field may still be SHOWN on a descendant module, live
+# "from the Lead" (value_mode='read_through'), but it is owned once.
 
 
 def _stage_of_section(label: str) -> int | None:
@@ -258,8 +260,13 @@ def _latest_version(db: Session) -> MetadataVersion | None:
 @router.get("/modules", response_model=list[ModuleOut])
 def list_modules(
     include_inactive: bool = Query(default=True),
+    include_hidden: bool = Query(default=False),
     db: Session = Depends(get_db),
 ):
+    """
+    Hidden modules (not built yet, or not modules at all) are left out unless
+    asked for: Administration offers only what someone can act on. Metadata v2.
+    """
     counts = dict(
         db.execute(
             select(FieldPlacement.module_key, func.count())
@@ -283,6 +290,8 @@ def list_modules(
     query = select(Module).order_by(Module.sort_order, Module.module_key)
     if not include_inactive:
         query = query.where(Module.active.is_(True))
+    if not include_hidden:
+        query = query.where(Module.hidden.is_(False))
 
     return [
         ModuleOut(
@@ -290,6 +299,8 @@ def list_modules(
             label=m.label,
             sort_order=m.sort_order,
             active=m.active,
+            hidden=m.hidden,
+            setup_parent=m.setup_parent,
             field_count=counts.get(m.module_key, 0),
             deleted_field_count=deleted.get(m.module_key, 0),
             section_count=sections.get(m.module_key, 0),
@@ -715,16 +726,44 @@ def _scope_for(db: Session, module_key: str) -> tuple[str, str]:
     """
     (definition scope, placement scope) for a field being created on a module.
 
-    A pipeline module shares one namespace with the other two, which is what
-    lets one definition serve Leads, Opportunities and Deals. Every other
-    module is its own namespace.
+    Both are the module itself: a field belongs to the module it is created on
+    and to no other (metadata v2).
     """
-    module = db.get(Module, module_key)
-    placement_scope = module_key
-    definition_scope = (
-        PIPELINE_SCOPE if module is not None and module.is_pipeline else module_key
+    return module_key, module_key
+
+
+def _check_local_picklist(
+    db: Session, picklist_key: str | None, definition_id: int | None = None
+) -> None:
+    """
+    A local list serves one field. A second field wanting it must use a global
+    list — Zoho's rule, and what stops a change to one field's choices from
+    quietly changing another's.
+    """
+    if not picklist_key:
+        return
+    picklist = db.get(Picklist, picklist_key)
+    if picklist is None or picklist.is_global:
+        return
+    other = db.scalar(
+        select(FieldDefinition).where(
+            FieldDefinition.picklist_key == picklist_key,
+            FieldDefinition.status == "active",
+            FieldDefinition.id != (definition_id or 0),
+        )
     )
-    return definition_scope, placement_scope
+    if other is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            refusal(
+                "PICKLIST_IS_LOCAL",
+                f"The {picklist.label or picklist_key} list belongs to another field.",
+                [
+                    f"It is used by {other.label}.",
+                    "Make the list global to share it, or create a new list for this field.",
+                ],
+            ),
+        )
 
 
 @router.post("/fields", response_model=FieldOut, status_code=status.HTTP_201_CREATED)
@@ -747,6 +786,7 @@ def create_field(payload: FieldCreate, db: Session = Depends(get_db)):
     _check_field_definition(
         db, payload.field_type, payload.requirement, payload.picklist_key
     )
+    _check_local_picklist(db, payload.picklist_key)
 
     definition_scope, placement_scope = _scope_for(db, payload.module_key)
 
@@ -765,14 +805,13 @@ def create_field(payload: FieldCreate, db: Session = Depends(get_db)):
                 f"creating a second one — two rows would race to own one column "
                 f"of business data.",
             )
-        live = metadata_resolver.modules_of(db, existing.id)
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            f"{payload.api_name!r} already exists and is shown on "
-            f"{', '.join(live) or 'no module'}. To show it on "
-            f"{payload.module_key} as well, add a placement "
-            f"(POST /fields/{existing.id}/placements) — do not create a second "
-            f"definition of the same field.",
+            refusal(
+                "FIELD_EXISTS",
+                f"This module already has a field named {payload.api_name}.",
+                ["Pick a different name, or edit the field that is already there."],
+            ),
         )
 
     data = payload.model_dump(exclude_unset=True)
@@ -847,11 +886,12 @@ def add_placement(
     definition_id: int, payload: PlacementCreate, db: Session = Depends(get_db)
 ):
     """
-    Show an existing field on another module. "Also show on…".
+    Show a field live on a module further down the pipeline — "From the Lead".
 
-    NO NEW DEFINITION. One canonical field, a second placement — which is the
-    single most natural administrative act and the one the old model refused
-    outright ("a field cannot change module", routers/metadata.py, Round 6).
+    Metadata v2: a field is OWNED by one module. The only other place it may
+    appear is a descendant module that shows the owner's value live and stores
+    nothing (value_mode='read_through'). A module that needs its own value
+    creates its own field, and a Conversion Mapping copies into it.
     """
     definition = _definition_or_404(db, definition_id)
     _module_or_404(db, payload.module_key)
@@ -863,15 +903,21 @@ def add_placement(
             f"not {payload.module_key}",
         )
 
-    definition_scope, placement_scope = _scope_for(db, payload.module_key)
-    if definition_scope != definition.scope_key:
+    _, placement_scope = _scope_for(db, payload.module_key)
+    owner = definition.scope_key
+    if (payload.value_mode or "own") != "read_through" or owner not in metadata_resolver.parent_chain(
+        db, payload.module_key
+    ):
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            f"{definition.api_name!r} is defined in the {definition.scope_key!r} "
-            f"scope and {payload.module_key} is in {definition_scope!r}. A field "
-            f"cannot span two scopes: {payload.module_key} needs its own field "
-            f"of that name, which is a different concept that happens to share "
-            f"a word.",
+            refusal(
+                "FIELD_OWNED_ELSEWHERE",
+                f"{definition.label} belongs to another module.",
+                [
+                    "It can only be shown, read-only, on a module further down the pipeline.",
+                    "For a value of its own, create a field here and map it in Conversion Mapping.",
+                ],
+            ),
         )
 
     existing = db.scalar(
@@ -953,11 +999,10 @@ def update_field(
     definition_id: int, payload: FieldUpdate, db: Session = Depends(get_db)
 ):
     """
-    Edit the CANONICAL definition. This changes every module the field is on.
-
-    Which is the point, and why the response returns every placement: the
-    screen names them before it saves, so "rename One-Time Revenue to Annual
-    Revenue" is understood to change Opportunities and Deals together.
+    Edit a field. It belongs to one module (metadata v2), so this changes that
+    module — and the read-only "From the Lead" copies further down the
+    pipeline, which show the same field. Renaming One-Time Revenue on Deals no
+    longer renames it on Opportunities: they are two fields.
 
     A module that needs a different word sets label_override on ITS placement
     (PATCH /placements/{id}) instead. api_name stays absent: it is the key
@@ -970,6 +1015,8 @@ def update_field(
     _check_field_definition(
         db, data.get("field_type"), data.get("requirement"), data.get("picklist_key")
     )
+    if "picklist_key" in data:
+        _check_local_picklist(db, data["picklist_key"], definition.id)
 
     # Definition-level properties: the shape of the value, and its documentation.
     for attr in (
@@ -1622,6 +1669,7 @@ def list_picklists(
             label=p.label,
             sort_order=p.sort_order,
             active=p.active,
+            is_global=p.is_global,
             field_count=usage.get(p.picklist_key, 0),
             values=[PicklistValueOut.model_validate(v) for v in p.values],
         )
@@ -1651,6 +1699,7 @@ def create_picklist(payload: PicklistCreate, db: Session = Depends(get_db)):
         label=picklist.label,
         sort_order=picklist.sort_order,
         active=picklist.active,
+        is_global=picklist.is_global,
         field_count=0,
         values=[],
     )
@@ -1669,7 +1718,26 @@ def update_picklist(
     fields, or repoint them, first.
     """
     picklist = _picklist_or_404(db, picklist_key)
-    for name, value in payload.model_dump(exclude_unset=True).items():
+    changes = payload.model_dump(exclude_unset=True)
+    if picklist.is_global and changes.get("is_global") is False:
+        users = db.scalar(
+            select(func.count())
+            .select_from(FieldDefinition)
+            .where(
+                FieldDefinition.picklist_key == picklist_key,
+                FieldDefinition.status == "active",
+            )
+        )
+        if (users or 0) > 1:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                refusal(
+                    "PICKLIST_SHARED",
+                    f"{picklist.label or picklist_key} is used by {users} fields.",
+                    ["A local list serves one field.", "Give the other fields their own lists first."],
+                ),
+            )
+    for name, value in changes.items():
         setattr(picklist, name, value)
     db.commit()
     db.refresh(picklist)
@@ -1687,6 +1755,7 @@ def update_picklist(
         label=picklist.label,
         sort_order=picklist.sort_order,
         active=picklist.active,
+        is_global=picklist.is_global,
         field_count=usage or 0,
         values=[PicklistValueOut.model_validate(v) for v in picklist.values],
     )
@@ -1759,7 +1828,20 @@ def update_picklist_value(
     resolving, and nobody can choose it again.
     """
     value = _value_or_404(db, value_id)
-    for name, attr in payload.model_dump(exclude_unset=True).items():
+    changes = payload.model_dump(exclude_unset=True)
+    if value.is_system and changes.get("active") is False:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            refusal(
+                "SYSTEM_VALUE",
+                f"{value.label} can't be retired.",
+                [
+                    "The CRM's own rules read this choice, so it has to stay.",
+                    "You can rename it.",
+                ],
+            ),
+        )
+    for name, attr in changes.items():
         setattr(value, name, attr)
     db.commit()
     db.refresh(value)

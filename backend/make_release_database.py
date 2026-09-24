@@ -52,7 +52,10 @@ KEEP = {
     "sections",
     "field_definitions",
     "field_placements",
-    "field_metadata",
+    # Metadata v2 (0038): the register's layouts and its conversion mapping.
+    # field_metadata left the list when 0039 dropped it.
+    "layouts",
+    "conversion_mappings",
     "picklists",
     "picklist_values",
     "stages",

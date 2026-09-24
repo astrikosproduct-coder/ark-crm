@@ -11,19 +11,22 @@ authority actually lives.
 
     1   no duplicate field definitions
     2   Administration shows what the CRM renders
-    3   one_time_revenue        one definition, two placements, D1 behaviour
-    4   project_stage           relabelled, and absent from Deals
-    5   probability_pct         three independent owned values
+    3   one_time_revenue        two fields, copied once by Conversion Mapping
+    4   project_stage           a field of Leads and one of Opportunities
+    5   probability_pct         three fields, three owned values
     6   progression_pct         D4 — plain editable Number
-    7   lead_status             placement label overrides
-    8   end_client              D3 — Deal owns; scope keeps Partners/Quotes apart
+    7   lead_status             three fields, three status lists (G3)
+    8   end_client              the Lead's, shown live on Opportunity and Deal (G1)
     9   read-through            stores nothing, not editable, resolves to parent
-    10  shared field            one definition, explicit modes per placement
+    10  one field per module    stage_skip_reason is three independent fields
     11  admin-created field     one definition, one placement, custom_fields
     12  CARRY-FORWARD, LIVE     real records: seeded, then diverging
     13  delete / restore        placement vs definition, and the cascade flag
     14  database integrity      the constraints refuse what they must
     15  architecture            no second projection, no dynamic DDL
+    16  Administration rules    owned once, local lists, system values, modules offered
+
+Metadata v2 (24 Sep 2026): every field is owned by exactly one module.
 """
 
 from __future__ import annotations
@@ -92,8 +95,18 @@ def head(title: str) -> None:
 
 
 # =====================================================================
+def owned(db, module: str, api_name: str) -> FieldDefinition | None:
+    """The definition a module OWNS under this name (metadata v2)."""
+    return db.scalar(
+        select(FieldDefinition).where(
+            FieldDefinition.scope_key == module,
+            FieldDefinition.api_name == api_name,
+        )
+    )
+
+
 def case_1_no_duplicates(db) -> None:
-    head("1  no duplicate field definitions")
+    head("1  one module owns each field — no duplicates, no shared scope")
 
     rows = db.execute(
         text(
@@ -103,15 +116,40 @@ def case_1_no_duplicates(db) -> None:
     ).all()
     check("no two definitions share (scope_key, api_name)", not rows, str(rows))
 
-    # The brief's non-negotiable: One-Time Revenue must not exist once per
-    # module. Three modules, one definition.
-    rows = db.execute(
-        text(
-            "SELECT count(*) FROM field_definitions WHERE api_name = 'one_time_revenue' "
-            "AND scope_key = 'pipeline'"
-        )
+    shared = db.execute(
+        text("SELECT count(*) FROM field_definitions WHERE scope_key = 'pipeline'")
     ).scalar()
-    check("exactly one pipeline definition of one_time_revenue", rows == 1, f"got {rows}")
+    check("the shared pipeline scope is gone (metadata v2)", shared == 0, f"got {shared}")
+
+    # Zoho's rule: Opportunities and Deals each OWN a One-Time Revenue.
+    scopes = sorted(
+        db.scalars(
+            select(FieldDefinition.scope_key).where(FieldDefinition.api_name == "one_time_revenue")
+        )
+    )
+    check(
+        "one_time_revenue is a field of Opportunities and a field of Deals",
+        scopes == ["deals", "opportunities", "quotes"] or scopes == ["deals", "opportunities"],
+        str(scopes),
+    )
+
+    owners = db.execute(
+        text(
+            "SELECT definition_id, count(*) FROM field_placements "
+            "WHERE value_mode <> 'read_through' GROUP BY 1 HAVING count(*) > 1"
+        )
+    ).all()
+    check("every field has exactly one owning module", not owners, str(owners[:5]))
+
+    wrong_owner = db.execute(
+        text(
+            "SELECT d.api_name, d.scope_key, p.module_key FROM field_placements p "
+            "JOIN field_definitions d ON d.id = p.definition_id "
+            "WHERE p.value_mode <> 'read_through' AND d.scope_key <> p.module_key "
+            "AND d.scope_key NOT LIKE p.module_key || '\\_\\_%'"
+        )
+    ).all()
+    check("a field's owning placement is on the module that owns it", not wrong_owner, str(wrong_owner[:5]))
 
     orphans = db.execute(
         text(
@@ -136,30 +174,9 @@ def case_1_no_duplicates(db) -> None:
 def case_2_administration_sees_the_crm(db) -> None:
     head("2  Administration shows what the CRM renders")
 
-    # leads was 81 until Close Date Pushback Count was deleted from the
-    # register (close_month_record_state.py). Opportunities and Deals were
-    # unchanged at 105 and 97: each lost that same field and gained its own
-    # instance of Expected Close Month in the same change.
-    #
-    # Pursuit Groups (pursuit_group_metadata.py, 13 Sep 2026): Opportunities and
-    # Deals each gain is_primary_pursuit, pursuit_group and a read-through
-    # fx_rate_at_entry (+3). Leads gains pursuit_group and not_duplicate_reason
-    # and loses parent_pursuit (+1) — 80 assumed a leads count of 80 that the
-    # register had already left at 79 before this change.
-    # Opportunities 108 -> 107: rfp_document_file was deleted in Administration
-    # on 15 Sep 2026 (version 109), deliberately — see case 11.
-    # Deals 100 -> 98: created_by_date and modified_by_date were retired on
-    # 16 Sep 2026 (deal_register_alignment.py, after migration 0030). They were
-    # the Deals sheet's own names for created_date and modified_date, which the
-    # module also placed — six system rows for four facts, four of them blank
-    # because the columns behind them were the other two.
-    # Deals 98 -> 97: po_number was retired on 16 Sep 2026
-    # (deal_sections_and_locks.py) — PO / LOI Reference asks for the same number.
-    # Deals 97 -> 98: PO Received Date added on 21 Sep 2026
-    # (po_received_date_metadata.py, after migration 0034) — the Won date.
-    # Leads 80 -> 81: Pilot PO Received Date added on 21 Sep 2026
-    # (pilot_po_received_date_metadata.py, after migration 0035) — a paid
-    # pilot's Won date, copied to its Deal.
+    # Counts unchanged by metadata v2 (24 Sep 2026): the Deal's End Client
+    # moved from Commercial Terms to From the Lead, which is one field either
+    # way. History of these numbers is in git.
     for module, expected in (("leads", 81), ("opportunities", 107), ("deals", 98)):
         resolved = len(R.resolved_fields(db, module))
         api = client.get(
@@ -172,7 +189,6 @@ def case_2_administration_sees_the_crm(db) -> None:
             f"resolver={resolved} api={listed} status={api.status_code}",
         )
 
-    # The headline defect: Opportunities used to list zero.
     names = {f["api_name"] for f in R.resolved_fields(db, "opportunities")}
     check(
         "Administration -> Opportunities -> Fields contains One-Time Revenue",
@@ -187,162 +203,121 @@ def case_2_administration_sees_the_crm(db) -> None:
 
 # =====================================================================
 def case_3_one_time_revenue(db) -> None:
-    head("3  one_time_revenue — one definition, two placements (D1)")
+    head("3  one_time_revenue — two fields, copied once at conversion")
 
-    definition = db.scalar(
-        select(FieldDefinition).where(
-            FieldDefinition.scope_key == "pipeline",
-            FieldDefinition.api_name == "one_time_revenue",
-        )
-    )
-    check("canonical definition exists", definition is not None)
-    if definition is None:
+    opportunity = owned(db, "opportunities", "one_time_revenue")
+    deal = owned(db, "deals", "one_time_revenue")
+    check("Opportunities and Deals each own one", opportunity is not None and deal is not None)
+    if opportunity is None or deal is None:
         return
+    check("the Opportunity's is only on Opportunities", R.modules_of(db, opportunity.id) == ["opportunities"])
+    check("the Deal's is only on Deals", R.modules_of(db, deal.id) == ["deals"])
 
-    placements = {p.module_key: p for p in definition.placements}
+    deal_placement = next(p for p in deal.placements if p.module_key == "deals")
+    opp_placement = next(p for p in opportunity.placements if p.module_key == "opportunities")
+    check("the Opportunity owns its value", opp_placement.value_mode == "own")
+    # Locked since 16 Sep 2026 — no commercial value changes after Commercial
+    # Evaluation. Case 12 proves the lock is enforced by value.
     check(
-        "placed on exactly Opportunities and Deals",
-        set(placements) == {"opportunities", "deals"},
-        str(sorted(placements)),
+        "the Deal's arrives at conversion and is LOCKED",
+        deal_placement.value_mode == "carry_forward" and deal_placement.value_locked is True,
+        f"{deal_placement.value_mode} locked={deal_placement.value_locked}",
     )
     check(
-        "Opportunity owns its value",
-        placements["opportunities"].value_mode == "own",
-        placements["opportunities"].value_mode,
-    )
-    # D1 said "carried forward, unlocked": a Deal could renegotiate what it
-    # inherited. REVERSED on 16 Sep 2026 — no commercial value changes after
-    # Commercial Evaluation, so the carried value is locked on the Deal
-    # (deal_sections_and_locks.py). Contract changes are Contract Variations,
-    # phase 2. Case 12 proves the lock is enforced by value.
-    check(
-        "Deal carries it forward, LOCKED (D1 reversed 16 Sep 2026)",
-        placements["deals"].value_mode == "carry_forward"
-        and placements["deals"].value_locked is True,
-        f"{placements['deals'].value_mode} locked={placements['deals'].value_locked}",
-    )
-    check(
-        "the two placements sit in different sections",
-        placements["opportunities"].section.label != placements["deals"].section.label,
-        f"{placements['opportunities'].section.label} / {placements['deals'].section.label}",
+        "Conversion Mapping says where it comes from",
+        R.carry_forward_plan(db, "deals").get("one_time_revenue") == ("opportunities", "one_time_revenue"),
+        str(R.carry_forward_plan(db, "deals").get("one_time_revenue")),
     )
     check(
         "and are captured at different stages (4 vs 7)",
-        placements["opportunities"].capture_stage == 4
-        and placements["deals"].capture_stage == 7,
+        opp_placement.capture_stage == 4 and deal_placement.capture_stage == 7,
     )
 
-    # Rename propagation: one label, both modules. Done in memory and rolled
-    # back — this test proves the model, it does not edit the register.
-    original = definition.label
-    definition.label = "Annual Revenue"
+    # Zoho's rule, the reason for v2: renaming one module's field leaves the
+    # other alone. Done in memory and rolled back.
+    original = deal.label
+    deal.label = "Annual Revenue"
     db.flush()
     labels = {
         row["module"]: row["label"]
         for row in R.resolved_fields(db)
-        if row["api_name"] == "one_time_revenue"
+        if row["api_name"] == "one_time_revenue" and row["module"] in ("opportunities", "deals")
     }
     check(
-        "renaming the definition renames it on BOTH modules",
-        labels == {"opportunities": "Annual Revenue", "deals": "Annual Revenue"},
+        "renaming it on Deals leaves Opportunities alone",
+        labels == {"opportunities": opportunity.label, "deals": "Annual Revenue"},
         str(labels),
     )
-    definition.label = original
+    deal.label = original
     db.rollback()
 
 
 # =====================================================================
 def case_4_project_stage(db) -> None:
-    head("4  project_stage — relabelled, and absent from Deals")
+    head("4  project_stage — a field of Leads and a field of Opportunities")
 
-    definition = db.scalar(
-        select(FieldDefinition).where(
-            FieldDefinition.scope_key == "pipeline",
-            FieldDefinition.api_name == "project_stage",
-        )
-    )
-    modules = R.modules_of(db, definition.id)
+    lead = owned(db, "leads", "project_stage")
+    opportunity = owned(db, "opportunities", "project_stage")
+    check("each owns one", lead is not None and opportunity is not None)
+    if lead is None or opportunity is None:
+        return
     check(
-        "placed on Leads and Opportunities only",
-        modules == ["leads", "opportunities"],
-        str(modules),
-    )
-    check(
-        "Deals has no project_stage placement — it has deal_stage",
+        "Deals has no project_stage — it has deal_stage",
         "project_stage" not in {f["api_name"] for f in R.resolved_fields(db, "deals")}
         and "deal_stage" in {f["api_name"] for f in R.resolved_fields(db, "deals")},
     )
-    labels = {
-        row["module"]: row["label"]
-        for row in R.resolved_fields(db)
-        if row["api_name"] == "project_stage"
-    }
     check(
-        "the Opportunity placement overrides the label",
-        labels.get("opportunities") == "Opportunity Stage"
-        and labels.get("leads") == "Lead Stage",
-        str(labels),
+        "each is named in its own label, with no override",
+        lead.label == "Lead Stage"
+        and opportunity.label == "Opportunity Stage"
+        and all(p.label_override is None for p in (*lead.placements, *opportunity.placements)),
+        f"{lead.label} / {opportunity.label}",
     )
     check(
-        "both own their own value — a Lead's stage is not an Opportunity's",
-        all(
-            p.value_mode == "own"
-            for p in definition.placements
-            if p.status == "active"
-        ),
+        "both use the one global stage list",
+        lead.picklist_key == opportunity.picklist_key
+        and db.execute(
+            text("SELECT is_global FROM picklists WHERE picklist_key = :k"), {"k": lead.picklist_key}
+        ).scalar() is True,
     )
 
 
 # =====================================================================
 def case_5_probability_pct(db) -> None:
-    head("5  probability_pct — three independent owned values")
+    head("5  probability_pct — three fields, three owned values")
 
-    definition = db.scalar(
-        select(FieldDefinition).where(
-            FieldDefinition.scope_key == "pipeline",
-            FieldDefinition.api_name == "probability_pct",
-        )
-    )
-    modules = R.modules_of(db, definition.id)
-    check("one definition, three placements", modules == ["deals", "leads", "opportunities"], str(modules))
-    check(
-        "every placement owns its own value",
-        {p.value_mode for p in definition.placements} == {"own"},
-    )
-    check(
-        "none of them is read-through or carried",
-        all(p.storage is not None and p.editable for p in definition.placements),
-    )
+    fields = {m: owned(db, m, "probability_pct") for m in ("leads", "opportunities", "deals")}
+    check("each pipeline module owns one", all(fields.values()), str({m: bool(d) for m, d in fields.items()}))
+    placements = [p for d in fields.values() if d for p in d.placements]
+    check("every one owns its own value", {p.value_mode for p in placements} == {"own"})
+    check("none is read-through or carried", all(p.storage is not None and p.editable for p in placements))
 
 
 # =====================================================================
 def case_6_progression_pct(db) -> None:
     head("6  progression_pct — D4, a plain editable Number")
 
-    definition = db.scalar(
-        select(FieldDefinition).where(
-            FieldDefinition.scope_key == "pipeline",
-            FieldDefinition.api_name == "progression_pct",
+    for module in ("leads", "opportunities", "deals"):
+        definition = owned(db, module, "progression_pct")
+        if definition is None:
+            check(f"{module} owns progression_pct", False)
+            continue
+        check(
+            f"{module}: a number, no formula, no picklist",
+            definition.field_type == "number"
+            and definition.computed_formula is None
+            and definition.picklist_key is None,
+            definition.field_type,
         )
-    )
-    check("type is number, not computed", definition.field_type == "number", definition.field_type)
-    check("no computed formula", definition.computed_formula is None, str(definition.computed_formula))
-    check("no picklist", definition.picklist_key is None)
-    check(
-        "no placement is marked Computed",
-        all(p.requirement != "Computed" for p in definition.placements),
-        str({p.module_key: p.requirement for p in definition.placements}),
-    )
-    check(
-        "editable on all three modules",
-        all(p.editable for p in definition.placements)
-        and len(definition.placements) == 3,
-    )
+        check(
+            f"{module}: editable and not Computed",
+            all(p.editable and p.requirement != "Computed" for p in definition.placements),
+        )
 
 
 # =====================================================================
 def case_7_lead_status(db) -> None:
-    head("7  lead_status — placement label overrides")
+    head("7  lead_status — three fields, three status lists (G3)")
 
     labels = {
         row["module"]: row["label"]
@@ -351,87 +326,94 @@ def case_7_lead_status(db) -> None:
     }
     check(
         "each module names it correctly",
-        labels
-        == {
-            "leads": "Lead Status",
-            "opportunities": "Opportunity Status",
-            "deals": "Deal Status",
-        },
+        labels == {"leads": "Lead Status", "opportunities": "Opportunity Status", "deals": "Deal Status"},
         str(labels),
     )
-    definition = db.scalar(
-        select(FieldDefinition).where(
-            FieldDefinition.scope_key == "pipeline",
-            FieldDefinition.api_name == "lead_status",
+    lists = {m: owned(db, m, "lead_status").picklist_key for m in ("leads", "opportunities", "deals")}
+    check(
+        "each module has its own list",
+        lists == {
+            "leads": "leads__lead_status",
+            "opportunities": "opportunities__lead_status",
+            "deals": "deals__lead_status",
+        },
+        str(lists),
+    )
+
+    def active_keys(key: str) -> set[str]:
+        return set(
+            db.scalars(
+                text("SELECT key FROM picklist_values WHERE picklist_key = :k AND active").bindparams(k=key)
+            )
+        )
+
+    check(
+        "POC/Pilot Deal is offered on Deals only",
+        "POC_PILOT_DEAL" in active_keys(lists["deals"])
+        and "POC_PILOT_DEAL" not in active_keys(lists["leads"])
+        and "POC_PILOT_DEAL" not in active_keys(lists["opportunities"]),
+    )
+    system = set(
+        db.scalars(
+            text("SELECT key FROM picklist_values WHERE picklist_key = 'deals__lead_status' AND is_system")
         )
     )
     check(
-        "the api_name stays lead_status on all three",
-        {p.api_name for p in definition.placements} == {"lead_status"},
+        "the values the server reads by key are protected",
+        system == {"OPEN", "ON_HOLD", "CLOSED_LOST", "CONVERTED", "POC_PILOT_DEAL"},
+        str(sorted(system)),
     )
-    check("one picklist behind all three", definition.picklist_key is not None)
 
 
 # =====================================================================
 def case_8_end_client(db) -> None:
-    head("8  end_client — D3, and scope keeps other modules apart")
+    head("8  end_client — the Lead's, shown live on the Opportunity and the Deal (G1)")
 
-    pipeline = db.scalar(
-        select(FieldDefinition).where(
-            FieldDefinition.scope_key == "pipeline",
-            FieldDefinition.api_name == "end_client",
+    lead = owned(db, "leads", "end_client")
+    check("Leads owns End Client", lead is not None)
+    if lead is None:
+        return
+    placements = {p.module_key: p for p in lead.placements if p.status == "active"}
+    for module in ("opportunities", "deals"):
+        p = placements.get(module)
+        check(
+            f"{module} shows the Lead's, live — stores nothing, not editable",
+            p is not None and p.value_mode == "read_through" and p.storage is None and p.editable is False,
+            p.value_mode if p else "missing",
         )
-    )
-    placements = {p.module_key: p for p in pipeline.placements if p.status == "active"}
-
     check(
-        "Deal owns its own value, carried from the parent (D3)",
-        placements["deals"].value_mode == "carry_forward"
-        and placements["deals"].editable is True
-        and placements["deals"].storage == "column",
-        placements["deals"].value_mode,
-    )
-    check(
-        "Deal is NOT read-through",
-        placements["deals"].value_mode != "read_through",
-    )
-    check(
-        "Opportunity still reads it through the parent",
-        placements["opportunities"].value_mode == "read_through"
-        and placements["opportunities"].storage is None,
-        placements["opportunities"].value_mode,
-    )
-    check("Lead owns it", placements["leads"].value_mode == "own")
-
-    check(
-        "the Deal's value carries from LEADS, past the read-through Opportunity",
+        "the Deal's resolves to LEADS",
         R.value_source(db, "deals", "end_client") == "leads",
         str(R.value_source(db, "deals", "end_client")),
     )
-
-    others = db.scalars(
-        select(FieldDefinition).where(
-            FieldDefinition.api_name == "end_client",
-            FieldDefinition.scope_key != "pipeline",
-        )
-    ).all()
     check(
-        "Partners and Quotes keep their own separate definitions",
-        {d.scope_key for d in others} == {"partners", "quotes"},
-        str(sorted(d.scope_key for d in others)),
+        "Deals owns no End Client of its own",
+        owned(db, "deals", "end_client") is None,
     )
-
-    cp = db.scalar(
-        select(FieldDefinition).where(
-            FieldDefinition.scope_key == "pipeline",
-            FieldDefinition.api_name == "customer_partner_si",
+    others = sorted(
+        db.scalars(
+            select(FieldDefinition.scope_key).where(
+                FieldDefinition.api_name == "end_client",
+                FieldDefinition.scope_key != "leads",
+            )
         )
     )
-    deal_cp = next(p for p in cp.placements if p.module_key == "deals")
     check(
-        "customer_partner_si follows the same rule on Deals",
-        deal_cp.value_mode == "carry_forward" and deal_cp.editable,
-        deal_cp.value_mode,
+        "Deal Registrations and Quotes keep their own separate End Client",
+        others == ["quotes", "registrations"],
+        str(others),
+    )
+
+    customer = owned(db, "deals", "customer_partner_si")
+    deal_cp = next((p for p in customer.placements if p.module_key == "deals"), None) if customer else None
+    check(
+        "Customer (Partner / SI) is the Deal's own, copied at conversion and locked",
+        deal_cp is not None and deal_cp.value_mode == "carry_forward" and deal_cp.value_locked,
+    )
+    check(
+        "…from the Lead, past the Opportunity that shows it",
+        R.carry_forward_plan(db, "deals").get("customer_partner_si") == ("leads", "customer_partner_si"),
+        str(R.carry_forward_plan(db, "deals").get("customer_partner_si")),
     )
 
 
@@ -443,6 +425,9 @@ def case_9_read_through(db) -> None:
     # 27 since Pursuit Groups: fx_rate_at_entry reads through beside currency.
     check("Opportunities reads 27 fields through", len(plan) == 27, str(len(plan)))
     check("every one of them resolves to leads", set(plan.values()) == {"leads"})
+    deals = R.read_through_plan(db, "deals")
+    # 25 before G1; End Client joined them on 24 Sep 2026.
+    check("Deals reads 26 through (End Client since G1)", len(deals) == 26, str(len(deals)))
 
     rows = [
         f for f in R.resolved_fields(db, "opportunities") if f["value_mode"] == "read_through"
@@ -461,36 +446,27 @@ def case_9_read_through(db) -> None:
         and all(f["read_through_via"] == "parent_lead" for f in rows),
     )
     check(
-        "segment is read through rather than stored on the Opportunity",
-        "segment" in plan,
-        str(sorted(plan)[:6]),
+        "they sit in the From the Lead section",
+        {f["section"] for f in rows} == {"From the Lead"},
+        str({f["section"] for f in rows}),
     )
 
 
 # =====================================================================
 def case_10_shared(db) -> None:
-    head("10  shared field — one definition, explicit modes")
+    head("10  a field every module has — one each, independent")
 
-    definition = db.scalar(
-        select(FieldDefinition).where(
-            FieldDefinition.scope_key == "pipeline",
-            FieldDefinition.api_name == "stage_skip_reason",
-        )
-    )
-    modules = R.modules_of(db, definition.id)
+    fields = {m: owned(db, m, "stage_skip_reason") for m in ("leads", "opportunities", "deals")}
+    check("each pipeline module owns its own", all(fields.values()))
+    if not all(fields.values()):
+        return
     check(
-        "one definition across all three pipeline modules",
-        modules == ["deals", "leads", "opportunities"],
-        str(modules),
+        "three different fields, not one field shown three times",
+        len({d.id for d in fields.values()}) == 3,
     )
     check(
-        "each placement states its own value behaviour explicitly",
-        {p.value_mode for p in definition.placements} == {"own"},
-    )
-    check(
-        "'shared' is not a value mode — it is the placement count",
-        len(modules) > 1
-        and not db.execute(
+        "'shared' is not a value mode",
+        not db.execute(
             text("SELECT count(*) FROM field_placements WHERE value_mode = 'shared'")
         ).scalar(),
     )
@@ -606,10 +582,16 @@ def case_12_carry_forward_live(db) -> None:
         f"otr={deal.one_time_revenue} arr={deal.arr_annual_recurring} "
         f"3po={deal.third_party_one_time} yrs={deal.contract_years}",
     )
+    # G1 (24 Sep 2026): the Deal stores no End Client; it shows the Lead's.
     check(
-        "end_client carried from the LEAD, past the read-through Opportunity (D3)",
-        deal.end_client == account,
-        f"{deal.end_client!r} vs {account!r}",
+        "the Deal stores no End Client of its own (G1)",
+        deal.end_client is None,
+        f"{deal.end_client!r}",
+    )
+    check(
+        "…and shows the Lead's, past the read-through Opportunity",
+        carry_forward.effective_value(db, "deals", deal, "end_client") == account,
+        str(carry_forward.effective_value(db, "deals", deal, "end_client")),
     )
     check(
         "customer_partner_si the same",
@@ -727,27 +709,28 @@ def _cleanup(db, *_ignored) -> None:
 def case_13_delete_restore(db) -> None:
     head("13  delete and restore — placement vs definition")
 
-    definition = db.scalar(
-        select(FieldDefinition).where(
-            FieldDefinition.scope_key == "pipeline",
-            FieldDefinition.api_name == "one_time_revenue",
-        )
-    )
+    definition = owned(db, "deals", "one_time_revenue")
     before = R.modules_of(db, definition.id)
+    opportunity_before = {f["api_name"] for f in R.resolved_fields(db, "opportunities")}
 
-    # --- remove from ONE module
+    # --- remove its placement
     response = client.delete(
         f"/api/admin/metadata/placements/{_placement_id(db, definition.id, 'deals')}"
     )
     check("DELETE placement returns 200", response.status_code == 200, response.text[:200])
     db.expire_all()
     check(
-        "the field disappears from Deals only",
-        R.modules_of(db, definition.id) == ["opportunities"],
+        "the field disappears from Deals",
+        R.modules_of(db, definition.id) == [],
         str(R.modules_of(db, definition.id)),
     )
     check(
-        "the canonical definition is untouched",
+        "…and Opportunities' own One-Time Revenue is untouched",
+        "one_time_revenue" in {f["api_name"] for f in R.resolved_fields(db, "opportunities")}
+        and {f["api_name"] for f in R.resolved_fields(db, "opportunities")} == opportunity_before,
+    )
+    check(
+        "the definition itself is untouched",
         db.get(FieldDefinition, definition.id).status == "active",
     )
     check(
@@ -772,14 +755,13 @@ def case_13_delete_restore(db) -> None:
         f"{placement.status} cascade={placement.deleted_by_cascade}",
     )
 
-    # --- restore it
     response = client.post(
         f"/api/admin/metadata/placements/{placement.id}/restore"
     )
     check("POST placement restore returns 200", response.status_code == 200, response.text[:200])
     db.expire_all()
     check(
-        "the field comes back on Deals, in its own section",
+        "the field comes back on Deals",
         R.modules_of(db, definition.id) == before,
         str(R.modules_of(db, definition.id)),
     )
@@ -788,29 +770,25 @@ def case_13_delete_restore(db) -> None:
     response = client.delete(f"/api/admin/metadata/fields/{definition.id}")
     check("DELETE definition returns 200", response.status_code == 200, response.text[:200])
     db.expire_all()
-    check(
-        "the definition is deleted",
-        db.get(FieldDefinition, definition.id).status == "deleted",
-    )
+    check("the definition is deleted", db.get(FieldDefinition, definition.id).status == "deleted")
     cascaded = db.scalars(
         select(FieldPlacement).where(FieldPlacement.definition_id == definition.id)
     ).all()
     check(
-        "every placement went with it, flagged as a cascade",
+        "its placement went with it, flagged as a cascade",
         all(p.status == "deleted" and p.deleted_by_cascade for p in cascaded),
         str([(p.module_key, p.status, p.deleted_by_cascade) for p in cascaded]),
     )
     check(
-        "it renders nowhere",
-        "one_time_revenue"
-        not in {f["api_name"] for f in R.resolved_fields(db, "deals")},
+        "it renders nowhere on Deals",
+        "one_time_revenue" not in {f["api_name"] for f in R.resolved_fields(db, "deals")},
     )
 
     response = client.post(f"/api/admin/metadata/fields/{definition.id}/restore")
     check("POST definition restore returns 200", response.status_code == 200, response.text[:200])
     db.expire_all()
     check(
-        "the definition and both placements come back",
+        "the definition and its placement come back",
         db.get(FieldDefinition, definition.id).status == "active"
         and R.modules_of(db, definition.id) == before,
         str(R.modules_of(db, definition.id)),
@@ -841,12 +819,8 @@ def _placement_id(db, definition_id: int, module: str) -> int:
 def case_14_integrity(db) -> None:
     head("14  database integrity — the constraints refuse what they must")
 
-    definition = db.scalar(
-        select(FieldDefinition).where(
-            FieldDefinition.scope_key == "pipeline",
-            FieldDefinition.api_name == "one_time_revenue",
-        )
-    )
+    definition = owned(db, "deals", "one_time_revenue")
+    opportunity_owned = owned(db, "opportunities", "one_time_revenue")
 
     def refuses(name: str, make) -> None:
         try:
@@ -859,10 +833,10 @@ def case_14_integrity(db) -> None:
             db.rollback()
 
     refuses(
-        "a second definition of one_time_revenue in the pipeline scope",
+        "a second One-Time Revenue owned by Deals",
         lambda: db.add(
             FieldDefinition(
-                scope_key="pipeline",
+                scope_key="deals",
                 api_name="one_time_revenue",
                 label="Duplicate",
                 field_type="currency",
@@ -878,7 +852,7 @@ def case_14_integrity(db) -> None:
         )
     )
     refuses(
-        "a second placement of one definition on one module",
+        "a second placement of one field on one module",
         lambda: db.add(
             FieldPlacement(
                 definition_id=definition.id,
@@ -892,14 +866,9 @@ def case_14_integrity(db) -> None:
         ),
     )
 
-    other = db.scalar(
-        select(FieldDefinition).where(
-            FieldDefinition.scope_key == "pipeline",
-            FieldDefinition.api_name == "contract_years",
-        )
-    )
+    other = owned(db, "opportunities", "contract_years")
     refuses(
-        "two different definitions colliding on one module under one api_name",
+        "two different fields colliding on one module under one api_name",
         lambda: db.add(
             FieldPlacement(
                 definition_id=other.id,
@@ -908,7 +877,25 @@ def case_14_integrity(db) -> None:
                 scope_key="deals",
                 section_id=existing.section_id,
                 requirement="Optional",
-                storage="column",
+                value_mode="read_through",
+                editable=False,
+            )
+        ),
+    )
+
+    # THE v2 guarantee, in the database: a field has one owning module.
+    refuses(
+        "a second module OWNING the Opportunity's One-Time Revenue",
+        lambda: db.add(
+            FieldPlacement(
+                definition_id=opportunity_owned.id,
+                api_name="one_time_revenue",
+                module_key="leads",
+                scope_key="leads",
+                section_id=existing.section_id,
+                requirement="Optional",
+                value_mode="own",
+                storage="custom_fields",
             )
         ),
     )
@@ -956,9 +943,9 @@ def case_14_integrity(db) -> None:
                 scope_key="leads",
                 section_id=existing.section_id,
                 requirement="Optional",
-                value_mode="own",
+                value_mode="read_through",
+                editable=False,
                 value_locked=True,
-                storage="column",
             )
         ),
     )
@@ -973,9 +960,75 @@ def case_14_integrity(db) -> None:
                 scope_key="leads",
                 section_id=existing.section_id,
                 requirement="Optional",
-                storage="column",
+                value_mode="read_through",
+                editable=False,
             )
         ),
+    )
+
+
+# =====================================================================
+def case_16_administration_rules(db) -> None:
+    head("16  Administration keeps the v2 rules — refusals, no writes")
+
+    lead_field = owned(db, "leads", "deal_source")
+    section = db.scalar(select(FieldPlacement.section_id).where(FieldPlacement.module_key == "accounts"))
+    r = client.post(
+        f"/api/admin/metadata/fields/{lead_field.id}/placements",
+        json={"module_key": "accounts", "section_id": section, "value_mode": "own"},
+    )
+    check(
+        "a Lead's field cannot be given to Accounts too",
+        r.status_code == 422 and r.json().get("detail", {}).get("code") == "FIELD_OWNED_ELSEWHERE",
+        r.text[:200],
+    )
+    deal_section = db.scalar(select(FieldPlacement.section_id).where(FieldPlacement.module_key == "deals"))
+    r = client.post(
+        f"/api/admin/metadata/fields/{lead_field.id}/placements",
+        json={"module_key": "deals", "section_id": deal_section, "value_mode": "own"},
+    )
+    check(
+        "…nor owned by Deals — only shown there, from the Lead",
+        r.status_code == 422 and r.json().get("detail", {}).get("code") == "FIELD_OWNED_ELSEWHERE",
+        r.text[:200],
+    )
+
+    lead_section = db.scalar(select(FieldPlacement.section_id).where(FieldPlacement.module_key == "leads"))
+    r = client.post(
+        "/api/admin/metadata/fields",
+        json={
+            "module_key": "leads",
+            "section_id": lead_section,
+            "api_name": "v2_probe_local_list",
+            "label": "Probe",
+            "field_type": "picklist",
+            "picklist_key": "leads__deal_source",
+            "requirement": "Optional",
+        },
+    )
+    check(
+        "a local list already serving a field cannot serve a second",
+        r.status_code == 409 and r.json().get("detail", {}).get("code") == "PICKLIST_IS_LOCAL",
+        r.text[:200],
+    )
+
+    open_value = db.execute(
+        text("SELECT id FROM picklist_values WHERE picklist_key = 'deals__lead_status' AND key = 'OPEN'")
+    ).scalar()
+    r = client.patch(f"/api/admin/metadata/picklist-values/{open_value}", json={"active": False})
+    check(
+        "Open cannot be retired from Deal Status",
+        r.status_code == 409 and r.json().get("detail", {}).get("code") == "SYSTEM_VALUE",
+        r.text[:200],
+    )
+
+    # Decided 24 Sep 2026: unbuilt modules stay in Administration as they are.
+    modules = {m["module_key"] for m in client.get("/api/admin/metadata/modules").json()}
+    check(
+        "unbuilt modules are still offered, and the Partners children are there",
+        {"quotes", "products", "bids_pocs", "activities_docs", "partner_scorecards"} <= modules
+        and {"registrations", "conflicts", "partners"} <= modules,
+        str(sorted(modules)),
     )
 
 
@@ -1082,6 +1135,7 @@ def main() -> int:
             case_13_delete_restore,
             case_14_integrity,
             case_15_architecture,
+            case_16_administration_rules,
         ):
             try:
                 case(db)

@@ -87,12 +87,29 @@ STAGES_JSON = "stages.json"
 #
 #   1  field_metadata rows, one per register row, keyed on module_key
 #   2  placement rows, one per module a field appears on   (Round 7)
+#   3  every field owned by one module; hidden / setup_parent on modules,
+#      is_global on picklists, is_system on values          (metadata v2)
 #
 # A version-1 snapshot is READABLE — it is a published historical fact and it
 # stays queryable — but it is NOT restorable, and restore_snapshot refuses it
 # by name rather than half-applying it. See the archive tables migration 0008
 # wrote for the pre-Round-7 state.
-SNAPSHOT_SCHEMA_VERSION = 2
+SNAPSHOT_SCHEMA_VERSION = 3
+
+#: Why each older schema cannot be rolled back to, in words a person can act on.
+_NOT_RESTORABLE = {
+    1: (
+        "This version was published before fields had placements. It can be read "
+        "but not rolled back to: its rows say which register sheet each field was "
+        "filed on, not which modules it appeared on."
+    ),
+    2: (
+        "This version was published before every field had one owning module "
+        "(24 Sep 2026). It can be read but not rolled back to: restoring it would "
+        "mix the old shared fields with the new ones. Change the fields you need "
+        "in Administration and publish instead."
+    ),
+}
 
 
 # The field types the frontend's FieldType union accepts. A type outside this
@@ -222,6 +239,8 @@ def build_snapshot(db: Session) -> dict[str, Any]:
                 "stage_field": m.stage_field,
                 "parent_module": m.parent_module,
                 "parent_link": m.parent_link,
+                "hidden": m.hidden,
+                "setup_parent": m.setup_parent,
             }
             for m in db.scalars(select(Module).order_by(Module.sort_order, Module.module_key))
         ],
@@ -252,12 +271,14 @@ def build_snapshot(db: Session) -> dict[str, Any]:
                 "label": p.label,
                 "sort_order": p.sort_order,
                 "active": p.active,
+                "is_global": p.is_global,
                 "values": [
                     {
                         "key": v.key,
                         "label": v.label,
                         "sort_order": v.sort_order,
                         "active": v.active,
+                        "is_system": v.is_system,
                     }
                     for v in sorted(p.values, key=lambda v: (v.sort_order, v.key))
                 ],
@@ -1053,12 +1074,7 @@ def restore_snapshot(db: Session, snapshot: dict[str, Any]) -> list[str]:
     """
     version = snapshot.get("schema_version", 1)
     if version < SNAPSHOT_SCHEMA_VERSION:
-        raise ValueError(
-            f"This version was published against snapshot schema {version}, before "
-            f"fields had placements. It can be read but not rolled back to: its rows "
-            f"say which register sheet each field was filed on, not which modules it "
-            f"appeared on. (Its archive table was retired at go-live, 21 Sep 2026.)"
-        )
+        raise ValueError(_NOT_RESTORABLE.get(version, _NOT_RESTORABLE[1]))
 
     actions: list[str] = []
 
@@ -1077,6 +1093,8 @@ def restore_snapshot(db: Session, snapshot: dict[str, Any]) -> list[str]:
                     stage_field=row.get("stage_field"),
                     parent_module=row.get("parent_module"),
                     parent_link=row.get("parent_link"),
+                    hidden=row.get("hidden", False),
+                    setup_parent=row.get("setup_parent"),
                 )
             )
             actions.append(f"module recreated — {row['module_key']}")
@@ -1088,6 +1106,9 @@ def restore_snapshot(db: Session, snapshot: dict[str, Any]) -> list[str]:
             # before Opportunities existed as a module must not silently leave
             # today's stage ownership in place. Absent keys (older snapshots)
             # leave the live value alone rather than blanking it.
+            if "hidden" in row:
+                module.hidden = row["hidden"]
+                module.setup_parent = row["setup_parent"]
             if "is_pipeline" in row:
                 module.is_pipeline = row["is_pipeline"]
                 module.stage_field = row["stage_field"]
@@ -1136,6 +1157,7 @@ def restore_snapshot(db: Session, snapshot: dict[str, Any]) -> list[str]:
                 label=row["label"],
                 sort_order=row.get("sort_order", 0),
                 active=row["active"],
+                is_global=row.get("is_global", False),
             )
             db.add(picklist)
             live_picklists[row["picklist_key"]] = picklist
@@ -1144,6 +1166,7 @@ def restore_snapshot(db: Session, snapshot: dict[str, Any]) -> list[str]:
             picklist.label = row["label"]
             picklist.sort_order = row.get("sort_order", picklist.sort_order)
             picklist.active = row["active"]
+            picklist.is_global = row.get("is_global", picklist.is_global)
 
         db.flush()
         live_values = {v.key: v for v in picklist.values}
@@ -1157,6 +1180,7 @@ def restore_snapshot(db: Session, snapshot: dict[str, Any]) -> list[str]:
                         label=value_row["label"],
                         sort_order=value_row["sort_order"],
                         active=value_row["active"],
+                        is_system=value_row.get("is_system", False),
                     )
                 )
                 actions.append(

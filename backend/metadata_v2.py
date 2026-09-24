@@ -17,11 +17,11 @@ A. The shared `pipeline` scope is dissolved. Each definition is given to the
    nothing. api_names never change, so no stored value moves.
    G1 (24 Sep): the Deal's End Client is shown live from the Lead too.
 B. Conversion Mapping rows are written from today's behaviour.
-C. Deal Registrations, Conflicts and Partner Scorecards (hidden) become
-   modules filed under Partners. Their tables and rows are not touched.
+C. Deal Registrations, Conflicts and Partner Scorecards become modules
+   filed under Partners. Their tables and rows are not touched.
 D. Six picklists become global; Lead, Opportunity and Deal Status become one
    local list each (G3), with the values the server reads by key protected.
-E. Modules that are not built, or not modules at all, are hidden.
+E. Nothing is hidden: unbuilt modules stay in Administration as they are.
 F. The "READ THROUGH THE PARENT" section becomes "From the Lead".
 
 WHY IT READS THE DATABASE IT RUNS ON
@@ -104,7 +104,7 @@ PARTNER_BORROWED = {"currency"}
 PARTNER_MODULES = {
     "DEAL REGISTRATION": ("registrations", "Deal Registrations", "partners", False),
     "CONFLICT ADJUDICATION": ("conflicts", "Conflicts", "registrations", False),
-    "QUARTERLY SCORECARD": ("partner_scorecards", "Partner Scorecards", "partners", True),
+    "QUARTERLY SCORECARD": ("partner_scorecards", "Partner Scorecards", "partners", False),
 }
 
 #: D — shared by fields on several modules.
@@ -117,6 +117,9 @@ GLOBAL_PICKLISTS = {
     "segment": "Segment",
     # Found on the dry run, 24 Sep: Phone and Mobile on a Contact share it.
     "contacts__dial_code": "Dial Code",
+    # Found once nothing was hidden, 24 Sep: the Bid, Gate and POC status
+    # fields of the (unbuilt) Bids & POCs module share it.
+    "bids_pocs__status": None,
 }
 #: D — local, relabelled without the module prefix.
 LOCAL_RELABEL = {
@@ -136,10 +139,10 @@ SYSTEM_STATUS_KEYS = {"OPEN", "ON_HOLD", "CLOSED_LOST", "CONVERTED", "POC_PILOT_
 #: Lead Status never holds this — the server refuses it on a Lead.
 RETIRED_ON_LEADS = {"POC_PILOT_DEAL"}
 
-#: E — kept, not offered in Administration.
-HIDDEN_MODULES = (
-    "administration", "demo_module", "bids_pocs", "quotes", "products", "activities_docs",
-)
+#: E — nothing is hidden. Decided 24 Sep 2026: unbuilt modules stay in
+#: Administration exactly as they are. modules.hidden exists (0038) but is
+#: set by nobody here.
+HIDDEN_MODULES: tuple[str, ...] = ()
 
 #: F
 READ_THROUGH_SECTION = "READ THROUGH THE PARENT — resolved from the parent, never stored here"
@@ -381,7 +384,8 @@ def picklists(db, log: list[str]) -> None:
     for key, label in GLOBAL_PICKLISTS.items():
         picklist = db.get(Picklist, key)
         picklist.is_global = True
-        picklist.label = label
+        if label:
+            picklist.label = label
     log.append(f"D  global: {', '.join(GLOBAL_PICKLISTS)}")
     for key, label in LOCAL_RELABEL.items():
         db.get(Picklist, key).label = label
@@ -426,7 +430,7 @@ def hide_modules(db, log: list[str]) -> None:
         module = db.get(Module, key)
         if module is not None:
             module.hidden = True
-    log.append(f"E  hidden: {', '.join(HIDDEN_MODULES)}, partner_scorecards")
+    log.append("E  no module hidden — unbuilt modules stay as they are (24 Sep 2026)")
 
 
 def rename_read_through_sections(db, log: list[str]) -> None:

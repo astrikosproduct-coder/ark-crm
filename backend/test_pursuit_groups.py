@@ -309,8 +309,14 @@ try:
 
     r = client.put(f"/api/deals/{deal['id']}", json={"lead_status": "ON_HOLD"})
     check("Deal Status saves and comes back (it used to vanish)", r.status_code == 200 and row("deals", deal["id"])["lead_status"] == "ON_HOLD")
+    # G1 (24 Sep 2026): a Deal shows its Lead's End Client, live, and stores
+    # none of its own — so no save on the Deal can move it, grouped or not.
     r = client.put(f"/api/deals/{deal['id']}", json={"end_client": other})
-    check("a grouped Deal cannot change End Client", r.status_code == 409 and code_of(r) == "REMOVE_FROM_GROUP_FIRST", r.text[:200])
+    check(
+        "a Deal's End Client is its Lead's — a value sent to the Deal is not kept",
+        r.status_code == 200 and row("deals", deal["id"])["end_client"] != other,
+        r.text[:200],
+    )
 
     r = client.put(f"/api/conflicts/{conflict['id']}", json={"decision": "AWARDED_TO_REGISTRATION_A"})
     check("the conflict cannot leave Both pursued while the group holds pursuits", r.status_code == 409, r.text[:200])

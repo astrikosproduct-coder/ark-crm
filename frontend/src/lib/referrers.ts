@@ -18,7 +18,7 @@ export const ACCOUNT_REFERRERS: ReferrerSpec[] = [
   { collection: 'opportunities', module: 'opportunities', basePath: '/opportunities' },
   { collection: 'deals', module: 'deals', basePath: '/deals' },
   { collection: 'contacts', module: 'contacts', basePath: '/contacts' },
-  { collection: 'registrations', module: 'partners', basePath: '/partners/registrations' },
+  { collection: 'registrations', module: 'registrations', basePath: '/partners/registrations' },
   { collection: 'quotes', module: 'quotes' },
 ]
 

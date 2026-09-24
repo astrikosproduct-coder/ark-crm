@@ -18,7 +18,7 @@ import { fieldsInSet, labelForValue, partnerRegistration } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
 import { cn } from '@/lib/utils'
 
-const MODULE = 'partners'
+const MODULE = 'conflicts'
 const SECTION = 'CONFLICT ADJUDICATION'
 const COLLECTION = 'conflicts'
 

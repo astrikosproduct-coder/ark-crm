@@ -30,7 +30,7 @@ const MODULE_OF: Record<string, string> = {
   deal: 'deals',
   quote: 'quotes',
   product: 'products',
-  deal_registration: 'partners',
+  deal_registration: 'registrations',
   poc: 'bids_pocs',
   bid: 'bids_pocs',
   gate: 'bids_pocs',

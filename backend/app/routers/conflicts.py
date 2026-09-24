@@ -261,7 +261,7 @@ def create_conflict(
         conflict,
         resolve_write(
             db,
-            "partners",
+            "conflicts",
             explicit=payload.custom_fields,
             extras=extras_of(payload),
         ),
@@ -327,7 +327,7 @@ def _write(
         conflict,
         resolve_write(
             db,
-            "partners",
+            "conflicts",
             explicit=payload.custom_fields,
             extras=extras_of(payload),
         ),

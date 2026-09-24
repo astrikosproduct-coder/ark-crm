@@ -23,12 +23,11 @@ import { partnerAccountTypes } from '@/lib/spec'
 export function PartnersPage() {
   const navigate = useNavigate()
   // Two lists on one page, so each keeps its own filters: registration keys carry
-  // an "r." prefix in the URL. A registration is the DEAL REGISTRATION section of
-  // the partners module; a partner record is an account.
+  // an "r." prefix in the URL. A registration is its own module (metadata v2,
+  // 24 Sep 2026); a partner record is an account.
   const registrationFilters = useListFilters({
     view: 'registrations',
-    fieldModule: 'partners',
-    sections: ['DEAL REGISTRATION'],
+    fieldModule: 'registrations',
     prefix: 'r.',
   })
   const partnerFilters = useListFilters({
