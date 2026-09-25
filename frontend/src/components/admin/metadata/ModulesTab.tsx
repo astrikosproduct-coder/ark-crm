@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { PlusIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -14,18 +15,24 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ErrorBox, LoadingRow, Mono, Row, StatusBadge, Table } from './shared'
 import { errorMessage } from '@/lib/admin'
-import { useCreateModule, useMetadataModules, useUpdateModule } from '@/lib/metadata'
+import {
+  useCreateModule,
+  useMetadataModules,
+  useUpdateModule,
+  type MetadataModule,
+} from '@/lib/metadata'
 
 /**
- * The register's ten sheets.
+ * Setup → Customization → Modules and Fields: the module list.
  *
- * There is no `opportunities` row here and that is not a bug. The register
- * files every Stage 0-7 pipeline field under `leads`; the three-way split into
- * Leads, Opportunities and Deals is applied by the frontend at load time from
- * spec/module_split.json. This screen shows the register as it is, and the
- * Fields tab marks each field with where the split actually puts it.
+ * Every module the register has, built or not — nothing is hidden (24 Sep
+ * 2026). Its label opens it on Fields · Layout · Unused fields (and Conversion
+ * Mapping, on a pipeline module); `moduleHref` says where, so this folder does
+ * not name Setup's addresses. A module Setup files under another
+ * (`setup_parent` — Deal Registrations, Conflicts and Partner Scorecards under
+ * Partners) is listed directly beneath it, indented.
  */
-export function ModulesTab() {
+export function ModulesTab({ moduleHref }: { moduleHref: (moduleKey: string) => string }) {
   const { data: modules = [], isLoading, isError, error } = useMetadataModules()
   const updateModule = useUpdateModule()
   const [adding, setAdding] = useState(false)
@@ -34,6 +41,8 @@ export function ModulesTab() {
 
   if (isLoading) return <LoadingRow what="modules" />
   if (isError) return <ErrorBox error={error} />
+
+  const ordered = withChildrenUnderParents(modules)
 
   return (
     <>
@@ -51,26 +60,20 @@ export function ModulesTab() {
       <Table
         head={
           <>
-            <th className="w-16">#</th>
-            <th className="w-48">Key</th>
             <th>Label</th>
+            <th className="w-48">Key</th>
+            <th className="w-16">#</th>
             <th className="w-24">Sections</th>
             <th className="w-24">Fields</th>
-            <th className="w-24">Deleted</th>
+            <th className="w-24">Unused</th>
             <th className="w-24">Status</th>
             <th className="w-44" />
           </>
         }
       >
-        {modules.map((module) => (
+        {ordered.map((module) => (
           <Row key={module.module_key} muted={!module.active}>
-            <td>
-              <Mono>{module.sort_order}</Mono>
-            </td>
-            <td>
-              <Mono>{module.module_key}</Mono>
-            </td>
-            <td className="font-medium">
+            <td className={module.setup_parent ? 'pl-8 font-medium' : 'font-medium'}>
               {editing === module.module_key ? (
                 <div className="flex gap-2">
                   <Input
@@ -97,7 +100,9 @@ export function ModulesTab() {
                 </div>
               ) : (
                 <>
-                  {module.label}
+                  <Link to={moduleHref(module.module_key)} className="text-link hover:underline">
+                    {module.label}
+                  </Link>
                   {module.setup_parent && (
                     <span className="text-muted-foreground block text-xs font-normal">
                       under {modules.find((m) => m.module_key === module.setup_parent)?.label ?? module.setup_parent}
@@ -105,6 +110,12 @@ export function ModulesTab() {
                   )}
                 </>
               )}
+            </td>
+            <td>
+              <Mono>{module.module_key}</Mono>
+            </td>
+            <td>
+              <Mono>{module.sort_order}</Mono>
             </td>
             <td>{module.section_count}</td>
             <td>{module.field_count}</td>
@@ -143,6 +154,21 @@ export function ModulesTab() {
       <AddModuleDialog open={adding} onOpenChange={setAdding} />
     </>
   )
+}
+
+/**
+ * The list in sort order, except that each Setup child follows its parent —
+ * in its own sort order — so Partners' three sit together under it.
+ */
+function withChildrenUnderParents(modules: MetadataModule[]): MetadataModule[] {
+  const keys = new Set(modules.map((m) => m.module_key))
+  const isChild = (m: MetadataModule) => Boolean(m.setup_parent && keys.has(m.setup_parent))
+  return modules
+    .filter((m) => !isChild(m))
+    .flatMap((parent) => [
+      parent,
+      ...modules.filter((m) => isChild(m) && m.setup_parent === parent.module_key),
+    ])
 }
 
 function AddModuleDialog({

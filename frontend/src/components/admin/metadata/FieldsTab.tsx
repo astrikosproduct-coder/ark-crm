@@ -21,7 +21,6 @@ import {
   useDeleteField,
   useRemovePlacement,
   useMetadataFields,
-  useMetadataModules,
   useMetadataSections,
   useReorderFields,
   useSetFieldRequired,
@@ -34,13 +33,11 @@ import {
  *
  * Kept together rather than split across three tabs because that is how the
  * register is actually read: nobody looks for "a section" — they look for the
- * Leads sheet and then for STAGE 4 within it. The module picker chooses the
- * sheet, the sections are its headings, and the fields sit under them in the
- * register's own order.
+ * Leads sheet and then for STAGE 4 within it. The module is the one open in
+ * Setup → Modules and Fields (its address says which); the sections are its
+ * headings, and the fields sit under them in the register's own order.
  */
-export function FieldsTab() {
-  const { data: modules = [], isLoading, isError, error } = useMetadataModules()
-  const [moduleKey, setModuleKey] = useState<string>('leads')
+export function FieldsTab({ moduleKey }: { moduleKey: string }) {
   const [search, setSearch] = useState('')
   const [dialog, setDialog] = useState<{ open: boolean; field?: MetadataField; sectionId?: number }>(
     { open: false }
@@ -48,12 +45,12 @@ export function FieldsTab() {
   const [confirm, setConfirm] = useState<MetadataField | null>(null)
 
   const { data: sections = [] } = useMetadataSections(moduleKey)
-  const { data: fields = [] } = useMetadataFields(moduleKey, 'active')
+  const { data: fields = [], isLoading, isError, error } = useMetadataFields(moduleKey, 'active')
 
   const setRequired = useSetFieldRequired()
   const reorder = useReorderFields()
 
-  if (isLoading) return <LoadingRow what="modules" />
+  if (isLoading) return <LoadingRow what="fields" />
   if (isError) return <ErrorBox error={error} />
 
   const term = search.trim().toLowerCase()
@@ -79,18 +76,6 @@ export function FieldsTab() {
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <select
-          className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
-          value={moduleKey}
-          onChange={(e) => setModuleKey(e.target.value)}
-        >
-          {modules.map((m) => (
-            <option key={m.module_key} value={m.module_key}>
-              {m.label} ({m.field_count})
-            </option>
-          ))}
-        </select>
-
         <Input
           className="h-9 w-64"
           placeholder="Filter by name or label…"
@@ -390,7 +375,7 @@ function DeleteFieldDialog({
             </ul>
           </div>
           <p className="text-muted-foreground text-xs">
-            Deleted fields are listed under the Deleted fields tab, where they can be
+            Deleted fields are listed under the Unused fields tab, where they can be
             restored.
           </p>
           {error && <p className="text-destructive">{error}</p>}

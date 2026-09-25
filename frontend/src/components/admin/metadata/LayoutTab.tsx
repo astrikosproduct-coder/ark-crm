@@ -28,7 +28,6 @@ import { errorMessage } from '@/lib/admin'
 import {
   FIELD_TYPES,
   useMetadataFields,
-  useMetadataModules,
   useMetadataSections,
   useRemovePlacement,
   useReorderFields,
@@ -99,19 +98,17 @@ function iconFor(type: string) {
   return TYPE_ICON[type] ?? TextIcon
 }
 
-export function LayoutTab() {
-  const { data: modules = [], isLoading, isError, error } = useMetadataModules()
-  const [moduleKey, setModuleKey] = useState('leads')
+export function LayoutTab({ moduleKey }: { moduleKey: string }) {
   const [dialog, setDialog] = useState<{
     open: boolean
     field?: MetadataField
     sectionId?: number
   }>({ open: false })
 
-  const { data: sections = [] } = useMetadataSections(moduleKey)
+  const { data: sections = [], isLoading, isError, error } = useMetadataSections(moduleKey)
   const { data: fields = [] } = useMetadataFields(moduleKey, 'active')
 
-  if (isLoading) return <LoadingRow what="modules" />
+  if (isLoading) return <LoadingRow what="the layout" />
   if (isError) return <ErrorBox error={error} />
 
   const activeSections = sections.filter((s) => s.active)
@@ -119,17 +116,6 @@ export function LayoutTab() {
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <select
-          className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
-          value={moduleKey}
-          onChange={(e) => setModuleKey(e.target.value)}
-        >
-          {modules.map((m) => (
-            <option key={m.module_key} value={m.module_key}>
-              {m.label} ({m.field_count})
-            </option>
-          ))}
-        </select>
         <p className="text-muted-foreground text-xs">
           The form as the record screen draws it &mdash; same arrangement code, same
           anchors, same full-width rule. Drag a type from the left into a section, or drag a

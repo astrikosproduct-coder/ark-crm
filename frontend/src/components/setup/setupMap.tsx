@@ -24,7 +24,9 @@ import { RolesPanel, UsersPanel } from './UsersRoles'
  *
  * Every item has its own address — /setup/<category>/<item>. An item with no
  * `render` is scheduled, not missing: it opens on "Coming in a later phase",
- * because nothing in ARK is hidden (decided 24 Sep 2026).
+ * because nothing in ARK is hidden (decided 24 Sep 2026). An item marked
+ * `nested` owns the addresses below its own as well —
+ * /setup/customization/modules/deals/fields — and is handed the rest.
  */
 export interface SetupItem {
   slug: string
@@ -32,7 +34,17 @@ export interface SetupItem {
   /** Words someone might search for that are not in the label. */
   keywords?: string
   /** The screen. Absent: "Coming in a later phase". */
-  render?: () => ReactNode
+  render?: (at: SetupAddress) => ReactNode
+  /** Accepts addresses below its own, handed over as `at.rest`. */
+  nested?: boolean
+  /** Draws its own page heading, because it changes with `at.rest`. */
+  ownHeading?: boolean
+}
+
+/** Where a Setup item was opened: its own address, and what follows it. */
+export interface SetupAddress {
+  path: string
+  rest: string[]
 }
 
 export interface SetupCategory {
@@ -72,7 +84,9 @@ export const SETUP: SetupCategory[] = [
         slug: 'modules',
         label: 'Modules and Fields',
         keywords: 'field layout sections deleted unused conversion mapping form',
-        render: () => <ModulesAndFields />,
+        nested: true,
+        ownHeading: true,
+        render: (at) => <ModulesAndFields at={at} />,
       },
       {
         slug: 'pipelines-and-stages',
@@ -119,15 +133,19 @@ export function setupPath(category: SetupCategory, item: SetupItem): string {
   return `/setup/${category.slug}/${item.slug}`
 }
 
-/** The item at `<category>/<item>` — the part of the address after /setup/. */
+/**
+ * The item at `<category>/<item>[/…]` — the part of the address after /setup/.
+ * Anything below the item's own address is refused unless the item is `nested`.
+ */
 export function findSetupItem(
-  rest: string
-): { category: SetupCategory; item: SetupItem } | undefined {
-  const [categorySlug, itemSlug, ...extra] = rest.split('/').filter(Boolean)
-  if (extra.length > 0) return undefined
+  address: string
+): { category: SetupCategory; item: SetupItem; at: SetupAddress } | undefined {
+  const [categorySlug, itemSlug, ...rest] = address.split('/').filter(Boolean)
   const category = SETUP.find((c) => c.slug === categorySlug)
   const item = category?.items.find((i) => i.slug === itemSlug)
-  return category && item ? { category, item } : undefined
+  if (!category || !item) return undefined
+  if (rest.length > 0 && !item.nested) return undefined
+  return { category, item, at: { path: setupPath(category, item), rest } }
 }
 
 /**

@@ -7,28 +7,37 @@ import { useConversionMappings, type ConversionMappingRow } from '@/lib/metadata
  *
  * Zoho's "Lead Conversion Mapping", READ-ONLY for now. The rows were written
  * by metadata_v2.py from what conversion already did, and conversion reads
- * them (app/carry_forward.py, app/progression.py). The screen that edits them
- * is built once, in its final place, with the Setup rebuild:
- * Setup → Customization → Modules and Fields → Leads / Opportunities →
- * Conversion Mapping.
+ * them (app/carry_forward.py, app/progression.py). It lives on each pipeline
+ * module in Setup → Customization → Modules and Fields, and shows the
+ * conversions that module takes part in — what it hands on and what it
+ * receives. Editing arrives in step 4 of the Setup rebuild.
  *
  * A field shown live "from the Lead" is not here: it is never copied. It is a
  * read-only item on the later module's layout (Fields tab).
  */
 
-const PATHS: { path: ConversionMappingRow['path']; title: string; lead: string }[] = [
+const PATHS: {
+  path: ConversionMappingRow['path']
+  /** The two modules the conversion joins, from and to. */
+  modules: [string, string]
+  title: string
+  lead: string
+}[] = [
   {
     path: 'lead_to_opportunity',
+    modules: ['leads', 'opportunities'],
     title: 'Lead → Opportunity',
     lead: 'Nothing is copied. The Opportunity shows the Lead’s fields live, in From the Lead.',
   },
   {
     path: 'opportunity_to_deal',
+    modules: ['opportunities', 'deals'],
     title: 'Opportunity → Deal',
     lead: 'Copied once when the Deal is created. The Deal owns the value from then on.',
   },
   {
     path: 'lead_to_deal_pilot',
+    modules: ['leads', 'deals'],
     title: 'Lead → Deal (paid pilot)',
     lead: 'When a pilot is marked Paid, its Deal is created from the Lead. These rows carry the Won rule, so they are locked.',
   },
@@ -44,7 +53,7 @@ const TRANSFORM_LABEL: Record<string, string> = {
   paid_poc_name: 'adds “ — Paid POC”',
 }
 
-export function ConversionMappingTab() {
+export function ConversionMappingTab({ moduleKey }: { moduleKey: string }) {
   const { data: rows = [], isLoading, isError, error } = useConversionMappings()
 
   if (isLoading) return <LoadingRow what="conversion mapping" />
@@ -54,10 +63,10 @@ export function ConversionMappingTab() {
     <>
       <MetadataIntro>
         What each conversion copies onto the new record. A field shown from the Lead is never copied —
-        it is shown live. This list is read-only until Setup gives it an editing screen.
+        it is shown live. Read-only for now.
       </MetadataIntro>
 
-      {PATHS.map(({ path, title, lead }) => {
+      {PATHS.filter(({ modules }) => modules.includes(moduleKey)).map(({ path, title, lead }) => {
         const own = rows.filter((r) => r.path === path)
         const copies = own.filter((r) => r.kind === 'copy')
         const system = own.filter((r) => r.kind === 'system')

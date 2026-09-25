@@ -4,7 +4,7 @@ import { ComingSoon } from '@/pages/ComingSoon'
 import { PublishBanner } from '@/components/setup/PublishBanner'
 import { SetupHome } from '@/components/setup/SetupHome'
 import { SetupMenu } from '@/components/setup/SetupMenu'
-import { findSetupItem, setupPath } from '@/components/setup/setupMap'
+import { findSetupItem } from '@/components/setup/setupMap'
 
 /**
  * Setup — what was Administration until Item 3 of Phase 2 (25 Sep 2026),
@@ -39,9 +39,15 @@ export function SetupPage() {
           <SetupMenu current={found.category} />
           {/* Keyed by address, so moving between items starts each screen
               fresh rather than carrying one item's state into the next. */}
-          <section key={setupPath(found.category, found.item)} className="min-w-0 flex-1">
-            <h1 className="text-page-title mb-4 font-bold">{found.item.label}</h1>
-            {found.item.render ? found.item.render() : <ComingSoon label={found.item.label} />}
+          <section key={found.at.path} className="min-w-0 flex-1">
+            {!found.item.ownHeading && (
+              <h1 className="text-page-title mb-4 font-bold">{found.item.label}</h1>
+            )}
+            {found.item.render ? (
+              found.item.render(found.at)
+            ) : (
+              <ComingSoon label={found.item.label} />
+            )}
           </section>
         </div>
       ) : (
