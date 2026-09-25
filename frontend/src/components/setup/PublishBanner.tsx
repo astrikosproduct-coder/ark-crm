@@ -27,7 +27,7 @@ function pendingLabel(draft: DraftStatus): string {
  * D1 of the Setup rebuild (25 Sep 2026): ARK keeps draft → publish, with
  * versions and rollback — its own feature; Zoho has none. It replaces the
  * draft notice every register tab used to carry, and it is on every Setup page
- * because an edit made under Picklists is still waiting when you are reading
+ * because an edit made under Global Sets is still waiting when you are reading
  * Users. Absent when there is nothing to publish.
  */
 export function PublishBanner() {

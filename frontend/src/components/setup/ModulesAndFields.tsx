@@ -5,6 +5,7 @@ import { ArrowLeftIcon } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ConversionMappingTab } from '@/components/admin/metadata/ConversionMappingTab'
 import { FieldsTab } from '@/components/admin/metadata/FieldsTab'
+import { GlobalSetsTab } from '@/components/admin/metadata/GlobalSetsTab'
 import { LayoutTab } from '@/components/admin/metadata/LayoutTab'
 import { ModulesTab } from '@/components/admin/metadata/ModulesTab'
 import { UnusedFieldsTab } from '@/components/admin/metadata/UnusedFieldsTab'
@@ -17,7 +18,13 @@ import type { SetupAddress } from './setupMap'
  * Setup → Customization → Modules and Fields, as Zoho has it.
  *
  *   /setup/customization/modules                        the module list
+ *   /setup/customization/modules/global-sets            the shared lists
  *   /setup/customization/modules/deals/fields           one module, one tab
+ *
+ * The list page is Zoho's tab pair, Modules · Global Sets. A list serving one
+ * field has no page: it is edited in that field (step 3, 25 Sep 2026, which
+ * removed Setup's separate Picklists item — Zoho has none). `global-sets`
+ * cannot collide with a module: a module key has no hyphen.
  *
  * A module opens on Fields · Layout · Unused fields, plus Conversion Mapping
  * on a pipeline module (Leads, Opportunities, Deals). Each tab is an address,
@@ -31,14 +38,11 @@ import type { SetupAddress } from './setupMap'
  */
 export function ModulesAndFields({ at }: { at: SetupAddress }) {
   const [moduleKey, tab] = at.rest
+  const moduleHref = (key: string) => `${at.path}/${key}/fields`
 
-  if (!moduleKey) {
-    return (
-      <>
-        <h1 className="text-page-title mb-4 font-bold">Modules and Fields</h1>
-        <ModulesTab moduleHref={(key) => `${at.path}/${key}/fields`} />
-      </>
-    )
+  if (!moduleKey || moduleKey === GLOBAL_SETS) {
+    if (at.rest.length > 1) return <Navigate to={at.path} replace />
+    return <ListPage base={at.path} showing={moduleKey ? 'sets' : 'modules'} moduleHref={moduleHref} />
   }
   // Keyed by module: opening another one starts its screens fresh, rather than
   // carrying a search or an open dialog across from the last.
@@ -50,6 +54,41 @@ export function ModulesAndFields({ at }: { at: SetupAddress }) {
       tab={tab}
       extra={at.rest.length > 2}
     />
+  )
+}
+
+const GLOBAL_SETS = 'global-sets'
+
+/** Modules and Fields' own page: Zoho's Modules · Global Sets pair. */
+function ListPage({
+  base,
+  showing,
+  moduleHref,
+}: {
+  base: string
+  showing: 'modules' | 'sets'
+  moduleHref: (key: string) => string
+}) {
+  const navigate = useNavigate()
+  return (
+    <>
+      <h1 className="text-page-title mb-4 font-bold">Modules and Fields</h1>
+      <Tabs
+        value={showing}
+        onValueChange={(next) => navigate(next === 'sets' ? `${base}/${GLOBAL_SETS}` : base)}
+      >
+        <TabsList>
+          <TabsTrigger value="modules">Modules</TabsTrigger>
+          <TabsTrigger value="sets">Global Sets</TabsTrigger>
+        </TabsList>
+        <TabsContent value="modules">
+          {showing === 'modules' && <ModulesTab moduleHref={moduleHref} />}
+        </TabsContent>
+        <TabsContent value="sets">
+          {showing === 'sets' && <GlobalSetsTab moduleHref={moduleHref} />}
+        </TabsContent>
+      </Tabs>
+    </>
   )
 }
 

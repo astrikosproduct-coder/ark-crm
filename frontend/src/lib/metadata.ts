@@ -159,7 +159,17 @@ export interface MetadataPicklist {
   /** Shared by fields on several modules (Zoho's Global Sets). A local list serves one field. */
   is_global?: boolean
   field_count: number
+  /** The fields using it, by owning module — a Global Set's "Used in". */
+  used_by: PicklistUser[]
   values: MetadataPicklistValue[]
+}
+
+export interface PicklistUser {
+  definition_id: number
+  module_key: string
+  module_label: string
+  api_name: string
+  label: string
 }
 
 export interface MetadataStage {
@@ -358,7 +368,10 @@ export type FieldInput = Partial<
     | 'provenance'
     | 'scope_key'
   >
->
+> & {
+  /** The field's OWN choices, one label each — the server makes its local list. */
+  new_picklist?: string[]
+}
 
 /** Definition-level properties. Editing any of them changes EVERY module. */
 export type DefinitionInput = Partial<{
@@ -377,6 +390,8 @@ export type DefinitionInput = Partial<{
   use_case: string
   origin: string
   source_ref: string | null
+  /** Own choices for a field that has none (it was on a global set, or not a dropdown). */
+  new_picklist: string[]
 }>
 
 /** Placement-level properties. Editing them changes ONE module. */
@@ -682,8 +697,14 @@ export function useMetadataPicklists() {
 export function useCreatePicklist() {
   const invalidate = useInvalidateMetadata()
   return useMutation({
-    mutationFn: async (input: { picklist_key: string; label?: string }) =>
-      (await api.post<MetadataPicklist>(`${BASE}/picklists`, input)).data,
+    // A Global Set in Setup: a name and its choices. The key is made from the
+    // name, each choice's key from its label, when they are left out.
+    mutationFn: async (input: {
+      picklist_key?: string
+      label?: string
+      is_global?: boolean
+      values?: string[]
+    }) => (await api.post<MetadataPicklist>(`${BASE}/picklists`, input)).data,
     onSuccess: invalidate,
   })
 }
@@ -705,7 +726,8 @@ export function useUpdatePicklist() {
 export function useCreatePicklistValue() {
   const invalidate = useInvalidateMetadata()
   return useMutation({
-    mutationFn: async (input: { picklist_key: string; key: string; label: string }) =>
+    // Zoho asks only for the choice: without a key the server makes one from the label.
+    mutationFn: async (input: { picklist_key: string; key?: string; label: string }) =>
       (await api.post<MetadataPicklistValue>(`${BASE}/picklist-values`, input)).data,
     onSuccess: invalidate,
   })
@@ -813,6 +835,14 @@ export function useRollbackMetadata() {
 // Round 7 removed the gap it was patching: module_key on a MetadataField IS
 // the screen now, straight off field_placements. There is nothing left to
 // resolve.
+
+/** "One choice per line" — a textarea's lines, trimmed, blanks dropped. */
+export function choiceLines(text: string): string[] {
+  return text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
 
 /** The FieldType union, for the type dropdown. Mirrors FIELD_TYPES on the API. */
 export const FIELD_TYPES = [

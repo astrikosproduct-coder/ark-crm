@@ -81,6 +81,7 @@ from ..schemas_metadata import (
     PlacementUpdate,
     PicklistCreate,
     PicklistOut,
+    PicklistUserOut,
     PicklistReorderRequest,
     PicklistUpdate,
     PicklistValueCreate,
@@ -768,6 +769,133 @@ def _check_local_picklist(
         )
 
 
+# ------------------------------------------------ a dropdown's own choices
+#
+# Setup rebuild, 25 Sep 2026: there is no Picklists screen any more — Zoho has
+# none. A list serving one field is created and edited inside that field; a
+# list shared by several is a Global Set. These helpers make either from a
+# list of labels, which is all Zoho asks for.
+
+
+def _choice_key(label: str, taken: set[str]) -> str:
+    """PARTNER_SOURCED from "Partner-sourced" — the register's own convention."""
+    base = re.sub(r"[^A-Za-z0-9]+", "_", label).strip("_").upper()[:110] or "CHOICE"
+    key, n = base, 2
+    while key in taken:
+        key, n = f"{base}_{n}", n + 1
+    taken.add(key)
+    return key
+
+
+def _clean_choices(labels: list[str]) -> list[str]:
+    choices = [label.strip() for label in labels if label and label.strip()]
+    if not choices:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            refusal(
+                "PICKLIST_NO_CHOICES",
+                "A dropdown needs at least one choice.",
+                ["Type each choice on its own line."],
+            ),
+        )
+    seen: set[str] = set()
+    for choice in choices:
+        if len(choice) > 200:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                refusal(
+                    "PICKLIST_CHOICE_TOO_LONG",
+                    "One of the choices is too long.",
+                    ["Keep each choice under 200 characters."],
+                ),
+            )
+        if choice.lower() in seen:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                refusal(
+                    "PICKLIST_CHOICE_REPEATED",
+                    f"“{choice}” is listed twice.",
+                    ["Each choice can appear once. Remove the repeat."],
+                ),
+            )
+        seen.add(choice.lower())
+    return choices
+
+
+def _free_picklist_key(db: Session, base: str) -> str:
+    base = base[:115]
+    key, n = base, 2
+    while db.get(Picklist, key) is not None:
+        key, n = f"{base}_{n}", n + 1
+    return key
+
+
+def _new_picklist(
+    db: Session, key: str, label: str | None, choices: list[str], is_global: bool
+) -> Picklist:
+    """A list and its choices, flushed — committed with whatever made it."""
+    picklist = Picklist(
+        picklist_key=key,
+        label=label,
+        sort_order=_next_sort_order(db, Picklist, []),
+        active=True,
+        is_global=is_global,
+    )
+    db.add(picklist)
+    db.flush()
+    taken: set[str] = set()
+    for position, choice in enumerate(choices, start=1):
+        db.add(
+            PicklistValue(
+                picklist_key=key,
+                key=_choice_key(choice, taken),
+                label=choice,
+                sort_order=position,
+                active=True,
+            )
+        )
+    db.flush()
+    return picklist
+
+
+def _own_picklist_for(
+    db: Session, module_key: str, api_name: str, field_label: str, labels: list[str]
+) -> str:
+    """Create a field's own (local) list — `<module>__<api_name>` — and return its key."""
+    choices = _clean_choices(labels)
+    module = db.get(Module, module_key)
+    key = _free_picklist_key(db, f"{module_key}__{api_name}")
+    _new_picklist(
+        db,
+        key,
+        f"{module.label if module else module_key} · {field_label}",
+        choices,
+        is_global=False,
+    )
+    return key
+
+
+def _check_new_picklist_request(field_type: str | None, picklist_key: str | None) -> None:
+    if picklist_key:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            refusal(
+                "PICKLIST_TWO_SOURCES",
+                "A dropdown takes its choices from one place.",
+                ["Give it its own choices, or pick a global set — not both."],
+            ),
+        )
+    if field_type not in ("picklist", "multiselect"):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            refusal(
+                "PICKLIST_NOT_A_DROPDOWN",
+                "Only a dropdown field has choices.",
+                ["Change the type to a picklist or multiselect first."],
+            ),
+        )
+
+
 @router.post("/fields", response_model=FieldOut, status_code=status.HTTP_201_CREATED)
 def create_field(payload: FieldCreate, db: Session = Depends(get_db)):
     """
@@ -789,6 +917,8 @@ def create_field(payload: FieldCreate, db: Session = Depends(get_db)):
         db, payload.field_type, payload.requirement, payload.picklist_key
     )
     _check_local_picklist(db, payload.picklist_key)
+    if payload.new_picklist is not None:
+        _check_new_picklist_request(payload.field_type, payload.picklist_key)
 
     definition_scope, placement_scope = _scope_for(db, payload.module_key)
 
@@ -820,6 +950,12 @@ def create_field(payload: FieldCreate, db: Session = Depends(get_db)):
     capture_stage = _derive_capture_stage(
         db, section, payload.module_key, data.get("capture_stage")
     )
+    # Its own choices: the list is made here, in this transaction, so a field
+    # refused below never leaves an orphan list behind.
+    if payload.new_picklist is not None:
+        data["picklist_key"] = _own_picklist_for(
+            db, payload.module_key, payload.api_name, payload.label, payload.new_picklist
+        )
 
     definition = FieldDefinition(
         scope_key=definition_scope,
@@ -1019,6 +1155,32 @@ def update_field(
     )
     if "picklist_key" in data:
         _check_local_picklist(db, data["picklist_key"], definition.id)
+
+    # Its own choices, for a field that has none: a text field turned into a
+    # dropdown, or one leaving a global set. A field already on its own list
+    # edits that list's values instead — a second list would orphan the first.
+    new_choices = data.pop("new_picklist", None)
+    if new_choices is not None:
+        _check_new_picklist_request(
+            data.get("field_type", definition.field_type), data.get("picklist_key")
+        )
+        current = db.get(Picklist, definition.picklist_key) if definition.picklist_key else None
+        if current is not None and not current.is_global:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                refusal(
+                    "PICKLIST_ALREADY_OWN",
+                    "This field already has its own choices.",
+                    ["Edit them under Choices in the field."],
+                ),
+            )
+        data["picklist_key"] = _own_picklist_for(
+            db,
+            definition.scope_key,
+            definition.api_name,
+            data.get("label", definition.label),
+            new_choices,
+        )
 
     # Definition-level properties: the shape of the value, and its documentation.
     for attr in (
@@ -1641,70 +1803,99 @@ router.add_api_route(
 # ---------------------------------------------------------------- picklists
 
 
-@router.get("/picklists", response_model=list[PicklistOut])
-def list_picklists(
-    include_inactive: bool = Query(default=True),
-    db: Session = Depends(get_db),
-):
-    # How many live FIELDS use each picklist. picklist_key is a definition
-    # property — one dropdown behind one concept — so this counts definitions,
-    # not placements: a field shown on three modules is one user of the
-    # picklist, not three.
-    usage = dict(
-        db.execute(
-            select(FieldDefinition.picklist_key, func.count())
-            .where(
-                FieldDefinition.status == "active",
-                FieldDefinition.picklist_key.is_not(None),
+def _picklist_users(
+    db: Session, picklist_key: str | None = None
+) -> dict[str, list[PicklistUserOut]]:
+    """
+    The live FIELDS using each picklist — a Global Set's "Used in".
+
+    picklist_key is a definition property — one dropdown behind one concept —
+    so these are definitions, not placements: a field shown on three modules
+    is one user of the picklist, not three. Each is filed under the module
+    that owns it (metadata v2: scope_key).
+    """
+    module_labels = dict(db.execute(select(Module.module_key, Module.label)).all())
+    query = (
+        select(FieldDefinition)
+        .where(
+            FieldDefinition.status == "active",
+            FieldDefinition.picklist_key.is_not(None),
+        )
+        .order_by(FieldDefinition.scope_key, FieldDefinition.label)
+    )
+    if picklist_key is not None:
+        query = query.where(FieldDefinition.picklist_key == picklist_key)
+    users: dict[str, list[PicklistUserOut]] = {}
+    for definition in db.scalars(query):
+        users.setdefault(definition.picklist_key, []).append(
+            PicklistUserOut(
+                definition_id=definition.id,
+                module_key=definition.scope_key,
+                module_label=module_labels.get(definition.scope_key, definition.scope_key),
+                api_name=definition.api_name,
+                label=definition.label,
             )
-            .group_by(FieldDefinition.picklist_key)
-        ).all()
-    )
-
-    query = select(Picklist).order_by(Picklist.sort_order, Picklist.picklist_key)
-    if not include_inactive:
-        query = query.where(Picklist.active.is_(True))
-
-    return [
-        PicklistOut(
-            picklist_key=p.picklist_key,
-            label=p.label,
-            sort_order=p.sort_order,
-            active=p.active,
-            is_global=p.is_global,
-            field_count=usage.get(p.picklist_key, 0),
-            values=[PicklistValueOut.model_validate(v) for v in p.values],
         )
-        for p in db.scalars(query)
-    ]
+    return users
 
 
-@router.post("/picklists", response_model=PicklistOut, status_code=status.HTTP_201_CREATED)
-def create_picklist(payload: PicklistCreate, db: Session = Depends(get_db)):
-    if db.get(Picklist, payload.picklist_key) is not None:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, f"Picklist {payload.picklist_key} already exists"
-        )
-    picklist = Picklist(
-        picklist_key=payload.picklist_key,
-        label=payload.label,
-        sort_order=payload.sort_order
-        if payload.sort_order is not None
-        else _next_sort_order(db, Picklist, []),
-        active=payload.active,
-    )
-    db.add(picklist)
-    db.commit()
-    db.refresh(picklist)
+def _picklist_out(picklist: Picklist, users: list[PicklistUserOut]) -> PicklistOut:
     return PicklistOut(
         picklist_key=picklist.picklist_key,
         label=picklist.label,
         sort_order=picklist.sort_order,
         active=picklist.active,
         is_global=picklist.is_global,
-        field_count=0,
-        values=[],
+        field_count=len(users),
+        used_by=users,
+        values=[PicklistValueOut.model_validate(v) for v in picklist.values],
     )
+
+
+@router.get("/picklists", response_model=list[PicklistOut])
+def list_picklists(
+    include_inactive: bool = Query(default=True),
+    db: Session = Depends(get_db),
+):
+    users = _picklist_users(db)
+    query = select(Picklist).order_by(Picklist.sort_order, Picklist.picklist_key)
+    if not include_inactive:
+        query = query.where(Picklist.active.is_(True))
+    return [_picklist_out(p, users.get(p.picklist_key, [])) for p in db.scalars(query)]
+
+
+@router.post("/picklists", response_model=PicklistOut, status_code=status.HTTP_201_CREATED)
+def create_picklist(payload: PicklistCreate, db: Session = Depends(get_db)):
+    """
+    A new list — in Setup, a Global Set, created with its first choices.
+
+    The key may be left out: it is then made from the name, as Zoho asks only
+    for a name. A field's OWN list is never made here; it is made with the
+    field (FieldCreate.new_picklist), so it cannot exist without its field.
+    """
+    label = (payload.label or "").strip() or None
+    if payload.picklist_key is None:
+        if label is None:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                refusal("PICKLIST_NAME_REQUIRED", "Give the list a name.", ["Then save again."]),
+            )
+        base = re.sub(r"[^a-z0-9]+", "_", label.lower()).strip("_")
+        key = _free_picklist_key(db, base if re.match(r"^[a-z]", base) else f"set_{base}")
+    else:
+        key = payload.picklist_key
+        if db.get(Picklist, key) is not None:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, f"Picklist {key} already exists"
+            )
+    choices = _clean_choices(payload.values) if payload.values is not None else []
+    picklist = _new_picklist(db, key, label, choices, is_global=payload.is_global)
+    if payload.sort_order is not None:
+        picklist.sort_order = payload.sort_order
+    picklist.active = payload.active
+    db.commit()
+    db.refresh(picklist)
+    return _picklist_out(picklist, [])
 
 
 @router.patch("/picklists/{picklist_key}", response_model=PicklistOut)
@@ -1743,24 +1934,7 @@ def update_picklist(
         setattr(picklist, name, value)
     db.commit()
     db.refresh(picklist)
-
-    usage = db.scalar(
-        select(func.count())
-        .select_from(FieldDefinition)
-        .where(
-            FieldDefinition.picklist_key == picklist_key,
-            FieldDefinition.status == "active",
-        )
-    )
-    return PicklistOut(
-        picklist_key=picklist.picklist_key,
-        label=picklist.label,
-        sort_order=picklist.sort_order,
-        active=picklist.active,
-        is_global=picklist.is_global,
-        field_count=usage or 0,
-        values=[PicklistValueOut.model_validate(v) for v in picklist.values],
-    )
+    return _picklist_out(picklist, _picklist_users(db, picklist_key).get(picklist_key, []))
 
 
 @router.post("/picklists/reorder", response_model=list[PicklistOut])
@@ -1785,22 +1959,32 @@ def reorder_picklists(payload: PicklistReorderRequest, db: Session = Depends(get
 )
 def create_picklist_value(payload: PicklistValueCreate, db: Session = Depends(get_db)):
     _picklist_or_404(db, payload.picklist_key)
-    clash = db.scalar(
-        select(PicklistValue).where(
-            PicklistValue.picklist_key == payload.picklist_key,
-            PicklistValue.key == payload.key,
-        )
+    existing = list(
+        db.scalars(select(PicklistValue).where(PicklistValue.picklist_key == payload.picklist_key))
     )
+    if any(v.label.strip().lower() == payload.label.strip().lower() for v in existing):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            refusal(
+                "PICKLIST_CHOICE_REPEATED",
+                f"\u201c{payload.label.strip()}\u201d is already a choice.",
+                ["Each choice can appear once. Rename or reactivate the one there."],
+            ),
+        )
+    # Zoho asks only for the choice; its key is made from the label unless a
+    # caller names one.
+    key = payload.key or _choice_key(payload.label, {v.key for v in existing})
+    clash = next((v for v in existing if v.key == key), None)
     if clash is not None:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            f"{payload.picklist_key} already has a value {payload.key!r}",
+            f"{payload.picklist_key} already has a value {key!r}",
         )
 
     value = PicklistValue(
         picklist_key=payload.picklist_key,
-        key=payload.key,
-        label=payload.label,
+        key=key,
+        label=payload.label.strip(),
         sort_order=payload.sort_order
         if payload.sort_order is not None
         else _next_sort_order(

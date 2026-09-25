@@ -166,6 +166,11 @@ class FieldBase(BaseModel):
 class FieldCreate(FieldBase):
     module_key: str = Field(min_length=1, max_length=60)
     section_id: int
+    # The field's OWN choices, one label each, for a dropdown that uses no
+    # global set (Setup rebuild, 25 Sep 2026 — Zoho keeps a local list inside
+    # the field). The server creates the list, local to this field, in the
+    # same transaction as the field. Never sent with picklist_key.
+    new_picklist: list[str] | None = Field(default=None, max_length=500)
     # Lower case, digits and underscores: an api_name is an identifier in the
     # expression language (src/lib/spec/parser.ts) and a key on every stored
     # record. The register itself carries worse — leading digits, em dashes, a
@@ -199,6 +204,9 @@ class FieldUpdate(BaseModel):
     label: str | None = Field(default=None, min_length=1, max_length=200)
     field_type: str | None = Field(default=None, min_length=1, max_length=30)
     requirement: str | None = Field(default=None, max_length=20)
+    # Give a field that has no choices of its own — a text field turned into a
+    # dropdown, or one leaving a global set — its own list. See FieldCreate.
+    new_picklist: list[str] | None = Field(default=None, max_length=500)
     section_id: int | None = None
     sort_order: int | None = None
     max_length: int | None = None
@@ -451,7 +459,11 @@ class PicklistValueOut(BaseModel):
 
 class PicklistValueCreate(BaseModel):
     picklist_key: str = Field(min_length=1, max_length=120)
-    key: str = Field(min_length=1, max_length=120, pattern=r"^[A-Za-z0-9_$.\-/+ ]+$")
+    # Left out, the server makes one from the label — PARTNER_SOURCED from
+    # "Partner-sourced" — as Zoho asks only for the choice itself.
+    key: str | None = Field(
+        default=None, min_length=1, max_length=120, pattern=r"^[A-Za-z0-9_$.\-/+ ]+$"
+    )
     label: str = Field(min_length=1, max_length=200)
     sort_order: int | None = None
     active: bool = True
@@ -470,6 +482,16 @@ class PicklistValueUpdate(BaseModel):
     active: bool | None = None
 
 
+class PicklistUserOut(BaseModel):
+    """One field whose dropdown is this list — the "Used in" of a Global Set."""
+
+    definition_id: int
+    module_key: str
+    module_label: str
+    api_name: str
+    label: str
+
+
 class PicklistOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -484,13 +506,22 @@ class PicklistOut(BaseModel):
     # How many register fields name this picklist. Deactivating one that 40
     # fields use should look different from deactivating an unused one.
     field_count: int = 0
+    # Which fields, by their owning module — len(used_by) == field_count.
+    used_by: list[PicklistUserOut] = []
 
 
 class PicklistCreate(BaseModel):
-    picklist_key: str = Field(min_length=1, max_length=120, pattern=r"^[a-z][a-z0-9_]*$")
+    # Left out, the server makes one from the label (which is then required).
+    picklist_key: str | None = Field(
+        default=None, min_length=1, max_length=120, pattern=r"^[a-z][a-z0-9_]*$"
+    )
     label: str | None = Field(default=None, max_length=200)
     sort_order: int | None = None
     active: bool = True
+    # A Global Set, created as one: Setup → Modules and Fields → Global Sets.
+    is_global: bool = False
+    # Its first choices, one label each; keys are made from the labels.
+    values: list[str] | None = Field(default=None, max_length=500)
 
 
 class PicklistUpdate(BaseModel):

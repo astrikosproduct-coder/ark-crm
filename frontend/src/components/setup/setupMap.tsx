@@ -8,7 +8,6 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
-import { PicklistsTab } from '@/components/admin/metadata/PicklistsTab'
 import { PublishTab } from '@/components/admin/metadata/PublishTab'
 import { StagesTab } from '@/components/admin/metadata/StagesTab'
 import { ModulesAndFields } from './ModulesAndFields'
@@ -83,7 +82,7 @@ export const SETUP: SetupCategory[] = [
       {
         slug: 'modules',
         label: 'Modules and Fields',
-        keywords: 'field layout sections deleted unused conversion mapping form',
+        keywords: 'field layout sections deleted unused conversion mapping form global sets picklist dropdown choices',
         nested: true,
         ownHeading: true,
         render: (at) => <ModulesAndFields at={at} />,
@@ -93,12 +92,6 @@ export const SETUP: SetupCategory[] = [
         label: 'Pipelines and Stages',
         keywords: 'stage progression probability pipeline',
         render: () => <StagesTab />,
-      },
-      {
-        slug: 'picklists',
-        label: 'Picklists',
-        keywords: 'dropdown values choices global sets',
-        render: () => <PicklistsTab />,
       },
     ],
   },

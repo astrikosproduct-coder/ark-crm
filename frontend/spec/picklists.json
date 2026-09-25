@@ -59,7 +59,6 @@
    "active": true
   }
  ],
- "sub_segment": [],
  "leads_stage": [
   {
    "key": "0_CONNECT",
@@ -3094,7 +3093,6 @@
    "active": true
   }
  ],
- "accounts__country": [],
  "theme": [
   {
    "key": "SMART_CITIES",

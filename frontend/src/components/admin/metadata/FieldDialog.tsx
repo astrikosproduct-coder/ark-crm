@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Notice } from '@/components/ui/notice'
 import { Textarea } from '@/components/ui/textarea'
+import { ChoicesEditor } from './ChoicesEditor'
 import { RuleBuilder } from './RuleBuilder'
 import { PIPELINE_MODULES, parentModuleOf } from '@/lib/spec'
 import { errorMessage } from '@/lib/admin'
@@ -21,6 +22,7 @@ import { cn } from '@/lib/utils'
 import {
   FIELD_TYPES,
   REQUIREMENTS,
+  choiceLines,
   useAddPlacement,
   useCreateField,
   useDraftStatus,
@@ -163,6 +165,16 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
 
   const [form, setForm] = useState<FormState>(EMPTY)
   const [error, setError] = useState<string | null>(null)
+  /**
+   * Where a dropdown's choices come from — Zoho's arrangement since the Setup
+   * rebuild (25 Sep 2026): the field's OWN list, edited right here, or a
+   * GLOBAL SET shared with other fields. null until the person picks: it then
+   * follows the list the field already has, so the picklists refetching after
+   * a choice is added never resets the dialog.
+   */
+  const [choiceSource, setChoiceSource] = useState<'own' | 'global' | null>(null)
+  // A field with no list of its own yet: its choices, one per line.
+  const [newChoices, setNewChoices] = useState('')
   const [applyToAll, setApplyToAll] = useState(false)
   /**
    * Are the two rules the same rule?
@@ -266,6 +278,8 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
     if (!open) return
     setError(null)
     setNotPublished(null)
+    setChoiceSource(null)
+    setNewChoices('')
     if (field) {
       setForm({
         section_id: field.section_id,
@@ -313,6 +327,31 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
     setForm((f) => ({ ...f, [key]: value }))
 
   const needsPicklist = form.field_type === 'picklist' || form.field_type === 'multiselect'
+
+  // The list the field had when the dialog opened, and whether it is its own.
+  const startingList = field?.picklist_key
+    ? picklists.find((p) => p.picklist_key === field.picklist_key)
+    : undefined
+  const ownList = startingList && !startingList.is_global ? startingList : undefined
+  const source = choiceSource ?? (startingList?.is_global ? 'global' : 'own')
+  const globalSets = picklists.filter(
+    (p) => p.is_global && (p.active || p.picklist_key === form.picklist_key)
+  )
+  const chosenSet = globalSets.find((p) => p.picklist_key === form.picklist_key)
+  const typedChoices = choiceLines(newChoices)
+  // A new list of its own is made on save — by the server, with the field.
+  const makesOwnList = needsPicklist && source === 'own' && !ownList && typedChoices.length > 0
+  const picklistKey = !needsPicklist
+    ? null
+    : source === 'global'
+      ? orNull(form.picklist_key)
+      : (ownList?.picklist_key ?? null)
+  // A new dropdown needs its choices; an existing one saved without them keeps what it had.
+  const choicesReady =
+    !needsPicklist ||
+    (source === 'global'
+      ? Boolean(chosenSet)
+      : Boolean(ownList) || typedChoices.length > 0 || isEdit)
   const needsLookup = form.field_type === 'lookup'
   const isNumeric = ['number', 'currency', 'percent'].includes(form.field_type)
 
@@ -338,7 +377,7 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
     label: form.label.trim(),
     field_type: form.field_type,
     requirement: form.requirement,
-    picklist_key: needsPicklist ? orNull(form.picklist_key) : null,
+    picklist_key: picklistKey,
     lookup_target: needsLookup ? orNull(form.lookup_target) : null,
     max_length: numberOrNull(form.max_length),
     min_value: isNumeric ? numberOrNull(form.min_value) : null,
@@ -368,7 +407,13 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
   const definitionPatch = {
     label: payload.label,
     field_type: payload.field_type,
-    picklist_key: payload.picklist_key,
+    // The server refuses both at once: a new own list, or a list to point at.
+    ...(makesOwnList
+      ? { new_picklist: typedChoices }
+      : // An existing field with no choices typed keeps its list as it was.
+        needsPicklist && source === 'own' && !ownList && isEdit
+        ? {}
+        : { picklist_key: payload.picklist_key }),
     lookup_target: payload.lookup_target,
     max_length: payload.max_length,
     min_value: payload.min_value,
@@ -458,6 +503,7 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
       } else {
         await createField.mutateAsync({
           ...payload,
+          ...(makesOwnList ? { new_picklist: typedChoices } : {}),
           module_key: moduleKey,
           api_name: form.api_name.trim(),
           // A new field is the register's own only in the workbook; one added
@@ -495,6 +541,7 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
   const canSubmit =
     form.label.trim() !== '' &&
     form.section_id !== null &&
+    choicesReady &&
     (isEdit || /^[a-z][a-z0-9_]*$/.test(form.api_name.trim()))
 
   return (
@@ -594,21 +641,81 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
 
           {needsPicklist && (
             <div className="grid gap-1.5">
-              <Label htmlFor="picklist">Picklist</Label>
-              <select
-                id="picklist"
-                className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
-                value={form.picklist_key}
-                onChange={(e) => set('picklist_key', e.target.value)}
-              >
-                <option value="">— none (renders as free text) —</option>
-                {picklists.map((p) => (
-                  <option key={p.picklist_key} value={p.picklist_key}>
-                    {p.picklist_key}
-                    {p.active ? '' : ' (inactive)'}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center gap-2">
+                <Label>Choices</Label>
+                <div className="ml-auto flex gap-1">
+                  {(['own', 'global'] as const).map((option) => (
+                    <Button
+                      key={option}
+                      type="button"
+                      size="sm"
+                      className="h-7"
+                      variant={source === option ? 'default' : 'outline'}
+                      onClick={() => {
+                        setChoiceSource(option)
+                        if (option === 'global' && !globalSets.some((p) => p.picklist_key === form.picklist_key)) {
+                          set('picklist_key', '')
+                        }
+                      }}
+                    >
+                      {option === 'own' ? 'Its own choices' : 'A global set'}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {source === 'global' ? (
+                <>
+                  <select
+                    id="picklist"
+                    aria-label="Global set"
+                    className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
+                    value={form.picklist_key}
+                    onChange={(e) => set('picklist_key', e.target.value)}
+                  >
+                    <option value="">Choose a global set…</option>
+                    {globalSets.map((p) => (
+                      <option key={p.picklist_key} value={p.picklist_key}>
+                        {p.label ?? p.picklist_key}
+                        {p.active ? '' : ' (inactive)'}
+                      </option>
+                    ))}
+                  </select>
+                  {chosenSet && (
+                    <p className="text-muted-foreground text-xs">
+                      {chosenSet.values
+                        .filter((v) => v.active)
+                        .map((v) => v.label)
+                        .join(', ')}
+                      <br />
+                      Shared with {chosenSet.field_count} field
+                      {chosenSet.field_count === 1 ? '' : 's'}. Edit its choices under Global Sets.
+                    </p>
+                  )}
+                </>
+              ) : ownList ? (
+                <>
+                  <ChoicesEditor picklist={ownList} />
+                  <p className="text-muted-foreground text-xs">
+                    Choices are saved to the draft as you change them.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Textarea
+                    id="new_choices"
+                    rows={4}
+                    placeholder="One choice per line"
+                    value={newChoices}
+                    onChange={(e) => setNewChoices(e.target.value)}
+                  />
+                  {isEdit && field?.picklist_key && (
+                    <p className="text-muted-foreground text-xs">
+                      Leave empty to keep the global set it uses now.
+                    </p>
+                  )}
+                </>
+              )}
             </div>
           )}
 
