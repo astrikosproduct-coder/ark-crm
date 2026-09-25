@@ -19,10 +19,9 @@ on (production publishes live, so its register can differ from development's).
 
 What it adds:
 
-  modules.hidden          kept, but not offered in Administration — a module
-                          that is not built yet, or not a module at all
-                          (`administration` describes screens that are
-                          hand-built). Distinct from `active`.
+  modules.hidden          kept, but not offered in Administration. Distinct
+                          from `active`. Nothing sets it: decided 24 Sep 2026,
+                          unbuilt modules stay in Administration as they are.
   modules.setup_parent    where Administration files a module: Deal
                           Registrations under Partners. NOT parent_module,
                           which is the pipeline's record lineage and drives

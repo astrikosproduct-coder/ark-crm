@@ -183,9 +183,12 @@ def main(write: bool, from_database: bool = False, replace: bool = False) -> int
     )
     if from_database:
         note = (
-            "The field register AS ACCEPTED FOR GO-LIVE, 21 Sep 2026 — re-frozen "
-            "from the database by the user's decision, which accepted the 185 "
-            "post-cutover register changes the parity test then reported. The "
+            "The field register AS ACCEPTED. Frozen from the database for go-live "
+            "on 21 Sep 2026 (the user accepted the 185 post-cutover changes then "
+            "reported), and re-frozen on 25 Sep 2026 for metadata v2 — 190 planned "
+            "differences: the 39 Deal Registration, Conflict and Scorecard fields "
+            "moved to their own modules, the 52 read-through fields' section renamed "
+            "From the Lead, and the Deal's End Client shown live from the Lead. The "
             "fixed 'before' side of test_parity.py: any field that differs from "
             "this without a deliberate re-freeze is a regression. Re-freeze only "
             "as a decision (freeze_parity_baseline.py --from-database --replace)."

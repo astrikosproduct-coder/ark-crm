@@ -59,8 +59,14 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
 
    | Migrated (Round 6) | Tables | Served at |
    |---|---|---|
-   | The field register itself | `modules`, `sections`, `field_metadata`, `picklists`, `picklist_values`, `stages`, `metadata_versions` | `/api/admin/metadata/*` |
-   | Dynamic admin-field values **and per-stage values** | `custom_fields` JSONB on accounts, contacts, leads, opportunities, deals | the module's own endpoint |
+   | The field register itself | `modules`, `sections`, `field_definitions`, `field_placements`, `picklists`, `picklist_values`, `stages`, `metadata_versions` | `/api/admin/metadata/*` |
+   | Dynamic admin-field values **and per-stage values** | `custom_fields` JSONB on accounts, contacts, leads, opportunities, deals, deal_registrations, registration_conflicts | the module's own endpoint |
+
+   | Metadata v2 (Phase 2, 24–25 Sep 2026) | Tables | Served at |
+   |---|---|---|
+   | Layouts — one "Standard" per module, sections belong to it | `layouts` (`sections.layout_id`) | `/api/admin/metadata/*` |
+   | Conversion Mapping — what a conversion copies | `conversion_mappings` | `/api/admin/metadata/conversion-mappings` (read-only until Setup) |
+   | Retired | `field_metadata` (Round 6's register table) — dropped by 0039 | — |
 
    | Added (17 Sep 2026) | Tables | Served at |
    |---|---|---|
@@ -102,12 +108,12 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    Gates, Bids and POCs get tables when they are built, not before; a lookup onto one of
    them offers nothing yet (`src/lib/collections.ts`). The price book is bundled, not
    stored — see rule 2.
-   **Round 6 stores metadata, not business data.** Those seven tables define what a record
+   **The register stores metadata, not business data.** Those tables define what a record
    may contain; they never hold a lead, an account or a quote. Deleting a field there is a
-   logical delete — `field_metadata.status = 'deleted'` — and **never** a `DROP COLUMN`:
+   logical delete — `field_definitions.status` / `field_placements.status = 'deleted'` — and **never** a `DROP COLUMN`:
    the business column and every value in it survive, which is what makes restore real.
    Administration must never issue schema DDL against a business table.
-   **Two storage modes, and `field_metadata.storage` says which.** A register field has a
+   **Two storage modes, and `field_placements.storage` says which.** A register field has a
    typed column and keeps it (`storage='column'`). A field created in Administration has no
    column and is never getting one — its values live in that table's `custom_fields` JSONB,
    keyed by api_name (`storage='custom_fields'`). Never infer the mode from `origin` or from
@@ -127,9 +133,34 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    **`opportunities` is a real module row** (Round-6 gap closure), even though the register
    has no such sheet. `modules.is_pipeline` / `stage_field` / `parent_module` / `parent_link`
    and `stages.owner_module` hold the pipeline structure, and `spec/module_split.json`'s
-   structural blocks are generated from them. Opportunity FIELD rows are deliberately not
-   materialised — they are projections of Leads rows, and storing them would duplicate the
-   register. See `app/module_split.py`.
+   structural blocks are generated from them. See `app/module_split.py`.
+   **Every field is owned by exactly one module — metadata v2** (decided 24 Sep 2026, Zoho's
+   rule; `backend/metadata_v2.py`, migrations 0038–0039, sign-off list
+   `docs/phase2/metadata-v2-step1-signoff.md`). The shared `pipeline` scope is gone:
+   `field_definitions.scope_key` is the owning module, `api_name` is unique within it, and
+   the partial unique index `uq_field_placements_one_owner` allows one non-read-through
+   placement per definition. Renaming One-Time Revenue on Deals no longer renames it on
+   Opportunities — they are two fields. A field may still appear on a LATER module of the
+   pipeline, but only **read-only, live, "From the Lead"** (`value_mode='read_through'`, the
+   section is called From the Lead): it stores nothing there (decided 24 Sep: keep these
+   live, never copied). A module that needs its own value gets its own field, and
+   **Conversion Mapping** copies into it — `conversion_mappings`, read by
+   `metadata_resolver.carry_forward_plan` and, for the paid pilot's Deal, by
+   `carry_forward.apply_mapping` (those rows are LOCKED, G2). `value_mode='carry_forward'`
+   still marks a mapped target on its placement; the two must agree. The Deal's **End
+   Client is shown live from its Lead** (G1) — never written on the Deal; server code reads
+   the Lead's (`pursuits.end_client_of`). Customer (Partner / SI) stays the Deal's own
+   locked copy. A Deal with no Opportunity (a paid pilot) reaches its Lead through
+   `parent_lead` on the server (`carry_forward.parent_record`) and on the record page
+   (`resolveRecord.parentRequestFor`). The API refuses a second owning module
+   (`FIELD_OWNED_ELSEWHERE`). **Picklists are global or local** (`picklists.is_global`,
+   Zoho's Global Sets): 8 global lists serve several fields; a local list serves ONE field
+   (`PICKLIST_IS_LOCAL`). Lead, Opportunity and Deal Status each have their own list (G3);
+   values the server reads by key — Open, On Hold, Closed Lost, Converted, POC/Pilot Deal —
+   are `picklist_values.is_system`: renamable, never retired (`SYSTEM_VALUE`). **No module
+   is hidden** (decided 24 Sep): unbuilt modules stay in Administration as they are;
+   `modules.hidden` exists and nothing sets it. A register version published before v2
+   (snapshot schema < 3) can be read but not rolled back to.
    **Their seed files were removed** — `spec/seed/users.json`, `accounts.json` and
    `contacts.json` no longer exist; PostgreSQL is the source of truth. `spec/seed/leads.json`
    and `registrations.json` are read only by the backend's migrate scripts; the frontend
@@ -147,7 +178,12 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    **Users are internal ARK employees; Contacts are external people at an Account.**
    Never mix them: an `engagement_owner` is a user, a `primary_contact` is a contact.
    **Partners is a view over `accounts`**, not a table. An account is a Partner when its
-   `account_type` includes a partner type. Never create a partners table.
+   `account_type` includes a partner type. Never create a partners table. **Partners is a
+   USP — never remove it.** Since metadata v2 its register module is the parent
+   (`modules.setup_parent`) of three child modules: **Deal Registrations** (`registrations`,
+   18 fields), **Conflicts** (`conflicts`, 13) and **Partner Scorecards**
+   (`partner_scorecards`, 8, not built). Until then they were sections of `partners`; no
+   table or record moved.
 2. **All data access goes through the Axios client in `src/lib/api.ts`**, to FastAPI at
    `/api`. Never add a second Axios instance. In development Vite proxies `/api` to
    `localhost:8000` (one entry, `vite.config.ts`); in production Caddy does
@@ -219,7 +255,7 @@ failing), no longer what a signed-in user sees.
 
 | File | Contains | Where it comes from |
 |---|---|---|
-| `spec/fields.json` | Every field: module, api_name, label, type, section, order, capture stage, requirement, condition, visibility condition, blocks transition, computed formula, help text | **Generated from PostgreSQL** — `field_metadata`, on publish |
+| `spec/fields.json` | Every field: module, api_name, label, type, section, order, capture stage, requirement, condition, visibility condition, blocks transition, computed formula, help text | **Generated from PostgreSQL** — `field_definitions` + `field_placements`, on publish |
 | `spec/picklists.json` | Every dropdown and its values | **Generated from PostgreSQL** — `picklists`, `picklist_values` |
 | `spec/stages.json` | The ten stages, each one's Progression % / Probability % pair, owner roles | **Generated from PostgreSQL** — `stages` |
 | `spec/extensions.json` | The sidecar: computed expressions, child-list shapes, list views, overrides | Hand-maintained. **Not** generated, not in the database |
@@ -278,10 +314,10 @@ work; Probability moves on the client's decisions.** Rules:
   contract value = pilot fee, and the Lead becomes Converted. The same save asks for
   **Pilot PO Received Date** (`leads.pilot_po_received_date`, migration 0035, shown beside
   Pilot Fee once Paid), copied into the Deal's `po_received_date` — a paid pilot counts as
-  Won (decided 21 Sep 2026). `POC_PILOT_DEAL` is a Deals-only value on the shared status
-  picklist — hidden on Leads and Opportunities by their sidecar entries, and refused there by
-  the server; Deals have their own `deals.lead_status` sidecar entry so they do not inherit
-  that exclusion. How the programme after a pilot is tracked (Expansion lead vs new logo)
+  Won (decided 21 Sep 2026). `POC_PILOT_DEAL` is a Deals-only value: since metadata v2 each
+  pipeline module has its own status list and only Deal Status holds it; the server still
+  refuses it on a Lead or Opportunity. What the pilot's Deal takes from the Lead is the
+  locked "Lead → Deal (paid pilot)" rows of Conversion Mapping, not code. How the programme after a pilot is tracked (Expansion lead vs new logo)
   is a phase-2 decision; do not build it.
 - Never reintroduce an evidence ladder, band midpoints, or automatic boosts. Nomination Bid
   and Incumbent Only are reasons to override, not uplifts. The 0016 progression ladder
@@ -416,7 +452,15 @@ that *would* have fired was planned and never built; it is not coming. See rule 
 
 ## Deploying and changing production
 
-`DEPLOY.md` is the runbook. Three things a change must respect:
+`DEPLOY.md` is the runbook. What a change must respect:
+
+- **Never start new code before its migrations.** `app/main.py` runs `create_all` on
+  start-up, so a server running code whose models have a new table CREATES that table,
+  empty and without its migration's backfill — it happened to development on 24 Sep 2026
+  when an auto-reloading server picked up the phase-2 branch. 0038 tolerates it for its own
+  two tables; a later migration may not. Order: dump → migrate → metadata script → start.
+- **Metadata v2's order** (0038 → `metadata_v2.py` → 0039) is in DEPLOY.md. The script
+  reads the register it runs on and stops on anything the sign-off list did not expect.
 
 - **Production starts from `backend/make_release_database.py`** — a copy of this database
   with every table emptied except the register, the roles and the first administrator. A
@@ -431,9 +475,10 @@ that *would* have fired was planned and never built; it is not coming. See rule 
   development database and `fresh_start_register.py` collapsed 117 published versions into
   one, dropping deleted fields and retired choices. Both are one-offs; do not rerun them on
   a database with real data.
-- **`test_parity.py` compares against the register as accepted for go-live** (re-frozen
-  21 Sep 2026, `freeze_parity_baseline.py --from-database --replace`). A field that moves
-  without a deliberate re-freeze fails.
+- **`test_parity.py` compares against the register as accepted** (frozen for go-live on
+  21 Sep 2026, re-frozen for metadata v2 on 25 Sep 2026 — 190 planned moves;
+  `freeze_parity_baseline.py --from-database --replace`). A field that moves without a
+  deliberate re-freeze fails.
 
 ## Conventions
 

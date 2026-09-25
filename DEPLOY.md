@@ -170,6 +170,44 @@ pm2 restart crm_be_4329 crm_3329
 
 Run any register script a migration names under *DEPLOY ORDER* after the `alembic` step, e.g. `(cd backend && .venv/bin/python po_received_date_metadata.py --apply)`.
 
+### Metadata v2 — the one-time Phase 2 update (this server)
+
+Metadata v2 gives every field one owning module, as in Zoho. It needs a script **between**
+two migrations, and **the backend must be stopped first**: the app creates any missing table
+when it starts, so new code must never run before its migrations.
+
+```sh
+cd ~/ark-crm
+
+# 1. Stop the backend, then copy the database
+pm2 stop crm_be_4329
+docker exec crm-postgres pg_dump -U ark -Fc ark_crm > ~/crm_before_v2_$(date +%Y%m%d_%H%M).dump
+
+# 2. Get the new version
+git checkout -- frontend/spec
+git pull
+backend/.venv/bin/pip install -r backend/requirements.txt
+
+# 3. Schema first, then the register, then the rest
+(cd backend && .venv/bin/alembic upgrade 0038_metadata_v2_schema)
+(cd backend && .venv/bin/python metadata_v2.py)            # dry run: read what it prints
+(cd backend && .venv/bin/python metadata_v2.py --apply)    # moves the register and publishes
+(cd backend && .venv/bin/alembic upgrade head)             # 0039: enforces it, retires field_metadata
+
+# 4. Rebuild and start
+(cd frontend && npm ci && npm run build)
+pm2 restart crm_be_4329 crm_3329
+```
+
+- **The dry run must end with** "only the expected differences — a user sees nothing change".
+  If it prints `STOPPED`, nothing was written: this server's register differs from what was
+  approved (someone published a change here). Stop and send the output to the developer.
+- **Check it:** open a Deal. End Client is under *From the Lead*. Administration shows a
+  *Conversion mapping* tab, and Deal Registrations, Conflicts and Partner Scorecards appear
+  as modules.
+- **To undo** before anyone has saved work: stop the backend, restore the dump
+  (`pg_restore --clean -d ark_crm`), check out the previous version, rebuild, restart.
+
 ---
 
 ## Docker install
@@ -298,6 +336,8 @@ docker compose up -d
 ```
 
 Keep that pre-update copy somewhere **other than this server**. Scheduled nightly backups are planned for the next phase; until then this manual copy is the only safety net.
+
+**Metadata v2 (Phase 2) is a one-time exception:** run `alembic upgrade 0038_metadata_v2_schema`, then `python metadata_v2.py` (dry run) and `--apply`, then `alembic upgrade head` — all before `docker compose up -d`. The full reasoning is under *Metadata v2 — the one-time Phase 2 update* above.
 
 **Read the migration notes before step 3.** A migration that changes the field register names a script to run after it, under *DEPLOY ORDER* at the top of the migration file:
 
