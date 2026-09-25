@@ -38,7 +38,10 @@ export const MODULES: ModuleDef[] = [
   { key: 'bids_pocs', label: 'Bids & POCs', icon: ShieldCheck, built: false },
   { key: 'approvals', label: 'Approvals', icon: ClipboardCheck, built: false },
   { key: 'activities_docs', label: 'Activities & Documents', icon: Paperclip, built: false },
-  { key: 'administration', label: 'Administration', icon: Settings, built: true },
+  // Administration until 25 Sep 2026 (Phase 2, Item 3). The nav key only —
+  // the register module keyed `administration` (users and roles) is data and
+  // keeps its name.
+  { key: 'setup', label: 'Setup', icon: Settings, built: true },
 ]
 
 /**
@@ -46,7 +49,7 @@ export const MODULES: ModuleDef[] = [
  * reference nav is collapsible groups rather than one flat list.
  *
  * Grouping only. Routes, keys and labels are unchanged, and every module in
- * MODULES appears exactly once: `dashboard` and `administration` sit outside
+ * MODULES appears exactly once: `dashboard` and `setup` sit outside
  * the groups, as Home and Setup do in the reference.
  */
 export interface ModuleGroup {
@@ -65,7 +68,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
   { label: "POC's & Documents", keys: ['bids_pocs', 'activities_docs'] },
 ]
 
-export const SIDEBAR_BOTTOM: string[] = ['administration']
+export const SIDEBAR_BOTTOM: string[] = ['setup']
 
 // Prototype instrumentation rather than product surface: the form engine
 // harness and the field-register worklist.

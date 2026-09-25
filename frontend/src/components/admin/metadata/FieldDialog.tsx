@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Notice } from '@/components/ui/notice'
 import { Textarea } from '@/components/ui/textarea'
 import { RuleBuilder } from './RuleBuilder'
 import { PIPELINE_MODULES, parentModuleOf } from '@/lib/spec'
@@ -22,11 +23,13 @@ import {
   REQUIREMENTS,
   useAddPlacement,
   useCreateField,
+  useDraftStatus,
   useMetadataField,
   useMetadataFields,
   useMetadataModules,
   useMetadataPicklists,
   useMetadataSections,
+  usePublishMetadata,
   useUpdateField,
   useUpdatePlacement,
   type MetadataField,
@@ -242,9 +245,27 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
     }
   }
 
+  /**
+   * Save and publish (Setup rebuild, D1, 25 Sep 2026): save this field, then
+   * publish the WHOLE draft — a publish cannot take one change and leave the
+   * rest. So when anything else is waiting the dialog says so before the click.
+   *
+   * "Others" is what was pending before this save. The draft's change list is
+   * lines of text that cannot be tied back to a field, so an earlier unpublished
+   * edit of this same field is counted among them.
+   */
+  const { data: draft } = useDraftStatus()
+  const publish = usePublishMetadata()
+  const othersPending = draft?.has_changes ? draft.changes.length : 0
+  // Saved, and the publish after it refused — the reason, until the dialog closes.
+  const [notPublished, setNotPublished] = useState<string | null>(null)
+  // Which button was pressed, so only that one says it is working.
+  const [publishing, setPublishing] = useState(false)
+
   useEffect(() => {
     if (!open) return
     setError(null)
+    setNotPublished(null)
     if (field) {
       setForm({
         section_id: field.section_id,
@@ -405,8 +426,9 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
     required_on_create: payload.required_on_create,
   }
 
-  const submit = async () => {
+  const submit = async (andPublish = false) => {
     setError(null)
+    setPublishing(andPublish)
     try {
       if (isEdit && field) {
         // Definition first: if it fails, this module's placement is left
@@ -444,14 +466,32 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
           origin: 'Administration',
         })
       }
-      onOpenChange(false)
     } catch (err) {
       setError(errorMessage(err))
+      return
     }
+
+    if (andPublish) {
+      const moduleLabel = modules.find((m) => m.module_key === moduleKey)?.label ?? moduleKey
+      try {
+        await publish.mutateAsync(
+          `${moduleLabel} · ${form.label.trim()}: saved and published from the field dialog`
+        )
+      } catch (err) {
+        // The save stands; only the publish was refused. Say so and stay open,
+        // with the save buttons gone — a second Add would add the field twice.
+        setNotPublished(errorMessage(err))
+        return
+      }
+    }
+    onOpenChange(false)
   }
 
   const busy =
-    createField.isPending || updateField.isPending || updatePlacement.isPending
+    createField.isPending ||
+    updateField.isPending ||
+    updatePlacement.isPending ||
+    publish.isPending
   const canSubmit =
     form.label.trim() !== '' &&
     form.section_id !== null &&
@@ -1039,16 +1079,49 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
           )}
 
           {error && <p className="text-destructive text-sm">{error}</p>}
+
+          {notPublished && (
+            <Notice
+              boxed
+              tone="warning"
+              lead="The field is saved, but nothing was published."
+              bullets={[
+                notPublished,
+                'Open Versions under Developer Space to see what blocks it, then publish from the banner.',
+              ]}
+            />
+          )}
         </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button disabled={!canSubmit || busy} onClick={submit}>
-            {busy ? 'Saving…' : isEdit ? 'Save changes' : 'Add field'}
-          </Button>
-        </DialogFooter>
+        {notPublished ? (
+          <DialogFooter>
+            <Button onClick={() => onOpenChange(false)}>Close</Button>
+          </DialogFooter>
+        ) : (
+          <>
+            {othersPending > 0 && (
+              <p className="text-muted-foreground text-right text-xs">
+                Save and publish also publishes {othersPending} other change
+                {othersPending === 1 ? '' : 's'}.
+              </p>
+            )}
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button variant="outline" disabled={!canSubmit || busy} onClick={() => submit(true)}>
+                {busy && publishing
+                  ? publish.isPending
+                    ? 'Publishing…'
+                    : 'Saving…'
+                  : 'Save and publish'}
+              </Button>
+              <Button disabled={!canSubmit || busy} onClick={() => submit()}>
+                {busy && !publishing ? 'Saving…' : isEdit ? 'Save changes' : 'Add field'}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   )

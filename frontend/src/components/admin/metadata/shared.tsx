@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { DatabaseIcon } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { errorMessage } from '@/lib/admin'
@@ -36,29 +35,6 @@ export function ErrorBox({ error }: { error: unknown }) {
       <p className="text-muted-foreground mt-1 text-sm">{errorMessage(error)}</p>
       <p className="text-muted-foreground mt-2 text-xs">
         The metadata layer needs the FastAPI backend on port 8000 and PostgreSQL on 5433.
-      </p>
-    </div>
-  )
-}
-
-/** The banner every metadata tab carries: this is the draft, not the live CRM. */
-export function DraftNotice({ pending }: { pending: number | null }) {
-  return (
-    <div className="bg-muted/40 mb-4 flex items-start gap-2 rounded-md border px-3 py-2">
-      <DatabaseIcon className="mt-0.5 size-3.5 shrink-0" />
-      <p className="text-muted-foreground text-xs">
-        You are editing the <strong className="text-foreground">draft</strong> in PostgreSQL.
-        Nothing changes anywhere else in the CRM until you publish — the rest of the
-        application reads the generated <code>spec/*.json</code> files, which publishing
-        rewrites.
-        {pending !== null && pending > 0 && (
-          <>
-            {' '}
-            <strong className="text-foreground">
-              {pending} unpublished change{pending === 1 ? '' : 's'}.
-            </strong>
-          </>
-        )}
       </p>
     </div>
   )

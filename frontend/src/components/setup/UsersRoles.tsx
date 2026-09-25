@@ -1,19 +1,8 @@
 import { useState } from 'react'
-import { PlusIcon, DatabaseIcon } from 'lucide-react'
+import { PlusIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { PageLayout } from '@/components/layout/PageLayout'
 import { UserDialog } from '@/components/admin/UserDialog'
-import { ConversionMappingTab } from '@/components/admin/metadata/ConversionMappingTab'
-import { DeletedFieldsTab } from '@/components/admin/metadata/DeletedFieldsTab'
-import { FieldsTab } from '@/components/admin/metadata/FieldsTab'
-import { LayoutTab } from '@/components/admin/metadata/LayoutTab'
-import { ModulesTab } from '@/components/admin/metadata/ModulesTab'
-import { PicklistsTab } from '@/components/admin/metadata/PicklistsTab'
-import { PublishTab } from '@/components/admin/metadata/PublishTab'
-import { StagesTab } from '@/components/admin/metadata/StagesTab'
-import { DraftNotice } from '@/components/admin/metadata/shared'
-import { useDraftStatus } from '@/lib/metadata'
 import {
   errorMessage,
   useRoles,
@@ -23,32 +12,16 @@ import {
 } from '@/lib/admin'
 
 /**
- * Administration — the first module backed by a real database, and since
- * Round 6 the place the field register itself is managed.
+ * Setup → Users and Control → Users.
  *
- * Unlike every other screen, nothing here is stored in the browser. Reads and
- * writes go through the shared axios client to FastAPI and PostgreSQL, so this
- * data survives a refresh, a different browser and a cleared localStorage.
- *
- * The metadata tabs — Modules, Fields, Picklists, Stages, Deleted fields and
- * Publish — are Round 6. They edit a DRAFT in PostgreSQL and change nothing a
- * user sees until it is published, at which point the backend regenerates
- * spec/fields.json, spec/picklists.json and spec/stages.json, which is what the
- * rest of the CRM reads.
- *
- * All of it lives here rather than in a metadata area of its own: managing the
- * register is administration, and a second admin surface would be one more
- * place to look for the same kind of thing.
+ * Moved out of the old Administration page unchanged. The Add user button used
+ * to sit in the page header and was shown only while the Users tab was open;
+ * each Setup item is its own page now, so it sits above the table — where Zoho
+ * puts "New User".
  */
-export function AdministrationPage() {
+export function UsersPanel() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<AdminUser | undefined>(undefined)
-  const [tab, setTab] = useState('users')
-
-  // Only to show the pending-change count on the metadata tabs' banner; the
-  // Publish tab fetches it again for the full review.
-  const { data: draft } = useDraftStatus()
-  const pending = draft?.changes.length ?? null
 
   const openAdd = () => {
     setEditing(undefined)
@@ -60,64 +33,15 @@ export function AdministrationPage() {
     setDialogOpen(true)
   }
 
-  /** Wraps a metadata tab in the "this is a draft" banner they all carry. */
-  const metadataTab = (content: React.ReactNode) => (
-    <>
-      <DraftNotice pending={pending} />
-      {content}
-    </>
-  )
-
   return (
     <>
-      <PageLayout
-        wide
-        title="Administration"
-        subtitle={
-          <span className="inline-flex items-center gap-1.5">
-            <DatabaseIcon className="size-3.5" />
-            Live data — users, roles and the field register are stored in the database, not in
-            this browser.
-          </span>
-        }
-        activeTab={tab}
-        onTabChange={setTab}
-        actions={
-          // Only on the Users tab: an Add user button while somebody is looking
-          // at picklists would add a user to whatever they were reading.
-          tab === 'users' ? (
-            <Button onClick={openAdd}>
-              <PlusIcon className="size-4" />
-              Add user
-            </Button>
-          ) : undefined
-        }
-        tabs={[
-          { key: 'users', label: 'Users', content: <UsersTab onEdit={openEdit} /> },
-          { key: 'roles', label: 'Roles', content: <RolesTab /> },
-          { key: 'modules', label: 'Modules', content: metadataTab(<ModulesTab />) },
-          { key: 'fields', label: 'Fields', content: metadataTab(<FieldsTab />) },
-          // Two views of one register, and both earn their place: Fields is
-          // the table you read a property off, Layout is the form you see a
-          // position in. Next to each other because the answer to "why is
-          // this field there" is on one and the fix is on the other.
-          { key: 'layout', label: 'Layout', content: metadataTab(<LayoutTab />) },
-          { key: 'picklists', label: 'Picklists', content: metadataTab(<PicklistsTab />) },
-          { key: 'stages', label: 'Stages', content: metadataTab(<StagesTab />) },
-          {
-            key: 'conversion',
-            label: 'Conversion mapping',
-            content: <ConversionMappingTab />,
-          },
-          {
-            key: 'deleted',
-            label: 'Deleted fields',
-            content: metadataTab(<DeletedFieldsTab />),
-          },
-          { key: 'publish', label: 'Publish', content: <PublishTab /> },
-        ]}
-      />
-
+      <div className="mb-3 flex justify-end">
+        <Button onClick={openAdd}>
+          <PlusIcon className="size-4" />
+          Add user
+        </Button>
+      </div>
+      <UsersTab onEdit={openEdit} />
       <UserDialog open={dialogOpen} onOpenChange={setDialogOpen} user={editing} />
     </>
   )
@@ -137,7 +61,7 @@ function UsersTab({ onEdit }: { onEdit: (user: AdminUser) => void }) {
         <p className="text-destructive text-sm font-medium">Could not reach the API</p>
         <p className="text-muted-foreground mt-1 text-sm">{errorMessage(error)}</p>
         <p className="text-muted-foreground mt-2 text-xs">
-          Administration needs the FastAPI backend on port 8000 and PostgreSQL on 5433.
+          Setup needs the FastAPI backend on port 8000 and PostgreSQL on 5433.
         </p>
       </div>
     )
@@ -214,7 +138,8 @@ function UsersTab({ onEdit }: { onEdit: (user: AdminUser) => void }) {
   )
 }
 
-function RolesTab() {
+/** Setup → Users and Control → Roles. Moved out of Administration unchanged. */
+export function RolesPanel() {
   const { data: roles, isLoading } = useRoles()
 
   if (isLoading) return <p className="text-muted-foreground py-8 text-sm">Loading roles…</p>

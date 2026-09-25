@@ -15,13 +15,12 @@ import { useIsDeveloper } from '@/lib/feedback'
 /**
  * Every page is loaded the first time it is opened, not with the app.
  *
- * Someone who only works in Leads never downloads Administration, the
+ * Someone who only works in Leads never downloads Setup, the
  * Dashboard's charts or the spreadsheet import. The shell — sidebar, header,
  * sign-in — is in the first download; AppShell's <Suspense> shows a quiet
  * "Loading…" in the page area while a page's code arrives, once per session.
  * Sign-in and Access pending stay eager: they render before the router exists.
  */
-const AdministrationPage = lazy(() => import('@/pages/AdministrationPage').then((m) => ({ default: m.AdministrationPage })))
 const AccountDetailPage = lazy(() => import('@/pages/AccountDetailPage').then((m) => ({ default: m.AccountDetailPage })))
 const AccountsPage = lazy(() => import('@/pages/AccountsPage').then((m) => ({ default: m.AccountsPage })))
 const ContactDetailPage = lazy(() => import('@/pages/ContactDetailPage').then((m) => ({ default: m.ContactDetailPage })))
@@ -43,14 +42,16 @@ const PartnerDetailPage = lazy(() => import('@/pages/PartnerDetailPage').then((m
 const PartnersPage = lazy(() => import('@/pages/PartnersPage').then((m) => ({ default: m.PartnersPage })))
 const RegistrationDetailPage = lazy(() => import('@/pages/RegistrationDetailPage').then((m) => ({ default: m.RegistrationDetailPage })))
 const RecordCreatePage = lazy(() => import('@/pages/RecordCreatePage').then((m) => ({ default: m.RecordCreatePage })))
+const SetupPage = lazy(() => import('@/pages/SetupPage').then((m) => ({ default: m.SetupPage })))
 const SpecHealthPage = lazy(() => import('@/pages/SpecHealthPage').then((m) => ({ default: m.SpecHealthPage })))
 const FeedbackPage = lazy(() => import('@/pages/FeedbackPage').then((m) => ({ default: m.FeedbackPage })))
 
 /**
- * Administration is DEVELOPER-only in V1 (21 Sep 2026). Anyone else who types
- * the address lands on the Dashboard rather than on a screen of refusals. The
- * boundary is the server — /api/admin/* answers 403 without the role — and
- * this only keeps the screen from mounting and firing requests it would lose.
+ * Setup (Administration until 25 Sep 2026) is DEVELOPER-only in V1 (21 Sep
+ * 2026). Anyone else who types the address lands on the Dashboard rather than
+ * on a screen of refusals. The boundary is the server — /api/admin/* answers
+ * 403 without the role — and this only keeps the screen from mounting and
+ * firing requests it would lose.
  */
 function DeveloperOnly({ children }: { children: React.ReactElement }) {
   return useIsDeveloper() ? children : <Navigate to="/dashboard" replace />
@@ -78,15 +79,20 @@ const router = createBrowserRouter(
           <Route path="spec-health" element={<SpecHealthPage />} />
           <Route path="feedback" element={<FeedbackPage />} />
 
-          {/* DEVELOPER-only in V1 — see DeveloperOnly above. */}
+          {/* DEVELOPER-only in V1 — see DeveloperOnly above. Every Setup item
+              has its own address under /setup; SetupPage reads the rest of the
+              path against components/setup/setupMap.tsx. */}
           <Route
-            path="administration"
+            path="setup/*"
             element={
               <DeveloperOnly>
-                <AdministrationPage />
+                <SetupPage />
               </DeveloperOnly>
             }
           />
+          {/* Administration was renamed Setup (Phase 2, Item 3). Old links and
+              bookmarks land on its home. */}
+          <Route path="administration/*" element={<Navigate to="/setup" replace />} />
 
           <Route path="leads" element={<LeadsPage />} />
           <Route path="leads/new" element={<LeadCreatePage />} />

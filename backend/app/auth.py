@@ -92,7 +92,8 @@ def _is_developer(user: User) -> bool:
 
 def require_administration(user: User = Depends(require_access)) -> User:
     """
-    Administration — users, roles and the field register — DEVELOPER only.
+    Setup (Administration until 25 Sep 2026) — users, roles and the field
+    register — DEVELOPER only.
 
     Decided 21 Sep 2026 for V1: the whole module ships to developers and is
     released to administrators in version 2. This was ADMIN_ONLY until then.
@@ -105,7 +106,7 @@ def require_administration(user: User = Depends(require_access)) -> User:
     entry is presentation only.
     """
     if not _is_developer(user):
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only developers can open Administration.")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only developers can open Setup.")
     return user
 
 

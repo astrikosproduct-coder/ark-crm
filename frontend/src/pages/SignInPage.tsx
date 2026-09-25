@@ -75,7 +75,7 @@ export function PendingAccessPage() {
           been assigned to your account yet.
         </p>
         <p className="mt-3 text-sm text-slate-600">
-          An administrator needs to grant you access in Administration. You will see the pipeline
+          An administrator needs to grant you access in Setup. You will see the pipeline
           as soon as they do — refresh this page after they confirm.
         </p>
 
