@@ -214,7 +214,7 @@ def gap1() -> None:
     # the split routes them by the stage ownership now held in the DB.
     opp_stage_fields = sql(
         """
-        SELECT count(*) FROM field_metadata f
+        SELECT count(*) FROM field_placements f
           JOIN modules m ON m.module_key = f.module_key
          WHERE f.status = 'active' AND f.capture_stage BETWEEN 4 AND 6
         """
@@ -502,7 +502,7 @@ def gap4() -> None:
     orphans = sql(
         """
         SELECT f.module_key, s.label, f.api_name
-          FROM field_metadata f
+          FROM field_placements f
           JOIN sections s ON s.id = f.section_id
           JOIN modules  m ON m.module_key = f.module_key
          WHERE m.is_pipeline
@@ -520,7 +520,7 @@ def gap4() -> None:
     mismatched = sql(
         """
         SELECT f.module_key, s.label, f.api_name, f.capture_stage
-          FROM field_metadata f
+          FROM field_placements f
           JOIN sections s ON s.id = f.section_id
           JOIN modules  m ON m.module_key = f.module_key
          WHERE m.is_pipeline
@@ -539,7 +539,7 @@ def gap4() -> None:
     # are config headings, not pipeline stages, and must NOT be swept up.
     admin_untouched = sql(
         """
-        SELECT count(*) FROM field_metadata f
+        SELECT count(*) FROM field_placements f
           JOIN sections s ON s.id = f.section_id
          WHERE f.module_key = 'administration'
            AND s.label LIKE 'STAGE %'

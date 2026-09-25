@@ -1100,6 +1100,9 @@ def case_15_architecture(db) -> None:
         text("SELECT to_regclass('field_metadata_pre_round7') IS NULL")
     ).scalar()
     check("the pre-Round-7 archive is retired", archived is True, str(archived))
+    # Metadata v2 (0039, 25 Sep 2026): the Round 6 register table itself is gone.
+    gone = db.execute(text("SELECT to_regclass('field_metadata') IS NULL")).scalar()
+    check("field_metadata is retired", gone is True, str(gone))
 
 
 def _strip_comments(source: str) -> str:

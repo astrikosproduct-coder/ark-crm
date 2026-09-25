@@ -55,7 +55,6 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from rebuild_metadata import _legacy_effective_rows
 
 BASELINE = Path(__file__).resolve().parent / "parity_baseline.json"
 
@@ -105,6 +104,16 @@ CARRY_TO_MODE = {
 
 
 def baseline_rows() -> list[dict]:
+    # The pre-cutover replay lived in rebuild_metadata.py, retired with
+    # field_metadata by migration 0039 (25 Sep 2026). The baseline is only
+    # ever re-frozen from the database now; git history has the replay.
+    try:
+        from rebuild_metadata import _legacy_effective_rows
+    except ImportError:
+        raise SystemExit(
+            "The pre-cutover replay was retired with field_metadata (migration 0039). "
+            "Re-freeze from the database: python freeze_parity_baseline.py --from-database --replace"
+        )
     rows = []
     for r in _legacy_effective_rows():
         mode = CARRY_TO_MODE[r["carry"]]
