@@ -133,7 +133,19 @@ function PicklistRows({
           </button>
         </td>
         <td>
-          <div className="font-medium">{picklist.label ?? picklist.picklist_key}</div>
+          <div className="flex items-center gap-2 font-medium">
+            {picklist.label ?? picklist.picklist_key}
+            <Badge
+              variant={picklist.is_global ? 'secondary' : 'outline'}
+              title={
+                picklist.is_global
+                  ? 'Global — shared by fields on several modules. A change here changes all of them.'
+                  : 'Local — serves one field.'
+              }
+            >
+              {picklist.is_global ? 'Global' : 'Local'}
+            </Badge>
+          </div>
           <Mono>{picklist.picklist_key}</Mono>
         </td>
         <td>{picklist.values.length}</td>
@@ -217,20 +229,30 @@ function PicklistRows({
                     </td>
                     <td className="w-24">
                       {value.active ? null : <Badge variant="outline">Inactive</Badge>}
+                      {value.is_system && (
+                        <Badge
+                          variant="secondary"
+                          title="The CRM's own rules read this choice. It can be renamed, not retired."
+                        >
+                          Used by the CRM
+                        </Badge>
+                      )}
                     </td>
                     <td className="w-28 text-right">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          updateValue.mutate({
-                            valueId: value.id,
-                            patch: { active: !value.active },
-                          })
-                        }
-                      >
-                        {value.active ? 'Deactivate' : 'Activate'}
-                      </Button>
+                      {!(value.is_system && value.active) && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            updateValue.mutate({
+                              valueId: value.id,
+                              patch: { active: !value.active },
+                            })
+                          }
+                        >
+                          {value.active ? 'Deactivate' : 'Activate'}
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))}

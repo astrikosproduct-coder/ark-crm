@@ -96,7 +96,14 @@ export function ModulesTab() {
                   </Button>
                 </div>
               ) : (
-                module.label
+                <>
+                  {module.label}
+                  {module.setup_parent && (
+                    <span className="text-muted-foreground block text-xs font-normal">
+                      under {modules.find((m) => m.module_key === module.setup_parent)?.label ?? module.setup_parent}
+                    </span>
+                  )}
+                </>
               )}
             </td>
             <td>{module.section_count}</td>

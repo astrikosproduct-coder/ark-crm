@@ -1022,6 +1022,20 @@ def case_16_administration_rules(db) -> None:
         r.text[:200],
     )
 
+    rows = client.get("/api/admin/metadata/conversion-mappings").json()
+    pilot = {(r["source_label"], r["target_label"]) for r in rows if r["path"] == "lead_to_deal_pilot" and r["kind"] == "copy"}
+    check(
+        "Conversion mapping lists the paid pilot's locked rows by their labels",
+        ("Pilot Fee", "Contract Value") in pilot
+        and all(r["locked"] for r in rows if r["path"] == "lead_to_deal_pilot"),
+        str(sorted(pilot)),
+    )
+    check(
+        "…and every row the conversions read",
+        {r["target_api_name"] for r in rows if r["path"] == "opportunity_to_deal" and r["kind"] == "copy"}
+        == set(R.carry_forward_plan(db, "deals")),
+    )
+
     # Decided 24 Sep 2026: unbuilt modules stay in Administration as they are.
     modules = {m["module_key"] for m in client.get("/api/admin/metadata/modules").json()}
     check(

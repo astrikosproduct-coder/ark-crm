@@ -27,6 +27,10 @@ export interface MetadataModule {
   label: string
   sort_order: number
   active: boolean
+  /** Kept but not offered in Administration. Nothing sets it today (24 Sep 2026). */
+  hidden?: boolean
+  /** Where Administration files it — Deal Registrations under Partners. */
+  setup_parent?: string | null
   field_count: number
   deleted_field_count: number
   section_count: number
@@ -143,6 +147,8 @@ export interface MetadataPicklistValue {
   label: string
   sort_order: number
   active: boolean
+  /** Read by the server's own rules — it can be renamed, never retired. */
+  is_system?: boolean
 }
 
 export interface MetadataPicklist {
@@ -150,6 +156,8 @@ export interface MetadataPicklist {
   label: string | null
   sort_order: number
   active: boolean
+  /** Shared by fields on several modules (Zoho's Global Sets). A local list serves one field. */
+  is_global?: boolean
   field_count: number
   values: MetadataPicklistValue[]
 }
@@ -214,6 +222,7 @@ export const metadataKeys = {
   field: (definitionId?: number) => ['metadata', 'field', definitionId] as const,
   picklists: ['metadata', 'picklists'] as const,
   stages: ['metadata', 'stages'] as const,
+  conversionMappings: ['metadata', 'conversion-mappings'] as const,
   draft: ['metadata', 'draft'] as const,
   versions: ['metadata', 'versions'] as const,
 }
@@ -592,6 +601,8 @@ export function useReorderFields() {
  * How this module's copy of a field behaves, in words an administrator can act
  * on. Section 22 of the Round-7 brief asks for exactly this on every row.
  */
+const SINGULAR: Record<string, string> = { leads: 'Lead', opportunities: 'Opportunity', deals: 'Deal' }
+
 export function valueBehaviourOf(field: MetadataField): {
   label: string
   detail: string
@@ -600,7 +611,7 @@ export function valueBehaviourOf(field: MetadataField): {
   if (field.value_mode === 'read_through') {
     return {
       tone: 'inherited',
-      label: `Read-through from ${field.value_source_module ?? 'the parent'}`,
+      label: `From the ${SINGULAR[field.value_source_module ?? ''] ?? 'parent'}`,
       detail:
         `This module does not store a value. It is resolved from the ` +
         `${field.value_source_module ?? 'parent'} record every time it is read, ` +
@@ -611,10 +622,10 @@ export function valueBehaviourOf(field: MetadataField): {
   if (field.value_mode === 'carry_forward') {
     return {
       tone: 'carried',
-      label: `Carried from ${field.value_source_module ?? 'the parent'}`,
+      label: 'Copied at conversion',
       detail:
         `The opening value is copied from the ${field.value_source_module ?? 'parent'} ` +
-        `record when this record is created, and this module owns it afterwards` +
+        `record when this record is created (see Conversion mapping), and this module owns it afterwards` +
         (field.value_locked
           ? '. Locked: it may not be changed once carried.'
           : ' — it may be changed here without affecting the source.'),
@@ -625,6 +636,38 @@ export function valueBehaviourOf(field: MetadataField): {
     label: 'Owned here',
     detail: 'This module stores its own value. Nothing is inherited.',
   }
+}
+
+// ------------------------------------------------------- conversion mapping
+
+/**
+ * One row of Conversion Mapping — what a conversion copies (metadata v2).
+ * Zoho's "Lead Conversion Mapping". Read-only until the Setup rebuild.
+ */
+export interface ConversionMappingRow {
+  id: number
+  path: 'lead_to_opportunity' | 'opportunity_to_deal' | 'lead_to_deal_pilot'
+  /** copy: copied once at conversion. system: set by the CRM itself, shown so nothing is hidden. */
+  kind: 'copy' | 'system'
+  source_module: string | null
+  source_api_name: string | null
+  source_label: string | null
+  target_module: string
+  target_api_name: string
+  target_label: string | null
+  transform: string | null
+  locked: boolean
+  note: string | null
+  sort_order: number
+  active: boolean
+}
+
+export function useConversionMappings() {
+  return useQuery({
+    queryKey: metadataKeys.conversionMappings,
+    queryFn: async () =>
+      (await api.get<ConversionMappingRow[]>(`${BASE}/conversion-mappings`)).data,
+  })
 }
 
 // ---------------------------------------------------------------- picklists

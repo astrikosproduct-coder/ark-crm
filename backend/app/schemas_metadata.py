@@ -502,6 +502,29 @@ class PicklistUpdate(BaseModel):
 
 # ----------------------------------------------------------------------- stages
 
+class ConversionMappingOut(BaseModel):
+    """
+    One Conversion Mapping row, with the labels a person reads. Metadata v2.
+
+    Read-only until the Setup rebuild gives it an editing screen.
+    """
+
+    id: int
+    path: str
+    kind: str
+    source_module: str | None = None
+    source_api_name: str | None = None
+    source_label: str | None = None
+    target_module: str
+    target_api_name: str
+    target_label: str | None = None
+    transform: str | None = None
+    locked: bool
+    note: str | None = None
+    sort_order: int
+    active: bool
+
+
 class StageOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

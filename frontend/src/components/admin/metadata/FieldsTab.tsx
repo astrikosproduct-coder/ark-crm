@@ -190,16 +190,17 @@ export function FieldsTab() {
                             >
                               {behaviour.label}
                             </Badge>
-                            {field.module_count > 1 && (
+                            {field.module_count > 1 && field.value_mode !== 'read_through' && (
                               <Badge
                                 variant="secondary"
                                 title={
-                                  `This field is one definition shown on ${field.module_count} modules. ` +
-                                  'Renaming it, or changing its type or picklist, changes all of them. ' +
-                                  'Its section, order, stage and requirement are this module\u2019s alone.'
+                                  'This module owns the field, and the next modules of the pipeline show it ' +
+                                  'read-only from here. Renaming it, or changing its type or picklist, changes ' +
+                                  'what they show too. Every other module owns its own fields.'
                                 }
                               >
-                                Used in {field.module_count} modules
+                                Shown on {field.module_count - 1} more module
+                                {field.module_count - 1 === 1 ? '' : 's'}
                               </Badge>
                             )}
                             {!field.editable && (

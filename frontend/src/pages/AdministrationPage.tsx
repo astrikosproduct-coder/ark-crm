@@ -4,6 +4,7 @@ import { PlusIcon, DatabaseIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { UserDialog } from '@/components/admin/UserDialog'
+import { ConversionMappingTab } from '@/components/admin/metadata/ConversionMappingTab'
 import { DeletedFieldsTab } from '@/components/admin/metadata/DeletedFieldsTab'
 import { FieldsTab } from '@/components/admin/metadata/FieldsTab'
 import { LayoutTab } from '@/components/admin/metadata/LayoutTab'
@@ -103,6 +104,11 @@ export function AdministrationPage() {
           { key: 'layout', label: 'Layout', content: metadataTab(<LayoutTab />) },
           { key: 'picklists', label: 'Picklists', content: metadataTab(<PicklistsTab />) },
           { key: 'stages', label: 'Stages', content: metadataTab(<StagesTab />) },
+          {
+            key: 'conversion',
+            label: 'Conversion mapping',
+            content: <ConversionMappingTab />,
+          },
           {
             key: 'deleted',
             label: 'Deleted fields',

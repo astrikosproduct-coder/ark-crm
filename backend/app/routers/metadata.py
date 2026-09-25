@@ -50,6 +50,7 @@ from .. import metadata_resolver
 from ..messages import refusal
 from ..models import (
     ANCHOR_POSITIONS,
+    ConversionMapping,
     LAYOUT_SPANS,
     STAGE_SCOPED_MODES,
     STORAGE_MODES,
@@ -65,6 +66,7 @@ from ..models import (
     User,
 )
 from ..schemas_metadata import (
+    ConversionMappingOut,
     DraftStatus,
     FieldCreate,
     FieldDetailOut,
@@ -1882,6 +1884,48 @@ def reorder_picklist_values(payload: ReorderRequest, db: Session = Depends(get_d
 
 
 # ------------------------------------------------------------------- stages
+
+
+@router.get("/conversion-mappings", response_model=list[ConversionMappingOut])
+def list_conversion_mappings(db: Session = Depends(get_db)):
+    """
+    What each conversion copies — Zoho's Lead Conversion Mapping. Metadata v2.
+
+    Read-only for now: the rows are written by metadata_v2.py from today's
+    behaviour, and the screen that edits them arrives with the Setup rebuild.
+    Labels are the module's own field labels, so the list reads the way the
+    forms do.
+    """
+    labels = {
+        (p.module_key, p.api_name): metadata_resolver.label_of(p, d)
+        for p, d in db.execute(
+            select(FieldPlacement, FieldDefinition).join(
+                FieldDefinition, FieldDefinition.id == FieldPlacement.definition_id
+            ).where(FieldPlacement.status == "active")
+        ).all()
+    }
+    rows = db.scalars(
+        select(ConversionMapping).order_by(ConversionMapping.sort_order, ConversionMapping.id)
+    )
+    return [
+        ConversionMappingOut(
+            id=r.id,
+            path=r.path,
+            kind=r.kind,
+            source_module=r.source_module,
+            source_api_name=r.source_api_name,
+            source_label=labels.get((r.source_module, r.source_api_name)),
+            target_module=r.target_module,
+            target_api_name=r.target_api_name,
+            target_label=labels.get((r.target_module, r.target_api_name)),
+            transform=r.transform,
+            locked=r.locked,
+            note=r.note,
+            sort_order=r.sort_order,
+            active=r.active,
+        )
+        for r in rows
+    ]
 
 
 @router.get("/stages", response_model=list[StageOut])

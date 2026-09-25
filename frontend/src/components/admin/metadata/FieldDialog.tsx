@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RuleBuilder } from './RuleBuilder'
-import { PIPELINE_MODULES } from '@/lib/spec'
+import { PIPELINE_MODULES, parentModuleOf } from '@/lib/spec'
 import { errorMessage } from '@/lib/admin'
 import { cn } from '@/lib/utils'
 import {
@@ -195,15 +195,14 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
   )
 
   /**
-   * "Also show on…" — a second PLACEMENT of the same field on another module.
+   * "Show from here on…" — a later module of the pipeline shows this field,
+   * read-only and live, the way an Opportunity shows the Lead's End Client.
    *
-   * Never a second definition. One-Time Revenue is ONE field that appears on
-   * Opportunities and Deals; creating a second definition with the same
-   * api_name would give it two labels, two types and two rows to keep in step,
-   * which is the confusion the placement model exists to remove. The endpoint
-   * has existed since Round 7 and useAddPlacement was written for it; until B3
-   * nothing called either, so the only way to put a field on a second module
-   * was to write it there by hand.
+   * Metadata v2 (24 Sep 2026): a field is owned by ONE module, as in Zoho. The
+   * only other place it may appear is a module further down the pipeline, and
+   * there it stores nothing. A module that needs its own value gets its own
+   * field, and Conversion mapping copies into it. The server refuses anything
+   * else (FIELD_OWNED_ELSEWHERE); this only offers what it accepts.
    */
   const { data: modules = [] } = useMetadataModules()
   const addPlacement = useAddPlacement()
@@ -214,9 +213,19 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
   const placedOn = new Set(
     (detail?.placements ?? []).filter((p) => p.status === 'active').map((p) => p.module_key)
   )
-  const alsoCandidates = modules.filter(
-    (m) => m.active && m.module_key !== moduleKey && !placedOn.has(m.module_key)
-  )
+  /** True when `module` sits below this field's module in the pipeline. */
+  const isLaterModule = (module: string) => {
+    for (let up = parentModuleOf(module); up; up = parentModuleOf(up)) {
+      if (up === moduleKey) return true
+    }
+    return false
+  }
+  const ownedHere = field?.value_mode !== 'read_through'
+  const alsoCandidates = ownedHere
+    ? modules.filter(
+        (m) => m.active && isLaterModule(m.module_key) && !placedOn.has(m.module_key)
+      )
+    : []
 
   const addAlso = async () => {
     if (!field || !alsoModule || alsoSectionId === null) return
@@ -224,7 +233,7 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
     try {
       await addPlacement.mutateAsync({
         definitionId: field.definition_id,
-        input: { module_key: alsoModule, section_id: alsoSectionId },
+        input: { module_key: alsoModule, section_id: alsoSectionId, value_mode: 'read_through' },
       })
       setAlsoModule('')
       setAlsoSectionId(null)
@@ -822,19 +831,17 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
-                <Label htmlFor="value_mode">Opening value</Label>
-                <select
-                  id="value_mode"
-                  className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
-                  value={form.value_mode}
-                  onChange={(e) => set('value_mode', e.target.value as FormState['value_mode'])}
-                >
-                  <option value="own">own &mdash; starts empty</option>
-                  <option value="carry_forward">
-                    carry forward &mdash; seeded from the parent
-                  </option>
-                  <option value="read_through">read through &mdash; never stored here</option>
-                </select>
+                {/* Not a choice any more (metadata v2): what a conversion copies is
+                    Conversion mapping, and a field shown from an earlier module is
+                    added from that module's own field, below. */}
+                <Label>Opening value</Label>
+                <p className="border-input bg-muted/40 flex h-9 items-center rounded-md border px-2 text-sm">
+                  {form.value_mode === 'read_through'
+                    ? 'Shown from an earlier module'
+                    : form.value_mode === 'carry_forward'
+                      ? 'Copied at conversion'
+                      : 'Starts empty'}
+                </p>
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="stage_scoped">Recorded</Label>
@@ -912,11 +919,13 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
           {isEdit && (
             <div className="grid gap-2 rounded-md border p-3">
               <p className="text-section text-xs font-bold tracking-wide">
-                ALSO SHOW ON
+                SHOW FROM HERE ON A LATER MODULE
               </p>
               {alsoCandidates.length === 0 ? (
                 <p className="text-muted-foreground text-xs">
-                  Already placed on every module that could carry it.
+                  {ownedHere
+                    ? 'No later module of the pipeline is left to show it.'
+                    : 'This field belongs to an earlier module. Change it there.'}
                 </p>
               ) : (
                 <div className="flex flex-wrap items-end gap-2">
@@ -963,14 +972,14 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
                     }
                     onClick={addAlso}
                   >
-                    {addPlacement.isPending ? 'Adding…' : 'Add placement'}
+                    {addPlacement.isPending ? 'Adding…' : 'Show it there'}
                   </Button>
                 </div>
               )}
               <p className="text-muted-foreground text-xs">
-                The same field on another module &mdash; one definition, a second placement.
-                Its label, type and picklist stay shared; section, stage, conditions and
-                value behaviour are that module&rsquo;s own. Added immediately, not on Save.
+                The later module shows this field read-only, live from here &mdash; it stores
+                nothing. For a value of its own, create a field on that module and copy into it
+                with Conversion mapping. Added immediately, not on Save.
               </p>
             </div>
           )}
