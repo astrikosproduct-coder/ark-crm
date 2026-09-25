@@ -1,10 +1,13 @@
-import { ChevronRightIcon } from 'lucide-react'
+import { ChevronRightIcon, SettingsIcon } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 
 import { FeedbackButton } from '@/components/layout/FeedbackButton'
 import { GlobalSearch } from '@/components/layout/GlobalSearch'
 import { UserMenu } from '@/components/layout/UserMenu'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useIsDeveloper } from '@/lib/feedback'
 import { MODULES, TOOLS } from '@/lib/modules'
+import { cn } from '@/lib/utils'
 
 /**
  * The way BACK to the module, on a record screen only.
@@ -45,6 +48,43 @@ function moduleCrumbFor(pathname: string): { label: string; to: string } | null 
   return isRecord ? { label: module.label, to: `/${key}` } : null
 }
 
+/**
+ * Setup's way in, as in Zoho: a gear in the top bar, left of the profile, whose
+ * name appears only on hover (25 Sep 2026 — it was the last row of the sidebar).
+ *
+ * Setup is DEVELOPER-only in V1 (21 Sep 2026) and released to administrators in
+ * version 2. The server enforces it — every /api/admin route answers 403 to
+ * anyone else — so hiding the gear only stops a link being offered to people it
+ * would refuse.
+ */
+function SetupButton() {
+  const { pathname } = useLocation()
+  const isDeveloper = useIsDeveloper()
+  if (!isDeveloper) return null
+  const active = pathname === '/setup' || pathname.startsWith('/setup/')
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Link
+          to="/setup"
+          aria-label="Setup"
+          aria-current={active ? 'page' : undefined}
+          className={cn(
+            'flex size-9 items-center justify-center rounded-md transition-colors',
+            active
+              ? 'bg-accent text-foreground'
+              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+          )}
+        >
+          <SettingsIcon className="size-4.5" />
+        </Link>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">Setup</TooltipContent>
+    </Tooltip>
+  )
+}
+
 export function TopBar() {
   const { pathname } = useLocation()
   const crumb = moduleCrumbFor(pathname)
@@ -83,9 +123,11 @@ export function TopBar() {
           - The theme toggle, which moved into the user menu where a monthly
             preference belongs.
           Feedback and the account menu are what is left, because both do
-          something on every visit. */}
+          something on every visit — and, for a developer, Setup's gear, left
+          of the profile as in Zoho. */}
       <div className="flex shrink-0 items-center gap-1.5">
         <FeedbackButton />
+        <SetupButton />
         <UserMenu />
       </div>
     </header>

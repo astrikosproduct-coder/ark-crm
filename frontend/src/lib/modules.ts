@@ -49,8 +49,9 @@ export const MODULES: ModuleDef[] = [
  * reference nav is collapsible groups rather than one flat list.
  *
  * Grouping only. Routes, keys and labels are unchanged, and every module in
- * MODULES appears exactly once: `dashboard` and `setup` sit outside
- * the groups, as Home and Setup do in the reference.
+ * MODULES appears at most once: `dashboard` sits above the groups, as Home
+ * does in the reference, and `setup` is not a nav row at all — it is the gear
+ * in the top bar, left of the profile, as in Zoho (25 Sep 2026; see TopBar).
  */
 export interface ModuleGroup {
   label: string
@@ -67,8 +68,6 @@ export const MODULE_GROUPS: ModuleGroup[] = [
   { label: 'Commercial', keys: ['products', 'quotes', 'approvals'] },
   { label: "POC's & Documents", keys: ['bids_pocs', 'activities_docs'] },
 ]
-
-export const SIDEBAR_BOTTOM: string[] = ['setup']
 
 // Prototype instrumentation rather than product surface: the form engine
 // harness and the field-register worklist.

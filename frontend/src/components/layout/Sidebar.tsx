@@ -7,7 +7,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import {
   MODULE_GROUPS,
   MODULES,
-  SIDEBAR_BOTTOM,
   SIDEBAR_TOP,
   TOOLS,
   type ModuleDef,
@@ -186,13 +185,7 @@ export function Sidebar() {
   const isDeveloper = useIsDeveloper()
 
   const top = SIDEBAR_TOP.map(moduleByKey).filter((m): m is ModuleDef => Boolean(m))
-  // Setup is DEVELOPER-only in V1 (21 Sep 2026) and released to
-  // administrators in version 2. The server enforces it — every /api/admin
-  // route answers 403 to anyone else — so this only stops a link from being
-  // offered to people it would refuse.
-  const bottom = SIDEBAR_BOTTOM.filter((key) => key !== 'setup' || isDeveloper)
-    .map(moduleByKey)
-    .filter((m): m is ModuleDef => Boolean(m))
+  // Setup is not in the nav: it is the gear in the top bar (TopBar, 25 Sep 2026).
 
   const groups = useMemo(
     () =>
@@ -240,9 +233,6 @@ export function Sidebar() {
           />
         ))}
 
-        {bottom.map((mod) => (
-          <NavItem key={mod.key} module={mod} collapsed={collapsed} />
-        ))}
       </div>
 
       {/*
