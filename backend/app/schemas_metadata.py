@@ -72,6 +72,19 @@ class ModuleOut(BaseModel):
     field_count: int = 0
     deleted_field_count: int = 0
     section_count: int = 0
+    # The latest change to the module, its sections, layout or fields — Zoho's
+    # "Last Modified" column (Setup rebuild, 4b). Derived, not stored.
+    last_modified: datetime | None = None
+
+
+class LayoutOut(BaseModel):
+    """A module's layout — one "Standard" each today (metadata v2, 0038)."""
+
+    id: int
+    module_key: str
+    label: str
+    is_default: bool
+    last_modified: datetime | None = None
 
 
 class ModuleCreate(BaseModel):

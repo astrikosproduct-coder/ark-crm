@@ -34,6 +34,17 @@ export interface MetadataModule {
   field_count: number
   deleted_field_count: number
   section_count: number
+  /** The latest change to the module, its sections, layout or fields — Zoho's Last Modified. */
+  last_modified?: string | null
+}
+
+/** A module's layout. One "Standard" per module until profiles (Item 4). */
+export interface MetadataLayout {
+  id: number
+  module_key: string
+  label: string
+  is_default: boolean
+  last_modified: string | null
 }
 
 export interface MetadataSection {
@@ -233,6 +244,7 @@ export const metadataKeys = {
   picklists: ['metadata', 'picklists'] as const,
   stages: ['metadata', 'stages'] as const,
   conversionMappings: ['metadata', 'conversion-mappings'] as const,
+  layouts: (module?: string) => ['metadata', 'layouts', module ?? 'all'] as const,
   draft: ['metadata', 'draft'] as const,
   versions: ['metadata', 'versions'] as const,
 }
@@ -255,6 +267,14 @@ export function useMetadataModules() {
   return useQuery({
     queryKey: metadataKeys.modules,
     queryFn: async () => (await api.get<MetadataModule[]>(`${BASE}/modules`)).data,
+  })
+}
+
+export function useMetadataLayouts(module?: string) {
+  return useQuery({
+    queryKey: metadataKeys.layouts(module),
+    queryFn: async () =>
+      (await api.get<MetadataLayout[]>(`${BASE}/layouts`, { params: module ? { module } : {} })).data,
   })
 }
 
@@ -836,6 +856,21 @@ export function useRollbackMetadata() {
 // Round 7 removed the gap it was patching: module_key on a MetadataField IS
 // the screen now, straight off field_placements. There is nothing left to
 // resolve.
+
+/**
+ * The list in sort order, except that each Setup child follows its parent —
+ * in its own sort order — so Partners' three sit together under it.
+ */
+export function withChildrenUnderParents(modules: MetadataModule[]): MetadataModule[] {
+  const keys = new Set(modules.map((m) => m.module_key))
+  const isChild = (m: MetadataModule) => Boolean(m.setup_parent && keys.has(m.setup_parent))
+  return modules
+    .filter((m) => !isChild(m))
+    .flatMap((parent) => [
+      parent,
+      ...modules.filter((m) => isChild(m) && m.setup_parent === parent.module_key),
+    ])
+}
 
 /** "One choice per line" — a textarea's lines, trimmed, blanks dropped. */
 export function choiceLines(text: string): string[] {

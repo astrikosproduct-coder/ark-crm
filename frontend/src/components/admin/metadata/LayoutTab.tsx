@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { createContext, useContext, useState } from 'react'
 import {
   AlignLeftIcon,
   CalendarIcon,
@@ -23,14 +23,17 @@ import {
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { FieldDialog } from './FieldDialog'
+import { RemoveFieldDialog } from './RemoveFieldDialog'
+import { NewSectionButton, SectionLabel } from './SectionTools'
+import { UnusedItems } from './UnusedItems'
 import { ErrorBox, LoadingRow } from './shared'
 import { errorMessage } from '@/lib/admin'
 import {
   FIELD_TYPES,
   typeLabel,
   useMetadataFields,
+  useMetadataModules,
   useMetadataSections,
-  useRemovePlacement,
   useReorderFields,
   useSetFieldRequired,
   type MetadataField,
@@ -99,12 +102,24 @@ function iconFor(type: string) {
   return TYPE_ICON[type] ?? TextIcon
 }
 
+/**
+ * What a field's ··· menu can ask the canvas to do that needs a dialog of the
+ * canvas's own. A context rather than one more prop threaded through
+ * CanvasSection → CanvasCell → FieldChip.
+ */
+const CanvasActions = createContext<{ remove: (field: MetadataField) => void }>({
+  remove: () => undefined,
+})
+
 export function LayoutTab({ moduleKey }: { moduleKey: string }) {
   const [dialog, setDialog] = useState<{
     open: boolean
     field?: MetadataField
     sectionId?: number
   }>({ open: false })
+  const [removing, setRemoving] = useState<MetadataField | null>(null)
+  const { data: modules = [] } = useMetadataModules()
+  const moduleLabel = modules.find((m) => m.module_key === moduleKey)?.label ?? moduleKey
 
   const { data: sections = [], isLoading, isError, error } = useMetadataSections(moduleKey)
   const { data: fields = [] } = useMetadataFields(moduleKey, 'active')
@@ -118,26 +133,28 @@ export function LayoutTab({ moduleKey }: { moduleKey: string }) {
     <>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <p className="text-muted-foreground text-xs">
-          The form as the record screen draws it &mdash; same arrangement code, same
-          anchors, same full-width rule. Drag a type from the left into a section, or drag a
-          field to move it.
+          The form as the record screen draws it. Drag a field type from the left into a
+          section, or drag a field to move it.
         </p>
       </div>
 
+      <CanvasActions.Provider value={{ remove: setRemoving }}>
       <div className="flex gap-4">
-        <NewFieldsPalette />
+        <div className="w-52 shrink-0 space-y-3">
+          <NewFieldsPalette />
+          <NewSectionButton moduleKey={moduleKey} />
+          <UnusedItems moduleKey={moduleKey} />
+        </div>
 
         <div className="min-w-0 flex-1 space-y-4">
           {activeSections.length === 0 ? (
             <p className="text-muted-foreground py-8 text-sm">
-              This module has no sections yet. Add one on the Fields tab before laying
-              anything out.
+              This module has no sections yet. Add one with NEW SECTION.
             </p>
           ) : (
             activeSections.map((section) => (
               <CanvasSection
                 key={section.id}
-                moduleKey={moduleKey}
                 sectionId={section.id}
                 label={section.label}
                 fields={fields}
@@ -149,12 +166,19 @@ export function LayoutTab({ moduleKey }: { moduleKey: string }) {
         </div>
       </div>
 
+      </CanvasActions.Provider>
+
       <FieldDialog
         open={dialog.open}
         onOpenChange={(open) => setDialog({ open })}
         moduleKey={moduleKey}
         field={dialog.field}
         sectionId={dialog.sectionId}
+      />
+      <RemoveFieldDialog
+        field={removing}
+        moduleLabel={moduleLabel}
+        onClose={() => setRemoving(null)}
       />
     </>
   )
@@ -163,15 +187,14 @@ export function LayoutTab({ moduleKey }: { moduleKey: string }) {
 /**
  * The palette of field types.
  *
- * Dragging one onto a section opens the Add field dialog with that type and
- * that section already chosen. It does NOT create the field on drop: an
- * api_name is the key every record stores its value under and cannot be
- * guessed from a drag, and a field created with a generated name would be a
- * field somebody has to rename later, which the API refuses.
+ * Dragging one onto a section opens the field dialog with that type and that
+ * section already chosen — as Zoho opens a type's properties on drop. The
+ * field needs a label before it can exist; its API name is then made from
+ * that label by the server (4a).
  */
 function NewFieldsPalette() {
   return (
-    <div className="w-52 shrink-0">
+    <div>
       <p className="text-section mb-2 text-xs font-bold tracking-wide">NEW FIELDS</p>
       <div className="grid grid-cols-2 gap-1.5">
         {FIELD_TYPES.map((type) => {
@@ -203,14 +226,12 @@ function NewFieldsPalette() {
 }
 
 function CanvasSection({
-  moduleKey,
   sectionId,
   label,
   fields,
   onEdit,
   onAdd,
 }: {
-  moduleKey: string
   sectionId: number
   label: string
   fields: MetadataField[]
@@ -295,7 +316,11 @@ function CanvasSection({
             className={cn('size-4 transition-transform', !open && '-rotate-90')}
           />
         </button>
-        <span className="text-section text-sm font-bold tracking-wide">{label}</span>
+        <SectionLabel
+          sectionId={sectionId}
+          label={label}
+          className="text-section hover:text-foreground text-left text-sm font-bold tracking-wide"
+        />
         <span className="text-muted-foreground text-xs">
           {nodes.length} {nodes.length === 1 ? 'cell' : 'cells'}
         </span>
@@ -350,7 +375,6 @@ function CanvasSection({
               >
                 <CanvasCell
                   node={node}
-                  moduleKey={moduleKey}
                   onEdit={onEdit}
                   onDragStart={() => setDragIndex(index)}
                   onDragEnd={() => {
@@ -376,13 +400,11 @@ function CanvasSection({
  */
 function CanvasCell({
   node,
-  moduleKey,
   onEdit,
   onDragStart,
   onDragEnd,
 }: {
   node: AnchoredNode<MetadataField>
-  moduleKey: string
   onEdit: (field: MetadataField) => void
   onDragStart?: () => void
   onDragEnd?: () => void
@@ -391,7 +413,6 @@ function CanvasCell({
     <div className="space-y-1.5">
       <FieldChip
         field={node.field}
-        moduleKey={moduleKey}
         onEdit={onEdit}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
@@ -402,7 +423,6 @@ function CanvasCell({
             <CanvasCell
               key={kid.field.id}
               node={kid}
-              moduleKey={moduleKey}
               onEdit={onEdit}
             />
           ))}
@@ -414,19 +434,17 @@ function CanvasCell({
 
 function FieldChip({
   field,
-  moduleKey,
   onEdit,
   onDragStart,
   onDragEnd,
 }: {
   field: MetadataField
-  moduleKey: string
   onEdit: (field: MetadataField) => void
   onDragStart?: () => void
   onDragEnd?: () => void
 }) {
   const setRequired = useSetFieldRequired()
-  const removePlacement = useRemovePlacement()
+  const actions = useContext(CanvasActions)
   const [menuOpen, setMenuOpen] = useState(false)
   const Icon = iconFor(field.field_type)
   const draggable = Boolean(onDragStart)
@@ -484,34 +502,30 @@ function FieldChip({
           <MenuItem
             onClick={() => {
               setMenuOpen(false)
-              onEdit(field)
-            }}
-          >
-            Edit properties&hellip;
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
-              setMenuOpen(false)
               setRequired.mutate({
                 placementId: field.placement_id,
                 required: !field.required,
               })
             }}
           >
-            {field.required ? 'Mark not required' : 'Mark required'}
+            {field.required ? 'Mark as not required' : 'Mark as required'}
           </MenuItem>
-          <div className="bg-border my-1 h-px" />
+          <MenuItem
+            onClick={() => {
+              setMenuOpen(false)
+              onEdit(field)
+            }}
+          >
+            Edit Properties
+          </MenuItem>
           <MenuItem
             className="text-destructive"
             onClick={() => {
               setMenuOpen(false)
-              removePlacement.mutate(field.placement_id)
+              actions.remove(field)
             }}
           >
-            Remove from {moduleKey}
-            <span className="text-muted-foreground block text-xs">
-              Off this module only. The column and every value in it survive.
-            </span>
+            Remove Field
           </MenuItem>
         </PopoverContent>
       </Popover>

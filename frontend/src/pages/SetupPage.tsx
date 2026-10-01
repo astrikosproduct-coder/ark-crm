@@ -36,7 +36,7 @@ export function SetupPage() {
 
       {found ? (
         <div className="flex items-start gap-6">
-          <SetupMenu current={found.category} />
+          {found.item.menu?.(found.at) ?? <SetupMenu current={found.category} />}
           {/* Keyed by address, so moving between items starts each screen
               fresh rather than carrying one item's state into the next. */}
           <section key={found.at.path} className="min-w-0 flex-1">

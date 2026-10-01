@@ -57,6 +57,7 @@ from ..models import (
     VALUE_MODES,
     FieldDefinition,
     FieldPlacement,
+    Layout,
     MetadataVersion,
     Module,
     Picklist,
@@ -80,6 +81,7 @@ from ..schemas_metadata import (
     PlacementCreate,
     PlacementUpdate,
     PicklistCreate,
+    LayoutOut,
     PicklistOut,
     PicklistUserOut,
     PicklistReorderRequest,
@@ -290,6 +292,8 @@ def list_modules(
         ).all()
     )
 
+    last_modified = _last_modified_by_module(db)
+
     query = select(Module).order_by(Module.sort_order, Module.module_key)
     if not include_inactive:
         query = query.where(Module.active.is_(True))
@@ -307,8 +311,56 @@ def list_modules(
             field_count=counts.get(m.module_key, 0),
             deleted_field_count=deleted.get(m.module_key, 0),
             section_count=sections.get(m.module_key, 0),
+            last_modified=last_modified.get(m.module_key),
         )
         for m in db.scalars(query)
+    ]
+
+
+def _last_modified_by_module(db: Session) -> dict[str, datetime]:
+    """
+    When each module last changed: the latest of the module row, its sections,
+    its layout, its placements and the fields it owns. Derived from columns the
+    register already keeps, so "Last Modified" needed no migration (4b).
+    """
+    latest: dict[str, datetime] = {}
+    for query in (
+        select(Module.module_key, Module.updated_at),
+        select(Section.module_key, func.max(Section.updated_at)).group_by(Section.module_key),
+        select(Layout.module_key, func.max(Layout.updated_at)).group_by(Layout.module_key),
+        select(FieldPlacement.module_key, func.max(FieldPlacement.updated_at)).group_by(
+            FieldPlacement.module_key
+        ),
+        select(FieldDefinition.scope_key, func.max(FieldDefinition.updated_at)).group_by(
+            FieldDefinition.scope_key
+        ),
+    ):
+        for key, when in db.execute(query).all():
+            if key and when and (key not in latest or when > latest[key]):
+                latest[key] = when
+    return latest
+
+
+@router.get("/layouts", response_model=list[LayoutOut])
+def list_layouts(module: str | None = Query(default=None), db: Session = Depends(get_db)):
+    """
+    A module's layouts — Zoho's Layout tab. One "Standard" per module today;
+    more come with profiles (Item 4), which is what Zoho's "Shared To" names.
+    A layout's Last Modified is its module's: one layout holds every section.
+    """
+    last_modified = _last_modified_by_module(db)
+    query = select(Layout).order_by(Layout.module_key, Layout.id)
+    if module is not None:
+        query = query.where(Layout.module_key == module)
+    return [
+        LayoutOut(
+            id=layout.id,
+            module_key=layout.module_key,
+            label=layout.label,
+            is_default=layout.is_default,
+            last_modified=last_modified.get(layout.module_key),
+        )
+        for layout in db.scalars(query)
     ]
 
 

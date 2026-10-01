@@ -11,7 +11,8 @@ import {
 import { ApiNamesTab } from '@/components/admin/metadata/ApiNamesTab'
 import { PublishTab } from '@/components/admin/metadata/PublishTab'
 import { StagesTab } from '@/components/admin/metadata/StagesTab'
-import { ModulesAndFields } from './ModulesAndFields'
+import { ModulesAndFields, ModulesAndFieldsMenu } from './ModulesAndFields'
+import { insideModule } from './modulesPaths'
 import { RolesPanel, UsersPanel } from './UsersRoles'
 
 /**
@@ -39,6 +40,11 @@ export interface SetupItem {
   nested?: boolean
   /** Draws its own page heading, because it changes with `at.rest`. */
   ownHeading?: boolean
+  /**
+   * Its own left panel at this address, in place of Setup's category menu —
+   * Zoho's "‹ Modules" inside a module (4b). Undefined or null: the menu.
+   */
+  menu?: (at: SetupAddress) => ReactNode | null
 }
 
 /** Where a Setup item was opened: its own address, and what follows it. */
@@ -87,6 +93,7 @@ export const SETUP: SetupCategory[] = [
         nested: true,
         ownHeading: true,
         render: (at) => <ModulesAndFields at={at} />,
+        menu: (at) => (insideModule(at.rest) ? <ModulesAndFieldsMenu at={at} /> : null),
       },
       {
         slug: 'pipelines-and-stages',

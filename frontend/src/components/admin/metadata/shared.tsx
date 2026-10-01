@@ -73,3 +73,43 @@ export function Row({ children, muted }: { children: ReactNode; muted?: boolean 
 export function Mono({ children }: { children: ReactNode }) {
   return <span className="text-muted-foreground font-mono text-xs">{children}</span>
 }
+
+/**
+ * Zoho's Status toggle — the on/off pill at the end of a Setup row. A button
+ * with role="switch"; the project has no switch primitive and one control is
+ * not worth a dependency.
+ */
+export function StatusSwitch({
+  checked,
+  onChange,
+  disabled,
+  label,
+  title,
+}: {
+  checked: boolean
+  onChange?: (next: boolean) => void
+  disabled?: boolean
+  label: string
+  title?: string
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      title={title}
+      disabled={disabled}
+      onClick={() => onChange?.(!checked)}
+      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+        checked ? 'bg-emerald-600' : 'bg-muted-foreground/40'
+      }`}
+    >
+      <span
+        className={`inline-block size-4 rounded-full bg-white shadow transition-transform ${
+          checked ? 'translate-x-4' : 'translate-x-0.5'
+        }`}
+      />
+    </button>
+  )
+}

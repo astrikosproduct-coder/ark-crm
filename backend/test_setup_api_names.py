@@ -111,6 +111,21 @@ try:
         m = client.post(f"{BASE}/modules", json={"label": "Zz Widgets"})
         check("…and the same label again gets its own key", m.status_code == 201 and m.json()["module_key"] == "zz_widgets_2", m.text[:200])
 
+        print("\n6  Modules and layouts say when they last changed (4b)")
+        leads = next((m for m in client.get(f"{BASE}/modules").json() if m["module_key"] == "leads"), {})
+        check("a module carries its Last Modified", bool(leads.get("last_modified")), str(leads)[:200])
+        layouts = client.get(f"{BASE}/layouts", params={"module": "leads"}).json()
+        check(
+            "Leads has one layout, Standard, the default",
+            len(layouts) == 1 and layouts[0]["label"] == "Standard" and layouts[0]["is_default"],
+            str(layouts)[:200],
+        )
+        check("…dated like its module", layouts and layouts[0]["last_modified"] == leads.get("last_modified"))
+        before = leads.get("last_modified") or ""
+        client.patch(f"{BASE}/fields/{first.get('definition_id')}", json={"label": "Zz Partner Grade"})
+        after = next(m for m in client.get(f"{BASE}/modules").json() if m["module_key"] == "leads")["last_modified"]
+        check("editing a field moves its module's Last Modified", after > before, f"{before} -> {after}")
+
     print(f"\nRegisterGuard: {len(guard.repairs)} repair(s)")
     for line in guard.repairs:
         print(f"  {line}")

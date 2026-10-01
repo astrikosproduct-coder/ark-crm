@@ -13,24 +13,25 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ErrorBox, LoadingRow, Row, StatusBadge, Table } from './shared'
+import { ErrorBox, LoadingRow, Row, StatusSwitch, Table } from './shared'
+import { date as fmtDate } from '@/lib/format'
 import { errorMessage } from '@/lib/admin'
 import {
   useCreateModule,
   useMetadataModules,
   useUpdateModule,
-  type MetadataModule,
+  withChildrenUnderParents,
 } from '@/lib/metadata'
 
 /**
  * Setup → Customization → Modules and Fields: the module list.
  *
- * Every module the register has, built or not — nothing is hidden (24 Sep
- * 2026). Its label opens it on Fields · Layout · Unused fields (and Conversion
- * Mapping, on a pipeline module); `moduleHref` says where, so this folder does
- * not name Setup's addresses. A module Setup files under another
- * (`setup_parent` — Deal Registrations, Conflicts and Partner Scorecards under
- * Partners) is listed directly beneath it, indented.
+ * Zoho's columns (Setup rebuild, 4b, 1 Oct 2026): the module's name, opening
+ * it; its fields; Last Modified; and a Status switch. Every module the register
+ * has, built or not — nothing is hidden (24 Sep 2026). `moduleHref` says where
+ * a module opens, so this folder does not name Setup's addresses. A module
+ * Setup files under another (`setup_parent` — Deal Registrations, Conflicts and
+ * Partner Scorecards under Partners) is listed directly beneath it, indented.
  */
 export function ModulesTab({ moduleHref }: { moduleHref: (moduleKey: string) => string }) {
   const { data: modules = [], isLoading, isError, error } = useMetadataModules()
@@ -48,24 +49,22 @@ export function ModulesTab({ moduleHref }: { moduleHref: (moduleKey: string) => 
     <>
       <div className="mb-3 flex items-center justify-between">
         <p className="text-muted-foreground max-w-2xl text-sm">
-          One row per register sheet. A module cannot be deleted — fields point at it, and
-          removing it would orphan them rather than hide them. Deactivate it instead.
+          A module cannot be deleted — its fields point at it. Switch it off instead.
         </p>
         <Button size="sm" onClick={() => setAdding(true)}>
           <PlusIcon className="size-4" />
-          Add module
+          Create New Module
         </Button>
       </div>
 
       <Table
         head={
           <>
-            <th>Label</th>
-            <th className="w-24">Sections</th>
+            <th>Module</th>
             <th className="w-24">Fields</th>
-            <th className="w-24">Unused</th>
+            <th className="w-44">Last Modified</th>
             <th className="w-24">Status</th>
-            <th className="w-44" />
+            <th className="w-24" />
           </>
         }
       >
@@ -109,11 +108,17 @@ export function ModulesTab({ moduleHref }: { moduleHref: (moduleKey: string) => 
                 </>
               )}
             </td>
-            <td>{module.section_count}</td>
             <td>{module.field_count}</td>
-            <td>{module.deleted_field_count || <span className="text-muted-foreground">—</span>}</td>
+            <td>{module.last_modified ? fmtDate(module.last_modified) : '—'}</td>
             <td>
-              <StatusBadge active={module.active} />
+              <StatusSwitch
+                checked={module.active}
+                label={`${module.label} is ${module.active ? 'on' : 'off'}`}
+                disabled={updateModule.isPending}
+                onChange={(active) =>
+                  updateModule.mutate({ moduleKey: module.module_key, patch: { active } })
+                }
+              />
             </td>
             <td className="text-right">
               <Button
@@ -126,18 +131,6 @@ export function ModulesTab({ moduleHref }: { moduleHref: (moduleKey: string) => 
               >
                 Rename
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() =>
-                  updateModule.mutate({
-                    moduleKey: module.module_key,
-                    patch: { active: !module.active },
-                  })
-                }
-              >
-                {module.active ? 'Deactivate' : 'Activate'}
-              </Button>
             </td>
           </Row>
         ))}
@@ -146,21 +139,6 @@ export function ModulesTab({ moduleHref }: { moduleHref: (moduleKey: string) => 
       <AddModuleDialog open={adding} onOpenChange={setAdding} />
     </>
   )
-}
-
-/**
- * The list in sort order, except that each Setup child follows its parent —
- * in its own sort order — so Partners' three sit together under it.
- */
-function withChildrenUnderParents(modules: MetadataModule[]): MetadataModule[] {
-  const keys = new Set(modules.map((m) => m.module_key))
-  const isChild = (m: MetadataModule) => Boolean(m.setup_parent && keys.has(m.setup_parent))
-  return modules
-    .filter((m) => !isChild(m))
-    .flatMap((parent) => [
-      parent,
-      ...modules.filter((m) => isChild(m) && m.setup_parent === parent.module_key),
-    ])
 }
 
 function AddModuleDialog({
@@ -189,19 +167,18 @@ function AddModuleDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add module</DialogTitle>
+          <DialogTitle>Create a module</DialogTitle>
           <DialogDescription>
-            A new register sheet. It will have no sections and no fields until you add them,
-            and publish reports an empty module as a warning until it does.
+            It starts empty. Add its sections and fields on its layout.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
           <div className="grid gap-1.5">
-            <Label htmlFor="module_label">Label</Label>
+            <Label htmlFor="module_label">Module name</Label>
             <Input
               id="module_label"
               value={label}
-              placeholder="Activities &amp; Documents"
+              placeholder="Activities and Documents"
               onChange={(e) => setLabel(e.target.value)}
             />
           </div>
@@ -215,7 +192,7 @@ function AddModuleDialog({
             disabled={!label.trim() || createModule.isPending}
             onClick={submit}
           >
-            Add module
+            Create module
           </Button>
         </DialogFooter>
       </DialogContent>

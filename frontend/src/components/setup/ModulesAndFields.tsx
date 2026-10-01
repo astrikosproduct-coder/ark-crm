@@ -1,48 +1,51 @@
-import type { ReactNode } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { ArrowLeftIcon } from 'lucide-react'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ComingSoon } from '@/pages/ComingSoon'
 import { ConversionMappingTab } from '@/components/admin/metadata/ConversionMappingTab'
 import { FieldsTab } from '@/components/admin/metadata/FieldsTab'
 import { GlobalSetsTab } from '@/components/admin/metadata/GlobalSetsTab'
 import { LayoutTab } from '@/components/admin/metadata/LayoutTab'
+import { LayoutsList } from '@/components/admin/metadata/LayoutsList'
 import { ModulesTab } from '@/components/admin/metadata/ModulesTab'
-import { UnusedFieldsTab } from '@/components/admin/metadata/UnusedFieldsTab'
 import { ErrorBox, LoadingRow } from '@/components/admin/metadata/shared'
-import { useMetadataModules } from '@/lib/metadata'
-import { PIPELINE_MODULES } from '@/lib/spec'
+import { useMetadataLayouts, useMetadataModules } from '@/lib/metadata'
+import { ModulesNavigator } from './ModulesNavigator'
+import {
+  GLOBAL_SETS,
+  MODULE_TAB_LABEL,
+  moduleHref,
+  tabsFor,
+  type ModuleTab,
+} from './modulesPaths'
 import type { SetupAddress } from './setupMap'
 
 /**
- * Setup → Customization → Modules and Fields, as Zoho has it.
+ * Setup → Customization → Modules and Fields, as Zoho has it (Setup rebuild,
+ * 4b, 1 Oct 2026; the addresses are listed in modulesPaths.ts).
  *
- *   /setup/customization/modules                        the module list
- *   /setup/customization/modules/global-sets            the shared lists
- *   /setup/customization/modules/deals/fields           one module, one tab
+ * The list page is Zoho's Modules · Global Sets pair. A module opens on its
+ * Layout tab — Zoho's list of layouts, the name opening the editor — then
+ * Fields (Zoho's Field Listing), Map Dependency Fields, and Conversion Mapping
+ * on the modules a conversion leaves from. Inside a module the left panel is
+ * the module list (ModulesNavigator), not Setup's menu: see setupMap's `menu`.
  *
- * The list page is Zoho's tab pair, Modules · Global Sets. A list serving one
- * field has no page: it is edited in that field (step 3, 25 Sep 2026, which
- * removed Setup's separate Picklists item — Zoho has none). `global-sets`
- * cannot collide with a module: a module key has no hyphen.
- *
- * A module opens on Fields · Layout · Unused fields, plus Conversion Mapping
- * on a pipeline module (Leads, Opportunities, Deals). Each tab is an address,
- * so a link or a reload lands where it was — and a tab change is a navigation,
- * which the app-wide unsaved-changes guard already holds for an editor with
- * edits in it.
- *
- * Fields and Layout sit side by side for the reason they always did: Fields is
- * the table you read a property off, Layout is the form you see a position in,
- * and the answer to "why is this field there" is on one and the fix on the other.
+ * Every tab is an address, so a link or a reload lands where it was, and a tab
+ * change is a navigation the app-wide unsaved-changes guard can hold.
  */
 export function ModulesAndFields({ at }: { at: SetupAddress }) {
-  const [moduleKey, tab] = at.rest
-  const moduleHref = (key: string) => `${at.path}/${key}/fields`
+  const [moduleKey, tab, layoutId, ...extra] = at.rest
 
   if (!moduleKey || moduleKey === GLOBAL_SETS) {
     if (at.rest.length > 1) return <Navigate to={at.path} replace />
-    return <ListPage base={at.path} showing={moduleKey ? 'sets' : 'modules'} moduleHref={moduleHref} />
+    return (
+      <ListPage
+        base={at.path}
+        showing={moduleKey ? 'sets' : 'modules'}
+        moduleHref={(key) => moduleHref(at.path, key)}
+      />
+    )
   }
   // Keyed by module: opening another one starts its screens fresh, rather than
   // carrying a search or an open dialog across from the last.
@@ -52,12 +55,23 @@ export function ModulesAndFields({ at }: { at: SetupAddress }) {
       base={at.path}
       moduleKey={moduleKey}
       tab={tab}
-      extra={at.rest.length > 2}
+      layoutId={layoutId}
+      extra={extra.length > 0}
     />
   )
 }
 
-const GLOBAL_SETS = 'global-sets'
+/** The left panel while a module is open — Zoho's "‹ Modules". */
+export function ModulesAndFieldsMenu({ at }: { at: SetupAddress }) {
+  const [moduleKey, tab] = at.rest
+  return (
+    <ModulesNavigator
+      base={at.path}
+      current={moduleKey}
+      hrefFor={(key) => moduleHref(at.path, key, tab)}
+    />
+  )
+}
 
 /** Modules and Fields' own page: Zoho's Modules · Global Sets pair. */
 function ListPage({
@@ -92,32 +106,17 @@ function ListPage({
   )
 }
 
-const TABS: {
-  slug: string
-  label: string
-  pipelineOnly?: boolean
-  render: (moduleKey: string) => ReactNode
-}[] = [
-  { slug: 'fields', label: 'Fields', render: (m) => <FieldsTab moduleKey={m} /> },
-  { slug: 'layout', label: 'Layout', render: (m) => <LayoutTab moduleKey={m} /> },
-  { slug: 'unused-fields', label: 'Unused fields', render: (m) => <UnusedFieldsTab moduleKey={m} /> },
-  {
-    slug: 'conversion-mapping',
-    label: 'Conversion Mapping',
-    pipelineOnly: true,
-    render: (m) => <ConversionMappingTab moduleKey={m} />,
-  },
-]
-
 function ModuleView({
   base,
   moduleKey,
   tab,
+  layoutId,
   extra,
 }: {
   base: string
   moduleKey: string
   tab: string | undefined
+  layoutId: string | undefined
   extra: boolean
 }) {
   const navigate = useNavigate()
@@ -126,44 +125,108 @@ function ModuleView({
   if (isLoading) return <LoadingRow what="the module" />
   if (isError) return <ErrorBox error={error} />
 
-  // A module the register does not have goes back to the list; a tab this
-  // module does not have, or anything past the tab, goes to its Fields.
+  // A module the register does not have goes back to the list. A tab this
+  // module does not have — including the old Unused fields, which is on the
+  // layout now — or anything past it, goes to its Layout.
   const module = modules.find((m) => m.module_key === moduleKey)
   if (!module) return <Navigate to={base} replace />
-  const tabs = TABS.filter((t) => !t.pipelineOnly || PIPELINE_MODULES.includes(moduleKey))
-  if (extra || !tabs.some((t) => t.slug === tab)) {
-    return <Navigate to={`${base}/${moduleKey}/fields`} replace />
+  const tabs = tabsFor(moduleKey)
+  const known = tabs.find((t) => t === tab)
+  const editorAddress = known === 'layout' && layoutId !== undefined
+  if (!known || extra || (layoutId !== undefined && !editorAddress)) {
+    return <Navigate to={`${base}/${moduleKey}/layout`} replace />
+  }
+
+  if (editorAddress) {
+    return (
+      <LayoutEditorPage
+        listHref={`${base}/${moduleKey}/layout`}
+        moduleKey={moduleKey}
+        moduleLabel={module.label}
+        layoutId={Number(layoutId)}
+      />
+    )
+  }
+
+  const render = (t: ModuleTab) => {
+    switch (t) {
+      case 'layout':
+        return (
+          <LayoutsList
+            moduleKey={moduleKey}
+            layoutHref={(id) => `${base}/${moduleKey}/layout/${id}`}
+          />
+        )
+      case 'fields':
+        return <FieldsTab moduleKey={moduleKey} />
+      case 'map-dependency':
+        return <ComingSoon label="Map Dependency Fields" />
+      case 'conversion-mapping':
+        return <ConversionMappingTab moduleKey={moduleKey} />
+    }
   }
 
   return (
     <>
       <div className="mb-4 flex items-center gap-2">
-        <Link
-          to={base}
-          aria-label="Back to Modules and Fields"
-          title="Modules and Fields"
-          className="text-muted-foreground hover:bg-accent hover:text-foreground flex size-8 shrink-0 items-center justify-center rounded-md transition-colors"
-        >
-          <ArrowLeftIcon className="size-5" />
-        </Link>
         <h1 className="text-page-title font-bold">{module.label}</h1>
-        {!module.active && <span className="text-muted-foreground text-sm">Inactive</span>}
+        {!module.active && <span className="text-muted-foreground text-sm">Off</span>}
       </div>
 
-      <Tabs value={tab} onValueChange={(slug) => navigate(`${base}/${moduleKey}/${slug}`)}>
+      <Tabs value={known} onValueChange={(slug) => navigate(`${base}/${moduleKey}/${slug}`)}>
         <TabsList>
           {tabs.map((t) => (
-            <TabsTrigger key={t.slug} value={t.slug}>
-              {t.label}
+            <TabsTrigger key={t} value={t}>
+              {MODULE_TAB_LABEL[t]}
             </TabsTrigger>
           ))}
         </TabsList>
         {tabs.map((t) => (
-          <TabsContent key={t.slug} value={t.slug}>
-            {t.slug === tab && t.render(moduleKey)}
+          <TabsContent key={t} value={t}>
+            {t === known && render(t)}
           </TabsContent>
         ))}
       </Tabs>
+    </>
+  )
+}
+
+/**
+ * The layout editor's page. Zoho opens it full-screen under a header of
+ * "← Leads | Standard" and Cancel · Save and Close · Save; that arrives in 4c.
+ * Until then it carries the header and the canvas as it is.
+ */
+function LayoutEditorPage({
+  listHref,
+  moduleKey,
+  moduleLabel,
+  layoutId,
+}: {
+  listHref: string
+  moduleKey: string
+  moduleLabel: string
+  layoutId: number
+}) {
+  const { data: layouts = [], isLoading } = useMetadataLayouts(moduleKey)
+  if (isLoading) return <LoadingRow what="the layout" />
+  const layout = layouts.find((l) => l.id === layoutId)
+  if (!layout) return <Navigate to={listHref} replace />
+
+  return (
+    <>
+      <div className="mb-4 flex items-center gap-2">
+        <Link
+          to={listHref}
+          aria-label={`Back to ${moduleLabel} layouts`}
+          title="Back to the layouts"
+          className="text-muted-foreground hover:bg-accent hover:text-foreground flex size-8 shrink-0 items-center justify-center rounded-md transition-colors"
+        >
+          <ArrowLeftIcon className="size-5" />
+        </Link>
+        <h1 className="text-page-title font-bold">{moduleLabel}</h1>
+        <span className="text-muted-foreground border-l pl-2 text-lg">{layout.label}</span>
+      </div>
+      <LayoutTab moduleKey={moduleKey} />
     </>
   )
 }

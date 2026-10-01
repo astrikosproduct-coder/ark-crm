@@ -7,10 +7,11 @@ import { useConversionMappings, type ConversionMappingRow } from '@/lib/metadata
  *
  * Zoho's "Lead Conversion Mapping", READ-ONLY for now. The rows were written
  * by metadata_v2.py from what conversion already did, and conversion reads
- * them (app/carry_forward.py, app/progression.py). It lives on each pipeline
- * module in Setup → Customization → Modules and Fields, and shows the
- * conversions that module takes part in — what it hands on and what it
- * receives. Editing arrives in step 4 of the Setup rebuild.
+ * them (app/carry_forward.py, app/progression.py). It is a tab on the modules
+ * a conversion LEAVES from — Leads (to an Opportunity, and a paid pilot's
+ * Deal) and Opportunities (to a Deal) — beside Map Dependency Fields, and
+ * shows the conversions out of that module (4b, 1 Oct 2026). Editing comes
+ * in step 5 of the Setup rebuild.
  *
  * A field shown live "from the Lead" is not here: it is never copied. It is a
  * read-only item on the later module's layout (Fields tab).
@@ -66,7 +67,7 @@ export function ConversionMappingTab({ moduleKey }: { moduleKey: string }) {
         it is shown live. Read-only for now.
       </MetadataIntro>
 
-      {PATHS.filter(({ modules }) => modules.includes(moduleKey)).map(({ path, title, lead }) => {
+      {PATHS.filter(({ modules }) => modules[0] === moduleKey).map(({ path, title, lead }) => {
         const own = rows.filter((r) => r.path === path)
         const copies = own.filter((r) => r.kind === 'copy')
         const system = own.filter((r) => r.kind === 'system')
