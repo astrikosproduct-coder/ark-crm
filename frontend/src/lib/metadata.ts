@@ -261,7 +261,8 @@ export function useMetadataModules() {
 export function useCreateModule() {
   const invalidate = useInvalidateMetadata()
   return useMutation({
-    mutationFn: async (input: { module_key: string; label: string }) =>
+    // The key is made from the label by the server (4a) — Setup never asks.
+    mutationFn: async (input: { label: string }) =>
       (await api.post<MetadataModule>(`${BASE}/modules`, input)).data,
     onSuccess: invalidate,
   })
@@ -842,6 +843,45 @@ export function choiceLines(text: string): string[] {
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
+}
+
+/**
+ * What Setup calls each type — Zoho's names (Setup rebuild, 4a, 1 Oct 2026).
+ * The code (`longtext`, `computed`) is shown only under Developer Space → API
+ * Names. A child list is Zoho's Subform.
+ */
+export const FIELD_TYPE_LABEL: Record<string, string> = {
+  text: 'Single Line',
+  longtext: 'Multi-Line',
+  richtext: 'Rich Text',
+  number: 'Number',
+  currency: 'Currency',
+  percent: 'Percent',
+  date: 'Date',
+  datetime: 'Date/Time',
+  checkbox: 'Checkbox',
+  picklist: 'Pick List',
+  multiselect: 'Multi-Select',
+  lookup: 'Lookup',
+  childlist: 'Subform',
+  computed: 'Formula',
+  autonumber: 'Auto-Number',
+  file: 'File Upload',
+  url: 'URL',
+  email: 'Email',
+  phone: 'Phone',
+}
+
+export function typeLabel(type: string): string {
+  return FIELD_TYPE_LABEL[type] ?? type
+}
+
+/** "deal_registration" -> "Deal Registration": a lookup target as a person reads it. */
+export function lookupTargetLabel(target: string): string {
+  return target
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
 }
 
 /** The FieldType union, for the type dropdown. Mirrors FIELD_TYPES on the API. */

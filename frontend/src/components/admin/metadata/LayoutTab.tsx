@@ -27,6 +27,7 @@ import { ErrorBox, LoadingRow } from './shared'
 import { errorMessage } from '@/lib/admin'
 import {
   FIELD_TYPES,
+  typeLabel,
   useMetadataFields,
   useMetadataSections,
   useRemovePlacement,
@@ -186,18 +187,16 @@ function NewFieldsPalette() {
                 e.dataTransfer.setData('text/plain', type)
               }}
               className="border-input bg-input-bg flex cursor-grab items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs active:cursor-grabbing"
-              title={`Drag a ${type} field into a section`}
+              title={`Drag a ${typeLabel(type)} field into a section`}
             >
               <Icon className="text-muted-foreground size-3.5 shrink-0" />
-              <span className="truncate">{type}</span>
+              <span className="truncate">{typeLabel(type)}</span>
             </div>
           )
         })}
       </div>
       <p className="text-muted-foreground mt-2 text-xs">
-        Dropping one opens Add field with the type and section filled in. The api_name is
-        yours to choose &mdash; it is the key every record stores its value under, and it
-        can never be changed afterwards.
+        Dropping one opens Add field with the type and section filled in.
       </p>
     </div>
   )
@@ -459,18 +458,13 @@ function FieldChip({
         </button>
       )}
 
-      <span title={field.field_type} className="shrink-0">
+      <span title={typeLabel(field.field_type)} className="shrink-0">
         <Icon className="text-muted-foreground size-4" />
       </span>
 
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm">{field.label}</div>
-        <div className="text-muted-foreground truncate font-mono text-[11px]">
-          {field.api_name}
-          {field.anchor_field && ` · ${field.anchor_position} ${field.anchor_field}`}
-          {field.stage_scoped !== 'none' && ` · per stage (${field.stage_scoped})`}
-          {!field.editable && ' · read-only'}
-        </div>
+        {!field.editable && <div className="text-muted-foreground text-[11px]">Read-only</div>}
       </div>
 
       {/* Built on Popover rather than a dropdown-menu primitive: the project

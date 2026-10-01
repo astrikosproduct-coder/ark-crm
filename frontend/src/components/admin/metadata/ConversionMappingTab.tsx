@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge'
-import { ErrorBox, LoadingRow, MetadataIntro, Mono, Row, Table } from './shared'
+import { ErrorBox, LoadingRow, MetadataIntro, Row, Table } from './shared'
 import { useConversionMappings, type ConversionMappingRow } from '@/lib/metadata'
 
 /**
@@ -92,7 +92,6 @@ export function ConversionMappingTab({ moduleKey }: { moduleKey: string }) {
                       {MODULE_LABEL[row.source_module ?? ''] ?? row.source_module} ·{' '}
                       {row.source_label ?? row.source_api_name}
                     </div>
-                    <Mono>{row.source_api_name}</Mono>
                   </td>
                   <td className="text-muted-foreground">→</td>
                   <td>
@@ -100,7 +99,6 @@ export function ConversionMappingTab({ moduleKey }: { moduleKey: string }) {
                       {MODULE_LABEL[row.target_module] ?? row.target_module} ·{' '}
                       {row.target_label ?? row.target_api_name}
                     </div>
-                    <Mono>{row.target_api_name}</Mono>
                   </td>
                   <td className="text-xs">
                     {row.transform ? TRANSFORM_LABEL[row.transform] ?? row.transform : 'copied as is'}
@@ -119,7 +117,6 @@ export function ConversionMappingTab({ moduleKey }: { moduleKey: string }) {
                       {MODULE_LABEL[row.target_module] ?? row.target_module} ·{' '}
                       {row.target_label ?? row.target_api_name}
                     </div>
-                    <Mono>{row.target_api_name}</Mono>
                   </td>
                   <td className="text-xs">{row.note}</td>
                   <td className="text-right">

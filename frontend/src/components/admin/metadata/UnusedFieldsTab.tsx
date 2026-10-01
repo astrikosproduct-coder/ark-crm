@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { Undo2Icon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { ErrorBox, LoadingRow, Mono, Row, Table } from './shared'
+import { ErrorBox, LoadingRow, Row, Table } from './shared'
 import { errorMessage } from '@/lib/admin'
 import { dateTime as fmtDateTime } from '@/lib/format'
 import {
   useMetadataFields,
   useRestoreField,
+  typeLabel,
   useRestorePlacement,
   type MetadataField,
 } from '@/lib/metadata'
@@ -85,12 +86,9 @@ export function UnusedFieldsTab({ moduleKey }: { moduleKey: string }) {
             <Row key={field.id}>
               <td>
                 <div className="font-medium">{field.label}</div>
-                <Mono>{field.api_name}</Mono>
               </td>
               <td className="text-muted-foreground text-xs">{field.section_label}</td>
-              <td>
-                <Mono>{field.field_type}</Mono>
-              </td>
+              <td>{typeLabel(field.field_type)}</td>
               <td className="text-muted-foreground text-xs">
                 {field.deleted_at ? fmtDateTime(field.deleted_at) : '—'}
                 {field.deleted_by && <div>by {field.deleted_by}</div>}

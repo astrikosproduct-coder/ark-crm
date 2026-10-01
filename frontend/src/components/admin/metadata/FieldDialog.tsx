@@ -16,13 +16,15 @@ import { Notice } from '@/components/ui/notice'
 import { Textarea } from '@/components/ui/textarea'
 import { ChoicesEditor } from './ChoicesEditor'
 import { RuleBuilder } from './RuleBuilder'
-import { PIPELINE_MODULES, parentModuleOf } from '@/lib/spec'
+import { PIPELINE_MODULES, fields as publishedFields, parentModuleOf } from '@/lib/spec'
 import { errorMessage } from '@/lib/admin'
 import { cn } from '@/lib/utils'
 import {
   FIELD_TYPES,
   REQUIREMENTS,
   choiceLines,
+  lookupTargetLabel,
+  typeLabel,
   useAddPlacement,
   useCreateField,
   useDraftStatus,
@@ -44,14 +46,13 @@ import {
  * shared.tsx: this is the form that edits the register, so it cannot render
  * from it.
  *
- * TWO THINGS THIS FORM WILL NOT LET YOU CHANGE
- * ---------------------------------------------
- * api_name and module, on an existing field. Both are disabled rather than
- * hidden, so the reason is visible where somebody would look for the control:
- * an api_name is the key every stored record writes this field's value under,
- * and changing it would orphan all of that data while appearing to work. The
- * API refuses them too — FieldUpdate does not carry either — so this is not the
- * only thing standing between a rename and the data.
+ * NO API NAME, ANYWHERE IN IT (Setup rebuild, 4a, 1 Oct 2026)
+ * ------------------------------------------------------------
+ * Zoho never asks for one and neither does this form: the server makes a new
+ * field's api_name from its label, once, and a later rename leaves it alone —
+ * it is the key every stored record writes the value under. It is shown only
+ * in Setup → Developer Space → API Names. The module is fixed too: the field
+ * belongs to the module it is created on.
  *
  * WHAT B3 ADDED, AND WHY IT MATTERS MORE THAN IT LOOKS
  * ----------------------------------------------------
@@ -148,6 +149,18 @@ const EMPTY: FormState = {
   value_mode: 'own',
   value_locked: false,
   stage_scoped: 'none',
+}
+
+/**
+ * What a lookup can point at: every target a published field already looks up,
+ * plus the one this field has. Chosen by name, never typed (4a).
+ */
+function lookupTargets(current: string): string[] {
+  const targets = new Set(
+    publishedFields.map((f) => f.lookup_target).filter((t): t is string => Boolean(t))
+  )
+  if (current) targets.add(current)
+  return [...targets].sort((a, b) => lookupTargetLabel(a).localeCompare(lookupTargetLabel(b)))
 }
 
 /** '' means "not set" on the wire, which is null rather than an empty string. */
@@ -353,6 +366,7 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
       ? Boolean(chosenSet)
       : Boolean(ownList) || typedChoices.length > 0 || isEdit)
   const needsLookup = form.field_type === 'lookup'
+  const moduleLabel = modules.find((m) => m.module_key === moduleKey)?.label ?? moduleKey
   const isNumeric = ['number', 'currency', 'percent'].includes(form.field_type)
 
   /**
@@ -505,7 +519,6 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
           ...payload,
           ...(makesOwnList ? { new_picklist: typedChoices } : {}),
           module_key: moduleKey,
-          api_name: form.api_name.trim(),
           // A new field is the register's own only in the workbook; one added
           // here says where it came from, so a reviewer can tell the two apart
           // on the Spec Health page.
@@ -541,8 +554,7 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
   const canSubmit =
     form.label.trim() !== '' &&
     form.section_id !== null &&
-    choicesReady &&
-    (isEdit || /^[a-z][a-z0-9_]*$/.test(form.api_name.trim()))
+    choicesReady
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -552,29 +564,13 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
           <DialogDescription>
             {isEdit
               ? 'Changes go to the draft. Publish to put them in front of anyone.'
-              : `A new field on ${moduleKey}. It reaches the CRM at the next publish.`}
+              : `A new field on ${moduleLabel}. It reaches the CRM at the next publish.`}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
           <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="api_name">API name</Label>
-              <Input
-                id="api_name"
-                value={form.api_name}
-                disabled={isEdit}
-                placeholder="licence_model"
-                onChange={(e) => set('api_name', e.target.value)}
-              />
-              <p className="text-muted-foreground text-xs">
-                {isEdit
-                  ? 'Not editable — every stored record keys its value on this name.'
-                  : 'Lower case, digits and underscores. This is the key records store.'}
-              </p>
-            </div>
-
-            <div className="grid gap-1.5">
+            <div className="col-span-2 grid gap-1.5">
               <Label htmlFor="label">Label</Label>
               <Input
                 id="label"
@@ -613,7 +609,7 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
               >
                 {FIELD_TYPES.map((t) => (
                   <option key={t} value={t}>
-                    {t}
+                    {typeLabel(t)}
                   </option>
                 ))}
               </select>
@@ -721,13 +717,20 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
 
           {needsLookup && (
             <div className="grid gap-1.5">
-              <Label htmlFor="lookup_target">Lookup target</Label>
-              <Input
+              <Label htmlFor="lookup_target">Looks up</Label>
+              <select
                 id="lookup_target"
+                className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
                 value={form.lookup_target}
-                placeholder="account, user, contact, lead…"
                 onChange={(e) => set('lookup_target', e.target.value)}
-              />
+              >
+                <option value="">Choose what it looks up…</option>
+                {lookupTargets(form.lookup_target).map((target) => (
+                  <option key={target} value={target}>
+                    {lookupTargetLabel(target)}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
@@ -929,7 +932,7 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
                   <option value="">&mdash; its own section, in order &mdash;</option>
                   {anchorCandidates.map((f) => (
                     <option key={f.placement_id} value={f.api_name}>
-                      {f.label} ({f.api_name})
+                      {f.label}
                     </option>
                   ))}
                 </select>

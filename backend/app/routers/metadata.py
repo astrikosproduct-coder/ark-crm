@@ -33,7 +33,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from ..database import get_db
+from ..database import Base, get_db
 from ..metadata_spec import (
     FIELD_TYPES,
     REQUIREMENTS,
@@ -314,12 +314,20 @@ def list_modules(
 
 @router.post("/modules", response_model=ModuleOut, status_code=status.HTTP_201_CREATED)
 def create_module(payload: ModuleCreate, db: Session = Depends(get_db)):
-    if db.get(Module, payload.module_key) is not None:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, f"Module {payload.module_key} already exists"
-        )
+    if payload.module_key is None:
+        # Made from the label, as a field's api_name is (4a).
+        base = _identifier_from(payload.label, 50)
+        module_key, n = base, 2
+        while db.get(Module, module_key) is not None:
+            module_key, n = f"{base}_{n}", n + 1
+    else:
+        module_key = payload.module_key
+        if db.get(Module, module_key) is not None:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, f"Module {module_key} already exists"
+            )
     module = Module(
-        module_key=payload.module_key,
+        module_key=module_key,
         label=payload.label,
         sort_order=payload.sort_order
         if payload.sort_order is not None
@@ -777,6 +785,64 @@ def _check_local_picklist(
 # list of labels, which is all Zoho asks for.
 
 
+# ------------------------------------------------- names a person never types
+#
+# Setup rebuild, 4a (1 Oct 2026): Zoho never asks for an API name, and Setup no
+# longer does either. A field's api_name and a module's key are made here, from
+# the label, once — renaming the label later never changes them, because the
+# api_name is the key every stored value, condition and formula is written
+# under. They are shown only in Setup → Developer Space → API Names.
+
+# The table a module's records live in, where it is not the module key itself.
+_BUSINESS_TABLE = {
+    "registrations": "deal_registrations",
+    "conflicts": "registration_conflicts",
+    "partners": "accounts",
+    "administration": "users",
+}
+
+
+def _identifier_from(label: str, max_length: int) -> str:
+    """"Pilot PO Received Date" -> pilot_po_received_date; never starts with a digit."""
+    base = re.sub(r"[^a-z0-9]+", "_", label.lower()).strip("_")
+    if not base:
+        base = "field"
+    elif not base[0].isalpha():
+        base = f"field_{base}"
+    return base[:max_length].rstrip("_")
+
+
+def _generated_api_name(db: Session, module_key: str, label: str) -> str:
+    """
+    A free api_name on this module, made from the label.
+
+    Taken, so never handed out: every field this module owns (deleted ones too —
+    a deleted field can be restored and its values are still stored under its
+    name), every name shown on it from a parent, and every real column of the
+    module's table, so a new "Status" can never shadow `leads.status`. A clash
+    gets _2, _3 ... The underscores are collapsed, so a name can never look like
+    a per-stage key (`reason__s3`).
+    """
+    taken = set(
+        db.scalars(
+            select(FieldDefinition.api_name).where(FieldDefinition.scope_key == module_key)
+        )
+    )
+    taken |= set(
+        db.scalars(
+            select(FieldPlacement.api_name).where(FieldPlacement.module_key == module_key)
+        )
+    )
+    table = Base.metadata.tables.get(_BUSINESS_TABLE.get(module_key, module_key))
+    if table is not None:
+        taken |= {column.name for column in table.columns}
+    base = _identifier_from(label, 110)
+    name, n = base, 2
+    while name in taken:
+        name, n = f"{base}_{n}", n + 1
+    return name
+
+
 def _choice_key(label: str, taken: set[str]) -> str:
     """PARTNER_SOURCED from "Partner-sourced" — the register's own convention."""
     base = re.sub(r"[^A-Za-z0-9]+", "_", label).strip("_").upper()[:110] or "CHOICE"
@@ -921,6 +987,11 @@ def create_field(payload: FieldCreate, db: Session = Depends(get_db)):
         _check_new_picklist_request(payload.field_type, payload.picklist_key)
 
     definition_scope, placement_scope = _scope_for(db, payload.module_key)
+    # Made from the label unless a script names it (4a). Generated names are
+    # free by construction, so the clash checks below only ever fire for a
+    # named one.
+    if payload.api_name is None:
+        payload.api_name = _generated_api_name(db, payload.module_key, payload.label)
 
     existing = db.scalar(
         select(FieldDefinition).where(

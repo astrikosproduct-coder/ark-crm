@@ -8,6 +8,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
+import { ApiNamesTab } from '@/components/admin/metadata/ApiNamesTab'
 import { PublishTab } from '@/components/admin/metadata/PublishTab'
 import { StagesTab } from '@/components/admin/metadata/StagesTab'
 import { ModulesAndFields } from './ModulesAndFields'
@@ -110,6 +111,14 @@ export const SETUP: SetupCategory[] = [
     label: 'Developer Space',
     icon: CodeXmlIcon,
     items: [
+      {
+        // The only screen that shows an api_name, a module key or a choice's
+        // stored value — Zoho keeps them in its developer area too (4a).
+        slug: 'api-names',
+        label: 'API Names',
+        keywords: 'api name key identifier stored value developer column',
+        render: () => <ApiNamesTab />,
+      },
       {
         slug: 'versions',
         label: 'Versions',

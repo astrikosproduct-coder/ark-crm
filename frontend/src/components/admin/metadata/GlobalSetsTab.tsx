@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ChoicesEditor } from './ChoicesEditor'
-import { ErrorBox, LoadingRow, Mono, Row, StatusBadge, Table } from './shared'
+import { ErrorBox, LoadingRow, Row, StatusBadge, Table } from './shared'
 import { errorMessage } from '@/lib/admin'
 import {
   choiceLines,
@@ -51,8 +51,7 @@ export function GlobalSetsTab({ moduleHref }: { moduleHref: (moduleKey: string) 
   const visible = term
     ? sets.filter(
         (p) =>
-          (p.label ?? '').toLowerCase().includes(term) ||
-          p.picklist_key.toLowerCase().includes(term)
+          (p.label ?? p.picklist_key).toLowerCase().includes(term)
       )
     : sets
 
@@ -127,9 +126,6 @@ function SetRows({
           <button onClick={onToggle} className="font-medium hover:underline">
             {set.label ?? set.picklist_key}
           </button>
-          <div>
-            <Mono>{set.picklist_key}</Mono>
-          </div>
         </td>
         <td>{set.values.filter((v) => v.active).length}</td>
         <td>

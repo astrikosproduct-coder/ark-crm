@@ -75,7 +75,11 @@ class ModuleOut(BaseModel):
 
 
 class ModuleCreate(BaseModel):
-    module_key: str = Field(min_length=1, max_length=60, pattern=r"^[a-z][a-z0-9_]*$")
+    # Left out, the server makes it from the label — Setup never asks for one
+    # (Setup rebuild, 4a, 1 Oct 2026). Scripts may still name it.
+    module_key: str | None = Field(
+        default=None, min_length=1, max_length=60, pattern=r"^[a-z][a-z0-9_]*$"
+    )
     label: str = Field(min_length=1, max_length=120)
     sort_order: int | None = None
     active: bool = True
@@ -176,7 +180,13 @@ class FieldCreate(FieldBase):
     # record. The register itself carries worse — leading digits, em dashes, a
     # trailing + — and those rows are preserved as they are; but nothing NEW
     # should be created that an expression has to be backtick-quoted to reach.
-    api_name: str = Field(min_length=1, max_length=120, pattern=r"^[a-z][a-z0-9_]*$")
+    #
+    # Left out, the server makes it from the label (Setup rebuild, 4a, 1 Oct
+    # 2026): Zoho never asks a person for an API name, and neither does Setup.
+    # Scripts and tests may still name one.
+    api_name: str | None = Field(
+        default=None, min_length=1, max_length=120, pattern=r"^[a-z][a-z0-9_]*$"
+    )
 
 
 class FieldUpdate(BaseModel):

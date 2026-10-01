@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ErrorBox, LoadingRow, Mono, Row, StatusBadge, Table } from './shared'
 import { useMetadataStages, useUpdateStage, type MetadataStage } from '@/lib/metadata'
+import { labelForValue } from '@/lib/spec'
 
 /**
  * The ten pipeline stages — and THE ONE SOURCE of Progression % and
@@ -117,7 +118,8 @@ function StageRow({ stage }: { stage: MetadataStage }) {
         )}
       </td>
       <td>
-        <Mono>{stage.owner_role ?? '—'}</Mono>
+        {/* The role's name, not its key — keys are for Developer Space (4a). */}
+        {stage.owner_role ? labelForValue('administration__roles', stage.owner_role) : '—'}
       </td>
       <td>{stage.bid_phase ?? <span className="text-muted-foreground">—</span>}</td>
       <td>

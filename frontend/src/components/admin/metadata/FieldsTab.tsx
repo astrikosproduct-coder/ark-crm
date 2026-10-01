@@ -16,6 +16,7 @@ import { FieldDialog } from './FieldDialog'
 import { ErrorBox, LoadingRow, Mono, Row, Table } from './shared'
 import { errorMessage } from '@/lib/admin'
 import {
+  typeLabel,
   valueBehaviourOf,
   useCreateSection,
   useDeleteField,
@@ -155,7 +156,6 @@ export function FieldsTab({ moduleKey }: { moduleKey: string }) {
                         </td>
                         <td>
                           <div className="font-medium">{field.label}</div>
-                          <Mono>{field.api_name}</Mono>
                           {/*
                             Where the value comes from, and what editing it
                             here does. Section 22: an administrator must be
@@ -209,12 +209,7 @@ export function FieldsTab({ moduleKey }: { moduleKey: string }) {
                           )}
                         </td>
                         <td>
-                          <Mono>{field.field_type}</Mono>
-                          {field.picklist_key && (
-                            <div>
-                              <Mono>{field.picklist_key}</Mono>
-                            </div>
-                          )}
+                          {typeLabel(field.field_type)}
                         </td>
                         <td>
                           <Button

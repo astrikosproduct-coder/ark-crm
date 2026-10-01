@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ErrorBox, LoadingRow, Mono, Row, StatusBadge, Table } from './shared'
+import { ErrorBox, LoadingRow, Row, StatusBadge, Table } from './shared'
 import { errorMessage } from '@/lib/admin'
 import {
   useCreateModule,
@@ -61,8 +61,6 @@ export function ModulesTab({ moduleHref }: { moduleHref: (moduleKey: string) => 
         head={
           <>
             <th>Label</th>
-            <th className="w-48">Key</th>
-            <th className="w-16">#</th>
             <th className="w-24">Sections</th>
             <th className="w-24">Fields</th>
             <th className="w-24">Unused</th>
@@ -110,12 +108,6 @@ export function ModulesTab({ moduleHref }: { moduleHref: (moduleKey: string) => 
                   )}
                 </>
               )}
-            </td>
-            <td>
-              <Mono>{module.module_key}</Mono>
-            </td>
-            <td>
-              <Mono>{module.sort_order}</Mono>
             </td>
             <td>{module.section_count}</td>
             <td>{module.field_count}</td>
@@ -179,15 +171,13 @@ function AddModuleDialog({
   onOpenChange: (open: boolean) => void
 }) {
   const createModule = useCreateModule()
-  const [key, setKey] = useState('')
   const [label, setLabel] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const submit = async () => {
     setError(null)
     try {
-      await createModule.mutateAsync({ module_key: key.trim(), label: label.trim() })
-      setKey('')
+      await createModule.mutateAsync({ label: label.trim() })
       setLabel('')
       onOpenChange(false)
     } catch (err) {
@@ -207,19 +197,6 @@ function AddModuleDialog({
         </DialogHeader>
         <div className="grid gap-3">
           <div className="grid gap-1.5">
-            <Label htmlFor="module_key">Key</Label>
-            <Input
-              id="module_key"
-              value={key}
-              placeholder="activities_docs"
-              onChange={(e) => setKey(e.target.value)}
-            />
-            <p className="text-muted-foreground text-xs">
-              Lower case, digits and underscores. Not editable afterwards — every field row
-              names it.
-            </p>
-          </div>
-          <div className="grid gap-1.5">
             <Label htmlFor="module_label">Label</Label>
             <Input
               id="module_label"
@@ -235,7 +212,7 @@ function AddModuleDialog({
             Cancel
           </Button>
           <Button
-            disabled={!/^[a-z][a-z0-9_]*$/.test(key.trim()) || !label.trim() || createModule.isPending}
+            disabled={!label.trim() || createModule.isPending}
             onClick={submit}
           >
             Add module
