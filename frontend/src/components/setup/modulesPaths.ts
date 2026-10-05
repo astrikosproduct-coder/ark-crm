@@ -51,3 +51,13 @@ export function moduleHref(base: string, moduleKey: string, keep?: string): stri
 export function insideModule(rest: string[]): boolean {
   return Boolean(rest[0]) && rest[0] !== GLOBAL_SETS
 }
+
+/**
+ * The layout editor's own address — full screen, as Zoho opens it: the app
+ * shell draws neither its sidebar nor its top bar here (4c).
+ */
+const LAYOUT_EDITOR = /^\/setup\/customization\/modules\/[^/]+\/layout\/\d+\/?$/
+
+export function isLayoutEditorPath(pathname: string): boolean {
+  return LAYOUT_EDITOR.test(pathname)
+}

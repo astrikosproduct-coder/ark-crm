@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { SearchIcon } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowLeftIcon, SearchIcon } from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
+import { appReturnPath } from '@/lib/setupReturn'
 import { cn } from '@/lib/utils'
 import { SETUP, matchesSetup, setupPath } from './setupMap'
 
@@ -12,19 +13,21 @@ export function SetupSearch({
   onChange,
   className,
   autoFocus,
+  placeholder = 'Search Setup',
 }: {
   value: string
   onChange: (value: string) => void
   className?: string
   autoFocus?: boolean
+  placeholder?: string
 }) {
   return (
     <div className={cn('relative', className)}>
       <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
       <Input
         type="search"
-        placeholder="Search Setup"
-        aria-label="Search Setup"
+        placeholder={placeholder}
+        aria-label={placeholder}
         autoFocus={autoFocus}
         className="pl-8"
         value={value}
@@ -35,12 +38,14 @@ export function SetupSearch({
 }
 
 /**
- * /setup — Zoho's Setup home: a search box over every Setup item, and one card
- * per category, each a plain list of its links. Typing replaces the cards with
- * the items that match, so the answer is one click away either way.
+ * /setup — Zoho's Setup home: full screen (the app sidebar steps aside — see
+ * AppShell), "← Setup" with the search box beside it, and one card per
+ * category, each a plain list of its links. Typing replaces the cards with the
+ * items that match. The arrow goes back to the page you came from.
  */
 export function SetupHome() {
   const [query, setQuery] = useState('')
+  const navigate = useNavigate()
 
   const results = query.trim()
     ? SETUP.flatMap((category) =>
@@ -52,9 +57,18 @@ export function SetupHome() {
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          aria-label="Leave Setup"
+          title="Back to where you were"
+          onClick={() => navigate(appReturnPath())}
+          className="text-muted-foreground hover:bg-accent hover:text-foreground flex size-8 items-center justify-center rounded-md"
+        >
+          <ArrowLeftIcon className="size-5" />
+        </button>
         <h1 className="text-page-title font-bold">Setup</h1>
-        <SetupSearch value={query} onChange={setQuery} className="w-72" autoFocus />
+        <SetupSearch value={query} onChange={setQuery} className="w-96" autoFocus />
       </div>
 
       {results ? (

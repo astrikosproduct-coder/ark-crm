@@ -1,12 +1,11 @@
-import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { ArrowLeftIcon } from 'lucide-react'
+import { Navigate, useNavigate } from 'react-router-dom'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ComingSoon } from '@/pages/ComingSoon'
 import { ConversionMappingTab } from '@/components/admin/metadata/ConversionMappingTab'
 import { FieldsTab } from '@/components/admin/metadata/FieldsTab'
 import { GlobalSetsTab } from '@/components/admin/metadata/GlobalSetsTab'
-import { LayoutTab } from '@/components/admin/metadata/LayoutTab'
+import { LayoutEditor } from '@/components/admin/metadata/LayoutEditor'
 import { LayoutsList } from '@/components/admin/metadata/LayoutsList'
 import { ModulesTab } from '@/components/admin/metadata/ModulesTab'
 import { ErrorBox, LoadingRow } from '@/components/admin/metadata/shared'
@@ -192,9 +191,9 @@ function ModuleView({
 }
 
 /**
- * The layout editor's page. Zoho opens it full-screen under a header of
- * "← Leads | Standard" and Cancel · Save and Close · Save; that arrives in 4c.
- * Until then it carries the header and the canvas as it is.
+ * The layout editor's page — Zoho's full-screen editor (4c). The app shell
+ * drops the sidebar and top bar at this address (modulesPaths.isLayoutEditorPath),
+ * so the editor's own header is the top of the screen.
  */
 function LayoutEditorPage({
   listHref,
@@ -211,22 +210,7 @@ function LayoutEditorPage({
   if (isLoading) return <LoadingRow what="the layout" />
   const layout = layouts.find((l) => l.id === layoutId)
   if (!layout) return <Navigate to={listHref} replace />
-
   return (
-    <>
-      <div className="mb-4 flex items-center gap-2">
-        <Link
-          to={listHref}
-          aria-label={`Back to ${moduleLabel} layouts`}
-          title="Back to the layouts"
-          className="text-muted-foreground hover:bg-accent hover:text-foreground flex size-8 shrink-0 items-center justify-center rounded-md transition-colors"
-        >
-          <ArrowLeftIcon className="size-5" />
-        </Link>
-        <h1 className="text-page-title font-bold">{moduleLabel}</h1>
-        <span className="text-muted-foreground border-l pl-2 text-lg">{layout.label}</span>
-      </div>
-      <LayoutTab moduleKey={moduleKey} />
-    </>
+    <LayoutEditor moduleKey={moduleKey} moduleLabel={moduleLabel} layout={layout} listHref={listHref} />
   )
 }

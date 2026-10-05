@@ -1,55 +1,49 @@
 import { useState } from 'react'
-import { ChevronDownIcon, Undo2Icon } from 'lucide-react'
+import { ChevronDownIcon } from 'lucide-react'
 
-import { errorMessage } from '@/lib/admin'
 import { cn } from '@/lib/utils'
-import {
-  typeLabel,
-  useMetadataFields,
-  useRestoreField,
-  useRestorePlacement,
-  type MetadataField,
-} from '@/lib/metadata'
+import { typeLabel, type MetadataField } from '@/lib/metadata'
+import { DRAG } from './layoutDraft'
 
 /**
- * Unused Items — the fields taken off this module, in the layout's left rail
- * under NEW SECTION, where Zoho keeps them (Setup rebuild, 4b, 1 Oct 2026; it
- * was a tab of its own, and before that a Deleted fields screen for every
- * module). Each comes back with one click; 4c makes that a drag onto the form.
+ * Unused Items — the fields taken off this module, in the layout editor's left
+ * rail under NEW SECTION, where Zoho keeps them (Setup rebuild, 4b/4c).
  *
- * Every one still exists with its configuration intact, and its column — or
- * its key in the module's custom field store — still holds every value
- * recorded against it. Restoring is un-hiding, not re-creating.
- *
- * TWO WAYS A FIELD GETS HERE, TWO WAYS BACK
- * - The field was DELETED (definition_status 'deleted'): Restore brings it
- *   back on every module that deletion took it off — POST
- *   /fields/{definition_id}/restore.
- * - Only this module's placement was REMOVED: Restore puts it back here and
- *   nowhere else — POST /placements/{placement_id}/restore.
- * Until 25 Sep 2026 the screen sent the placement id to the field endpoint;
- * the two ids come from different sequences.
+ * Drag one onto the form to put it back; drag a field from the form onto this
+ * list to take it off. Nothing happens until the editor's Save, which brings a
+ * field back as it was — its column, or its key in the module's custom field
+ * store, kept every value recorded against it — and a field deleted everywhere
+ * comes back as a field again.
  */
-export function UnusedItems({ moduleKey }: { moduleKey: string }) {
-  const { data: fields = [] } = useMetadataFields(moduleKey, 'deleted')
-  const restoreField = useRestoreField()
-  const restorePlacement = useRestorePlacement()
+export function UnusedItems({
+  fields,
+  onDropField,
+}: {
+  fields: MetadataField[]
+  /** A field from the form dropped here: take it off the form. */
+  onDropField: (placementId: number) => void
+}) {
   const [open, setOpen] = useState(true)
-  const [failed, setFailed] = useState<string | null>(null)
-  const busy = restoreField.isPending || restorePlacement.isPending
-
-  const restore = async (field: MetadataField) => {
-    setFailed(null)
-    try {
-      if (field.definition_status === 'deleted') await restoreField.mutateAsync(field.definition_id)
-      else await restorePlacement.mutateAsync(field.placement_id)
-    } catch (err) {
-      setFailed(errorMessage(err))
-    }
-  }
+  const [over, setOver] = useState(false)
 
   return (
-    <div className="border-t pt-3">
+    <div
+      className={cn('rounded-md border-t pt-3', over && 'ring-primary/50 ring-2')}
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes(DRAG.cell)) return
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+        setOver(true)
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        setOver(false)
+        const id = Number(e.dataTransfer.getData(DRAG.cell))
+        if (!id) return
+        e.preventDefault()
+        onDropField(id)
+      }}
+    >
       <button
         type="button"
         className="mb-2 flex items-center gap-1.5 text-sm font-semibold"
@@ -68,23 +62,18 @@ export function UnusedItems({ moduleKey }: { moduleKey: string }) {
           {fields.map((field) => (
             <div
               key={field.placement_id}
-              className="border-input bg-input-bg flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs"
-              title={typeLabel(field.field_type)}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.effectAllowed = 'move'
+                e.dataTransfer.setData(DRAG.unused, String(field.placement_id))
+                e.dataTransfer.setData('text/plain', field.label)
+              }}
+              className="border-input bg-input-bg cursor-grab truncate rounded-md border px-2 py-1.5 text-xs active:cursor-grabbing"
+              title={`${typeLabel(field.field_type)} — drag onto the form to put it back`}
             >
-              <span className="min-w-0 flex-1 truncate">{field.label}</span>
-              <button
-                type="button"
-                disabled={busy}
-                title="Put it back on the form"
-                aria-label={`Restore ${field.label}`}
-                className="text-muted-foreground hover:text-foreground disabled:opacity-40"
-                onClick={() => restore(field)}
-              >
-                <Undo2Icon className="size-3.5" />
-              </button>
+              {field.label}
             </div>
           ))}
-          {failed && <p className="text-destructive text-xs">{failed}</p>}
         </div>
       )}
     </div>

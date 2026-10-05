@@ -77,6 +77,8 @@ interface Props {
   field?: MetadataField
   /** Preselected section when adding. */
   sectionId?: number
+  /** Preselected type when adding — the type dropped from the layout's palette. */
+  fieldType?: string
 }
 
 /**
@@ -167,7 +169,7 @@ function lookupTargets(current: string): string[] {
 const orNull = (value: string) => (value.trim() === '' ? null : value.trim())
 const numberOrNull = (value: string) => (value.trim() === '' ? null : Number(value))
 
-export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }: Props) {
+export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId, fieldType }: Props) {
   const isEdit = Boolean(field)
   const { data: sections = [] } = useMetadataSections(moduleKey)
   const { data: picklists = [] } = useMetadataPicklists()
@@ -328,13 +330,17 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId }:
         (field.condition ?? '') === (field.visibility_condition ?? '')
       )
     } else {
-      setForm({ ...EMPTY, section_id: sectionId ?? sections[0]?.id ?? null })
+      setForm({
+        ...EMPTY,
+        section_id: sectionId ?? sections[0]?.id ?? null,
+        field_type: fieldType ?? EMPTY.field_type,
+      })
       setApplyToAll(false)
       setDemandWhenShown(true)
     }
     setAlsoModule('')
     setAlsoSectionId(null)
-  }, [open, field, sectionId, sections])
+  }, [open, field, sectionId, sections, fieldType])
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }))

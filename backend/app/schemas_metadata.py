@@ -77,6 +77,37 @@ class ModuleOut(BaseModel):
     last_modified: datetime | None = None
 
 
+class LayoutSaveSection(BaseModel):
+    """A section as the editor left it. `id` None: a section made in this session."""
+
+    id: int | None = None
+    # The editor's own name for it, so placements can point at a new section.
+    key: str = Field(min_length=1, max_length=60)
+    label: str = Field(min_length=1, max_length=200)
+
+
+class LayoutSavePlacement(BaseModel):
+    placement_id: int
+    section: str = Field(min_length=1, max_length=60)
+
+
+class LayoutSave(BaseModel):
+    """
+    One layout-editor session, saved at once (Setup rebuild, 4c, 1 Oct 2026) —
+    Zoho's Save on the layout: Cancel discards everything since it opened.
+
+    The WHOLE arrangement, not a list of steps: every section kept, in order,
+    and every field on the form, in order. A section left out is deleted (its
+    fields must have been moved or removed); a field left out goes to Unused
+    Items; a field from Unused Items that is listed comes back. `required`
+    carries only the Mark as required toggles that changed.
+    """
+
+    sections: list[LayoutSaveSection]
+    placements: list[LayoutSavePlacement]
+    required: dict[int, bool] = Field(default_factory=dict)
+
+
 class LayoutOut(BaseModel):
     """A module's layout — one "Standard" each today (metadata v2, 0038)."""
 

@@ -278,6 +278,27 @@ export function useMetadataLayouts(module?: string) {
   })
 }
 
+/**
+ * One layout-editor session, as the editor left it (4c). The whole arrangement:
+ * every section kept, in order, and every field on the form, in order — a
+ * section left out is deleted, a field left out goes to Unused Items.
+ */
+export interface LayoutSaveInput {
+  sections: { id: number | null; key: string; label: string }[]
+  placements: { placement_id: number; section: string }[]
+  /** Only the Mark as required toggles that changed. */
+  required: Record<number, boolean>
+}
+
+export function useSaveLayout() {
+  const invalidate = useInvalidateMetadata()
+  return useMutation({
+    mutationFn: async ({ layoutId, input }: { layoutId: number; input: LayoutSaveInput }) =>
+      (await api.put<MetadataLayout>(`${BASE}/layouts/${layoutId}`, input)).data,
+    onSuccess: invalidate,
+  })
+}
+
 export function useCreateModule() {
   const invalidate = useInvalidateMetadata()
   return useMutation({

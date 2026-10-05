@@ -211,7 +211,14 @@ export function sectionsForStage(module: string, stage: number): string[] {
  * Found by a field it contains, never by its label, which Administration may
  * rename ("HEADER" became "Health & Forecast" and broke the screen once).
  */
-const KEY_FACTS_ANCHOR = 'overall_rag'
+export const KEY_FACTS_ANCHOR = 'overall_rag'
+
+/**
+ * The section drawn as the strip above a pipeline record's tabs, not in any
+ * tab. Its name is the contract — Setup's layout editor files it under its
+ * own Record header tab.
+ */
+export const HEADER_STRIP_SECTION = '__header'
 
 export function keyFactsSectionOf(module: string): string | null {
   return fieldsOf(module).find((f) => f.api_name === KEY_FACTS_ANCHOR)?.section ?? null

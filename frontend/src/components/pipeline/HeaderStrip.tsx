@@ -9,13 +9,16 @@ import { RecordFormProvider } from '@/hooks/useRecordForm'
 import { api } from '@/lib/api'
 import { PRIORITY_FLAGS, takenRanksFor } from '@/lib/priorityFlags'
 import { fieldsOf } from '@/lib/spec'
+import { HEADER_STRIP_SECTION } from '@/lib/pipeline'
 import type { Values } from '@/lib/spec/conditions'
 import type { FieldSpec } from '@/types/field'
 
 /** Synthetic section name for a field that is current state rather than
  * something a stage captures — never rendered as a collapsible form section,
  * only here. See spec/extensions.json new_fields (overall_rag and friends). */
-export const HEADER_STRIP_SECTION = '__header'
+// Defined in lib/pipeline so Setup's layout editor can read it without this
+// component's form code; re-exported here for the callers that import it here.
+export { HEADER_STRIP_SECTION }
 
 const SAVE_DEBOUNCE_MS = 300
 

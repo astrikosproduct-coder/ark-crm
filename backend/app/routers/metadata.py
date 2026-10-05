@@ -33,6 +33,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ..auth import current_user
 from ..database import Base, get_db
 from ..metadata_spec import (
     FIELD_TYPES,
@@ -47,7 +48,7 @@ from ..metadata_spec import (
     write_spec_documents,
 )
 from .. import metadata_resolver
-from ..messages import refusal
+from ..messages import not_found, refusal
 from ..models import (
     ANCHOR_POSITIONS,
     ConversionMapping,
@@ -82,6 +83,7 @@ from ..schemas_metadata import (
     PlacementUpdate,
     PicklistCreate,
     LayoutOut,
+    LayoutSave,
     PicklistOut,
     PicklistUserOut,
     PicklistReorderRequest,
@@ -339,6 +341,192 @@ def _last_modified_by_module(db: Session) -> dict[str, datetime]:
             if key and when and (key not in latest or when > latest[key]):
                 latest[key] = when
     return latest
+
+
+def _layout_refusal(code: str, message: str, details: list[str]) -> HTTPException:
+    return HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, refusal(code, message, details))
+
+
+@router.put("/layouts/{layout_id}", response_model=LayoutOut)
+def save_layout(
+    layout_id: int,
+    payload: LayoutSave,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """
+    Save one layout-editor session, all of it or none of it (4c).
+
+    What the editor sends is the arrangement it ended with — see LayoutSave.
+    Applied in one transaction, so a refusal half-way leaves the register as it
+    was, and the editor's Cancel really is Cancel.
+
+    Moving a field into another section moves its STAGE with it, because the
+    record page puts a field in a stage's view by its capture stage: into
+    "STAGE 2 — …" makes it a Stage 2 field, into any other section clears it
+    (every field outside a STAGE section already has none). Nothing else about
+    the field changes.
+
+    Deleting a section takes nothing with it: its fields were moved or sent to
+    Unused Items by the editor before it went. The section row itself is
+    deleted, or switched off when a field in Unused Items still remembers it.
+
+    Who removed a field is the signed-in user, never a value the request names.
+    """
+    layout = db.get(Layout, layout_id)
+    if layout is None:
+        raise not_found("layout")
+    module_key = layout.module_key
+
+    # Every section of the module may be listed: one switched off still holds
+    # a field the editor shows, and listing it switches it back on. Only the
+    # ACTIVE ones the save leaves out are deleted.
+    current = {
+        s.id: s for s in db.scalars(select(Section).where(Section.module_key == module_key))
+    }
+    was_active = {sid for sid, s in current.items() if s.active}
+    # Names held by sections this save does not keep — switched-off ones, and
+    # any it deletes (one an Unused Item remembers keeps its name). A kept
+    # section's old name is free: two sections may swap names in one save.
+    kept_ids = {e.id for e in payload.sections if e.id is not None}
+    taken_elsewhere = {
+        s.label.lower()
+        for s in db.scalars(select(Section).where(Section.module_key == module_key))
+        if s.id not in kept_ids
+    }
+
+    # ------------------------------------------------------------ sections
+    by_key: dict[str, LayoutSaveSection] = {}
+    seen_labels: set[str] = set()
+    for entry in payload.sections:
+        label = entry.label.strip()
+        if not label:
+            raise _layout_refusal("SECTION_NAME_REQUIRED", "A section has no name.", ["Give it one, then save."])
+        if entry.key in by_key:
+            raise _layout_refusal("LAYOUT_OUT_OF_DATE", "The layout changed while you edited it.", ["Reload the page, then make your change again."])
+        if entry.id is not None and entry.id not in current:
+            raise _layout_refusal("LAYOUT_OUT_OF_DATE", "The layout changed while you edited it.", ["Reload the page, then make your change again."])
+        if label.lower() in seen_labels or label.lower() in taken_elsewhere:
+            raise _layout_refusal(
+                "SECTION_NAME_TAKEN",
+                f"There is already a section called “{label}”.",
+                ["Each section name is used once per module.", "Rename one of them, then save."],
+            )
+        if entry.id is not None:
+            was, now = _stage_of_section(current[entry.id].label), _stage_of_section(label)
+            if was != now:
+                raise _layout_refusal(
+                    "SECTION_STAGE_FIXED",
+                    f"“{label}” would move to another stage.",
+                    ["Keep the STAGE part of a stage section's name.", "Change only the words after it."],
+                )
+        seen_labels.add(label.lower())
+        by_key[entry.key] = entry
+
+    # Renames go through a temporary label first, so two sections may swap
+    # names in one save without tripping the one-name-per-module constraint.
+    renamed = [e for e in payload.sections if e.id is not None and current[e.id].label != e.label.strip()]
+    for entry in renamed:
+        current[entry.id].label = f"__renaming_{entry.id}"
+    db.flush()
+
+    sections: dict[str, Section] = {}
+    for position, entry in enumerate(payload.sections, start=1):
+        if entry.id is None:
+            section = Section(
+                module_key=module_key,
+                label=entry.label.strip(),
+                sort_order=position,
+                active=True,
+                layout_id=layout.id,
+            )
+            db.add(section)
+        else:
+            section = current[entry.id]
+            section.label = entry.label.strip()
+            section.sort_order = position
+            section.active = True
+        sections[entry.key] = section
+    db.flush()
+
+    # ---------------------------------------------------------- placements
+    rows = {
+        p.id: p
+        for p in db.scalars(select(FieldPlacement).where(FieldPlacement.module_key == module_key))
+    }
+    listed: set[int] = set()
+    for position, entry in enumerate(payload.placements, start=1):
+        placement = rows.get(entry.placement_id)
+        if placement is None or entry.placement_id in listed or entry.section not in sections:
+            raise _layout_refusal("LAYOUT_OUT_OF_DATE", "The layout changed while you edited it.", ["Reload the page, then make your change again."])
+        listed.add(entry.placement_id)
+        section = sections[entry.section]
+
+        if placement.status == "deleted":
+            # Back from Unused Items. A field deleted everywhere comes back as
+            # a field again; its other modules stay as they are, as Restore
+            # leaves them.
+            definition = db.get(FieldDefinition, placement.definition_id)
+            if definition.status == "deleted":
+                definition.status = "active"
+                definition.deleted_at = None
+                definition.deleted_by = None
+            placement.status = "active"
+            placement.deleted_at = None
+            placement.deleted_by = None
+            placement.deleted_by_cascade = False
+
+        if placement.section_id != section.id:
+            placement.section_id = section.id
+            placement.capture_stage = _stage_of_section(section.label)
+        placement.sort_order = position
+
+    # Fields the editor took off the form: to Unused Items. Anything anchored
+    # to one is released, as Remove Field always has.
+    for placement in rows.values():
+        if placement.status != "active" or placement.id in listed:
+            continue
+        for dependent in _anchored_to(db, placement):
+            dependent.anchor_field = None
+            dependent.anchor_position = None
+        placement.status = "deleted"
+        placement.deleted_at = _now()
+        placement.deleted_by = user.user_id
+        placement.deleted_by_cascade = False
+
+    # Mark as required — only between Mandatory and Optional, as the toggle
+    # always has; any other requirement is set in the field's properties.
+    for placement_id, required in payload.required.items():
+        placement = rows.get(placement_id)
+        if placement is None or placement.id not in listed:
+            raise _layout_refusal("LAYOUT_OUT_OF_DATE", "The layout changed while you edited it.", ["Reload the page, then make your change again."])
+        if placement.requirement not in ("Mandatory", "Optional"):
+            label = db.get(FieldDefinition, placement.definition_id).label
+            raise _layout_refusal(
+                "REQUIREMENT_NOT_TOGGLED",
+                f"“{label}” has a requirement rule of its own.",
+                ["Change it in the field's Edit Properties."],
+            )
+        placement.requirement = "Mandatory" if required else "Optional"
+    db.flush()
+
+    # Sections the editor deleted: gone, or switched off when a field waiting
+    # in Unused Items still points at it.
+    kept = {s.id for s in sections.values()}
+    for section in current.values():
+        if section.id in kept or section.id not in was_active:
+            continue
+        still_used = db.scalar(
+            select(func.count()).select_from(FieldPlacement).where(FieldPlacement.section_id == section.id)
+        )
+        if still_used:
+            section.active = False
+        else:
+            db.delete(section)
+
+    layout.updated_at = _now()
+    db.commit()
+    return list_layouts(module=module_key, db=db)[0]
 
 
 @router.get("/layouts", response_model=list[LayoutOut])

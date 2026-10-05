@@ -35,7 +35,7 @@ export function ModulesNavigator({
   )
 
   return (
-    <aside className="w-56 shrink-0">
+    <div>
       <div className="mb-2 flex items-center gap-1">
         <Link
           to={base}
@@ -89,6 +89,6 @@ export function ModulesNavigator({
           <p className="text-muted-foreground px-3 py-1.5 text-xs">No module matches.</p>
         )}
       </nav>
-    </aside>
+    </div>
   )
 }
