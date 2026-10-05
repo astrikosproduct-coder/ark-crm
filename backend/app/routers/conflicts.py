@@ -11,6 +11,7 @@ from ..changes import custom_field_diff, diff, snapshot
 from ..clock import now_utc
 from ..database import get_db
 from ..custom_fields import apply_write, extras_of, merge_into_row, resolve_write
+from ..register_defaults import apply_defaults
 from ..ids import next_reference_id
 from ..models import DealRegistration, PursuitGroup, RegistrationConflict, User
 from ..pursuits import apply_conflict_decision, dissolve_if_single
@@ -266,6 +267,7 @@ def create_conflict(
             extras=extras_of(payload),
         ),
     )
+    apply_defaults(db, "conflicts", conflict)
     db.flush()
     # "Both pursued" creates the Pursuit Group — see app/pursuits.py.
     apply_conflict_decision(db, conflict, previous=None, actor=user.user_id)

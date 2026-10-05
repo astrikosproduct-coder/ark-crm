@@ -940,7 +940,8 @@
   "stage_scoped": "none",
   "computed_expr": null,
   "min_value": null,
-  "max_value": null
+  "max_value": null,
+  "default_value": "USD"
  },
  {
   "module": "leads",
@@ -11977,9 +11978,9 @@
   "order": 8,
   "api_name": "phone",
   "label": "Phone",
-  "type": "text",
+  "type": "phone",
   "max_length": 30,
-  "picklist": null,
+  "picklist": "contacts__dial_code",
   "lookup_target": null,
   "lookup_filter": null,
   "values_note": null,
@@ -14142,7 +14143,8 @@
   "stage_scoped": "none",
   "computed_expr": null,
   "min_value": null,
-  "max_value": null
+  "max_value": null,
+  "default_value": "USD"
  },
  {
   "module": "registrations",

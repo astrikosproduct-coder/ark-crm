@@ -16,7 +16,7 @@ import {
 import { isChildColumnOnly } from '@/lib/spec/childSpec'
 import { isVisible, requirementOf, type Values } from '@/lib/spec/conditions'
 import { computeAll, type Children } from '@/lib/spec/formula'
-import { fieldsOf } from '@/lib/spec'
+import { defaultValuesOf, fieldsOf } from '@/lib/spec'
 import type { InheritedSource, ResolvedRecord } from '@/lib/spec/resolveRecord'
 import {
   missingOnSave,
@@ -285,7 +285,12 @@ export function RecordFormProvider({
     reducer,
     undefined,
     (): State => {
-      const initial = splitChildren(module, initialValues)
+      // A record being created starts from its fields' default values (Setup
+      // 4d) — under whatever the page itself seeds, which wins. Never in view
+      // mode, and never for a saved record: a blank there is the record's own.
+      const creating = mode === 'edit' && (recordId === NEW_RECORD_ID || recordId.startsWith('new@'))
+      const seeded = creating ? { ...defaultValuesOf(module), ...initialValues } : initialValues
+      const initial = splitChildren(module, seeded)
       const children = { ...initial.children, ...(initialChildren ?? {}) }
       return {
         values: initial.values,

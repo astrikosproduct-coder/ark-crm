@@ -29,8 +29,7 @@ export function NewRegistrationPage() {
       // The partner submitted it today unless somebody says otherwise. This is
       // what starts the acknowledgement clock.
       submitted_date: isoDate(today()),
-      // USD until the user picks another, as on a new Lead.
-      currency: 'USD',
+      // Currency starts from its default in Setup, as on a new Lead.
     }
     // fieldAt, not fieldOf: `partner` is defined in two sections of the
     // Partners register, so fieldOf returns nothing for it and the partner a

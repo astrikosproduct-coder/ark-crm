@@ -98,6 +98,8 @@ GUARDED_COLUMNS = (
     "blocks_transition",
     "requirement",
     "required_on_skip",
+    "required_on_create",
+    "default_value",
     "visibility_condition",
     "condition",
     "value_mode",

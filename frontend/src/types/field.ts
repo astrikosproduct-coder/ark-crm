@@ -304,6 +304,11 @@ export interface RawFieldSpec {
   required_on_skip: boolean | null
   /** "Required when creating" — needed from the first save (migration 0037). */
   required_on_create?: boolean
+  /**
+   * A Pick List's default: the key of the choice a new record starts with
+   * (migration 0042, Setup 4d). Absent when there is none. See defaultValuesOf.
+   */
+  default_value?: string
   visibility_condition: string | null
   condition: string | null
   computed_formula: string | null

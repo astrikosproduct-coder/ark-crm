@@ -1,5 +1,5 @@
 """
-Delete the empty stage sections a pipeline module does not own.
+Delete the empty sections a pipeline module does not use.
 
     python delete_stray_sections.py            # dry run: says what it would delete
     python delete_stray_sections.py --apply    # delete them and publish a version
@@ -15,6 +15,12 @@ A section is deleted only when ALL of these hold:
   * its name declares a stage ("STAGE 5 — …") that module does not own
     (stages.owner_module);
   * no field row points at it — not even one waiting in Unused Items.
+
+Added 5 Oct 2026 (4d): the empty record-header strip, `__header`, on the same
+terms — no field row points at it. It held Overall RAG and the other key facts
+until move_key_facts_to_header.py moved them into Health & Forecast, and since
+then only Opportunities uses it (Low Hanging, Top 10). On Leads and Deals it was
+an empty section the layout editor drew as a tab of its own.
 
 Anything else out of range is reported and left alone. It stops if the draft
 has other unpublished changes, because publishing would take them too.
@@ -46,7 +52,10 @@ from app.routers.metadata import (  # noqa: E402
     build_snapshot,
 )
 
-NOTE = "Deleted empty stage sections their module does not own"
+NOTE = "Deleted empty sections: stages a module does not own, and unused record headers"
+
+#: The record-header strip's section name (lib/pipeline.ts HEADER_STRIP_SECTION).
+HEADER_STRIP = "__header"
 
 
 def plan(db) -> tuple[list[str], list[str], int]:
@@ -57,7 +66,7 @@ def plan(db) -> tuple[list[str], list[str], int]:
         owned = set(db.scalars(select(Stage.stage).where(Stage.owner_module == module.module_key)))
         for section in db.scalars(select(Section).where(Section.module_key == module.module_key)):
             stage = _stage_of_section(section.label)
-            if stage is None or stage in owned:
+            if section.label != HEADER_STRIP and (stage is None or stage in owned):
                 continue
             rows = db.scalar(
                 select(func.count()).select_from(FieldPlacement).where(FieldPlacement.section_id == section.id)
@@ -83,7 +92,7 @@ def main() -> int:
             return 1
 
         deleted, kept, count = plan(db)
-        print(f"Delete stray stage sections — {'apply' if apply else 'dry run'}")
+        print(f"Delete empty sections — {'apply' if apply else 'dry run'}")
         print("=" * 74)
         for line in deleted + kept or ["nothing to do"]:
             print(f"  {line}")

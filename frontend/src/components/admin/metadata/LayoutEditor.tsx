@@ -49,6 +49,7 @@ import {
   reconcile,
   renameSection,
   savePayload,
+  sectionTitle,
   stagePrefixOf,
   type Draft,
   type DraftSection,
@@ -85,11 +86,20 @@ import { markFormSaved, useUnsavedChangesStore } from '@/store/useUnsavedChanges
  * palette (it appears where it was dropped).
  *
  * TABS ARE THE RECORD PAGE'S. A pipeline record shows its sections in places:
- * the header strip, each stage's view (led by the key facts), Details and
- * Related. The editor shows the same places as tabs, so a section added under
- * "Stage 2" is a "STAGE 2 — …" section and lands in that stage's view — the
- * STAGE part of its name is fixed, because that is what puts it there.
- * A stage this module does not own is not drawn at all.
+ * above every stage (the header strip and the key facts), each stage's own
+ * view, and Details. The editor shows the same places as tabs, so a section
+ * added under "Stage 2" is a "STAGE 2 — …" section and lands in that stage's
+ * view — the STAGE part of its name is fixed, because that is what puts it
+ * there. Record header holds what every stage shows, on all three modules
+ * (4d, 5 Oct 2026), so a stage tab is only that stage's own sections.
+ *
+ * NOT DRAWN: a stage this module does not own, and the "From the Lead"
+ * sections — the Lead's own fields shown live on an Opportunity or Deal, which
+ * are changed on the Lead (its field's "Also show on"), not here. They stay in
+ * the draft untouched, because Save deletes a section it leaves out.
+ * The Opportunities strip of Low Hanging and Top 10 is drawn as Priority Flags
+ * and locked: a rank there is unique across records, so those fields save the
+ * moment they change and cannot share a form with the rest.
  *
  * WHAT IT DELIBERATELY IS NOT: a live form. Tiles draw a type icon and a label,
  * the way Zoho's builder does; the record screen is what draws inputs.
@@ -118,7 +128,7 @@ const TYPE_ICON: Record<string, typeof TextIcon> = {
 }
 const iconFor = (type: string) => TYPE_ICON[type] ?? TextIcon
 
-type TabId = string // 'header' | 'details' | 'related' | 'all' | `stage-${n}`
+type TabId = string // 'header' | 'details' | 'all' | `stage-${n}`
 
 interface EditorActions {
   draft: Draft
@@ -221,10 +231,9 @@ export function LayoutEditor({
 
   const tabs: { id: TabId; label: string }[] = isPipeline
     ? [
-        ...(has('header') ? [{ id: 'header', label: 'Record header' }] : []),
+        ...(has('header') || has('keyfacts') ? [{ id: 'header', label: 'Record header' }] : []),
         ...stages.map((s) => ({ id: `stage-${s.stage}`, label: `Stage ${s.stage} · ${s.name}` })),
         { id: 'details', label: 'Details' },
-        ...(has('related') ? [{ id: 'related', label: 'Related' }] : []),
       ]
     : [{ id: 'all', label: 'Form' }]
   const current = tabs.some((t) => t.id === tab) ? (tab as TabId) : (tabs.find((t) => t.id.startsWith('stage-')) ?? tabs[0]).id
@@ -232,14 +241,16 @@ export function LayoutEditor({
 
   const shownIn = (s: DraftSection): boolean => {
     const k = kinds.get(s.key)!
-    if (current === 'all') return k.kind !== 'elsewhere'
-    if (stageOfTab !== null) return k.kind === 'keyfacts' || (k.kind === 'stage' && k.stage === stageOfTab)
+    if (k.kind === 'elsewhere' || k.kind === 'related') return false
+    if (current === 'all') return true
+    if (current === 'header') return k.kind === 'header' || k.kind === 'keyfacts'
+    if (stageOfTab !== null) return k.kind === 'stage' && k.stage === stageOfTab
     return k.kind === current
   }
-  // Key facts lead every stage, as on the record page.
+  // The strip above the tabs comes first, as on the record page.
   const visible = [
-    ...draft.sections.filter((s) => shownIn(s) && kinds.get(s.key)!.kind === 'keyfacts'),
-    ...draft.sections.filter((s) => shownIn(s) && kinds.get(s.key)!.kind !== 'keyfacts'),
+    ...draft.sections.filter((s) => shownIn(s) && kinds.get(s.key)!.kind === 'header'),
+    ...draft.sections.filter((s) => shownIn(s) && kinds.get(s.key)!.kind !== 'header'),
   ]
   const canAddSection = current === 'details' || current === 'all' || stageOfTab !== null
 
@@ -371,6 +382,9 @@ export function LayoutEditor({
 
           <main className="min-w-0 flex-1 overflow-y-auto p-4">
             <div className="mx-auto max-w-5xl">
+              {current === 'header' && (
+                <p className="text-muted-foreground mb-1 text-xs">Shown at the top of every stage.</p>
+              )}
               {visible.length === 0 && (
                 <p className="text-muted-foreground py-6 text-sm">
                   {canAddSection
@@ -386,7 +400,7 @@ export function LayoutEditor({
                     }
                     allowNew={canAddSection}
                   />
-                  <SectionCard section={section} pinned={kinds.get(section.key)!.kind === 'keyfacts' && stageOfTab !== null} />
+                  <SectionCard section={section} />
                 </div>
               ))}
               <SectionDropZone
@@ -410,6 +424,7 @@ export function LayoutEditor({
         field={dialog.field}
         sectionId={dialog.sectionId}
         fieldType={dialog.fieldType}
+        fromLayout
       />
     </Editor.Provider>
   )
@@ -516,11 +531,13 @@ function SectionDropZone({
   )
 }
 
-function SectionCard({ section, pinned }: { section: DraftSection; pinned: boolean }) {
+function SectionCard({ section }: { section: DraftSection }) {
   const { draft, byId, kinds, setDraft, newField, setDragSection } = useEditor()
   const [open, setOpen] = useState(true)
   const [over, setOver] = useState(false)
   const kind = kinds.get(section.key)!
+  // Priority Flags: nothing dropped in, nothing dragged out — see the file's docstring.
+  const locked = kind.kind === 'header'
   const ids = draft.cells[section.key] ?? []
   const nodes = nodesOf(ids, byId)
 
@@ -542,7 +559,7 @@ function SectionCard({ section, pinned }: { section: DraftSection; pinned: boole
     setDraft(moveIds(draft, moving, section.key, beforeId))
   }
   const accepts = (e: React.DragEvent) =>
-    [DRAG.newField, DRAG.cell, DRAG.unused].some((t) => e.dataTransfer.types.includes(t))
+    !locked && [DRAG.newField, DRAG.cell, DRAG.unused].some((t) => e.dataTransfer.types.includes(t))
 
   return (
     <div
@@ -559,20 +576,22 @@ function SectionCard({ section, pinned }: { section: DraftSection; pinned: boole
       }}
     >
       <div className="flex items-center gap-2 border-b px-3 py-2">
-        <span
-          draggable
-          onDragStart={(e) => {
-            e.dataTransfer.effectAllowed = 'move'
-            e.dataTransfer.setData(DRAG.section, section.key)
-            e.dataTransfer.setData('text/plain', section.label)
-            setDragSection(true)
-          }}
-          onDragEnd={() => setDragSection(false)}
-          className="text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
-          title="Drag to move this section"
-        >
-          <GripVerticalIcon className="size-4" />
-        </span>
+        {!locked && (
+          <span
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.effectAllowed = 'move'
+              e.dataTransfer.setData(DRAG.section, section.key)
+              e.dataTransfer.setData('text/plain', section.label)
+              setDragSection(true)
+            }}
+            onDragEnd={() => setDragSection(false)}
+            className="text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
+            title="Drag to move this section"
+          >
+            <GripVerticalIcon className="size-4" />
+          </span>
+        )}
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -581,12 +600,15 @@ function SectionCard({ section, pinned }: { section: DraftSection; pinned: boole
         >
           <ChevronDownIcon className={cn('size-4 transition-transform', !open && '-rotate-90')} />
         </button>
-        <SectionName section={section} />
-        {pinned && <span className="text-muted-foreground text-xs">Shown on every stage</span>}
+        {locked ? (
+          <span className="text-section text-sm font-bold tracking-wide">{sectionTitle(section)}</span>
+        ) : (
+          <SectionName section={section} />
+        )}
         <span className="text-muted-foreground text-xs">
-          {ids.length} field{ids.length === 1 ? '' : 's'}
+          {locked ? 'Saved the moment they change on the record' : `${ids.length} field${ids.length === 1 ? '' : 's'}`}
         </span>
-        <SectionGear section={section} kind={kind} />
+        {!locked && <SectionGear section={section} kind={kind} />}
       </div>
 
       {open && (
@@ -606,7 +628,7 @@ function SectionCard({ section, pinned }: { section: DraftSection; pinned: boole
                   handleDrop(e, node.field.placement_id)
                 }}
               >
-                <Cell node={node} />
+                <Cell node={node} locked={locked} />
               </div>
             ))
           )}
@@ -639,7 +661,7 @@ function SectionName({ section }: { section: DraftSection }) {
         title="Rename this section"
         onClick={() => setRenaming(section.key)}
       >
-        {section.label}
+        {sectionTitle(section)}
       </button>
     )
   }
@@ -722,14 +744,14 @@ function SectionGear({ section, kind }: { section: DraftSection; kind: SectionKi
 }
 
 /** One cell: the field, and what is anchored under it, which travels with it. */
-function Cell({ node }: { node: AnchoredNode<MetadataField> }) {
+function Cell({ node, locked }: { node: AnchoredNode<MetadataField>; locked: boolean }) {
   return (
     <div className="space-y-1.5">
-      <FieldTile field={node.field} />
+      <FieldTile field={node.field} locked={locked} />
       {node.under.length > 0 && (
         <div className="border-muted-foreground/25 ml-3 space-y-1.5 border-l pl-3">
           {node.under.map((kid) => (
-            <Cell key={kid.field.placement_id} node={kid} />
+            <Cell key={kid.field.placement_id} node={kid} locked={locked} />
           ))}
         </div>
       )}
@@ -737,16 +759,16 @@ function Cell({ node }: { node: AnchoredNode<MetadataField> }) {
   )
 }
 
-function FieldTile({ field }: { field: MetadataField }) {
+function FieldTile({ field, locked }: { field: MetadataField; locked: boolean }) {
   const { draft, byId, setDraft, editField } = useEditor()
   const [menuOpen, setMenuOpen] = useState(false)
   const Icon = iconFor(field.field_type)
   const required = isRequired(draft, field)
-  const toggleable = field.requirement === 'Mandatory' || field.requirement === 'Optional'
+  const toggleable = !locked && (field.requirement === 'Mandatory' || field.requirement === 'Optional')
 
   return (
     <div
-      draggable
+      draggable={!locked}
       onDragStart={(e) => {
         e.stopPropagation()
         e.dataTransfer.effectAllowed = 'move'
@@ -754,7 +776,8 @@ function FieldTile({ field }: { field: MetadataField }) {
         e.dataTransfer.setData('text/plain', field.label)
       }}
       className={cn(
-        'group border-input bg-input-bg flex cursor-grab items-center gap-2 rounded-md border px-2 py-2 active:cursor-grabbing',
+        'group border-input bg-input-bg flex items-center gap-2 rounded-md border px-2 py-2',
+        !locked && 'cursor-grab active:cursor-grabbing',
         // Zoho marks a required field with a red bar down its left edge.
         required && 'border-l-destructive border-l-2'
       )}
@@ -777,16 +800,18 @@ function FieldTile({ field }: { field: MetadataField }) {
           </button>
         </PopoverTrigger>
         <PopoverContent align="end" className="w-56 p-1">
-          <MenuItem
-            disabled={!toggleable}
-            title={toggleable ? undefined : 'This field has a rule of its own — change it in Edit Properties'}
-            onClick={() => {
-              setMenuOpen(false)
-              setDraft({ ...draft, toggled: { ...draft.toggled, [field.placement_id]: !required } })
-            }}
-          >
-            {required ? 'Mark as not required' : 'Mark as required'}
-          </MenuItem>
+          {!locked && (
+            <MenuItem
+              disabled={!toggleable}
+              title={toggleable ? undefined : 'This field has a rule of its own — change it in Edit Properties'}
+              onClick={() => {
+                setMenuOpen(false)
+                setDraft({ ...draft, toggled: { ...draft.toggled, [field.placement_id]: !required } })
+              }}
+            >
+              {required ? 'Mark as not required' : 'Mark as required'}
+            </MenuItem>
+          )}
           <MenuItem
             onClick={() => {
               setMenuOpen(false)
@@ -795,15 +820,17 @@ function FieldTile({ field }: { field: MetadataField }) {
           >
             Edit Properties
           </MenuItem>
-          <MenuItem
-            className="text-destructive"
-            onClick={() => {
-              setMenuOpen(false)
-              setDraft(moveIds(draft, cellIds(draft, byId, field.placement_id), 'unused', null))
-            }}
-          >
-            Remove Field
-          </MenuItem>
+          {!locked && (
+            <MenuItem
+              className="text-destructive"
+              onClick={() => {
+                setMenuOpen(false)
+                setDraft(moveIds(draft, cellIds(draft, byId, field.placement_id), 'unused', null))
+              }}
+            >
+              Remove Field
+            </MenuItem>
+          )}
         </PopoverContent>
       </Popover>
     </div>

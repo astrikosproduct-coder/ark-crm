@@ -100,6 +100,8 @@ export interface MetadataField {
   use_case: string
   required_on_skip: boolean | null
   required_on_create: boolean
+  /** A Pick List's default choice, by key — null when there is none. */
+  default_value: string | null
   visibility_condition: string | null
   condition: string | null
   computed_formula: string | null
@@ -448,6 +450,7 @@ export type PlacementInput = Partial<{
   requirement: string
   required_on_skip: boolean | null
   required_on_create: boolean
+  default_value: string | null
   visibility_condition: string | null
   condition: string | null
   value_mode: 'own' | 'read_through' | 'carry_forward'
@@ -939,6 +942,13 @@ export function lookupTargetLabel(target: string): string {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')
 }
+
+/**
+ * The Global Set every Phone field takes its country codes from. Mirrors
+ * DIAL_CODE_SET in backend/app/routers/metadata.py, which gives a code added
+ * here the key "+49" from a label written "Germany (+49)".
+ */
+export const COUNTRY_CODE_SET = 'contacts__dial_code'
 
 /** The FieldType union, for the type dropdown. Mirrors FIELD_TYPES on the API. */
 export const FIELD_TYPES = [

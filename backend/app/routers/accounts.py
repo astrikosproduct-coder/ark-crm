@@ -13,6 +13,7 @@ from ..list_query import run_list_query
 from ..audit import record_audit
 from ..record_references import records_naming_account
 from ..custom_fields import apply_write, extras_of, merge_into_row, resolve_write
+from ..register_defaults import apply_defaults
 from ..thresholds import check_thresholds
 from ..ids import next_reference_id
 from ..models import Account, AccountType, Contact, DealRegistration, User
@@ -163,6 +164,7 @@ def create_account(
             extras=extras_of(payload),
         ),
     )
+    apply_defaults(db, "accounts", account)
     record_audit(
         db,
         module="accounts",

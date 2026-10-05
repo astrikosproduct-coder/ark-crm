@@ -18,6 +18,10 @@ import { typeLabel, useMetadataFields, type MetadataField } from '@/lib/metadata
  *
  * "Custom Field" is Zoho's word for a field made in Setup: its values live in
  * the module's custom field store rather than a column of its own.
+ *
+ * Only the module's OWN fields (4d, 5 Oct 2026), as in Zoho. The Lead's fields
+ * an Opportunity or Deal shows live ("From the Lead") belong to Leads and are
+ * listed there; Developer Space → API Names still lists every one.
  */
 export function FieldsTab({ moduleKey }: { moduleKey: string }) {
   const { data: fields = [], isLoading, isError, error } = useMetadataFields(moduleKey, 'active')
@@ -29,6 +33,7 @@ export function FieldsTab({ moduleKey }: { moduleKey: string }) {
 
   const term = search.trim().toLowerCase()
   const shown = fields
+    .filter((f) => f.value_mode !== 'read_through')
     .filter(
       (f) =>
         !term ||
@@ -73,9 +78,6 @@ export function FieldsTab({ moduleKey }: { moduleKey: string }) {
               >
                 {field.label}
               </button>
-              {field.value_mode === 'read_through' && (
-                <span className="text-muted-foreground ml-2 text-xs">From the Lead</span>
-              )}
             </td>
             <td>{typeLabel(field.field_type)}</td>
             <td>{field.storage === 'custom_fields' ? 'Yes' : ''}</td>

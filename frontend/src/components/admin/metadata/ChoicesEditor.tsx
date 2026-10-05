@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { errorMessage } from '@/lib/admin'
 import {
+  COUNTRY_CODE_SET,
   useCreatePicklistValue,
   useReorderPicklistValues,
   useUpdatePicklistValue,
@@ -138,7 +139,11 @@ export function ChoicesEditor({ picklist }: { picklist: MetadataPicklist }) {
               <div className="flex gap-2">
                 <Input
                   className="h-7"
-                  placeholder="New choice"
+                  placeholder={
+                    picklist.picklist_key === COUNTRY_CODE_SET
+                      ? 'Country and code, like Germany (+49)'
+                      : 'New choice'
+                  }
                   value={adding}
                   onChange={(e) => setAdding(e.target.value)}
                   onKeyDown={(e) => {

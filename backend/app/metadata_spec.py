@@ -1358,6 +1358,8 @@ def restore_snapshot(db: Session, snapshot: dict[str, Any]) -> list[str]:
         placement.required_on_skip = row["required_on_skip"]
         # .get(): a snapshot published before 0037 has no such key.
         placement.required_on_create = bool(row.get("required_on_create", False))
+        # .get(): absent before 0042, and absent whenever there is no default.
+        placement.default_value = row.get("default_value")
         placement.visibility_condition = row["visibility_condition"]
         placement.condition = row["condition"]
         # The value layer travels with a rollback: which module owned a value,

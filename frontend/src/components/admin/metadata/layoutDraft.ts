@@ -229,8 +229,9 @@ const STAGE_PREFIX = /^STAGE \d+\s*[—–-]\s*/
  * The record page's own rules, read the same way here (PipelineRecordPage):
  * `__header` is the strip above the tabs; the section holding the key facts
  * leads every stage; a "STAGE n — …" section is that stage's; one whose every
- * field is shown from the parent is on Related; everything else is Details.
- * A stage this module does not own is `elsewhere` and never drawn.
+ * field is shown from the parent is `related` (the Lead's own fields, shown
+ * live — not drawn by the editor); everything else is Details. A stage this
+ * module does not own is `elsewhere` and never drawn either.
  */
 export function kindOf(
   section: DraftSection,
@@ -246,6 +247,15 @@ export function kindOf(
   }
   if (rows.length > 0 && rows.every((r) => r.value_mode === 'read_through')) return { kind: 'related' }
   return { kind: 'details' }
+}
+
+/**
+ * A section's name as Setup shows it. The record-header strip is stored as
+ * `__header`, the name the record page finds it by; what it holds is the
+ * Opportunities priority flags, so that is what it is called here.
+ */
+export function sectionTitle(section: Pick<DraftSection, 'label'>): string {
+  return section.label === HEADER_STRIP_SECTION ? 'Priority Flags' : section.label
 }
 
 /** "STAGE 2 — " of "STAGE 2 — POC / PILOT": the part a rename keeps. */

@@ -404,6 +404,21 @@ export function fieldOf(module: string, apiName: string): FieldSpec | undefined 
   return byRef.get(`${module}.${apiName}`)
 }
 
+/**
+ * What a new record of this module starts with: each Pick List's default value
+ * from the published register (Setup 4d, 5 Oct 2026 — Zoho's "Select default
+ * value"). The create forms show it already chosen and the person can change
+ * it; the server fills the same value on a blank (app/register_defaults.py),
+ * so a Lead made from a registration or an import starts the same way.
+ */
+export function defaultValuesOf(module: string): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const f of fieldsOf(module)) {
+    if (f.default_value && f.value_mode !== 'read_through') out[f.api_name] = f.default_value
+  }
+  return out
+}
+
 /** api_names of one module — the namespace every expression resolves against. */
 export function apiNamesOf(module: string): Set<string> {
   return new Set(fieldsOf(module).map((f) => f.api_name))

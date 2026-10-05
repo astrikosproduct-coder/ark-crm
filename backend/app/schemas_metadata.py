@@ -202,6 +202,9 @@ class FieldBase(BaseModel):
     required_on_skip: bool | None = None
     #: Needed from the first save, not only when the record leaves its stage.
     required_on_create: bool | None = None
+    #: A Pick List's default: the key of the choice a new record starts with
+    #: (0042). A label is accepted on the way in and stored as its key.
+    default_value: str | None = Field(default=None, max_length=200)
     visibility_condition: str | None = None
     condition: str | None = None
     # The register's English sentence about the rule, shown as help text.
@@ -473,6 +476,8 @@ class PlacementUpdate(BaseModel):
     requirement: str | None = Field(default=None, max_length=20)
     required_on_skip: bool | None = None
     required_on_create: bool | None = None
+    # Pick List only; null clears it. See FieldBase.default_value.
+    default_value: str | None = Field(default=None, max_length=200)
     visibility_condition: str | None = None
     condition: str | None = None
     value_mode: str | None = Field(default=None, max_length=20)

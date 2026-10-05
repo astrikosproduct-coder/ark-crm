@@ -1,5 +1,5 @@
 {
- "$note": "The field register AS ACCEPTED. Frozen from the database for go-live on 21 Sep 2026 (the user accepted the 185 post-cutover changes then reported), and re-frozen on 25 Sep 2026 for metadata v2 — 190 planned differences: the 39 Deal Registration, Conflict and Scorecard fields moved to their own modules, the 52 read-through fields' section renamed From the Lead, and the Deal's End Client shown live from the Lead. The fixed 'before' side of test_parity.py: any field that differs from this without a deliberate re-freeze is a regression. Re-freeze only as a decision (freeze_parity_baseline.py --from-database --replace).",
+ "$note": "The field register AS ACCEPTED. Frozen from the database for go-live on 21 Sep 2026 (the user accepted the 185 post-cutover changes then reported), and re-frozen on 25 Sep 2026 for metadata v2 — 190 planned differences: the 39 Deal Registration, Conflict and Scorecard fields moved to their own modules, the 52 read-through fields' section renamed From the Lead, and the Deal's End Client shown live from the Lead. The fixed 'before' side of test_parity.py: any field that differs from this without a deliberate re-freeze is a regression. Re-freeze only as a decision (freeze_parity_baseline.py --from-database --replace). Accepted on 5 Oct 2026 (Setup 4d, asked for by the user): Accounts Phone became a Phone field with the country codes, as Contacts Phone and Mobile already were.",
  "generated_by": "backend/freeze_parity_baseline.py --from-database",
  "field_count": 682,
  "by_module": {
@@ -177,13 +177,13 @@
    "order": 8,
    "api_name": "phone",
    "label": "Phone",
-   "type": "text",
+   "type": "phone",
    "capture_stage": null,
    "capture_any_stage": false,
    "mandatory_from": null,
    "blocks_transition": null,
    "requirement": "Optional",
-   "picklist": null,
+   "picklist": "contacts__dial_code",
    "max_length": 30,
    "lookup_target": null,
    "visibility_condition": null,

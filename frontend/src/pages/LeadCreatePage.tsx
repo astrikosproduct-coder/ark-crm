@@ -46,10 +46,10 @@ export function LeadCreatePage() {
     () => ({
       project_stage: stageKeyOf(0),
       lead_status: 'OPEN',
-      // Defaults the user can change (14 Sep 2026). The server applies the
-      // same three to a lead created any other way — from a registration, or
-      // an expansion off a Deal — see create_lead in app/routers/leads.py.
-      currency: 'USD',
+      // Currency is not seeded here any more: its starting value is the
+      // field's default in Setup (4d), which every create form reads
+      // (defaultValuesOf) and the server applies to a lead created any other
+      // way — from a registration, or an expansion off a Deal.
       is_primary_pursuit: true,
       // Probability %/Progression % are NOT seeded here — the server gives
       // the Lead its stage's pair when it is created (app/progression.py).

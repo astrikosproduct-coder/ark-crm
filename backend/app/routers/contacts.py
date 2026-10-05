@@ -13,6 +13,7 @@ from ..list_query import run_list_query
 from ..audit import record_audit
 from ..record_references import records_naming_contact
 from ..custom_fields import apply_write, extras_of, merge_into_row, resolve_write
+from ..register_defaults import apply_defaults
 from ..thresholds import check_thresholds
 from ..ids import next_reference_id
 from ..models import Account, Contact, User
@@ -160,6 +161,7 @@ def create_contact(
             extras=extras_of(payload),
         ),
     )
+    apply_defaults(db, "contacts", contact)
     record_audit(
         db,
         module="contacts",

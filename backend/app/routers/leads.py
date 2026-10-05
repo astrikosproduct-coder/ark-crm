@@ -14,6 +14,7 @@ from ..clock import days_since, now_utc
 from ..database import get_db
 from ..audit import record_audit
 from ..custom_fields import apply_write, extras_of, merge_into_row, resolve_write
+from ..register_defaults import apply_defaults
 from ..ids import next_reference_id
 from ..lead_deletion import delete_lead_and_linked, deletion_plan
 from ..pursuits import (
@@ -381,11 +382,11 @@ def insert_lead(payload: LeadCreate, db: Session, user: User) -> Lead:
     # the user changes them afterwards (14 Sep 2026). Only a blank is filled.
     # A lead with no currency counted as $0 in every pipeline total
     # (app/revenue.py flags it no_currency): that is how leads created from a
-    # registration went missing from the dashboard.
+    # registration went missing from the dashboard. Currency's starting value
+    # is the register's default since Setup 4d — set in Setup, not here.
     if not lead.lead_status:
         lead.lead_status = "OPEN"
-    if not lead.currency:
-        lead.currency = "USD"
+    apply_defaults(db, "leads", lead)
     if lead.currency == "USD" and lead.fx_rate_at_entry is None:
         lead.fx_rate_at_entry = 1
 

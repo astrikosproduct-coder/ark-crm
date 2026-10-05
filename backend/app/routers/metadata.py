@@ -926,6 +926,7 @@ def _serialise_placement(
         "required": placement.requirement == "Mandatory",
         "required_on_skip": placement.required_on_skip,
         "required_on_create": bool(placement.required_on_create),
+        "default_value": placement.default_value,
         "visibility_condition": placement.visibility_condition,
         "condition": placement.condition,
         "value_mode": placement.value_mode,
@@ -1083,6 +1084,114 @@ def _generated_api_name(db: Session, module_key: str, label: str) -> str:
     return name
 
 
+# ------------------------------------------------------- country codes
+
+#: The Global Set every Phone field takes its country codes from (Setup
+#: rebuild, 4d). The phone box splits a stored "+971 50 123 4567" on these
+#: KEYS (components/form/PhoneInput.tsx), so here a key is the code itself —
+#: "+49", read from the "(+49)" a person writes in the label — never one made
+#: from the label the way every other choice's is.
+DIAL_CODE_SET = "contacts__dial_code"
+_DIAL_CODE = re.compile(r"\(\s*(\+\d{1,4})\s*\)")
+
+
+def _dial_code_of(label: str) -> str:
+    match = _DIAL_CODE.search(label or "")
+    if match is None:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            refusal(
+                "DIAL_CODE_MISSING",
+                "Add the country's code in brackets.",
+                ["For example: Germany (+49)."],
+            ),
+        )
+    return match.group(1)
+
+
+def _dial_code_set(db: Session, asked: str | None) -> str | None:
+    """A Phone field's list: always the country codes, whatever was sent."""
+    return DIAL_CODE_SET if db.get(Picklist, DIAL_CODE_SET) is not None else asked
+
+
+# ------------------------------------------------------- default value
+
+
+def _default_for(
+    db: Session, field_type: str, picklist_key: str | None, value: str | None
+) -> str | None:
+    """
+    A Pick List's default, as the key of one of its active choices — or None.
+
+    Zoho offers "Select default value" on a Pick List only, and so does Setup
+    (decided 1 Oct 2026: not a multiselect). A label is accepted too, because a
+    field created with its own new choices does not know their keys yet.
+    """
+    if value is None or not str(value).strip():
+        return None
+    if field_type != "picklist":
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            refusal(
+                "DEFAULT_PICK_LIST_ONLY",
+                "Only a Pick List can have a default value.",
+                ["Clear the default, or change the field to a Pick List."],
+            ),
+        )
+    text = str(value).strip()
+    choices = list(
+        db.scalars(
+            select(PicklistValue).where(
+                PicklistValue.picklist_key == picklist_key,
+                PicklistValue.active.is_(True),
+            )
+        )
+    )
+    match = next((v for v in choices if v.key == text), None) or next(
+        (v for v in choices if v.label.strip().lower() == text.lower()), None
+    )
+    if match is None:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            refusal(
+                "DEFAULT_NOT_A_CHOICE",
+                "The default has to be one of the field's choices.",
+                ["Pick it from the list, then save again."],
+            ),
+        )
+    return match.key
+
+
+def _drop_stale_defaults(db: Session, definitions: list[FieldDefinition]) -> None:
+    """
+    Clear a default that no longer names a live choice — the field stopped
+    being a Pick List, moved to another list, or the choice was switched off.
+    A new record then simply starts empty, as it would have with no default.
+    """
+    for definition in definitions:
+        placements = list(
+            db.scalars(
+                select(FieldPlacement).where(
+                    FieldPlacement.definition_id == definition.id,
+                    FieldPlacement.default_value.is_not(None),
+                )
+            )
+        )
+        if not placements:
+            continue
+        live = set(
+            db.scalars(
+                select(PicklistValue.key).where(
+                    PicklistValue.picklist_key == definition.picklist_key,
+                    PicklistValue.active.is_(True),
+                )
+            )
+        )
+        for placement in placements:
+            if definition.field_type != "picklist" or placement.default_value not in live:
+                placement.default_value = None
+
+
 def _choice_key(label: str, taken: set[str]) -> str:
     """PARTNER_SOURCED from "Partner-sourced" — the register's own convention."""
     base = re.sub(r"[^A-Za-z0-9]+", "_", label).strip("_").upper()[:110] or "CHOICE"
@@ -1225,6 +1334,8 @@ def create_field(payload: FieldCreate, db: Session = Depends(get_db)):
     _check_local_picklist(db, payload.picklist_key)
     if payload.new_picklist is not None:
         _check_new_picklist_request(payload.field_type, payload.picklist_key)
+    if payload.field_type == "phone":
+        payload.picklist_key = _dial_code_set(db, payload.picklist_key)
 
     definition_scope, placement_scope = _scope_for(db, payload.module_key)
     # Made from the label unless a script names it (4a). Generated names are
@@ -1258,6 +1369,8 @@ def create_field(payload: FieldCreate, db: Session = Depends(get_db)):
         )
 
     data = payload.model_dump(exclude_unset=True)
+    if payload.field_type == "phone":
+        data["picklist_key"] = payload.picklist_key
     capture_stage = _derive_capture_stage(
         db, section, payload.module_key, data.get("capture_stage")
     )
@@ -1267,6 +1380,9 @@ def create_field(payload: FieldCreate, db: Session = Depends(get_db)):
         data["picklist_key"] = _own_picklist_for(
             db, payload.module_key, payload.api_name, payload.label, payload.new_picklist
         )
+    default_value = _default_for(
+        db, payload.field_type, data.get("picklist_key"), data.get("default_value")
+    )
 
     definition = FieldDefinition(
         scope_key=definition_scope,
@@ -1309,6 +1425,7 @@ def create_field(payload: FieldCreate, db: Session = Depends(get_db)):
         requirement=payload.requirement,
         required_on_skip=data.get("required_on_skip"),
         required_on_create=bool(data.get("required_on_create") or False),
+        default_value=default_value,
         visibility_condition=data.get("visibility_condition"),
         condition=data.get("condition"),
         # A field created here has no typed column and is never getting one —
@@ -1461,6 +1578,8 @@ def update_field(
     """
     definition = _definition_or_404(db, definition_id)
     data = payload.model_dump(exclude_unset=True)
+    if data.get("field_type", definition.field_type) == "phone" and "new_picklist" not in data:
+        data["picklist_key"] = _dial_code_set(db, data.get("picklist_key", definition.picklist_key))
     _check_field_definition(
         db, data.get("field_type"), data.get("requirement"), data.get("picklist_key")
     )
@@ -1527,6 +1646,7 @@ def update_field(
         "blocks_transition",
         "required_on_skip",
         "required_on_create",
+        "default_value",
         "visibility_condition",
         "condition",
     }
@@ -1544,6 +1664,7 @@ def update_field(
             },
         )
 
+    _drop_stale_defaults(db, [definition])
     db.commit()
     db.refresh(definition)
     return get_field(definition_id, db)
@@ -1599,6 +1720,20 @@ def update_placement(
 
     if "anchor_field" in data or "anchor_position" in data:
         _apply_anchor(db, placement, data)
+
+    if "default_value" in data:
+        if placement.value_mode == "read_through" and data["default_value"]:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                refusal(
+                    "DEFAULT_NOT_HERE",
+                    "This field belongs to an earlier module.",
+                    ["Set its default there."],
+                ),
+            )
+        placement.default_value = _default_for(
+            db, definition.field_type, definition.picklist_key, data["default_value"]
+        )
 
     for attr in (
         "sort_order",
@@ -2223,6 +2358,17 @@ def update_picklist(
     """
     picklist = _picklist_or_404(db, picklist_key)
     changes = payload.model_dump(exclude_unset=True)
+    if picklist_key == DIAL_CODE_SET and (
+        changes.get("active") is False or changes.get("is_global") is False
+    ):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            refusal(
+                "DIAL_CODE_SET_NEEDED",
+                "Every phone number uses this list, so it has to stay.",
+                ["You can switch off the codes you don't need."],
+            ),
+        )
     if picklist.is_global and changes.get("is_global") is False:
         users = db.scalar(
             select(func.count())
@@ -2283,8 +2429,21 @@ def create_picklist_value(payload: PicklistValueCreate, db: Session = Depends(ge
             ),
         )
     # Zoho asks only for the choice; its key is made from the label unless a
-    # caller names one.
-    key = payload.key or _choice_key(payload.label, {v.key for v in existing})
+    # caller names one. A country code's key is the code — see DIAL_CODE_SET.
+    if payload.picklist_key == DIAL_CODE_SET:
+        key = _dial_code_of(payload.label)
+        repeated = next((v for v in existing if v.key == key), None)
+        if repeated is not None:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                refusal(
+                    "DIAL_CODE_REPEATED",
+                    f"{key} is already in the list, as {repeated.label}.",
+                    ["Rename that one, or switch it back on if it is off."],
+                ),
+            )
+    else:
+        key = payload.key or _choice_key(payload.label, {v.key for v in existing})
     clash = next((v for v in existing if v.key == key), None)
     if clash is not None:
         raise HTTPException(
@@ -2326,6 +2485,19 @@ def update_picklist_value(
     """
     value = _value_or_404(db, value_id)
     changes = payload.model_dump(exclude_unset=True)
+    if value.picklist_key == DIAL_CODE_SET and changes.get("label") is not None:
+        if _dial_code_of(changes["label"]) != value.key:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                refusal(
+                    "DIAL_CODE_FIXED",
+                    f"The code stays {value.key} once it is added.",
+                    [
+                        f"Keep ({value.key}) in the name.",
+                        "For a different code, add it as a new choice.",
+                    ],
+                ),
+            )
     if value.is_system and changes.get("active") is False:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
@@ -2340,6 +2512,18 @@ def update_picklist_value(
         )
     for name, attr in changes.items():
         setattr(value, name, attr)
+    if changes.get("active") is False:
+        db.flush()
+        _drop_stale_defaults(
+            db,
+            list(
+                db.scalars(
+                    select(FieldDefinition).where(
+                        FieldDefinition.picklist_key == value.picklist_key
+                    )
+                )
+            ),
+        )
     db.commit()
     db.refresh(value)
     return PicklistValueOut.model_validate(value)

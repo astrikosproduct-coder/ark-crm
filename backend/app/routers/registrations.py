@@ -13,6 +13,7 @@ from ..database import get_db
 from ..list_query import run_list_query
 from starlette.datastructures import QueryParams
 from ..custom_fields import apply_write, extras_of, merge_into_row, resolve_write
+from ..register_defaults import apply_defaults
 from ..ids import next_reference_id
 from ..models import Account, DealRegistration, Lead, User
 from ..registration_matching import (
@@ -224,9 +225,8 @@ def create_registration(
     for name in REGISTRATION_SCALARS:
         setattr(reg, name, getattr(payload, name))
     reg.not_conflict_with = []
-    # USD unless the user picked another — the same starting value a Lead gets.
-    if not reg.currency:
-        reg.currency = "USD"
+    # Starting values from the register (Setup 4d) — Currency, as on a Lead.
+    apply_defaults(db, "registrations", reg)
 
     stamped_at = now_utc()
     reg.created_by = user.user_id

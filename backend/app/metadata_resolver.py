@@ -106,6 +106,9 @@ FIELD_JSON_KEYS: tuple[str, ...] = (
 #                       sentence about the same rule and is shown beside it
 #   min_value           inclusive bounds on a number field (0023), null when
 #   max_value           unbounded on that side
+#   default_value       a Pick List's starting choice, by key (0042). Written
+#                       only when set, so fields.json grows by one key per
+#                       field that has one rather than one per field
 RESOLVED_KEYS: tuple[str, ...] = (
     "value_mode",
     "value_locked",
@@ -121,6 +124,7 @@ RESOLVED_KEYS: tuple[str, ...] = (
     "computed_expr",
     "min_value",
     "max_value",
+    "default_value",
 )
 
 
@@ -264,7 +268,7 @@ def field_row(
     else:
         source, via = None, None
 
-    return {
+    row = {
         "module": placement.module_key,
         "section": section_label,
         "order": placement.sort_order,
@@ -306,6 +310,9 @@ def field_row(
         "stage_scoped": placement.stage_scoped,
         "computed_expr": definition.computed_expr,
     }
+    if placement.default_value is not None:
+        row["default_value"] = placement.default_value
+    return row
 
 
 def resolved_fields(

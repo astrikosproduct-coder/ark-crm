@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { ChevronDownIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -20,6 +21,7 @@ import { PIPELINE_MODULES, fields as publishedFields, parentModuleOf } from '@/l
 import { errorMessage } from '@/lib/admin'
 import { cn } from '@/lib/utils'
 import {
+  COUNTRY_CODE_SET,
   FIELD_TYPES,
   REQUIREMENTS,
   choiceLines,
@@ -67,6 +69,22 @@ import {
  * typed column; a field created here lives in custom_fields JSONB and is never
  * getting a column, because that would be an ALTER TABLE issued from an admin
  * screen. It is a fact about the field, not a choice — so it reads as one.
+ *
+ * ZOHO'S PROPERTIES DIALOG, ONE PER TYPE (Setup rebuild, 4d, 5 Oct 2026)
+ * ------------------------------------------------------------------------
+ * Titled by the type — "Pick List Properties" — and showing only what that
+ * type has: the label; the number of characters for text; the choices and the
+ * DEFAULT VALUE for a Pick List; min and max for a number; what a lookup looks
+ * up; the expression, with an Insert field picker, for a formula. Then
+ * Required, the stage it belongs to (pipeline modules only), the rules and the
+ * tooltip. Everything a person rarely touches — where it draws beside another
+ * field, how its value behaves, changing its type, showing it on a later
+ * module — is under "More properties", closed. Only properties the register
+ * stores are offered; Zoho's others (no duplicates, encryption) are not
+ * invented here.
+ *
+ * Opened from the layout editor there is no Section box: there, a field is
+ * placed by dragging it, and a box here would fight the editor's own Save.
  */
 
 interface Props {
@@ -79,6 +97,11 @@ interface Props {
   sectionId?: number
   /** Preselected type when adding — the type dropped from the layout's palette. */
   fieldType?: string
+  /**
+   * Opened from the layout editor, which places fields by dragging: no Section
+   * box, and an edit never sends a section (the editor's Save decides it).
+   */
+  fromLayout?: boolean
 }
 
 /**
@@ -113,6 +136,8 @@ interface FormState {
   capture_any_stage: boolean
   /** Needed from a new record's first save — pipeline modules only. */
   required_on_create: boolean
+  /** A Pick List's default: a choice's key, or its label for choices not saved yet. */
+  default_value: string
   // ---- where it draws
   anchor_field: string
   anchor_position: 'after' | 'beside'
@@ -145,6 +170,7 @@ const EMPTY: FormState = {
   use_case: '',
   capture_any_stage: false,
   required_on_create: false,
+  default_value: '',
   anchor_field: '',
   anchor_position: 'after',
   layout_span: '',
@@ -169,7 +195,15 @@ function lookupTargets(current: string): string[] {
 const orNull = (value: string) => (value.trim() === '' ? null : value.trim())
 const numberOrNull = (value: string) => (value.trim() === '' ? null : Number(value))
 
-export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId, fieldType }: Props) {
+export function FieldDialog({
+  open,
+  onOpenChange,
+  moduleKey,
+  field,
+  sectionId,
+  fieldType,
+  fromLayout = false,
+}: Props) {
   const isEdit = Boolean(field)
   const { data: sections = [] } = useMetadataSections(moduleKey)
   const { data: picklists = [] } = useMetadataPicklists()
@@ -191,6 +225,10 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId, f
   // A field with no list of its own yet: its choices, one per line.
   const [newChoices, setNewChoices] = useState('')
   const [applyToAll, setApplyToAll] = useState(false)
+  // "More properties" — closed each time the dialog opens.
+  const [moreOpen, setMoreOpen] = useState(false)
+  // The formula box, so Insert field can put a name where the cursor is.
+  const exprRef = useRef<HTMLInputElement>(null)
   /**
    * Are the two rules the same rule?
    *
@@ -295,6 +333,7 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId, f
     setNotPublished(null)
     setChoiceSource(null)
     setNewChoices('')
+    setMoreOpen(false)
     if (field) {
       setForm({
         section_id: field.section_id,
@@ -318,6 +357,7 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId, f
         use_case: field.use_case ?? '',
         capture_any_stage: field.capture_any_stage,
         required_on_create: field.required_on_create ?? false,
+        default_value: field.default_value ?? '',
         anchor_field: field.anchor_field ?? '',
         anchor_position: field.anchor_position ?? 'after',
         layout_span: field.layout_span ?? '',
@@ -372,6 +412,21 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId, f
       ? Boolean(chosenSet)
       : Boolean(ownList) || typedChoices.length > 0 || isEdit)
   const needsLookup = form.field_type === 'lookup'
+  const isPickList = form.field_type === 'picklist'
+  /**
+   * What the default can be: the list's active choices, by key — or, for
+   * choices typed here and not saved yet, by label (the server turns a label
+   * into its choice's key). Changing the list clears a default it no longer has.
+   */
+  const defaultChoices: { value: string; label: string }[] = !isPickList
+    ? []
+    : source === 'global'
+      ? (chosenSet?.values ?? []).filter((v) => v.active).map((v) => ({ value: v.key, label: v.label }))
+      : ownList
+        ? ownList.values.filter((v) => v.active).map((v) => ({ value: v.key, label: v.label }))
+        : typedChoices.map((label) => ({ value: label, label }))
+  const defaultValue = defaultChoices.some((c) => c.value === form.default_value) ? form.default_value : ''
+  const textual = ['text', 'longtext', 'richtext', 'email', 'url'].includes(form.field_type)
   const moduleLabel = modules.find((m) => m.module_key === moduleKey)?.label ?? moduleKey
   const isNumeric = ['number', 'currency', 'percent'].includes(form.field_type)
 
@@ -391,6 +446,20 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId, f
   })()
 
   const isPipeline = PIPELINE_MODULES.includes(moduleKey)
+
+  /** Put a field's name into the formula where the cursor is. */
+  const insertIntoFormula = (apiName: string) => {
+    const box = exprRef.current
+    const text = form.computed_expr
+    const start = box?.selectionStart ?? text.length
+    const end = box?.selectionEnd ?? text.length
+    const next = `${text.slice(0, start)}${apiName}${text.slice(end)}`
+    set('computed_expr', next)
+    requestAnimationFrame(() => {
+      box?.focus()
+      box?.setSelectionRange(start + apiName.length, start + apiName.length)
+    })
+  }
 
   const payload = {
     section_id: form.section_id ?? undefined,
@@ -413,6 +482,7 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId, f
     description: form.description,
     use_case: form.use_case,
     required_on_create: isPipeline && form.required_on_create,
+    default_value: isPickList ? orNull(defaultValue) : null,
   }
 
   /**
@@ -487,8 +557,10 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId, f
   // the first save, a converted Opportunity is created from the Lead.
   const placementPatch = {
     ...sharedPlacementPatch,
-    section_id: payload.section_id,
+    // From the layout editor the section is the editor's to decide.
+    ...(fromLayout ? {} : { section_id: payload.section_id }),
     required_on_create: payload.required_on_create,
+    default_value: payload.default_value,
   }
 
   const submit = async (andPublish = false) => {
@@ -566,7 +638,9 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId, f
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Edit field' : 'Add field'}</DialogTitle>
+          <DialogTitle>
+            {isEdit ? `${typeLabel(form.field_type)} Properties` : `New ${typeLabel(form.field_type)} Field`}
+          </DialogTitle>
           <DialogDescription>
             {isEdit
               ? 'Changes go to the draft. Publish to put them in front of anyone.'
@@ -575,76 +649,62 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId, f
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2 grid gap-1.5">
-              <Label htmlFor="label">Label</Label>
+          <div className={cn('grid gap-3', fromLayout ? 'grid-cols-1' : 'grid-cols-3')}>
+            <div className={cn('grid gap-1.5', !fromLayout && 'col-span-2')}>
+              <Label htmlFor="label">Field Label</Label>
               <Input
                 id="label"
                 value={form.label}
                 placeholder="Licence Model"
                 onChange={(e) => set('label', e.target.value)}
               />
-              <p className="text-muted-foreground text-xs">What a user sees on the form.</p>
             </div>
+            {!fromLayout && (
+              <div className="grid gap-1.5">
+                <Label htmlFor="section">Section</Label>
+                <select
+                  id="section"
+                  className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
+                  value={form.section_id ?? ''}
+                  onChange={(e) => set('section_id', Number(e.target.value))}
+                >
+                  {sections.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="section">Section</Label>
-              <select
-                id="section"
-                className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
-                value={form.section_id ?? ''}
-                onChange={(e) => set('section_id', Number(e.target.value))}
-              >
-                {sections.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
+          {/* ---- WHAT THIS TYPE HAS ------------------------------------- */}
+          {textual && (
+            <div className="grid w-1/3 gap-1.5">
+              <Label htmlFor="max_length">Number of characters allowed</Label>
+              <Input
+                id="max_length"
+                inputMode="numeric"
+                value={form.max_length}
+                placeholder="No limit"
+                onChange={(e) => set('max_length', e.target.value)}
+              />
             </div>
+          )}
 
-            <div className="grid gap-1.5">
-              <Label htmlFor="type">Type</Label>
-              <select
-                id="type"
-                className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
-                value={form.field_type}
-                onChange={(e) => set('field_type', e.target.value)}
-              >
-                {FIELD_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {typeLabel(t)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid gap-1.5">
-              <Label htmlFor="requirement">Requirement</Label>
-              <select
-                id="requirement"
-                className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
-                value={form.requirement}
-                onChange={(e) => set('requirement', e.target.value)}
-              >
-                {REQUIREMENTS.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-              <p className="text-muted-foreground text-xs">
-                Form validation only. Never the column's nullability.
-              </p>
-            </div>
-          </div>
+          {form.field_type === 'phone' && (
+            <p className="text-muted-foreground text-xs">
+              The country code in front of the number comes from{' '}
+              <strong>{picklists.find((p) => p.picklist_key === COUNTRY_CODE_SET)?.label ?? 'the country codes'}</strong>{' '}
+              under Global Sets. Every phone field uses the same list; the first code is the one a new
+              number starts with.
+            </p>
+          )}
 
           {needsPicklist && (
             <div className="grid gap-1.5">
               <div className="flex items-center gap-2">
-                <Label>Choices</Label>
+                <Label>{isPickList ? 'Pick List Options' : 'Options'}</Label>
                 <div className="ml-auto flex gap-1">
                   {(['own', 'global'] as const).map((option) => (
                     <Button
@@ -718,12 +778,35 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId, f
                   )}
                 </>
               )}
+
+              {/* Zoho's "Select default value" — Pick List only (1 Oct 2026). */}
+              {isPickList && (
+                <div className="mt-1 grid w-1/2 gap-1.5">
+                  <Label htmlFor="default_value">Default value</Label>
+                  <select
+                    id="default_value"
+                    className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
+                    value={defaultValue}
+                    onChange={(e) => set('default_value', e.target.value)}
+                  >
+                    <option value="">None</option>
+                    {defaultChoices.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-muted-foreground text-xs">
+                    A new record starts with this choice. It can be changed before saving.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
           {needsLookup && (
-            <div className="grid gap-1.5">
-              <Label htmlFor="lookup_target">Looks up</Label>
+            <div className="grid w-1/2 gap-1.5">
+              <Label htmlFor="lookup_target">Lookup Module</Label>
               <select
                 id="lookup_target"
                 className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
@@ -743,9 +826,9 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId, f
           {/* Both inclusive: 1 and 10 allow 1 and 10. Checked on screen and
               refused by the API on save. */}
           {isNumeric && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="grid gap-1.5">
-                <Label htmlFor="min_value">Min value</Label>
+                <Label htmlFor="min_value">Minimum value</Label>
                 <Input
                   id="min_value"
                   inputMode="decimal"
@@ -755,7 +838,7 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId, f
                 />
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="max_value">Max value</Label>
+                <Label htmlFor="max_value">Maximum value</Label>
                 <Input
                   id="max_value"
                   inputMode="decimal"
@@ -767,90 +850,136 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId, f
             </div>
           )}
 
-          <div className="grid grid-cols-4 gap-3">
+          {form.field_type === 'computed' && (
             <div className="grid gap-1.5">
-              <Label htmlFor="max_length">Max length</Label>
+              <div className="flex items-end gap-2">
+                <Label htmlFor="computed_expr">Formula</Label>
+                <select
+                  aria-label="Insert field"
+                  className="border-input bg-input-bg ml-auto h-8 w-56 rounded-md border px-2 text-xs"
+                  value=""
+                  onChange={(e) => e.target.value && insertIntoFormula(e.target.value)}
+                >
+                  <option value="">Insert field…</option>
+                  {anchorCandidates
+                    .filter((f) => f.value_mode !== 'read_through')
+                    .sort((a, b) => a.label.localeCompare(b.label))
+                    .map((f) => (
+                      <option key={f.placement_id} value={f.api_name}>
+                        {f.label}
+                      </option>
+                    ))}
+                </select>
+              </div>
               <Input
-                id="max_length"
-                value={form.max_length}
-                onChange={(e) => set('max_length', e.target.value)}
+                id="computed_expr"
+                ref={exprRef}
+                className="font-mono text-xs"
+                value={form.computed_expr}
+                placeholder="Pick fields from Insert field, joined with + − × ÷"
+                onChange={(e) => set('computed_expr', e.target.value)}
               />
+              <p className="text-muted-foreground text-xs">
+                What the CRM works out. A formula with nothing here shows an empty box on every record.
+              </p>
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="capture_stage">Capture stage</Label>
-              <Input
-                id="capture_stage"
-                value={form.capture_stage}
-                placeholder={derivedStage !== null ? String(derivedStage) : undefined}
-                onChange={(e) => set('capture_stage', e.target.value)}
-              />
-              {derivedStage !== null && form.capture_stage.trim() === '' && (
-                <p className="text-muted-foreground text-xs">
-                  Will be set to {derivedStage}, from the section. A field in a stage
-                  section without one renders on no screen.
-                </p>
-              )}
+          )}
+
+          {/* ---- REQUIRED ----------------------------------------------- */}
+          <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
+            <div className="grid w-44 gap-1.5">
+              <Label htmlFor="requirement">Required</Label>
+              <select
+                id="requirement"
+                className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
+                value={form.requirement}
+                onChange={(e) => set('requirement', e.target.value)}
+              >
+                {REQUIREMENTS.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="mandatory_from">Mandatory from</Label>
-              <Input
-                id="mandatory_from"
-                value={form.mandatory_from}
-                onChange={(e) => set('mandatory_from', e.target.value)}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="blocks_transition">Blocks</Label>
-              <Input
-                id="blocks_transition"
-                value={form.blocks_transition}
-                placeholder="4 → 5"
-                onChange={(e) => set('blocks_transition', e.target.value)}
-              />
-            </div>
+            {/* On Leads, Opportunities and Deals a required field is asked for
+                when a record LEAVES the field's stage. Ticked, it is needed from
+                the very first save as well — a Lead's name, its End Client. */}
+            {isPipeline && (
+              <label className="flex items-start gap-2 pb-1 text-sm">
+                <Checkbox
+                  className="mt-0.5"
+                  checked={form.required_on_create}
+                  onCheckedChange={(v) => set('required_on_create', v === true)}
+                />
+                <span>
+                  Required when creating
+                  <span className="text-muted-foreground block text-xs">
+                    Only while the field is required.
+                  </span>
+                </span>
+              </label>
+            )}
           </div>
 
-          {/* A required field on Leads, Opportunities or Deals is asked for
+          {/* ---- STAGE (pipeline modules only) ----------------------------
+              A required field on Leads, Opportunities or Deals is asked for
               when a record leaves the field's stage. With no stage at all it
               is asked for at EVERY stage move (app/requirements.py) — rarely
               what anyone means, so it is said before publishing. */}
-          {/* On Leads, Opportunities and Deals a required field is asked for
-              when a record LEAVES the field's stage. Ticked, it is needed from
-              the very first save as well — a Lead's name, its End Client. */}
           {isPipeline && (
-            <label className="flex items-start gap-2 text-sm">
-              <Checkbox
-                className="mt-0.5"
-                checked={form.required_on_create}
-                onCheckedChange={(v) => set('required_on_create', v === true)}
-              />
-              <span>
-                Required when creating
-                <span className="text-muted-foreground block text-xs">
-                  A new record can't be saved without it. Only applies while the field is required.
-                </span>
-              </span>
-            </label>
+            <div className="grid gap-2">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="capture_stage">Capture stage</Label>
+                  <Input
+                    id="capture_stage"
+                    value={form.capture_stage}
+                    placeholder={derivedStage !== null ? String(derivedStage) : undefined}
+                    onChange={(e) => set('capture_stage', e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="mandatory_from">Mandatory from</Label>
+                  <Input
+                    id="mandatory_from"
+                    value={form.mandatory_from}
+                    onChange={(e) => set('mandatory_from', e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="blocks_transition">Blocks</Label>
+                  <Input
+                    id="blocks_transition"
+                    value={form.blocks_transition}
+                    placeholder="4 → 5"
+                    onChange={(e) => set('blocks_transition', e.target.value)}
+                  />
+                </div>
+              </div>
+              {derivedStage !== null && form.capture_stage.trim() === '' && (
+                <p className="text-muted-foreground text-xs">
+                  Will be set to {derivedStage}, from the section.
+                </p>
+              )}
+              {(form.requirement === 'Mandatory' || form.requirement === 'Conditional') &&
+                derivedStage === null &&
+                !form.capture_stage.trim() &&
+                !form.mandatory_from.trim() &&
+                !form.blocks_transition.trim() && (
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    Set a stage, or this field is asked for at every stage move.
+                  </p>
+                )}
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={form.capture_any_stage}
+                  onCheckedChange={(v) => set('capture_any_stage', v === true)}
+                />
+                Editable at any stage
+              </label>
+            </div>
           )}
-
-          {isPipeline &&
-            (form.requirement === 'Mandatory' || form.requirement === 'Conditional') &&
-            derivedStage === null &&
-            !form.capture_stage.trim() &&
-            !form.mandatory_from.trim() &&
-            !form.blocks_transition.trim() && (
-              <p className="text-xs text-amber-700 dark:text-amber-400">
-                Set a stage, or this field is asked for at every stage move.
-              </p>
-            )}
-
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox
-              checked={form.capture_any_stage}
-              onCheckedChange={(v) => set('capture_any_stage', v === true)}
-            />
-            Editable at any stage
-          </label>
 
           {/* ---- RULES ---------------------------------------------------
               Two questions, asked together, because keeping them apart is what
@@ -886,7 +1015,7 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId, f
             {!demandWhenShown && (
               <RuleBuilder
                 label="Require an answer when…"
-                hint="A Conditional field with no rule here shows a box and lets the user save straight past it — no red asterisk, and the readiness panel does not count it."
+                hint="A Conditional field with no rule here shows a box and lets the user save straight past it."
                 value={form.condition}
                 onChange={(expr) => set('condition', expr)}
                 fields={anchorCandidates}
@@ -894,255 +1023,18 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId, f
               />
             )}
 
-            {form.requirement === 'Conditional' &&
-              form.condition.trim() === '' && (
-                <p className="text-destructive text-xs">
-                  This field is Conditional and nothing says when it is required. That is
-                  the exact state the six reason rows were in before Phase A: the box
-                  appears, and the form lets you save it empty.
-                </p>
-              )}
-          </div>
-
-
-          {form.field_type === 'computed' && (
-            <div className="grid gap-1.5">
-              <Label htmlFor="computed_expr">Expression</Label>
-              <Input
-                id="computed_expr"
-                value={form.computed_expr}
-                placeholder="one_time_cost + annual_recurring * 3"
-                onChange={(e) => set('computed_expr', e.target.value)}
-              />
-              <p className="text-muted-foreground text-xs">
-                What the engine evaluates. The <strong>Formula</strong> box above is the
-                register&rsquo;s sentence about the same rule, shown to the user as help
-                text &mdash; both appear on the field, and where they disagree the reviewer
-                sees it. A computed field with no expression renders a blank row forever.
-              </p>
-            </div>
-          )}
-
-          {/* ---- WHERE IT DRAWS ------------------------------------------ */}
-          <div className="grid gap-3 rounded-md border p-3">
-            <p className="text-section text-xs font-bold tracking-wide">WHERE IT DRAWS</p>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="anchor_field">Anchor to</Label>
-                <select
-                  id="anchor_field"
-                  className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
-                  value={form.anchor_field}
-                  onChange={(e) => set('anchor_field', e.target.value)}
-                >
-                  <option value="">&mdash; its own section, in order &mdash;</option>
-                  {anchorCandidates.map((f) => (
-                    <option key={f.placement_id} value={f.api_name}>
-                      {f.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="anchor_position">Position</Label>
-                <select
-                  id="anchor_position"
-                  className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
-                  disabled={form.anchor_field === ''}
-                  value={form.anchor_position}
-                  onChange={(e) =>
-                    set('anchor_position', e.target.value as FormState['anchor_position'])
-                  }
-                >
-                  <option value="after">after &mdash; directly beneath it</option>
-                  <option value="beside">beside &mdash; the next grid cell</option>
-                </select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="layout_span">Width</Label>
-                <select
-                  id="layout_span"
-                  className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
-                  value={form.layout_span}
-                  onChange={(e) => set('layout_span', e.target.value as FormState['layout_span'])}
-                >
-                  <option value="">auto &mdash; whatever the type takes</option>
-                  <option value="half">half row</option>
-                  <option value="full">full row</option>
-                </select>
-              </div>
-            </div>
-            <p className="text-muted-foreground text-xs">
-              Section says what <em>kind</em> of field this is. An anchor says where it goes
-              &mdash; beside the question it answers, wherever that question happens to be,
-              even in another section. A conditional field has to be in the same form as its
-              trigger, or the box cannot appear until after a save.
-            </p>
-          </div>
-
-          {/* ---- HOW ITS VALUE BEHAVES ----------------------------------- */}
-          <div className="grid gap-3 rounded-md border p-3">
-            <p className="text-section text-xs font-bold tracking-wide">
-              HOW ITS VALUE BEHAVES
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                {/* Not a choice any more (metadata v2): what a conversion copies is
-                    Conversion mapping, and a field shown from an earlier module is
-                    added from that module's own field, below. */}
-                <Label>Opening value</Label>
-                <p className="border-input bg-muted/40 flex h-9 items-center rounded-md border px-2 text-sm">
-                  {form.value_mode === 'read_through'
-                    ? 'Shown from an earlier module'
-                    : form.value_mode === 'carry_forward'
-                      ? 'Copied at conversion'
-                      : 'Starts empty'}
-                </p>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="stage_scoped">Recorded</Label>
-                <select
-                  id="stage_scoped"
-                  className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
-                  value={form.stage_scoped}
-                  onChange={(e) =>
-                    set('stage_scoped', e.target.value as FormState['stage_scoped'])
-                  }
-                >
-                  <option value="none">once per record</option>
-                  <option value="carry_forward">per stage, inheriting the last answer</option>
-                  <option value="sticky">per stage, never carried</option>
-                </select>
-              </div>
-            </div>
-
-            {form.value_mode === 'carry_forward' && (
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={form.value_locked}
-                  onCheckedChange={(v) => set('value_locked', v === true)}
-                />
-                Locked &mdash; the carried value may not be changed afterwards
-              </label>
-            )}
-
-            {form.stage_scoped !== 'none' && (
-              <p className="text-muted-foreground text-xs">
-                Per-stage values are stored as{' '}
-                <code>{(form.api_name || 'api_name') + '__s3'}</code>, one key per stage.{' '}
-                {form.stage_scoped === 'sticky'
-                  ? 'Never carried: a lead put on hold at Stage 1 and again at Stage 3 gives two different reasons, and the Stage 3 box opens empty.'
-                  : 'A stage with no answer of its own shows the nearest earlier one, and the plain name keeps holding the current answer for list columns.'}{' '}
-                Only pipeline modules have stages &mdash; the API refuses this elsewhere.
-              </p>
-            )}
-
-            {isEdit && (
-              <p className="text-muted-foreground text-xs">
-                <strong>Stored in:</strong>{' '}
-                {field?.storage === 'column'
-                  ? 'its own typed column — a register field keeps the column it has'
-                  : field?.storage === 'custom_fields'
-                    ? 'the custom_fields JSONB store — a field added here never gets a column, because that would be an ALTER TABLE issued from an admin screen'
-                    : 'nothing — a read-through field stores no value of its own'}
-                . Not a choice; a fact about the field.
+            {form.requirement === 'Conditional' && form.condition.trim() === '' && (
+              <p className="text-destructive text-xs">
+                This field is Conditional and nothing says when it is required. The box will appear,
+                and the form will let it be saved empty.
               </p>
             )}
           </div>
 
-          {isEdit && shared && (
-            <label className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-sm">
-              <Checkbox
-                className="mt-0.5"
-                checked={applyToAll}
-                onCheckedChange={(v) => setApplyToAll(v === true)}
-              />
-              <span>
-                Apply these to all {field?.module_count} placements of this field
-                <span className="text-muted-foreground block text-xs">
-                  {(detail?.placements ?? [])
-                    .filter((p) => p.status === 'active')
-                    .map((p) => p.module_key)
-                    .join(', ') || 'loading…'}
-                  . Everything above except <strong>Section</strong>, which names a row of
-                  one module&rsquo;s own section list.
-                </span>
-              </span>
-            </label>
-          )}
-
-
-          {isEdit && (
-            <div className="grid gap-2 rounded-md border p-3">
-              <p className="text-section text-xs font-bold tracking-wide">
-                SHOW FROM HERE ON A LATER MODULE
-              </p>
-              {alsoCandidates.length === 0 ? (
-                <p className="text-muted-foreground text-xs">
-                  {ownedHere
-                    ? 'No later module of the pipeline is left to show it.'
-                    : 'This field belongs to an earlier module. Change it there.'}
-                </p>
-              ) : (
-                <div className="flex flex-wrap items-end gap-2">
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="also_module">Module</Label>
-                    <select
-                      id="also_module"
-                      className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
-                      value={alsoModule}
-                      onChange={(e) => {
-                        setAlsoModule(e.target.value)
-                        setAlsoSectionId(null)
-                      }}
-                    >
-                      <option value="">&mdash; pick one &mdash;</option>
-                      {alsoCandidates.map((m) => (
-                        <option key={m.module_key} value={m.module_key}>
-                          {m.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="also_section">Section</Label>
-                    <select
-                      id="also_section"
-                      className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
-                      disabled={alsoModule === ''}
-                      value={alsoSectionId ?? ''}
-                      onChange={(e) => setAlsoSectionId(Number(e.target.value))}
-                    >
-                      <option value="">&mdash; pick one &mdash;</option>
-                      {alsoSections.map((sec) => (
-                        <option key={sec.id} value={sec.id}>
-                          {sec.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <Button
-                    variant="outline"
-                    disabled={
-                      alsoModule === '' || alsoSectionId === null || addPlacement.isPending
-                    }
-                    onClick={addAlso}
-                  >
-                    {addPlacement.isPending ? 'Adding…' : 'Show it there'}
-                  </Button>
-                </div>
-              )}
-              <p className="text-muted-foreground text-xs">
-                The later module shows this field read-only, live from here &mdash; it stores
-                nothing. For a value of its own, create a field on that module and copy into it
-                with Conversion mapping. Added immediately, not on Save.
-              </p>
-            </div>
-          )}
-
+          {/* ---- TOOLTIP ------------------------------------------------- */}
           <div className="grid gap-1.5">
             <div className="flex items-baseline justify-between gap-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">Tooltip</Label>
               {/* Counted down, not up, and only once it starts to matter. A
                   counter on an empty box is pressure to fill it; a counter at
                   200 of 255 is a useful warning that a fourth sentence will not
@@ -1162,37 +1054,282 @@ export function FieldDialog({ open, onOpenChange, moduleKey, field, sectionId, f
             </div>
             <Textarea
               id="description"
-              rows={3}
+              rows={2}
               maxLength={DESCRIPTION_MAX_LENGTH}
               value={form.description}
               onChange={(e) => set('description', e.target.value)}
             />
             <p className="text-muted-foreground text-xs">
-              What the field is, when to fill it, and what counts. Read on the form, in the export and in
-              the import template, so keep it to about three sentences.
+              What the field is and when to fill it — shown beside it, in the export and in the import
+              template. About three sentences.
             </p>
           </div>
 
-          <div className="grid gap-1.5">
-            <Label htmlFor="use_case">Use case</Label>
-            <Textarea
-              id="use_case"
-              rows={2}
-              value={form.use_case}
-              onChange={(e) => set('use_case', e.target.value)}
-            />
-          </div>
+          {/* ---- MORE PROPERTIES — closed: rarely touched ----------------- */}
+          <div className="rounded-md border">
+            <button
+              type="button"
+              className="flex w-full items-center gap-1.5 px-3 py-2 text-sm font-semibold"
+              onClick={() => setMoreOpen((v) => !v)}
+            >
+              <ChevronDownIcon className={cn('size-4 transition-transform', !moreOpen && '-rotate-90')} />
+              More properties
+            </button>
 
-          {field?.has_extension && (
-            <p className="text-muted-foreground rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs">
-              This field has an entry in <code>spec/extensions.json</code> &mdash; a
-              child-list shape, a lookup filter, or a recorded departure from the register
-              such as a type override. That file is hand-maintained and is{' '}
-              <strong>not</strong> regenerated, so changing the type here will not update it.
-              (Computed expressions moved out of that file and into the register in B2 &mdash;
-              the <strong>Expression</strong> box above is the one that counts.)
-            </p>
-          )}
+            {moreOpen && (
+              <div className="grid gap-4 border-t p-3">
+                {isEdit && (
+                  <div className="grid w-1/2 gap-1.5">
+                    <Label htmlFor="type">Field type</Label>
+                    <select
+                      id="type"
+                      className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
+                      value={form.field_type}
+                      onChange={(e) => set('field_type', e.target.value)}
+                    >
+                      {FIELD_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {typeLabel(t)}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-muted-foreground text-xs">
+                      Values already saved stay as they are. Check a few records after changing it.
+                    </p>
+                  </div>
+                )}
+
+                <div className="grid gap-1.5">
+                  <Label htmlFor="use_case">Use case</Label>
+                  <Textarea
+                    id="use_case"
+                    rows={2}
+                    value={form.use_case}
+                    onChange={(e) => set('use_case', e.target.value)}
+                  />
+                </div>
+
+                {/* ---- WHERE IT DRAWS ------------------------------------ */}
+                <div className="grid gap-3">
+                  <p className="text-section text-xs font-bold tracking-wide">WHERE IT DRAWS</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="anchor_field">Anchor to</Label>
+                      <select
+                        id="anchor_field"
+                        className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
+                        value={form.anchor_field}
+                        onChange={(e) => set('anchor_field', e.target.value)}
+                      >
+                        <option value="">&mdash; its own section, in order &mdash;</option>
+                        {anchorCandidates.map((f) => (
+                          <option key={f.placement_id} value={f.api_name}>
+                            {f.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="anchor_position">Position</Label>
+                      <select
+                        id="anchor_position"
+                        className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
+                        disabled={form.anchor_field === ''}
+                        value={form.anchor_position}
+                        onChange={(e) =>
+                          set('anchor_position', e.target.value as FormState['anchor_position'])
+                        }
+                      >
+                        <option value="after">after &mdash; directly beneath it</option>
+                        <option value="beside">beside &mdash; the next grid cell</option>
+                      </select>
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="layout_span">Width</Label>
+                      <select
+                        id="layout_span"
+                        className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
+                        value={form.layout_span}
+                        onChange={(e) => set('layout_span', e.target.value as FormState['layout_span'])}
+                      >
+                        <option value="">auto &mdash; whatever the type takes</option>
+                        <option value="half">half row</option>
+                        <option value="full">full row</option>
+                      </select>
+                    </div>
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    An anchor puts this field beside the question it answers, even in another section. A
+                    conditional field has to be in the same form as the field that reveals it.
+                  </p>
+                </div>
+
+                {/* ---- HOW ITS VALUE BEHAVES ----------------------------- */}
+                <div className="grid gap-3">
+                  <p className="text-section text-xs font-bold tracking-wide">HOW ITS VALUE BEHAVES</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-1.5">
+                      {/* Not a choice any more (metadata v2): what a conversion copies is
+                          Conversion mapping, and a field shown from an earlier module is
+                          added from that module's own field, below. */}
+                      <Label>Opening value</Label>
+                      <p className="border-input bg-muted/40 flex h-9 items-center rounded-md border px-2 text-sm">
+                        {form.value_mode === 'read_through'
+                          ? 'Shown from an earlier module'
+                          : form.value_mode === 'carry_forward'
+                            ? 'Copied at conversion'
+                            : 'Starts empty'}
+                      </p>
+                    </div>
+                    {isPipeline && (
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="stage_scoped">Recorded</Label>
+                        <select
+                          id="stage_scoped"
+                          className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
+                          value={form.stage_scoped}
+                          onChange={(e) =>
+                            set('stage_scoped', e.target.value as FormState['stage_scoped'])
+                          }
+                        >
+                          <option value="none">once per record</option>
+                          <option value="carry_forward">per stage, inheriting the last answer</option>
+                          <option value="sticky">per stage, never carried</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {form.value_mode === 'carry_forward' && (
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={form.value_locked}
+                        onCheckedChange={(v) => set('value_locked', v === true)}
+                      />
+                      Locked &mdash; the copied value may not be changed afterwards
+                    </label>
+                  )}
+
+                  {form.stage_scoped !== 'none' && (
+                    <p className="text-muted-foreground text-xs">
+                      {form.stage_scoped === 'sticky'
+                        ? 'One answer per stage, never carried: a lead put on hold at Stage 1 and again at Stage 3 gives two reasons, and the Stage 3 box opens empty.'
+                        : 'One answer per stage: a stage with no answer of its own shows the nearest earlier one.'}
+                    </p>
+                  )}
+
+                  {isEdit && (
+                    <p className="text-muted-foreground text-xs">
+                      <strong>Stored in:</strong>{' '}
+                      {field?.storage === 'column'
+                        ? 'a column of its own — a field that came with the CRM keeps it'
+                        : field?.storage === 'custom_fields'
+                          ? "the module's custom field store — a field added in Setup never gets a column of its own"
+                          : 'nothing — the value is shown from an earlier module'}
+                      . A fact about the field, not a choice.
+                    </p>
+                  )}
+                </div>
+
+                {isEdit && shared && (
+                  <label className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-sm">
+                    <Checkbox
+                      className="mt-0.5"
+                      checked={applyToAll}
+                      onCheckedChange={(v) => setApplyToAll(v === true)}
+                    />
+                    <span>
+                      Apply these to every module that shows this field
+                      <span className="text-muted-foreground block text-xs">
+                        {(detail?.placements ?? [])
+                          .filter((p) => p.status === 'active')
+                          .map((p) => modules.find((m) => m.module_key === p.module_key)?.label ?? p.module_key)
+                          .join(', ') || 'loading…'}
+                        . Everything except the section and the default value, which belong to one
+                        module.
+                      </span>
+                    </span>
+                  </label>
+                )}
+
+                {isEdit && (
+                  <div className="grid gap-2">
+                    <p className="text-section text-xs font-bold tracking-wide">
+                      ALSO SHOW ON A LATER MODULE
+                    </p>
+                    {alsoCandidates.length === 0 ? (
+                      <p className="text-muted-foreground text-xs">
+                        {ownedHere
+                          ? 'No later module of the pipeline is left to show it.'
+                          : 'This field belongs to an earlier module. Change it there.'}
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap items-end gap-2">
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="also_module">Module</Label>
+                          <select
+                            id="also_module"
+                            className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
+                            value={alsoModule}
+                            onChange={(e) => {
+                              setAlsoModule(e.target.value)
+                              setAlsoSectionId(null)
+                            }}
+                          >
+                            <option value="">&mdash; pick one &mdash;</option>
+                            {alsoCandidates.map((m) => (
+                              <option key={m.module_key} value={m.module_key}>
+                                {m.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="also_section">Section</Label>
+                          <select
+                            id="also_section"
+                            className="border-input bg-input-bg h-9 rounded-md border px-2 text-sm"
+                            disabled={alsoModule === ''}
+                            value={alsoSectionId ?? ''}
+                            onChange={(e) => setAlsoSectionId(Number(e.target.value))}
+                          >
+                            <option value="">&mdash; pick one &mdash;</option>
+                            {alsoSections.map((sec) => (
+                              <option key={sec.id} value={sec.id}>
+                                {sec.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <Button
+                          variant="outline"
+                          disabled={
+                            alsoModule === '' || alsoSectionId === null || addPlacement.isPending
+                          }
+                          onClick={addAlso}
+                        >
+                          {addPlacement.isPending ? 'Adding…' : 'Show it there'}
+                        </Button>
+                      </div>
+                    )}
+                    <p className="text-muted-foreground text-xs">
+                      The later module shows this field read-only, live from here, under From the Lead.
+                      For a value of its own, create a field on that module and copy into it with
+                      Conversion Mapping. Added immediately, not on Save.
+                    </p>
+                  </div>
+                )}
+
+                {field?.has_extension && (
+                  <p className="text-muted-foreground rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs">
+                    This field also has an entry in <code>spec/extensions.json</code> &mdash; a child-list
+                    shape, a lookup filter, or a recorded departure from the register. That file is
+                    edited by hand, so changing the type here will not update it.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
 
           {error && <p className="text-destructive text-sm">{error}</p>}
 

@@ -2907,6 +2907,10 @@ class FieldPlacement(Base):
     required_on_create: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )
+    # ADDED BY 0042. A Pick List's default — the key of the choice a new
+    # record starts with (Zoho's "Select default value"). Pick List only;
+    # see app/register_defaults.py for where it is applied.
+    default_value: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     # Conditions name sibling fields, and the sibling set differs per module —
     # a condition naming a field this module does not have cannot compile.
