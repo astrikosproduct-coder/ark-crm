@@ -102,6 +102,8 @@ export interface MetadataField {
   required_on_create: boolean
   /** A Pick List's default choice, by key — null when there is none. */
   default_value: string | null
+  /** Asked in the Update Stage dialog, never on a form (0043). */
+  asked_at_stage_move: boolean
   visibility_condition: string | null
   condition: string | null
   computed_formula: string | null
@@ -220,11 +222,24 @@ export interface MetadataVersion {
   stage_count: number
 }
 
+/**
+ * One pending change, in parts (4e): what it is ABOUT, so a screen can mark
+ * the module, section or field as unpublished. `text` is the sentence.
+ */
+export interface DraftChange {
+  kind: 'field' | 'module' | 'section' | 'picklist' | 'stage'
+  module: string | null
+  section: string | null
+  name: string | null
+  text: string
+}
+
 export interface DraftStatus {
   published_version: number | null
   published_at: string | null
   has_changes: boolean
   changes: string[]
+  items: DraftChange[]
   validation: MetadataValidation
   counts: Record<string, number>
 }
@@ -248,6 +263,7 @@ export const metadataKeys = {
   conversionMappings: ['metadata', 'conversion-mappings'] as const,
   layouts: (module?: string) => ['metadata', 'layouts', module ?? 'all'] as const,
   draft: ['metadata', 'draft'] as const,
+  usage: (placementId?: number) => ['metadata', 'usage', placementId] as const,
   versions: ['metadata', 'versions'] as const,
 }
 
@@ -287,7 +303,18 @@ export function useMetadataLayouts(module?: string) {
  */
 export interface LayoutSaveInput {
   sections: { id: number | null; key: string; label: string }[]
-  placements: { placement_id: number; section: string }[]
+  /**
+   * Every field on the form, in order. `anchor` (a placement id in the same
+   * section, or null) and `span` say where it draws — set in the editor by
+   * "Show under…", "Show beside…" and the width item (4e).
+   */
+  placements: {
+    placement_id: number
+    section: string
+    anchor?: number | null
+    anchor_position?: 'after' | 'beside' | null
+    span?: 'full' | 'half' | null
+  }[]
   /** Only the Mark as required toggles that changed. */
   required: Record<number, boolean>
 }
@@ -358,15 +385,6 @@ export function useUpdateSection() {
       sectionId: number
       patch: Partial<Pick<MetadataSection, 'label' | 'sort_order' | 'active'>>
     }) => (await api.patch<MetadataSection>(`${BASE}/sections/${sectionId}`, patch)).data,
-    onSuccess: invalidate,
-  })
-}
-
-export function useReorderSections() {
-  const invalidate = useInvalidateMetadata()
-  return useMutation({
-    mutationFn: async (ids: number[]) =>
-      (await api.post<MetadataSection[]>(`${BASE}/sections/reorder`, { ids })).data,
     onSuccess: invalidate,
   })
 }
@@ -648,13 +666,46 @@ export function useRestoreField() {
   })
 }
 
-export function useReorderFields() {
-  const invalidate = useInvalidateMetadata()
-  return useMutation({
-    mutationFn: async (ids: number[]) =>
-      (await api.post<MetadataField[]>(`${BASE}/placements/reorder`, { ids })).data,
-    onSuccess: invalidate,
-  })
+/** Something that reads a field — what Remove Field warns about (4e). */
+export interface FieldUsage {
+  kind: 'rule' | 'formula' | 'attached' | 'conversion' | 'shown_later' | 'reasons'
+  module: string
+  label: string
+  text: string
+}
+
+/** What reads this field in the draft. Fetched on demand, before a removal. */
+export function fetchFieldUsage(placementId: number) {
+  return api
+    .get<FieldUsage[]>(`${BASE}/placements/${placementId}/usage`)
+    .then((r) => r.data)
+}
+
+/**
+ * What is waiting to be published, by module, section and field — for the
+ * "unpublished" markers (4e). Keys: `module`, `module|section`,
+ * `module|api_name`. Read from the draft status the Publish banner already
+ * fetches, so it costs no request of its own.
+ */
+export function usePendingChanges() {
+  const { data } = useDraftStatus()
+  const modules = new Set<string>()
+  const sections = new Set<string>()
+  const fields = new Set<string>()
+  for (const item of data?.items ?? []) {
+    if (!item.module) continue
+    modules.add(item.module)
+    if (item.kind === 'section' && item.section) sections.add(`${item.module}|${item.section}`)
+    if (item.kind === 'field' && item.name) {
+      fields.add(`${item.module}|${item.name}`)
+      if (item.section) sections.add(`${item.module}|${item.section}`)
+    }
+  }
+  return {
+    module: (key: string) => modules.has(key),
+    section: (module: string, label: string) => sections.has(`${module}|${label}`),
+    field: (module: string, apiName: string) => fields.has(`${module}|${apiName}`),
+  }
 }
 
 /**

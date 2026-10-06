@@ -331,14 +331,14 @@ export function missingRequired(module: string, values: Values): Errors {
 // ------------------------------------------------------------ due fields
 
 /**
- * The stage a field's answer belongs to: mandatory_from, else the first number
- * of blocks_transition ("3 → 4"), else capture_stage. Null for a field of no
- * stage — an Account's or a Contact's, due always.
+ * The stage a field's answer belongs to: "Required before leaving Stage n"
+ * (mandatory_from), else the stage it is captured at. Null for a field of no
+ * stage — an Account's or a Contact's, due always. blocks_transition ("3 → 4")
+ * is not read since Setup 4e: it always agreed with these two, and goes at
+ * Step 9. The server reads the same (app/requirements.py due_stage).
  */
 export function dueStageOf(field: FieldSpec): number | null {
   if (field.mandatory_from !== null && field.mandatory_from !== undefined) return field.mandatory_from
-  const blocks = /^(\d+)/.exec(field.blocks_transition ?? '')
-  if (blocks) return Number(blocks[1])
   return field.capture_stage ?? null
 }
 
@@ -585,15 +585,18 @@ export function validateForTransition(
 
     if (!demanded) continue
 
-    // A field the register explicitly exempts when its stage is jumped over.
-    if (isSkip && field.required_on_skip === false) continue
+    // A skipped stage's fields are never demanded (decided 21 Sep 2026); the
+    // register's old per-field exemption, required_on_skip, is not read since
+    // Setup 4e. The stage being left is still demanded in full.
+    const due = dueStageOf(field)
+    if (isSkip && due !== null && due > from && due < to) continue
 
     out.push({
       api_name: field.api_name,
       label: field.label,
       section: field.section,
-      message: field.blocks_transition
-        ? `Required before ${field.blocks_transition}`
+      message: field.mandatory_from !== null && field.mandatory_from !== undefined
+        ? `Required before leaving Stage ${field.mandatory_from}`
         : 'Required',
     })
   }

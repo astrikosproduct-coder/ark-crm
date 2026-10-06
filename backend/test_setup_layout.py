@@ -163,10 +163,12 @@ try:
         dest = field("destination_region")
         r = client.put(f"{BASE}/layouts/{layout_id}", json=payload(sections, fields, {dest["placement_id"]: True}))
         check("an Optional field is made required", r.status_code == 200 and field("destination_region")["requirement"] == "Mandatory", r.text[:200])
-        conditional = field("partner_deal_registration")
+        # Since 4e there is no Conditional requirement; what a person cannot
+        # mark required is a field the CRM fills.
+        stamped = field("created_by")
         moved = [dict(f, section_id=aging["id"]) if f["api_name"] == "booking_region" else f for f in fields]
-        r = client.put(f"{BASE}/layouts/{layout_id}", json=payload(sections, moved, {conditional["placement_id"]: True}))
-        check("a field with its own rule is refused", r.status_code == 422 and code_of(r) == "REQUIREMENT_NOT_TOGGLED", r.text[:200])
+        r = client.put(f"{BASE}/layouts/{layout_id}", json=payload(sections, moved, {stamped["placement_id"]: True}))
+        check("a field the CRM fills is refused", r.status_code == 422 and code_of(r) == "REQUIREMENT_NOT_TOGGLED", r.text[:200])
         check("…and the move in the same save did not happen", field("booking_region")["section_id"] != aging["id"])
 
         print("\n6  Section names")

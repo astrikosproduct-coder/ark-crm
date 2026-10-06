@@ -1,5 +1,6 @@
 import extensionsData from '../../spec/extensions.json'
 import { fieldsOf } from '@/lib/spec'
+import { isReasonField } from '@/lib/recordLayout'
 import type { Values } from '@/lib/spec/conditions'
 import { resolverFor } from '@/lib/spec/resolvers'
 import type { FieldSpec } from '@/types/field'
@@ -52,10 +53,10 @@ import type { FieldSpec } from '@/types/field'
  *   default_by     a resolver in lib/spec/resolvers.ts, seeding an untouched
  *                  box. Nothing uses one today; no formula can guess a close
  *                  month, which is why expected_close_month has none.
- *   history_only   Stage Skip / Stage Reversal Reason. NOT per-stage at all:
- *                  the transitions table already carries one reason per move,
- *                  and the field on the record is the latest of them. Listed
- *                  here so no form offers a second box for one.
+ *
+ * The second, `history_only` (Stage Skip / Stage Reversal Reason), is gone
+ * since Setup 4e: which fields only the Update Stage dialog asks for is the
+ * register's `asked_at_stage_move` now (migration 0043), so Setup can show it.
  */
 interface CarryForwardField {
   api_name: string
@@ -72,8 +73,6 @@ interface StageScopedSpec {
   modules: string[]
   /** Only for `default_by`. The SET is fields.json's stage_scoped now. */
   carry_forward: { fields: CarryForwardField[] }
-  /** Written by the transition dialog; no form offers a box for them. */
-  history_only?: { fields: string[] }
 }
 
 const spec = (extensionsData as unknown as { stage_scoped?: StageScopedSpec }).stage_scoped ?? {
@@ -232,7 +231,9 @@ function isEmpty(v: unknown): boolean {
 // ------------------------------------------------- what a form must not draw
 
 /**
- * Fields the record keeps but no form asks for — see `history_only`.
+ * Fields the record keeps but no form asks for — `asked_at_stage_move` in the
+ * register (Setup 4e, migration 0043; a hand-kept list in extensions.json
+ * until then).
  *
  * Stage Skip Reason and Stage Reversal Reason are written by the Advance /
  * Change stage dialog when it records the transition. They were ALSO rendering
@@ -244,13 +245,8 @@ function isEmpty(v: unknown): boolean {
  * per move, and the field on the record is the latest of them.
  */
 export function historyOnlyNamesOf(module: string): Set<string> {
-  const names = new Set<string>()
-  if (!isStageScopedModule(module)) return names
-  const byName = new Set(fieldsOf(module).map((f) => f.api_name))
-  for (const name of spec.history_only?.fields ?? []) {
-    if (byName.has(name)) names.add(name)
-  }
-  return names
+  if (!isStageScopedModule(module)) return new Set()
+  return new Set(fieldsOf(module).filter((f) => f.asked_at_stage_move).map((f) => f.api_name))
 }
 
 /**
@@ -263,13 +259,10 @@ export function historyOnlyNamesOf(module: string): Set<string> {
  * even though its QUESTIONS are not.
  */
 export function reasonFieldsOf(module: string): FieldSpec[] {
-  const scoped = perStageValueNamesOf(module)
-  const history = historyOnlyNamesOf(module)
-  return fieldsOf(module).filter(
-    (f) =>
-      (scoped.has(f.api_name) && f.stage_scoped !== 'carry_forward') ||
-      history.has(f.api_name)
-  )
+  if (!isStageScopedModule(module)) return []
+  // The register decides (lib/recordLayout.ts isReasonField) — the same rule
+  // Setup's layout editor lists the panel's sources by.
+  return fieldsOf(module).filter(isReasonField)
 }
 
 /**

@@ -10,7 +10,7 @@ import { RecordForm } from '@/components/form/RecordForm'
 import { RecordEditor } from '@/components/record/RecordEditor'
 import { StageRail } from '@/components/leads/StageRail'
 import { AdvanceStageDialog } from '@/components/pipeline/AdvanceStageDialog'
-import { HEADER_STRIP_SECTION, HeaderStrip } from '@/components/pipeline/HeaderStrip'
+import { HeaderStrip } from '@/components/pipeline/HeaderStrip'
 import { PriorityFlagMark } from '@/components/opportunities/PriorityFlagMark'
 import { RecordTimelineTab } from '@/components/pipeline/RecordTimelineTab'
 import { ReasonsPanel } from '@/components/pipeline/StageScopedFields'
@@ -21,9 +21,9 @@ import type {
 } from '@/components/pipeline/types'
 import { useResolvedRecord } from '@/hooks/useResolvedRecord'
 import { api } from '@/lib/api'
+import { placeOfSection } from '@/lib/recordLayout'
 import {
   STAGES,
-  keyFactsSectionOf,
   stageFormSections,
   skippedStagesOf,
   stageFieldOf,
@@ -225,24 +225,17 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
     return Number.isNaN(at.getTime()) ? null : formatDistanceToNow(at, { addSuffix: true })
   }, [values])
 
-  const keyFacts = useMemo(() => keyFactsSectionOf(spec.module), [spec.module])
-
+  // The Details tab: what lib/recordLayout.ts calls `details` — not the
+  // strip, the key facts, a stage's own sections, or identity read through
+  // the parent (shown on the Related tab, under the record that owns it,
+  // decided 16 Sep 2026). The same rules Setup's layout editor files its tabs
+  // by, so the two cannot drift (4e).
   const detailSections = useMemo(
     () =>
       sectionsFor(spec.module).filter(
-        (s) =>
-          !s.startsWith('STAGE') &&
-          s !== HEADER_STRIP_SECTION &&
-          s !== keyFacts &&
-          // Identity read through the parent is shown on the Related tab only,
-          // under the parent record that owns it (decided 16 Sep 2026) — see
-          // ParentRecordsPanel. Decided by the fields, not by the section's
-          // name: a section every one of whose fields is read-through.
-          !fieldsOf(spec.module)
-            .filter((f) => f.section === s)
-            .every((f) => f.value_mode === 'read_through')
+        (s) => placeOfSection(s, fieldsOf(spec.module).filter((f) => f.section === s)).kind === 'details'
       ),
-    [spec.module, keyFacts]
+    [spec.module]
   )
   // Plural, deliberately: a stage can carry more than one section — Deals'
   // Stage 7 has STAGE 7 — COMMERCIAL TERMS and STAGE 7 — CLOSE, and

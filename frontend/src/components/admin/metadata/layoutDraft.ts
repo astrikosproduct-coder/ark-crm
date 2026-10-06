@@ -1,4 +1,5 @@
-import { HEADER_STRIP_SECTION, KEY_FACTS_ANCHOR } from '@/lib/pipeline'
+import { HEADER_STRIP_SECTION } from '@/lib/pipeline'
+import { placeOfSection, type SectionPlace } from '@/lib/recordLayout'
 import { arrangeAnchoredWith, childrenByAnchor, type AnchoredNode } from '@/lib/spec/anchors'
 import type { LayoutSaveInput, MetadataField, MetadataSection } from '@/lib/metadata'
 
@@ -10,6 +11,11 @@ import type { LayoutSaveInput, MetadataField, MetadataSection } from '@/lib/meta
  * The draft holds EVERY active section of the module, shown or not: Save sends
  * the whole arrangement, and a section the save leaves out is deleted. A tab
  * only chooses which of them are drawn.
+ *
+ * WHERE A FIELD DRAWS is part of the session too (4e): "Show under…", "Show
+ * beside…" and the width item change `anchors` and `spans`, and Save sends
+ * them with the arrangement. An attached field lives in its anchor's section,
+ * so moving a field away from the one it is under detaches it.
  */
 export interface DraftSection {
   /** `s<id>` for a saved section, `new-<n>` for one made in this session. */
@@ -18,14 +24,21 @@ export interface DraftSection {
   label: string
 }
 
+export type AnchorPosition = 'after' | 'beside'
+export type Span = 'full' | 'half' | null
+
 export interface Draft {
   sections: DraftSection[]
-  /** Placement ids per section, in order — anchored fields included. */
+  /** Placement ids per section, in order — attached fields included. */
   cells: Record<string, number[]>
   /** Placement ids waiting in Unused Items. */
   unused: number[]
   /** Mark as required toggles made in this session, by placement id. */
   toggled: Record<number, boolean>
+  /** Attach / detach made in this session: the placement it draws next to, or null. */
+  anchors: Record<number, { to: number | null; position: AnchorPosition }>
+  /** Width changes made in this session. */
+  spans: Record<number, Span>
 }
 
 export const sectionKey = (id: number) => `s${id}`
@@ -37,6 +50,7 @@ export const DRAG = {
   unused: 'application/x-ark-unused',
   newSection: 'application/x-ark-new-section',
   section: 'application/x-ark-section',
+  choice: 'application/x-ark-choice',
 } as const
 
 const byOrder = (a: MetadataField, b: MetadataField) =>
@@ -59,6 +73,8 @@ export function initialDraft(sections: MetadataSection[], fields: MetadataField[
       .sort((a, b) => a.label.localeCompare(b.label))
       .map((f) => f.placement_id),
     toggled: {},
+    anchors: {},
+    spans: {},
   }
 }
 
@@ -99,12 +115,74 @@ function insertBefore(list: number[], ids: number[], beforeId: number | null): n
   return at < 0 ? [...rest, ...ids] : [...rest.slice(0, at), ...ids, ...rest.slice(at)]
 }
 
+function sectionOf(draft: Draft, id: number): string | null {
+  for (const [key, list] of Object.entries(draft.cells)) if (list.includes(id)) return key
+  return null
+}
+
+// ------------------------------------------------------------- where it draws
+
+/** The placement a field draws next to in this session, and how — or null. */
+export function anchorOf(
+  draft: Draft,
+  field: MetadataField,
+  byId: Map<number, MetadataField>
+): { to: number; position: AnchorPosition } | null {
+  const set = draft.anchors[field.placement_id]
+  if (set) return set.to === null ? null : { to: set.to, position: set.position }
+  if (!field.anchor_field) return null
+  for (const other of byId.values()) {
+    if (other.api_name === field.anchor_field && other.status === 'active') {
+      return { to: other.placement_id, position: field.anchor_position ?? 'after' }
+    }
+  }
+  return null
+}
+
+export function spanOf(draft: Draft, field: MetadataField): Span {
+  return field.placement_id in draft.spans ? draft.spans[field.placement_id] : (field.layout_span as Span)
+}
+
+/** The field as this session would draw it: its anchor and width as edited. */
+function effective(draft: Draft, field: MetadataField, byId: Map<number, MetadataField>): MetadataField {
+  const anchor = anchorOf(draft, field, byId)
+  return {
+    ...field,
+    anchor_field: anchor ? (byId.get(anchor.to)?.api_name ?? null) : null,
+    anchor_position: anchor ? anchor.position : null,
+    layout_span: spanOf(draft, field),
+  }
+}
+
+/** Show `id` under or beside `to` (same section), or on its own with null. */
+export function attach(draft: Draft, id: number, to: number | null, position: AnchorPosition = 'after'): Draft {
+  return { ...draft, anchors: { ...draft.anchors, [id]: { to, position } } }
+}
+
+export function setSpan(draft: Draft, id: number, span: Span): Draft {
+  return { ...draft, spans: { ...draft.spans, [id]: span } }
+}
+
+/** Fields `id` may be shown under: its section's other fields, never one already under it. */
+export function attachTargets(draft: Draft, id: number, byId: Map<number, MetadataField>): MetadataField[] {
+  const key = sectionOf(draft, id)
+  if (!key) return []
+  const below = new Set(cellIds(draft, byId, id))
+  return (draft.cells[key] ?? [])
+    .filter((other) => !below.has(other))
+    .map((other) => byId.get(other))
+    .filter((f): f is MetadataField => Boolean(f) && !f!.asked_at_stage_move)
+}
+
+// ------------------------------------------------------------- moving
+
 /** Move fields into a section (before `beforeId`, or at the end) or to Unused Items. */
 export function moveIds(
   draft: Draft,
   ids: number[],
   target: string | 'unused',
-  beforeId: number | null
+  beforeId: number | null,
+  byId?: Map<number, MetadataField>
 ): Draft {
   if (beforeId !== null && ids.includes(beforeId)) return draft
   const cells: Record<string, number[]> = {}
@@ -112,15 +190,31 @@ export function moveIds(
   let unused = draft.unused.filter((id) => !ids.includes(id))
   if (target === 'unused') unused = [...unused, ...ids]
   else cells[target] = insertBefore(cells[target] ?? [], ids, beforeId)
-  return { ...draft, cells, unused }
+  // A field taken away from the one it is shown under is no longer under it:
+  // an attached field lives in its anchor's section.
+  let anchors = draft.anchors
+  if (byId) {
+    for (const id of ids) {
+      const field = byId.get(id)
+      const anchor = field ? anchorOf(draft, field, byId) : null
+      if (anchor && !ids.includes(anchor.to) && target !== sectionOf(draft, anchor.to)) {
+        anchors = { ...anchors, [id]: { to: null, position: 'after' } }
+      }
+    }
+  }
+  return { ...draft, cells, unused, anchors }
 }
 
-/** A section's fields as the form draws them: cells, each with what is anchored under it. */
+/** A section's fields as the form draws them: cells, each with what is attached under it. */
 export function nodesOf(
+  draft: Draft,
   ids: number[],
   byId: Map<number, MetadataField>
 ): AnchoredNode<MetadataField>[] {
-  const rows = ids.map((id) => byId.get(id)).filter((f): f is MetadataField => Boolean(f))
+  const rows = ids
+    .map((id) => byId.get(id))
+    .filter((f): f is MetadataField => Boolean(f))
+    .map((f) => effective(draft, f, byId))
   return arrangeAnchoredWith(rows, childrenByAnchor(rows))
 }
 
@@ -128,7 +222,7 @@ export function nodeIds(node: AnchoredNode<MetadataField>): number[] {
   return [node.field.placement_id, ...node.under.flatMap(nodeIds)]
 }
 
-/** The ids that travel with a field when it is dragged: it, and what is anchored under it. */
+/** The ids that travel with a field when it is dragged: it, and what is attached under it. */
 export function cellIds(draft: Draft, byId: Map<number, MetadataField>, headId: number): number[] {
   for (const list of Object.values(draft.cells)) {
     if (!list.includes(headId)) continue
@@ -140,7 +234,7 @@ export function cellIds(draft: Draft, byId: Map<number, MetadataField>, headId: 
       }
       return null
     }
-    return find(nodesOf(list, byId)) ?? [headId]
+    return find(nodesOf(draft, list, byId)) ?? [headId]
   }
   return [headId]
 }
@@ -194,7 +288,18 @@ export function savePayload(draft: Draft, byId: Map<number, MetadataField>): Lay
   return {
     sections: draft.sections.map((s) => ({ id: s.id, key: s.key, label: s.label })),
     placements: draft.sections.flatMap((s) =>
-      (draft.cells[s.key] ?? []).map((id) => ({ placement_id: id, section: s.key }))
+      (draft.cells[s.key] ?? []).map((id) => {
+        const entry: LayoutSaveInput['placements'][number] = { placement_id: id, section: s.key }
+        const field = byId.get(id)
+        // Only what this session changed is sent; the server keeps the rest.
+        if (field && id in draft.anchors) {
+          const anchor = anchorOf(draft, field, byId)
+          entry.anchor = anchor ? anchor.to : null
+          entry.anchor_position = anchor ? anchor.position : null
+        }
+        if (id in draft.spans) entry.span = draft.spans[id]
+        return entry
+      })
     ),
     required,
   }
@@ -208,45 +313,37 @@ export function isDirty(draft: Draft, baseline: Draft, byId: Map<number, Metadat
       cells: d.sections.map((s) => d.cells[s.key] ?? []),
       unused: [...d.unused].sort((a, b) => a - b),
     })
-  return shape(draft) !== shape(baseline) || Object.keys(savePayload(draft, byId).required).length > 0
+  const drawn = (d: Draft) =>
+    JSON.stringify(
+      [...byId.values()].map((f) => [f.placement_id, anchorOf(d, f, byId), spanOf(d, f)])
+    )
+  return (
+    shape(draft) !== shape(baseline) ||
+    drawn(draft) !== drawn(baseline) ||
+    Object.keys(savePayload(draft, byId).required).length > 0
+  )
 }
 
 // ------------------------------------------------------------- tabs
 
-/** Where a section shows on the record page — the editor's tab for it. */
-export type SectionKind =
-  | { kind: 'header' }
-  | { kind: 'keyfacts' }
-  | { kind: 'stage'; stage: number }
-  | { kind: 'details' }
-  | { kind: 'related' }
-  | { kind: 'elsewhere' }
+/**
+ * Where a section shows on the record page — the editor's tab for it. The
+ * record page's own rules (lib/recordLayout.ts placeOfSection), plus one the
+ * editor needs: a stage this module does not own is `elsewhere`, never drawn.
+ * `related` (the Lead's own fields shown live) is not drawn either.
+ */
+export type SectionKind = SectionPlace | { kind: 'elsewhere' }
 
-const STAGE_SECTION = /^STAGE (\d+)/
 const STAGE_PREFIX = /^STAGE \d+\s*[—–-]\s*/
 
-/**
- * The record page's own rules, read the same way here (PipelineRecordPage):
- * `__header` is the strip above the tabs; the section holding the key facts
- * leads every stage; a "STAGE n — …" section is that stage's; one whose every
- * field is shown from the parent is `related` (the Lead's own fields, shown
- * live — not drawn by the editor); everything else is Details. A stage this
- * module does not own is `elsewhere` and never drawn either.
- */
 export function kindOf(
   section: DraftSection,
   rows: MetadataField[],
   ownStages: number[] | null
 ): SectionKind {
-  if (section.label === HEADER_STRIP_SECTION) return { kind: 'header' }
-  if (rows.some((r) => r.api_name === KEY_FACTS_ANCHOR)) return { kind: 'keyfacts' }
-  const match = STAGE_SECTION.exec(section.label)
-  if (match) {
-    const stage = Number(match[1])
-    return ownStages && !ownStages.includes(stage) ? { kind: 'elsewhere' } : { kind: 'stage', stage }
-  }
-  if (rows.length > 0 && rows.every((r) => r.value_mode === 'read_through')) return { kind: 'related' }
-  return { kind: 'details' }
+  const place = placeOfSection(section.label, rows)
+  if (place.kind === 'stage' && ownStages && !ownStages.includes(place.stage)) return { kind: 'elsewhere' }
+  return place
 }
 
 /**

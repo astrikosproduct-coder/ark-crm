@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { ArrowDownIcon, ArrowUpIcon, PlusIcon } from 'lucide-react'
+import { GripVerticalIcon, PlusIcon } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { errorMessage } from '@/lib/admin'
+import { cn } from '@/lib/utils'
+import { DRAG } from './layoutDraft'
 import {
   COUNTRY_CODE_SET,
   useCreatePicklistValue,
@@ -28,6 +30,10 @@ import {
  * pointing at nothing. The label is free to change; the key is made from the
  * first label and then fixed. A choice the CRM's own rules read — Open, On
  * Hold, Converted — can be renamed and never deactivated (the server refuses).
+ *
+ * Order is set by DRAGGING a choice by its handle (Setup 4e, 5 Oct 2026) —
+ * the same gesture as the layout editor, in place of the up/down arrows. The
+ * new order is written to the draft on drop.
  */
 export function ChoicesEditor({ picklist }: { picklist: MetadataPicklist }) {
   const updateValue = useUpdatePicklistValue()
@@ -35,6 +41,8 @@ export function ChoicesEditor({ picklist }: { picklist: MetadataPicklist }) {
   const reorder = useReorderPicklistValues()
   const [adding, setAdding] = useState('')
   const [error, setError] = useState<string | null>(null)
+  // The row a dragged choice would land before, for the drop line.
+  const [overId, setOverId] = useState<number | null>(null)
 
   const run = async (action: () => Promise<unknown>) => {
     setError(null)
@@ -45,14 +53,30 @@ export function ChoicesEditor({ picklist }: { picklist: MetadataPicklist }) {
     }
   }
 
-  const move = (valueId: number, delta: number) => {
-    const ids = picklist.values.map((v) => v.id)
-    const index = ids.indexOf(valueId)
-    const target = index + delta
-    if (index < 0 || target < 0 || target >= ids.length) return
-    ;[ids[index], ids[target]] = [ids[target], ids[index]]
+  /** Put `valueId` just before `beforeId` (or last), and save the order. */
+  const moveBefore = (valueId: number, beforeId: number | null) => {
+    if (valueId === beforeId) return
+    const rest = picklist.values.map((v) => v.id).filter((id) => id !== valueId)
+    const at = beforeId === null ? -1 : rest.indexOf(beforeId)
+    const ids = at < 0 ? [...rest, valueId] : [...rest.slice(0, at), valueId, ...rest.slice(at)]
+    if (ids.every((id, i) => id === picklist.values[i]?.id)) return
     run(() => reorder.mutateAsync(ids))
   }
+  const dropProps = (beforeId: number | null) => ({
+    onDragOver: (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes(DRAG.choice)) return
+      e.preventDefault()
+      setOverId(beforeId ?? -1)
+    },
+    onDragLeave: () => setOverId(null),
+    onDrop: (e: React.DragEvent) => {
+      setOverId(null)
+      const id = Number(e.dataTransfer.getData(DRAG.choice))
+      if (!id) return
+      e.preventDefault()
+      moveBefore(id, beforeId)
+    },
+  })
 
   const add = () => {
     const label = adding.trim()
@@ -67,29 +91,28 @@ export function ChoicesEditor({ picklist }: { picklist: MetadataPicklist }) {
     <div className="rounded-md border">
       <table className="w-full text-sm">
         <tbody>
-          {picklist.values.map((value, index) => (
-            <tr key={value.id} className="border-b last:border-b-0 [&>td]:px-2 [&>td]:py-1">
-              <td className="w-12">
-                <div className="flex items-center gap-0.5">
-                  <button
-                    type="button"
-                    title="Move up"
-                    disabled={index === 0}
-                    className="text-muted-foreground hover:text-foreground disabled:opacity-30"
-                    onClick={() => move(value.id, -1)}
-                  >
-                    <ArrowUpIcon className="size-3" />
-                  </button>
-                  <button
-                    type="button"
-                    title="Move down"
-                    disabled={index === picklist.values.length - 1}
-                    className="text-muted-foreground hover:text-foreground disabled:opacity-30"
-                    onClick={() => move(value.id, 1)}
-                  >
-                    <ArrowDownIcon className="size-3" />
-                  </button>
-                </div>
+          {picklist.values.map((value) => (
+            <tr
+              key={value.id}
+              {...dropProps(value.id)}
+              className={cn(
+                'border-b last:border-b-0 [&>td]:px-2 [&>td]:py-1',
+                overId === value.id && 'border-t-primary border-t-2'
+              )}
+            >
+              <td className="w-8">
+                <span
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.effectAllowed = 'move'
+                    e.dataTransfer.setData(DRAG.choice, String(value.id))
+                    e.dataTransfer.setData('text/plain', value.label)
+                  }}
+                  className="text-muted-foreground hover:text-foreground flex cursor-grab active:cursor-grabbing"
+                  title="Drag to reorder"
+                >
+                  <GripVerticalIcon className="size-3.5" />
+                </span>
               </td>
               <td className={value.active ? undefined : 'text-muted-foreground'}>
                 <InlineLabel
@@ -133,7 +156,10 @@ export function ChoicesEditor({ picklist }: { picklist: MetadataPicklist }) {
               </td>
             </tr>
           ))}
-          <tr className="[&>td]:px-2 [&>td]:py-1">
+          <tr
+            {...dropProps(null)}
+            className={cn('[&>td]:px-2 [&>td]:py-1', overId === -1 && 'border-t-primary border-t-2')}
+          >
             <td />
             <td colSpan={3}>
               <div className="flex gap-2">

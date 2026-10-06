@@ -89,6 +89,13 @@ class LayoutSaveSection(BaseModel):
 class LayoutSavePlacement(BaseModel):
     placement_id: int
     section: str = Field(min_length=1, max_length=60)
+    # Where it draws (4e, 5 Oct 2026) — set in the editor by "Show under…",
+    # "Show beside…" and the width items. `anchor` is the PLACEMENT id it
+    # draws next to, in the same section; null returns it to its own place.
+    # Left out of the request, each keeps what it has.
+    anchor: int | None = None
+    anchor_position: str | None = Field(default=None, max_length=10)
+    span: str | None = Field(default=None, max_length=10)
 
 
 class LayoutSave(BaseModel):
@@ -391,6 +398,9 @@ class FieldOut(FieldBase):
 
     # Convenience mirror of requirement == 'Mandatory'. See RequiredUpdate.
     required: bool = False
+    # Asked in the Update Stage dialog, never on a form (0043). Set by the
+    # system for Stage Skip / Stage Reversal Reason, not offered in Setup.
+    asked_at_stage_move: bool = False
 
 
 class FieldDetailOut(BaseModel):
@@ -726,6 +736,31 @@ class PublishResult(BaseModel):
     written: list[str]
 
 
+class DraftChangeOut(BaseModel):
+    """
+    One pending change, in parts — what Setup marks as unpublished (4e).
+
+    `text` is the same sentence `changes` carries; the parts say WHAT it is
+    about so a screen can put a marker on the module, section or field without
+    reading the words.
+    """
+
+    kind: str  # field | module | section | picklist | stage
+    module: str | None = None
+    section: str | None = None
+    name: str | None = None
+    text: str
+
+
+class FieldUsageOut(BaseModel):
+    """Something that reads a field — the warning before Remove Field (4e)."""
+
+    kind: str  # rule | formula | attached | conversion | shown_later | reasons
+    module: str
+    label: str
+    text: str
+
+
 class DraftStatus(BaseModel):
     """
     What is waiting to be published.
@@ -739,5 +774,6 @@ class DraftStatus(BaseModel):
     published_at: datetime | None = None
     has_changes: bool = False
     changes: list[str] = []
+    items: list[DraftChangeOut] = []
     validation: ValidationOut
     counts: dict[str, int] = {}

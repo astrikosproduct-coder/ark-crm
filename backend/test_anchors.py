@@ -117,12 +117,12 @@ head("1  every anchored placement is where Phase A put it")
 # anchored because sort_order had already let one of them drift ABOVE the
 # field that reveals it.
 ANCHORED = {
-    ("leads", "on_hold_reason"): ("lead_status", "full", "Aging"),
-    ("leads", "closed_lost_reason_code"): ("lead_status", "half", "Aging"),
-    ("opportunities", "on_hold_reason"): ("lead_status", "full", "Aging"),
-    ("opportunities", "closed_lost_reason_code"): ("lead_status", "half", "Aging"),
-    ("deals", "on_hold_reason"): ("lead_status", "full", "Aging"),
-    ("deals", "closed_lost_reason_code"): ("lead_status", "half", "Aging"),
+    ("leads", "on_hold_reason"): ("lead_status", "full", "RECORD STATE"),
+    ("leads", "closed_lost_reason_code"): ("lead_status", "half", "RECORD STATE"),
+    ("opportunities", "on_hold_reason"): ("lead_status", "full", "RECORD STATE"),
+    ("opportunities", "closed_lost_reason_code"): ("lead_status", "half", "RECORD STATE"),
+    ("deals", "on_hold_reason"): ("lead_status", "full", "RECORD STATE"),
+    ("deals", "closed_lost_reason_code"): ("lead_status", "half", "RECORD STATE"),
     ("leads", "data_site_access_confirmation_document"): (
         "agreed_next_step",
         "full",
@@ -155,17 +155,17 @@ ANCHORED_ENFORCED_SERVER_SIDE = {
     ("leads", "probability_override_justification"): (
         "probability_pct",
         None,
-        "Aging",
+        "Health & Forecast",
     ),
     ("opportunities", "probability_override_justification"): (
         "probability_pct",
         None,
-        "Aging",
+        "Health & Forecast",
     ),
     ("deals", "probability_override_justification"): (
         "probability_pct",
         None,
-        "Aging",
+        "Health & Forecast",
     ),
 }
 
@@ -203,7 +203,7 @@ for (module, api_name), (anchor, span, section_label) in ANCHORED_ENFORCED_SERVE
         repr(p.condition),
     )
     check(
-        f"{module}.{api_name} — still filed under {section_label}",
+        f"{module}.{api_name} — filed where it draws, {section_label}",
         p.section.label == section_label,
         p.section.label,
     )
@@ -230,11 +230,12 @@ for (module, api_name), (anchor, span, section_label) in ANCHORED.items():
         bool(p.condition) and anchor in (p.condition or ""),
         repr(p.condition),
     )
-    # Section says what KIND of field this is; anchor says where it draws.
-    # The reasons stay filed under Aging while rendering next to a status field
-    # in another section — that disagreement is the whole design.
+    # An attached field lives in the section of the field it is attached to
+    # (Setup 4e, 5 Oct 2026, setup_step4e_metadata.py). Until then the reasons
+    # were filed under Aging while drawing beside Status, and Setup's layout
+    # editor showed them where no record ever did.
     check(
-        f"{module}.{api_name} — still filed under {section_label}",
+        f"{module}.{api_name} — filed where it draws, {section_label}",
         p.section.label == section_label,
         p.section.label,
     )
@@ -267,8 +268,8 @@ check(
     str(reason_row["anchor_field"]),
 )
 check(
-    "and still reports Aging as its section — the register is untouched",
-    reason_row["section"] == "Aging",
+    "and reports the section it draws in — Record State, with Status",
+    reason_row["section"] == "RECORD STATE",
     reason_row["section"],
 )
 plain_row = next(r for r in rows if r["api_name"] == "lead_status")

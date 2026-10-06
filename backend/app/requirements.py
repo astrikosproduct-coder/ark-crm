@@ -105,20 +105,21 @@ NEVER_DEMANDED = {"System", "Computed", "Advisory", "Optional"}
 SYSTEM_SET = {"lead_status", "progression_pct", "probability_pct"}
 
 
-def _sidecar() -> tuple[set[str], set[str], set[str]]:
+def _sidecar() -> tuple[set[str], set[str]]:
     """
-    Three lists from the hand-kept sidecar (spec/extensions.json) that the form
-    also reads: phase-1-locked fields (module.api_name), history-only reasons,
-    and fields that exist only as a COLUMN of an inline child table — entered
-    per row, never on the record (src/lib/spec/childSpec.ts).
+    Two lists from the hand-kept sidecar (spec/extensions.json) that the form
+    also reads: phase-1-locked fields (module.api_name), and fields that exist
+    only as a COLUMN of an inline child table — entered per row, never on the
+    record (src/lib/spec/childSpec.ts). The third it had, the reasons only the
+    Update Stage dialog writes, is the register's `asked_at_stage_move` since
+    Setup 4e (migration 0043).
     """
     try:
         data = json.loads((SPEC_DIR / "extensions.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return set(), set(), set()
+        return set(), set()
     fields = data.get("fields") or {}
     locked = {key for key, ext in fields.items() if isinstance(ext, dict) and ext.get("phase1_locked")}
-    history = set(((data.get("stage_scoped") or {}).get("history_only") or {}).get("fields") or [])
     columns: set[str] = set()
     for ext in fields.values():
         spec = ext.get("child_spec") if isinstance(ext, dict) else None
@@ -127,10 +128,10 @@ def _sidecar() -> tuple[set[str], set[str], set[str]]:
         for entry in spec.get("columns") or []:
             if isinstance(entry, str):
                 columns.add(entry.split(".")[-1])
-    return locked, history, columns
+    return locked, columns
 
 
-PHASE1_LOCKED, HISTORY_ONLY, CHILD_COLUMNS = _sidecar()
+PHASE1_LOCKED, CHILD_COLUMNS = _sidecar()
 
 
 def stage_number(value: Any) -> int | None:
@@ -141,12 +142,14 @@ def stage_number(value: Any) -> int | None:
 
 
 def due_stage(field: dict[str, Any]) -> int | None:
-    """The stage a field's answer belongs to, or None for a field of no stage."""
+    """
+    The stage a field's answer belongs to, or None for a field of no stage:
+    "Required before leaving Stage n" (mandatory_from), else the stage it is
+    captured at. blocks_transition ("4 → 5") is not read since Setup 4e — it
+    always agreed with these two, and it is dropped at Step 9.
+    """
     if field.get("mandatory_from") is not None:
         return int(field["mandatory_from"])
-    blocks = stage_number(field.get("blocks_transition"))
-    if blocks is not None:
-        return blocks
     if field.get("capture_stage") is not None:
         return int(field["capture_stage"])
     return None
@@ -224,7 +227,7 @@ def _applies(field: dict[str, Any], module: str) -> bool:
     keys = {f"{module}.{name}", f"{field.get('register_module') or module}.{name}"}
     if keys & PHASE1_LOCKED:
         return False
-    return name not in HISTORY_ONLY and name not in CHILD_COLUMNS
+    return not field.get("asked_at_stage_move") and name not in CHILD_COLUMNS
 
 
 def _demanded(field: dict[str, Any], rec: _Record) -> bool:

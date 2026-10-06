@@ -26,7 +26,9 @@ import {
  * off from its value while looking like it worked.
  *
  * Per module: the module's own key, then each field's label, API name, type,
- * where its value is stored, and its list of choices — which opens to show
+ * where its value is stored, and its list of choices. A row opens to show what
+ * only a developer needs (Setup 4e, 5 Oct 2026, moved here out of the field's
+ * properties): its Use case, whether spec/extensions.json also binds it, and
  * each choice's stored value beside the label people see.
  */
 export function ApiNamesTab() {
@@ -104,16 +106,14 @@ export function ApiNamesTab() {
               <Fragment key={field.placement_id}>
                 <Row muted={field.status === 'deleted'}>
                   <td>
-                    {list && (
-                      <button
-                        type="button"
-                        aria-label={isOpen ? 'Hide choices' : 'Show choices'}
-                        className="text-muted-foreground hover:text-foreground"
-                        onClick={() => setOpen(isOpen ? null : field.placement_id)}
-                      >
-                        {isOpen ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      aria-label={isOpen ? 'Hide details' : 'Show details'}
+                      className="text-muted-foreground hover:text-foreground"
+                      onClick={() => setOpen(isOpen ? null : field.placement_id)}
+                    >
+                      {isOpen ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}
+                    </button>
                   </td>
                   <td>
                     {field.label}
@@ -145,6 +145,7 @@ export function ApiNamesTab() {
                     )}
                   </td>
                 </Row>
+                {isOpen && <DetailRow field={field} />}
                 {isOpen && list && <ChoiceRows list={list} />}
               </Fragment>
             )
@@ -160,6 +161,27 @@ function storedIn(field: MetadataField): string {
   if (field.storage === 'custom_fields') return 'Custom field store'
   if (field.storage === 'column') return 'Its own column'
   return '—'
+}
+
+/** What only a developer needs about a field — no longer in its properties (4e). */
+function DetailRow({ field }: { field: MetadataField }) {
+  return (
+    <tr className="bg-muted/20 border-t">
+      <td />
+      <td colSpan={5} className="space-y-1 px-3 py-2 text-xs">
+        <p>
+          <span className="font-medium">Use case:</span>{' '}
+          {field.use_case || <span className="text-muted-foreground">none written</span>}
+        </p>
+        {field.has_extension && (
+          <p className="text-muted-foreground">
+            Also bound in <Mono>spec/extensions.json</Mono> — a child-list shape, a lookup filter or a
+            recorded override. That file is edited by hand, so a change in Setup does not reach it.
+          </p>
+        )}
+      </td>
+    </tr>
+  )
 }
 
 function ChoiceRows({ list }: { list: MetadataPicklist }) {

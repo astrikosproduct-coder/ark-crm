@@ -45,7 +45,7 @@ export class SpecExprError extends Error {
 
 // ---------------------------------------------------------------- tokeniser
 
-type Tok =
+export type Tok =
   | { t: 'num'; v: number }
   | { t: 'str'; v: string }
   | { t: 'ident'; v: string }
@@ -162,6 +162,15 @@ function describe(t: Tok): string {
 // Lowest precedence first. Each level consumes the level below it:
 //   ternary -> or -> and -> equality -> relational -> additive
 //           -> multiplicative -> unary -> primary
+/**
+ * The tokens of an expression, as the parser reads them — for showing a
+ * formula to a person (lib/spec/readableFormula.ts) with the same idea of
+ * what a name is. Throws SpecExprError on text the language cannot read.
+ */
+export function tokensOf(src: string): Tok[] {
+  return tokenise(src)
+}
+
 export function parse(src: string): Node {
   const toks = tokenise(src)
   let p = 0

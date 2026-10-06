@@ -36,11 +36,11 @@ from sqlalchemy.orm import Session
 from ..auth import current_user
 from ..database import Base, get_db
 from ..metadata_spec import (
+    diff_items,
     FIELD_TYPES,
     REQUIREMENTS,
     SPEC_DIR,
     build_snapshot,
-    diff_snapshots,
     orphaned_sidecar_refs,
     restore_snapshot,
     spec_documents,
@@ -68,6 +68,9 @@ from ..models import (
     User,
 )
 from ..schemas_metadata import (
+    LayoutSaveSection,
+    DraftChangeOut,
+    FieldUsageOut,
     ConversionMappingOut,
     DraftStatus,
     FieldCreate,
@@ -481,6 +484,52 @@ def save_layout(
             placement.capture_stage = _stage_of_section(section.label)
         placement.sort_order = position
 
+    # Where each field draws: under or beside another in the SAME section, and
+    # its width — the editor's "Show under…", "Show beside…" and width items.
+    # Only what the request names changes; a field left out of it keeps its own.
+    by_id = {p.id: p for p in rows.values() if p.id in listed}
+    for entry in payload.placements:
+        placement = by_id[entry.placement_id]
+        sent = entry.model_fields_set
+        if "span" in sent:
+            if entry.span is not None and entry.span not in LAYOUT_SPANS:
+                raise _layout_refusal("LAYOUT_OUT_OF_DATE", "The layout changed while you edited it.", ["Reload the page, then make your change again."])
+            placement.layout_span = entry.span
+        if "anchor" in sent:
+            if entry.anchor is None:
+                placement.anchor_field = None
+                placement.anchor_position = None
+                continue
+            target = by_id.get(entry.anchor)
+            if target is None or target.id == placement.id or target.section_id != placement.section_id:
+                raise _layout_refusal("LAYOUT_OUT_OF_DATE", "The layout changed while you edited it.", ["Reload the page, then make your change again."])
+            position = entry.anchor_position or "after"
+            if position not in ANCHOR_POSITIONS:
+                raise _layout_refusal("LAYOUT_OUT_OF_DATE", "The layout changed while you edited it.", ["Reload the page, then make your change again."])
+            placement.anchor_field = target.api_name
+            placement.anchor_position = position
+    # No loops: a field cannot draw inside one that draws inside it.
+    by_name = {p.api_name: p for p in by_id.values()}
+    for placement in by_id.values():
+        seen: set[str] = set()
+        cursor = placement
+        while cursor is not None and cursor.anchor_field:
+            if cursor.api_name in seen:
+                label = db.get(FieldDefinition, placement.definition_id).label
+                raise _layout_refusal(
+                    "ANCHOR_LOOP",
+                    f"“{label}” would be shown under itself.",
+                    ["Show it under a field that is not already under it."],
+                )
+            seen.add(cursor.api_name)
+            cursor = by_name.get(cursor.anchor_field)
+    # A field moved away from the one it was attached to is no longer attached.
+    for placement in by_id.values():
+        target = by_name.get(placement.anchor_field) if placement.anchor_field else None
+        if placement.anchor_field and (target is None or target.section_id != placement.section_id):
+            placement.anchor_field = None
+            placement.anchor_position = None
+
     # Fields the editor took off the form: to Unused Items. Anything anchored
     # to one is released, as Remove Field always has.
     for placement in rows.values():
@@ -500,14 +549,18 @@ def save_layout(
         placement = rows.get(placement_id)
         if placement is None or placement.id not in listed:
             raise _layout_refusal("LAYOUT_OUT_OF_DATE", "The layout changed while you edited it.", ["Reload the page, then make your change again."])
-        if placement.requirement not in ("Mandatory", "Optional"):
+        # Only between Required and not — since 4e every requirement a person
+        # chooses is one of those two; any other is the CRM's own (it fills
+        # the field, or the field is advice).
+        if placement.requirement not in ("Mandatory", "Optional", "Conditional"):
             label = db.get(FieldDefinition, placement.definition_id).label
             raise _layout_refusal(
                 "REQUIREMENT_NOT_TOGGLED",
-                f"“{label}” has a requirement rule of its own.",
-                ["Change it in the field's Edit Properties."],
+                f"“{label}” can't be marked required.",
+                ["The CRM fills it, or it is only advice."],
             )
         placement.requirement = "Mandatory" if required else "Optional"
+        _sync_condition(placement)
     db.flush()
 
     # Sections the editor deleted: gone, or switched off when a field waiting
@@ -709,29 +762,6 @@ def update_section(
     return SectionOut.model_validate(section)
 
 
-@router.post("/sections/reorder", response_model=list[SectionOut])
-def reorder_sections(payload: ReorderRequest, db: Session = Depends(get_db)):
-    sections = {s.id: s for s in db.scalars(select(Section).where(Section.id.in_(payload.ids)))}
-    missing = [i for i in payload.ids if i not in sections]
-    if missing:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, f"Unknown section id(s): {missing}"
-        )
-
-    modules = {s.module_key for s in sections.values()}
-    if len(modules) > 1:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "Sections from more than one module cannot be reordered together",
-        )
-
-    for position, section_id in enumerate(payload.ids, start=1):
-        sections[section_id].sort_order = position
-    db.commit()
-
-    return list_sections(module=modules.pop() if modules else None, db=db)
-
-
 # ------------------------------------------------------------------- fields
 #
 # A "field" on these endpoints is a PLACEMENT: one field as one module shows
@@ -927,6 +957,7 @@ def _serialise_placement(
         "required_on_skip": placement.required_on_skip,
         "required_on_create": bool(placement.required_on_create),
         "default_value": placement.default_value,
+        "asked_at_stage_move": bool(placement.asked_at_stage_move),
         "visibility_condition": placement.visibility_condition,
         "condition": placement.condition,
         "value_mode": placement.value_mode,
@@ -1192,6 +1223,63 @@ def _drop_stale_defaults(db: Session, definitions: list[FieldDefinition]) -> Non
                 placement.default_value = None
 
 
+# ------------------------------------------------------- required, and when
+
+
+def _sync_condition(placement: FieldPlacement) -> None:
+    """
+    Zoho's model since Setup 4e: a field is Required or not, and "Show only
+    when…" says when it is on the form at all. A required field is demanded
+    exactly while it is shown, so its requirement rule IS its visibility rule —
+    which every row of the register already had (the two never differed). The
+    `condition` column is kept equal to it because the save check still finds a
+    status's reason by its rule (app/requirements.py status_only); it is
+    derived, never typed, and goes at Step 9.
+    """
+    if placement.requirement == "Mandatory":
+        placement.condition = placement.visibility_condition
+    elif placement.requirement == "Optional":
+        placement.condition = None
+
+
+# ------------------------------------------------------- the type of a column field
+
+#: Types whose value is the same text in the same column — a field with a column
+#: of its own may move between these and no other (4e).
+_TEXT_TYPES = {"text", "longtext", "richtext", "email", "url", "phone"}
+
+
+def _check_type_change(db: Session, definition: FieldDefinition, new_type: str | None) -> None:
+    """
+    A field that came with the CRM keeps its values in a typed column, so its
+    type can only change to one that column already holds — Text to Long Text,
+    not Text to Number. A field added in Setup keeps its values in the module's
+    custom field store and may change freely, as in Zoho.
+    """
+    if new_type is None or new_type == definition.field_type:
+        return
+    has_column = db.scalar(
+        select(func.count())
+        .select_from(FieldPlacement)
+        .where(FieldPlacement.definition_id == definition.id, FieldPlacement.storage == "column")
+    )
+    if not has_column:
+        return
+    if definition.field_type in _TEXT_TYPES and new_type in _TEXT_TYPES:
+        return
+    raise HTTPException(
+        status.HTTP_422_UNPROCESSABLE_ENTITY,
+        refusal(
+            "FIELD_TYPE_FIXED",
+            f"{definition.label} can't become a {new_type} field.",
+            [
+                "Its values are kept in a place made for its current type.",
+                "Add a new field of the type you need instead.",
+            ],
+        ),
+    )
+
+
 def _choice_key(label: str, taken: set[str]) -> str:
     """PARTNER_SOURCED from "Partner-sourced" — the register's own convention."""
     base = re.sub(r"[^A-Za-z0-9]+", "_", label).strip("_").upper()[:110] or "CHOICE"
@@ -1437,6 +1525,7 @@ def create_field(payload: FieldCreate, db: Session = Depends(get_db)):
         status="active",
         provenance="admin",
     )
+    _sync_condition(placement)
     db.add(placement)
     db.commit()
     db.refresh(placement)
@@ -1585,6 +1674,7 @@ def update_field(
     )
     if "picklist_key" in data:
         _check_local_picklist(db, data["picklist_key"], definition.id)
+    _check_type_change(db, definition, data.get("field_type"))
 
     # Its own choices, for a field that has none: a text field turned into a
     # dropdown, or one leaving a global set. A field already on its own list
@@ -1779,6 +1869,10 @@ def update_placement(
     if "stage_scoped" in data and data["stage_scoped"] is not None:
         _apply_stage_scoped(db, placement, str(data["stage_scoped"]))
 
+    if "requirement" in data or "visibility_condition" in data:
+        _sync_condition(placement)
+    _keep_with_anchor(db, placement, moved_by_anchor="anchor_field" in data)
+
     db.commit()
     db.refresh(placement)
     return FieldOut(
@@ -1932,6 +2026,33 @@ def _apply_anchor(db: Session, placement: FieldPlacement, data: dict) -> None:
     placement.anchor_position = position
 
 
+def _keep_with_anchor(db: Session, placement: FieldPlacement, *, moved_by_anchor: bool) -> None:
+    """
+    An attached field lives in the section of the field it is attached to (4e)
+    — where it draws is where it is, so Setup shows it where the record does.
+    Attaching moves it there; moving it somewhere else on its own detaches it.
+    """
+    if placement.anchor_field is None:
+        return
+    target = db.scalar(
+        select(FieldPlacement).where(
+            FieldPlacement.module_key == placement.module_key,
+            FieldPlacement.scope_key == placement.scope_key,
+            FieldPlacement.api_name == placement.anchor_field,
+            FieldPlacement.status == "active",
+        )
+    )
+    if target is None or target.section_id == placement.section_id:
+        return
+    if moved_by_anchor:
+        placement.section_id = target.section_id
+        section = db.get(Section, target.section_id)
+        placement.capture_stage = _stage_of_section(section.label)
+    else:
+        placement.anchor_field = None
+        placement.anchor_position = None
+
+
 def _anchored_to(db: Session, placement: FieldPlacement) -> list[FieldPlacement]:
     """Active placements on this module that draw inside `placement`."""
     return list(
@@ -2075,6 +2196,67 @@ def delete_placement(
     )
 
 
+@router.get("/placements/{placement_id}/usage", response_model=list[FieldUsageOut])
+def placement_usage(placement_id: int, db: Session = Depends(get_db)):
+    """
+    What reads this field — asked before Remove Field (Setup 4e), so nobody
+    takes a field off a form without knowing what stops working. Zoho warns
+    the same way before a field in use is deleted; this reads the DRAFT, which
+    is what the editor is changing.
+
+    Rules and formulas are matched on the field's name as a whole word, the way
+    the expression language reads it.
+    """
+    placement = _placement_or_404(db, placement_id)
+    name = placement.api_name
+    word = re.compile(rf"(?<![A-Za-z0-9_]){re.escape(name)}(?![A-Za-z0-9_])")
+    module_label = {m.module_key: m.label for m in db.scalars(select(Module))}
+    here = module_label.get(placement.module_key, placement.module_key)
+    out: list[FieldUsageOut] = []
+
+    rows = db.execute(
+        select(FieldPlacement, FieldDefinition)
+        .join(FieldDefinition, FieldDefinition.id == FieldPlacement.definition_id)
+        .where(
+            FieldPlacement.module_key == placement.module_key,
+            FieldPlacement.status == "active",
+            FieldPlacement.id != placement.id,
+        )
+        .order_by(FieldPlacement.sort_order)
+    ).all()
+    for other, definition in rows:
+        label = other.label_override or definition.label
+        if other.visibility_condition and word.search(other.visibility_condition):
+            out.append(FieldUsageOut(kind="rule", module=here, label=label, text=f"{label} is shown only when this field has a certain value."))
+        if definition.computed_expr and word.search(definition.computed_expr):
+            out.append(FieldUsageOut(kind="formula", module=here, label=label, text=f"{label} is worked out from it."))
+        if other.anchor_field == name:
+            out.append(FieldUsageOut(kind="attached", module=here, label=label, text=f"{label} is shown under it, and goes with it."))
+
+    for later in db.scalars(
+        select(FieldPlacement).where(
+            FieldPlacement.definition_id == placement.definition_id,
+            FieldPlacement.id != placement.id,
+            FieldPlacement.status == "active",
+            FieldPlacement.value_mode == "read_through",
+        )
+    ):
+        where = module_label.get(later.module_key, later.module_key)
+        out.append(FieldUsageOut(kind="shown_later", module=where, label=where, text=f"{where} shows it under From the Lead."))
+
+    for mapping in db.scalars(select(ConversionMapping).where(ConversionMapping.active.is_(True))):
+        if mapping.source_module == placement.module_key and mapping.source_api_name == name:
+            where = module_label.get(mapping.target_module, mapping.target_module)
+            out.append(FieldUsageOut(kind="conversion", module=where, label=where, text=f"Conversion copies it into {where}."))
+        if mapping.target_module == placement.module_key and mapping.target_api_name == name:
+            where = module_label.get(mapping.source_module or "", mapping.source_module or "")
+            out.append(FieldUsageOut(kind="conversion", module=where, label=where, text=f"Conversion fills it from {where}."))
+
+    if placement.asked_at_stage_move or placement.stage_scoped == "sticky":
+        out.append(FieldUsageOut(kind="reasons", module=here, label="Reasons & Justifications", text="Reasons & Justifications lists it."))
+    return out
+
+
 @router.post("/placements/{placement_id}/restore", response_model=FieldOut)
 def restore_placement(placement_id: int, db: Session = Depends(get_db)):
     """Put a field back on one module, in the section and order it had."""
@@ -2178,65 +2360,10 @@ def restore_field(definition_id: int, db: Session = Depends(get_db)):
     return get_field(definition_id, db)
 
 
-@router.post("/placements/reorder", response_model=list[FieldOut])
-def reorder_placements(payload: ReorderRequest, db: Session = Depends(get_db)):
-    """
-    Reorder fields within one module. Ids are PLACEMENT ids.
-
-    One module at a time, for the same reason sections are: `sort_order` is
-    scoped to a module, so a request mixing two would renumber both against one
-    sequence and interleave their forms.
-    """
-    placements = {
-        p.id: p
-        for p in db.scalars(
-            select(FieldPlacement).where(FieldPlacement.id.in_(payload.ids))
-        )
-    }
-    missing = [i for i in payload.ids if i not in placements]
-    if missing:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND, f"No field placement(s) {missing}"
-        )
-
-    modules = {p.module_key for p in placements.values()}
-    if len(modules) > 1:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            f"All fields must be on one module; got {sorted(modules)}",
-        )
-
-    for position, placement_id in enumerate(payload.ids, start=1):
-        placements[placement_id].sort_order = position
-
-    db.commit()
-    labels = _section_labels(db)
-    counts = _placement_counts(db)
-    return [
-        FieldOut(
-            **_serialise_placement(
-                db,
-                placements[i],
-                db.get(FieldDefinition, placements[i].definition_id),
-                labels.get(placements[i].section_id, ""),
-                counts,
-            )
-        )
-        for i in payload.ids
-    ]
-
-
-# Kept at the old paths so nothing that already calls them breaks: a reorder of
-# fields is a reorder of placements, and the Required toggle acts on one
-# module's placement. Both take PLACEMENT ids, which is what /fields returns
-# as `id`.
-router.add_api_route(
-    "/fields/reorder",
-    reorder_placements,
-    methods=["POST"],
-    response_model=list[FieldOut],
-    include_in_schema=False,
-)
+# Kept at the old path so nothing that already calls it breaks: the Required
+# toggle acts on one module's placement, by PLACEMENT id, which is what /fields
+# returns as `id`. (The section and field reorder routes are gone since 4e: the
+# layout editor's Save is the one way to arrange a layout.)
 router.add_api_route(
     "/fields/{placement_id}/required",
     set_placement_required,
@@ -2702,13 +2829,15 @@ def draft_status(db: Session = Depends(get_db)):
 
     # Before the first publish everything is a change, and listing 566 field
     # additions helps nobody — the count says it better.
-    changes = diff_snapshots(latest.snapshot, snapshot) if latest else []
+    items = diff_items(latest.snapshot, snapshot) if latest else []
+    changes = [item["text"] for item in items]
 
     return DraftStatus(
         published_version=latest.version_no if latest else None,
         published_at=latest.published_at if latest else None,
         has_changes=bool(changes) if latest else True,
         changes=changes,
+        items=[DraftChangeOut(**item) for item in items],
         validation=_validation_out(snapshot),
         counts={
             "modules": len(snapshot["modules"]),

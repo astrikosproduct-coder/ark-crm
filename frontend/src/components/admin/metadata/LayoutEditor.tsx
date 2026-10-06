@@ -26,15 +26,26 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { ErrorNotice, Notice } from '@/components/ui/notice'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { FieldDialog } from './FieldDialog'
 import { UnusedItems } from './UnusedItems'
-import { LoadingRow } from './shared'
+import { LoadingRow, PendingDot } from './shared'
 import {
   addSection,
+  anchorOf,
+  attach,
+  attachTargets,
   DRAG,
   cellIds,
   deleteSection,
@@ -50,20 +61,27 @@ import {
   renameSection,
   savePayload,
   sectionTitle,
+  setSpan,
+  spanOf,
   stagePrefixOf,
+  type AnchorPosition,
   type Draft,
   type DraftSection,
   type SectionKind,
 } from './layoutDraft'
 import {
   FIELD_TYPES,
+  fetchFieldUsage,
   typeLabel,
+  usePendingChanges,
   useMetadataFields,
   useMetadataSections,
   useSaveLayout,
+  type FieldUsage,
   type MetadataField,
   type MetadataLayout,
 } from '@/lib/metadata'
+import { isAskedAtStageMove, isReasonField } from '@/lib/recordLayout'
 import { PIPELINE_MODULES } from '@/lib/spec'
 import type { AnchoredNode } from '@/lib/spec/anchors'
 import { stagesFor } from '@/lib/pipeline'
@@ -101,6 +119,16 @@ import { markFormSaved, useUnsavedChangesStore } from '@/store/useUnsavedChanges
  * and locked: a rank there is unique across records, so those fields save the
  * moment they change and cannot share a form with the rest.
  *
+ * EVERY FIELD WHERE THE RECORD SHOWS IT (4e, 5 Oct 2026). The tabs, the
+ * Details sections and the Reasons & Justifications block are worked out by
+ * lib/recordLayout.ts — the rules the record page itself uses. A field
+ * attached under another is drawn under it here too, and lives in its
+ * section; "Show under…", "Show beside…" and the width item change that in
+ * the session. The two reasons the Update Stage dialog asks for are on the
+ * Stage move tab, not in a section, because no form draws them. A field the
+ * CRM fills says so, and a field or section with a change not yet published
+ * carries a dot. Remove Field first says what reads the field.
+ *
  * WHAT IT DELIBERATELY IS NOT: a live form. Tiles draw a type icon and a label,
  * the way Zoho's builder does; the record screen is what draws inputs.
  */
@@ -128,9 +156,10 @@ const TYPE_ICON: Record<string, typeof TextIcon> = {
 }
 const iconFor = (type: string) => TYPE_ICON[type] ?? TextIcon
 
-type TabId = string // 'header' | 'details' | 'all' | `stage-${n}`
+type TabId = string // 'header' | 'details' | 'stagemove' | 'all' | `stage-${n}`
 
 interface EditorActions {
+  moduleKey: string
   draft: Draft
   byId: Map<number, MetadataField>
   kinds: Map<string, SectionKind>
@@ -138,6 +167,9 @@ interface EditorActions {
   /** A type from the palette dropped on a section, before a field (or at the end). */
   newField: (sectionKey: string, beforeId: number | null, type: string) => void
   editField: (field: MetadataField) => void
+  /** Take a field off the form — after saying what reads it, if anything does. */
+  removeField: (field: MetadataField) => void
+  pending: ReturnType<typeof usePendingChanges>
   renaming: string | null
   setRenaming: (key: string | null) => void
   dragSection: boolean
@@ -185,6 +217,9 @@ export function LayoutEditor({
   // Where a field being created from the palette should appear once it exists.
   const insertAt = useRef<{ sectionKey: string; beforeId: number | null } | null>(null)
   const newCount = useRef(0)
+  const pending = usePendingChanges()
+  // A removal waiting on "this field is read by…": what goes, and why to ask.
+  const [removing, setRemoving] = useState<{ field: MetadataField; ids: number[]; usage: FieldUsage[] } | null>(null)
 
   const byId = useMemo(() => new Map((fields ?? []).map((f) => [f.placement_id, f])), [fields])
 
@@ -229,11 +264,22 @@ export function LayoutEditor({
   const kinds = new Map(draft.sections.map((s) => [s.key, kindOf(s, rowsOf(s.key), ownStages)]))
   const has = (kind: SectionKind['kind']) => [...kinds.values()].some((k) => k.kind === kind)
 
+  const onForm = new Set(Object.values(draft.cells).flat())
+  // Asked by the Update Stage dialog, drawn by no form (asked_at_stage_move).
+  const stageMoveFields = fields.filter(
+    (f) => onForm.has(f.placement_id) && isAskedAtStageMove(f) && f.value_mode !== 'read_through'
+  )
+  // What the read-only Reasons & Justifications panel on Details lists.
+  const reasonFields = fields.filter(
+    (f) => onForm.has(f.placement_id) && isReasonField(f) && f.value_mode !== 'read_through'
+  )
+
   const tabs: { id: TabId; label: string }[] = isPipeline
     ? [
         ...(has('header') || has('keyfacts') ? [{ id: 'header', label: 'Record header' }] : []),
         ...stages.map((s) => ({ id: `stage-${s.stage}`, label: `Stage ${s.stage} · ${s.name}` })),
         { id: 'details', label: 'Details' },
+        ...(stageMoveFields.length > 0 ? [{ id: 'stagemove', label: 'Stage move' }] : []),
       ]
     : [{ id: 'all', label: 'Form' }]
   const current = tabs.some((t) => t.id === tab) ? (tab as TabId) : (tabs.find((t) => t.id.startsWith('stage-')) ?? tabs[0]).id
@@ -301,6 +347,21 @@ export function LayoutEditor({
     setReloading(false)
   }
 
+  const removeField = async (field: MetadataField) => {
+    const ids = cellIds(draft, byId, field.placement_id)
+    let usage: FieldUsage[] = []
+    try {
+      usage = await fetchFieldUsage(field.placement_id)
+    } catch {
+      usage = []
+    }
+    // What goes with it is already in the list of what goes; say only the rest.
+    const going = new Set(ids.map((id) => byId.get(id)?.label))
+    usage = usage.filter((u) => !(u.kind === 'attached' && going.has(u.label)))
+    if (usage.length === 0) setDraft(moveIds(draft, ids, 'unused', null, byId))
+    else setRemoving({ field, ids, usage })
+  }
+
   const unusedFields = draft.unused
     .map((id) => byId.get(id))
     .filter((f): f is MetadataField => Boolean(f))
@@ -309,12 +370,15 @@ export function LayoutEditor({
   return (
     <Editor.Provider
       value={{
+        moduleKey,
         draft,
         byId,
         kinds,
         setDraft,
         newField,
         editField: (field) => setDialog({ open: true, field }),
+        removeField,
+        pending,
         renaming,
         setRenaming,
         dragSection,
@@ -376,7 +440,10 @@ export function LayoutEditor({
             <NewSectionTile disabled={!canAddSection} onAdd={() => addNewSection(keyAfterTab())} />
             <UnusedItems
               fields={unusedFields}
-              onDropField={(id) => setDraft(moveIds(draft, cellIds(draft, byId, id), 'unused', null))}
+              onDropField={(id) => {
+                const field = byId.get(id)
+                if (field) void removeField(field)
+              }}
             />
           </aside>
 
@@ -385,7 +452,8 @@ export function LayoutEditor({
               {current === 'header' && (
                 <p className="text-muted-foreground mb-1 text-xs">Shown at the top of every stage.</p>
               )}
-              {visible.length === 0 && (
+              {current === 'stagemove' && <StageMovePanel fields={stageMoveFields} />}
+              {visible.length === 0 && current !== 'stagemove' && (
                 <p className="text-muted-foreground py-6 text-sm">
                   {canAddSection
                     ? 'Nothing here yet. Drag NEW SECTION here to start.'
@@ -410,6 +478,7 @@ export function LayoutEditor({
                 allowNew={canAddSection}
                 last
               />
+              {current === 'details' && reasonFields.length > 0 && <ReasonsBlock fields={reasonFields} />}
             </div>
           </main>
         </div>
@@ -426,6 +495,36 @@ export function LayoutEditor({
         fieldType={dialog.fieldType}
         fromLayout
       />
+
+      {/* Zoho warns before a field in use goes; so does Setup (4e). */}
+      <Dialog open={Boolean(removing)} onOpenChange={(open) => !open && setRemoving(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Remove {removing?.field.label}?</DialogTitle>
+            <DialogDescription>Other parts of the CRM read this field.</DialogDescription>
+          </DialogHeader>
+          <ul className="list-disc space-y-0.5 pl-5 text-sm">
+            {removing?.usage.map((u, i) => (
+              <li key={i}>{u.text}</li>
+            ))}
+            <li>It waits in Unused Items. Nothing changes until you save.</li>
+          </ul>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRemoving(null)}>
+              Keep it
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (removing) setDraft(moveIds(draft, removing.ids, 'unused', null, byId))
+                setRemoving(null)
+              }}
+            >
+              Move to Unused Items
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Editor.Provider>
   )
 }
@@ -532,14 +631,18 @@ function SectionDropZone({
 }
 
 function SectionCard({ section }: { section: DraftSection }) {
-  const { draft, byId, kinds, setDraft, newField, setDragSection } = useEditor()
+  const { moduleKey, draft, byId, kinds, setDraft, newField, setDragSection, pending } = useEditor()
   const [open, setOpen] = useState(true)
   const [over, setOver] = useState(false)
   const kind = kinds.get(section.key)!
   // Priority Flags: nothing dropped in, nothing dragged out — see the file's docstring.
   const locked = kind.kind === 'header'
-  const ids = draft.cells[section.key] ?? []
-  const nodes = nodesOf(ids, byId)
+  const all = draft.cells[section.key] ?? []
+  // The Update Stage dialog's fields are kept in a section but drawn by no
+  // form: they are on the Stage move tab.
+  const ids = all.filter((id) => !isAskedAtStageMove(byId.get(id) ?? {}))
+  const holdsStageMove = ids.length !== all.length
+  const nodes = nodesOf(draft, ids, byId)
 
   /** Whatever was dropped: a palette type, a field from the form, or one from Unused Items. */
   const handleDrop = (e: React.DragEvent, beforeId: number | null) => {
@@ -556,7 +659,7 @@ function SectionCard({ section }: { section: DraftSection }) {
     if (moving.length === 0) return
     e.preventDefault()
     e.stopPropagation()
-    setDraft(moveIds(draft, moving, section.key, beforeId))
+    setDraft(moveIds(draft, moving, section.key, beforeId, byId))
   }
   const accepts = (e: React.DragEvent) =>
     !locked && [DRAG.newField, DRAG.cell, DRAG.unused].some((t) => e.dataTransfer.types.includes(t))
@@ -605,10 +708,11 @@ function SectionCard({ section }: { section: DraftSection }) {
         ) : (
           <SectionName section={section} />
         )}
+        {pending.section(moduleKey, section.label) && <PendingDot />}
         <span className="text-muted-foreground text-xs">
           {locked ? 'Saved the moment they change on the record' : `${ids.length} field${ids.length === 1 ? '' : 's'}`}
         </span>
-        {!locked && <SectionGear section={section} kind={kind} />}
+        {!locked && <SectionGear section={section} kind={kind} keeps={holdsStageMove} />}
       </div>
 
       {open && (
@@ -702,10 +806,12 @@ function SectionName({ section }: { section: DraftSection }) {
 }
 
 /** Zoho's section gear: rename, delete. The two sections the CRM reads by role stay. */
-function SectionGear({ section, kind }: { section: DraftSection; kind: SectionKind }) {
+function SectionGear({ section, kind, keeps }: { section: DraftSection; kind: SectionKind; keeps: boolean }) {
   const { draft, setDraft, setRenaming } = useEditor()
   const [open, setOpen] = useState(false)
-  const fixed = kind.kind === 'header' || kind.kind === 'keyfacts'
+  // The key facts and the strip are read by role; a section holding the Update
+  // Stage dialog's fields keeps them (they are on the Stage move tab).
+  const fixed = kind.kind === 'header' || kind.kind === 'keyfacts' || keeps
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -729,7 +835,13 @@ function SectionGear({ section, kind }: { section: DraftSection; kind: SectionKi
         <MenuItem
           className="text-destructive"
           disabled={fixed}
-          title={fixed ? 'The record page reads this section — it stays' : undefined}
+          title={
+            keeps
+              ? 'It keeps the fields the Update Stage dialog asks for — it stays'
+              : fixed
+                ? 'The record page reads this section — it stays'
+                : undefined
+          }
           onClick={() => {
             setOpen(false)
             setDraft(deleteSection(draft, section.key))
@@ -759,12 +871,46 @@ function Cell({ node, locked }: { node: AnchoredNode<MetadataField>; locked: boo
   )
 }
 
+/** Filled by the CRM, never typed: a record id, a stamp, a day count, a formula. */
+function filledByCrm(field: MetadataField): boolean {
+  return (
+    !field.editable ||
+    field.field_type === 'computed' ||
+    field.requirement === 'System' ||
+    field.requirement === 'Computed'
+  )
+}
+
+/**
+ * One field on the layout. `field` is as this session draws it — its anchor
+ * and width as edited (layoutDraft.nodesOf). Locked tiles (Priority Flags, the
+ * Stage move tab) offer Edit Properties only.
+ */
 function FieldTile({ field, locked }: { field: MetadataField; locked: boolean }) {
-  const { draft, byId, setDraft, editField } = useEditor()
+  const { moduleKey, draft, byId, setDraft, editField, removeField, pending } = useEditor()
   const [menuOpen, setMenuOpen] = useState(false)
+  // "Show under…" / "Show beside…" open a list of fields to pick from.
+  const [picking, setPicking] = useState<AnchorPosition | null>(null)
   const Icon = iconFor(field.field_type)
   const required = isRequired(draft, field)
-  const toggleable = !locked && (field.requirement === 'Mandatory' || field.requirement === 'Optional')
+  const byCrm = filledByCrm(field)
+  const toggleable = !locked && !byCrm && (field.requirement === 'Mandatory' || field.requirement === 'Optional')
+  const anchor = anchorOf(draft, field, byId)
+  const anchorLabel = anchor ? byId.get(anchor.to)?.label : undefined
+  const span = spanOf(draft, field)
+
+  // Where else the record shows it, so the tile says what the record does.
+  const captions = [
+    byCrm && 'Filled by the CRM',
+    field.required_on_create && 'On the create form',
+    anchorLabel && (anchor?.position === 'beside' ? `Beside ${anchorLabel}` : `Under ${anchorLabel}`),
+    span === 'full' && 'Full width',
+  ].filter(Boolean)
+
+  const close = () => {
+    setMenuOpen(false)
+    setPicking(null)
+  }
 
   return (
     <div
@@ -786,10 +932,15 @@ function FieldTile({ field, locked }: { field: MetadataField; locked: boolean })
         <Icon className="text-muted-foreground size-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm">{field.label}</div>
-        {!field.editable && <div className="text-muted-foreground text-[11px]">Read-only</div>}
+        <div className="flex items-center gap-1.5">
+          <span className="truncate text-sm">{field.label}</span>
+          {pending.field(moduleKey, field.api_name) && <PendingDot />}
+        </div>
+        {captions.length > 0 && (
+          <div className="text-muted-foreground truncate text-[11px]">{captions.join(' · ')}</div>
+        )}
       </div>
-      <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+      <Popover open={menuOpen} onOpenChange={(open) => (open ? setMenuOpen(true) : close())}>
         <PopoverTrigger asChild>
           <button
             type="button"
@@ -799,37 +950,83 @@ function FieldTile({ field, locked }: { field: MetadataField; locked: boolean })
             <MoreHorizontalIcon className="size-4" />
           </button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-56 p-1">
-          {!locked && (
-            <MenuItem
-              disabled={!toggleable}
-              title={toggleable ? undefined : 'This field has a rule of its own — change it in Edit Properties'}
-              onClick={() => {
-                setMenuOpen(false)
-                setDraft({ ...draft, toggled: { ...draft.toggled, [field.placement_id]: !required } })
-              }}
-            >
-              {required ? 'Mark as not required' : 'Mark as required'}
-            </MenuItem>
-          )}
-          <MenuItem
-            onClick={() => {
-              setMenuOpen(false)
-              editField(field)
-            }}
-          >
-            Edit Properties
-          </MenuItem>
-          {!locked && (
-            <MenuItem
-              className="text-destructive"
-              onClick={() => {
-                setMenuOpen(false)
-                setDraft(moveIds(draft, cellIds(draft, byId, field.placement_id), 'unused', null))
-              }}
-            >
-              Remove Field
-            </MenuItem>
+        <PopoverContent align="end" className="w-60 p-1">
+          {picking ? (
+            <>
+              <p className="text-muted-foreground px-2 py-1 text-xs">
+                {picking === 'after' ? 'Show it under…' : 'Show it beside…'}
+              </p>
+              <div className="max-h-64 overflow-y-auto">
+                {attachTargets(draft, field.placement_id, byId).map((target) => (
+                  <MenuItem
+                    key={target.placement_id}
+                    onClick={() => {
+                      close()
+                      setDraft(attach(draft, field.placement_id, target.placement_id, picking))
+                    }}
+                  >
+                    {target.label}
+                  </MenuItem>
+                ))}
+              </div>
+              <MenuItem onClick={() => setPicking(null)}>‹ Back</MenuItem>
+            </>
+          ) : (
+            <>
+              {!locked && !byCrm && (
+                <MenuItem
+                  disabled={!toggleable}
+                  title={toggleable ? undefined : 'This field has a rule of its own — change it in Edit Properties'}
+                  onClick={() => {
+                    close()
+                    setDraft({ ...draft, toggled: { ...draft.toggled, [field.placement_id]: !required } })
+                  }}
+                >
+                  {required ? 'Mark as not required' : 'Mark as required'}
+                </MenuItem>
+              )}
+              <MenuItem
+                onClick={() => {
+                  close()
+                  editField(field)
+                }}
+              >
+                Edit Properties
+              </MenuItem>
+              {!locked && (
+                <>
+                  <MenuItem onClick={() => setPicking('after')}>Show under another field…</MenuItem>
+                  <MenuItem onClick={() => setPicking('beside')}>Show beside another field…</MenuItem>
+                  {anchorLabel && (
+                    <MenuItem
+                      onClick={() => {
+                        close()
+                        setDraft(attach(draft, field.placement_id, null))
+                      }}
+                    >
+                      Stop showing it {anchor?.position === 'beside' ? 'beside' : 'under'} {anchorLabel}
+                    </MenuItem>
+                  )}
+                  <MenuItem
+                    onClick={() => {
+                      close()
+                      setDraft(setSpan(draft, field.placement_id, span === 'full' ? null : 'full'))
+                    }}
+                  >
+                    {span === 'full' ? 'Use its usual width' : 'Use the full width'}
+                  </MenuItem>
+                  <MenuItem
+                    className="text-destructive"
+                    onClick={() => {
+                      close()
+                      void removeField(field)
+                    }}
+                  >
+                    Remove Field
+                  </MenuItem>
+                </>
+              )}
+            </>
           )}
         </PopoverContent>
       </Popover>
@@ -864,5 +1061,50 @@ function MenuItem({
     >
       {children}
     </button>
+  )
+}
+
+/**
+ * The Stage move tab: what the Update Stage dialog asks for that no form does
+ * (asked_at_stage_move). Zoho's Blueprint keeps its transition fields apart
+ * from the layout the same way. Their name and tooltip are edited here; where
+ * they are asked is the dialog's, so they are not dragged onto a form.
+ */
+function StageMovePanel({ fields }: { fields: MetadataField[] }) {
+  return (
+    <div className="bg-card rounded-lg border">
+      <div className="border-b px-3 py-2">
+        <span className="text-section text-sm font-bold tracking-wide">ASKED IN THE UPDATE STAGE DIALOG</span>
+      </div>
+      <div className="space-y-2 px-3 py-3">
+        <ul className="text-muted-foreground list-disc space-y-0.5 pl-5 text-xs">
+          <li>Asked when a record skips a stage or moves back, and kept with that move.</li>
+          <li>The dialog also asks for every required field due at the stage being left.</li>
+          <li>Each answer is listed in Reasons &amp; Justifications on the Details tab.</li>
+        </ul>
+        <div className="grid gap-2 md:grid-cols-2">
+          {fields.map((field) => (
+            <FieldTile key={field.placement_id} field={field} locked />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The read-only Reasons & Justifications panel every record shows on its
+ * Details tab, and the fields it is filled from (lib/recordLayout.ts
+ * isReasonField). Not a section: nothing is typed into it.
+ */
+function ReasonsBlock({ fields }: { fields: MetadataField[] }) {
+  return (
+    <div className="bg-muted/30 mt-2 rounded-lg border border-dashed px-3 py-2">
+      <p className="text-section text-sm font-bold tracking-wide">REASONS &amp; JUSTIFICATIONS</p>
+      <p className="text-muted-foreground text-xs">
+        Shown read-only on every record, after the sections. Filled from:{' '}
+        {fields.map((f) => f.label).join(', ')}.
+      </p>
+    </div>
   )
 }

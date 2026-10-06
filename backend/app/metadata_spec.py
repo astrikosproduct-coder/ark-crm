@@ -942,17 +942,19 @@ def iter_field_rows(rows: Iterable[dict[str, Any]]) -> Iterable[tuple[str, dict[
 # --------------------------------------------------------------- draft diff
 
 
-def diff_snapshots(previous: dict[str, Any], current: dict[str, Any]) -> list[str]:
+def diff_items(previous: dict[str, Any], current: dict[str, Any]) -> list[dict[str, Any]]:
     """
-    What changed between two snapshots, in words.
+    What changed between two snapshots, one item per change, each saying what
+    it is ABOUT — kind, module, section, name — and the sentence for it.
 
-    This is the review step: what an admin reads before publishing, and what a
-    version note is written against. Deliberately a list of sentences rather
-    than a structural diff — "leads.STAGE 4 — RFP / RFI.licence_model deleted"
-    is what somebody needs to see before they approve it, and a nested object
-    of before/after values is not.
+    The sentences are diff_snapshots; the parts are what lets Setup put an
+    "unpublished" marker on the module, section or field the change touches
+    (4e) without reading the words. One function, so the two cannot disagree.
     """
-    changes: list[str] = []
+    items: list[dict[str, Any]] = []
+
+    def add(kind: str, text: str, module: str | None = None, section: str | None = None, name: str | None = None) -> None:
+        items.append({"kind": kind, "module": module, "section": section, "name": name, "text": text})
 
     def by_key(rows, key):
         return {key(r): r for r in rows}
@@ -961,83 +963,107 @@ def diff_snapshots(previous: dict[str, Any], current: dict[str, Any]) -> list[st
     curr_f = by_key(current.get("fields", []), _field_key)
 
     for key in sorted(curr_f.keys() - prev_f.keys()):
-        changes.append(f"field added — {'.'.join(key)}")
+        add("field", f"field added — {'.'.join(key)}", *key)
     for key in sorted(prev_f.keys() - curr_f.keys()):
-        changes.append(f"field deleted — {'.'.join(key)}")
+        add("field", f"field deleted — {'.'.join(key)}", *key)
     for key in sorted(curr_f.keys() & prev_f.keys()):
         for json_key in (*FIELD_JSON_KEYS, *RESOLVED_KEYS):
             before, after = prev_f[key].get(json_key), curr_f[key].get(json_key)
             if before != after:
-                changes.append(
-                    f"field changed — {'.'.join(key)}.{json_key}: {before!r} -> {after!r}"
+                add(
+                    "field",
+                    f"field changed — {'.'.join(key)}.{json_key}: {before!r} -> {after!r}",
+                    *key,
                 )
 
     prev_m = {m["module_key"]: m for m in previous.get("modules", [])}
     curr_m = {m["module_key"]: m for m in current.get("modules", [])}
     for key in sorted(curr_m.keys() - prev_m.keys()):
-        changes.append(f"module added — {key}")
+        add("module", f"module added — {key}", key)
     for key in sorted(curr_m.keys() & prev_m.keys()):
         for attr in ("label", "sort_order", "active"):
             if prev_m[key][attr] != curr_m[key][attr]:
-                changes.append(
-                    f"module changed — {key}.{attr}: "
-                    f"{prev_m[key][attr]!r} -> {curr_m[key][attr]!r}"
+                add(
+                    "module",
+                    f"module changed — {key}.{attr}: {prev_m[key][attr]!r} -> {curr_m[key][attr]!r}",
+                    key,
                 )
 
     prev_s = {(s["module_key"], s["label"]): s for s in previous.get("sections", [])}
     curr_s = {(s["module_key"], s["label"]): s for s in current.get("sections", [])}
     for key in sorted(curr_s.keys() - prev_s.keys()):
-        changes.append(f"section added — {key[0]}.{key[1]}")
+        add("section", f"section added — {key[0]}.{key[1]}", key[0], key[1])
     for key in sorted(prev_s.keys() - curr_s.keys()):
-        changes.append(f"section removed — {key[0]}.{key[1]}")
+        add("section", f"section removed — {key[0]}.{key[1]}", key[0], key[1])
     for key in sorted(curr_s.keys() & prev_s.keys()):
         for attr in ("sort_order", "active"):
             if prev_s[key][attr] != curr_s[key][attr]:
-                changes.append(
+                add(
+                    "section",
                     f"section changed — {key[0]}.{key[1]}.{attr}: "
-                    f"{prev_s[key][attr]!r} -> {curr_s[key][attr]!r}"
+                    f"{prev_s[key][attr]!r} -> {curr_s[key][attr]!r}",
+                    key[0],
+                    key[1],
                 )
 
     prev_p = {p["picklist_key"]: p for p in previous.get("picklists", [])}
     curr_p = {p["picklist_key"]: p for p in current.get("picklists", [])}
     for key in sorted(curr_p.keys() - prev_p.keys()):
-        changes.append(f"picklist added — {key}")
+        add("picklist", f"picklist added — {key}", name=key)
     for key in sorted(prev_p.keys() - curr_p.keys()):
-        changes.append(f"picklist removed — {key}")
+        add("picklist", f"picklist removed — {key}", name=key)
     for key in sorted(curr_p.keys() & prev_p.keys()):
         if prev_p[key]["active"] != curr_p[key]["active"]:
             state = "activated" if curr_p[key]["active"] else "deactivated"
-            changes.append(f"picklist {state} — {key}")
+            add("picklist", f"picklist {state} — {key}", name=key)
         before = {v["key"]: v for v in prev_p[key]["values"]}
         after = {v["key"]: v for v in curr_p[key]["values"]}
         for value in sorted(after.keys() - before.keys()):
-            changes.append(f"picklist value added — {key}.{value}")
+            add("picklist", f"picklist value added — {key}.{value}", name=key)
         for value in sorted(before.keys() - after.keys()):
-            changes.append(f"picklist value removed — {key}.{value}")
+            add("picklist", f"picklist value removed — {key}.{value}", name=key)
         for value in sorted(after.keys() & before.keys()):
             for attr in ("label", "sort_order", "active"):
                 if before[value][attr] != after[value][attr]:
-                    changes.append(
+                    add(
+                        "picklist",
                         f"picklist value changed — {key}.{value}.{attr}: "
-                        f"{before[value][attr]!r} -> {after[value][attr]!r}"
+                        f"{before[value][attr]!r} -> {after[value][attr]!r}",
+                        name=key,
                     )
 
     prev_st = {s["stage"]: s for s in previous.get("stages", [])}
     curr_st = {s["stage"]: s for s in current.get("stages", [])}
     for key in sorted(curr_st.keys() - prev_st.keys()):
-        changes.append(f"stage added — {key}")
+        add("stage", f"stage added — {key}", name=str(key))
     for key in sorted(prev_st.keys() - curr_st.keys()):
-        changes.append(f"stage removed — {key}")
+        add("stage", f"stage removed — {key}", name=str(key))
     for key in sorted(curr_st.keys() & prev_st.keys()):
         for attr in ("name", "progression_pct", "probability_pct", "owner_role", "bid_phase", "applies_to", "sort_order", "active"):
             # .get(): a version published before 0022 has a band, not the pair.
             if prev_st[key].get(attr) != curr_st[key].get(attr):
-                changes.append(
+                add(
+                    "stage",
                     f"stage changed — {key}.{attr}: "
-                    f"{prev_st[key].get(attr)!r} -> {curr_st[key].get(attr)!r}"
+                    f"{prev_st[key].get(attr)!r} -> {curr_st[key].get(attr)!r}",
+                    name=str(key),
                 )
 
-    return changes
+    return items
+
+
+def diff_snapshots(previous: dict[str, Any], current: dict[str, Any]) -> list[str]:
+    """
+    What changed between two snapshots, in words.
+
+    This is the review step: what an admin reads before publishing, and what a
+    version note is written against. Deliberately a list of sentences rather
+    than a structural diff — "leads.STAGE 4 — RFP / RFI.licence_model deleted"
+    is what somebody needs to see before they approve it, and a nested object
+    of before/after values is not. The parts behind each sentence are
+    diff_items.
+    """
+    return [item["text"] for item in diff_items(previous, current)]
 
 
 # ------------------------------------------------------------ restore
@@ -1360,6 +1386,7 @@ def restore_snapshot(db: Session, snapshot: dict[str, Any]) -> list[str]:
         placement.required_on_create = bool(row.get("required_on_create", False))
         # .get(): absent before 0042, and absent whenever there is no default.
         placement.default_value = row.get("default_value")
+        placement.asked_at_stage_move = bool(row.get("asked_at_stage_move", False))
         placement.visibility_condition = row["visibility_condition"]
         placement.condition = row["condition"]
         # The value layer travels with a rollback: which module owned a value,

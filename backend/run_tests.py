@@ -60,6 +60,7 @@ WRITING = [
     "test_setup_api_names.py",
     "test_setup_layout.py",
     "test_setup_defaults.py",
+    "test_setup_4e.py",
     "test_progression.py",
     "test_audit_timeline.py",
     "test_pursuit_groups.py",

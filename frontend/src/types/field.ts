@@ -389,12 +389,17 @@ export interface RawFieldSpec {
   /**
    * The expression the engine evaluates — `one_time_cost + annual_recurring`.
    *
-   * NOT `computed_formula`, which is the register's own English sentence about
-   * the same rule and is rendered as help text beside it. Both are shown on
-   * purpose: where they disagree, the disagreement is a finding for the
-   * reviewer, not a bug to tidy away. See FieldRow.tsx.
+   * The ⓘ shows it written out with labels (lib/spec/readableFormula.ts).
+   * `computed_formula`, the hand-written sentence that used to sit beside it
+   * and could disagree with it, is no longer read (Setup 4e) and is dropped
+   * from the register at Step 9.
    */
   computed_expr: string | null
+  /**
+   * Asked in the Update Stage dialog, never on a form (migration 0043) —
+   * Stage Skip and Stage Reversal Reason. Absent when false.
+   */
+  asked_at_stage_move?: boolean
 }
 
 /**

@@ -3,8 +3,8 @@ import { SearchIcon } from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
 import { FieldDialog } from './FieldDialog'
-import { ErrorBox, LoadingRow, Row, Table } from './shared'
-import { typeLabel, useMetadataFields, type MetadataField } from '@/lib/metadata'
+import { ErrorBox, LoadingRow, PendingDot, Row, Table } from './shared'
+import { typeLabel, useMetadataFields, usePendingChanges, type MetadataField } from '@/lib/metadata'
 
 /**
  * A module's Fields tab — Zoho's Field Listing (Setup rebuild, 4b, 1 Oct 2026):
@@ -27,6 +27,7 @@ export function FieldsTab({ moduleKey }: { moduleKey: string }) {
   const { data: fields = [], isLoading, isError, error } = useMetadataFields(moduleKey, 'active')
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<MetadataField | undefined>(undefined)
+  const pending = usePendingChanges()
 
   if (isLoading) return <LoadingRow what="fields" />
   if (isError) return <ErrorBox error={error} />
@@ -78,6 +79,7 @@ export function FieldsTab({ moduleKey }: { moduleKey: string }) {
               >
                 {field.label}
               </button>
+              {pending.field(moduleKey, field.api_name) && <PendingDot />}
             </td>
             <td>{typeLabel(field.field_type)}</td>
             <td>{field.storage === 'custom_fields' ? 'Yes' : ''}</td>

@@ -79,6 +79,21 @@ export function Mono({ children }: { children: ReactNode }) {
  * with role="switch"; the project has no switch primitive and one control is
  * not worth a dependency.
  */
+/**
+ * A change saved to the draft and not yet published (Setup 4e) — on a module,
+ * a section or a field, wherever Setup lists it. The Publish banner says what
+ * the changes are; this says where.
+ */
+export function PendingDot() {
+  return (
+    <span
+      className="bg-primary ml-1.5 inline-block size-1.5 shrink-0 rounded-full align-middle"
+      title="Not published yet"
+      aria-label="Not published yet"
+    />
+  )
+}
+
 export function StatusSwitch({
   checked,
   onChange,

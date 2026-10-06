@@ -2911,6 +2911,11 @@ class FieldPlacement(Base):
     # record starts with (Zoho's "Select default value"). Pick List only;
     # see app/register_defaults.py for where it is applied.
     default_value: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # ADDED BY 0043. Asked in the Update Stage dialog, never on a form: Stage
+    # Skip Reason, Stage Reversal Reason. Replaced extensions.json history_only.
+    asked_at_stage_move: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
 
     # Conditions name sibling fields, and the sibling set differs per module —
     # a condition naming a field this module does not have cannot compile.

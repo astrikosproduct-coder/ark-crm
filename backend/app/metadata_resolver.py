@@ -109,6 +109,8 @@ FIELD_JSON_KEYS: tuple[str, ...] = (
 #   default_value       a Pick List's starting choice, by key (0042). Written
 #                       only when set, so fields.json grows by one key per
 #                       field that has one rather than one per field
+#   asked_at_stage_move asked in the Update Stage dialog, never on a form
+#                       (0043). Written only when true
 RESOLVED_KEYS: tuple[str, ...] = (
     "value_mode",
     "value_locked",
@@ -125,6 +127,7 @@ RESOLVED_KEYS: tuple[str, ...] = (
     "min_value",
     "max_value",
     "default_value",
+    "asked_at_stage_move",
 )
 
 
@@ -312,6 +315,9 @@ def field_row(
     }
     if placement.default_value is not None:
         row["default_value"] = placement.default_value
+    # Written only when true, like default_value: one key per field that has it.
+    if placement.asked_at_stage_move:
+        row["asked_at_stage_move"] = True
     return row
 
 

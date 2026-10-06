@@ -123,14 +123,14 @@ function RecordFormBody({
  * This component used to let a user drag fields around, and stored the result
  * in localStorage under `arkcrm-field-layout`, keyed `module::section`. It was
  * layered ON TOP of the register's own order, so the two disagreed by design:
- * Administration's reorder writes `field_placements.sort_order` through
- * POST /placements/reorder and is real, shared and published, and a stray drag
+ * Setup's layout editor writes `field_placements.sort_order` (PUT
+ * /layouts/{id}, its Save) and is real, shared and published, and a stray drag
  * on one record screen silently outranked it — in that one browser, invisibly
  * to everyone else, including whoever had just done the reorder properly.
  *
  * Two places to arrange one form is the same defect as two places to write one
- * answer, which extensions.json already documents rejecting for Stage Skip
- * Reason. Reordering is an administrative act; it belongs on the screen whose
+ * answer, which the register rejects for Stage Skip Reason (asked only at a
+ * stage move). Reordering is an administrative act; it belongs on the screen whose
  * job that is, where it can be reviewed and published.
  *
  * The store is deleted rather than disabled. Its own `clearAll()` claimed to

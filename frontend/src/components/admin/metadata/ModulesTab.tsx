@@ -13,12 +13,13 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ErrorBox, LoadingRow, Row, StatusSwitch, Table } from './shared'
+import { ErrorBox, LoadingRow, PendingDot, Row, StatusSwitch, Table } from './shared'
 import { date as fmtDate } from '@/lib/format'
 import { errorMessage } from '@/lib/admin'
 import {
   useCreateModule,
   useMetadataModules,
+  usePendingChanges,
   useUpdateModule,
   withChildrenUnderParents,
 } from '@/lib/metadata'
@@ -35,6 +36,7 @@ import {
  */
 export function ModulesTab({ moduleHref }: { moduleHref: (moduleKey: string) => string }) {
   const { data: modules = [], isLoading, isError, error } = useMetadataModules()
+  const pending = usePendingChanges()
   const updateModule = useUpdateModule()
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
@@ -100,6 +102,7 @@ export function ModulesTab({ moduleHref }: { moduleHref: (moduleKey: string) => 
                   <Link to={moduleHref(module.module_key)} className="text-link hover:underline">
                     {module.label}
                   </Link>
+                  {pending.module(module.module_key) && <PendingDot />}
                   {module.setup_parent && (
                     <span className="text-muted-foreground block text-xs font-normal">
                       under {modules.find((m) => m.module_key === module.setup_parent)?.label ?? module.setup_parent}

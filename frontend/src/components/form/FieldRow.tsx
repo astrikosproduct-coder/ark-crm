@@ -4,7 +4,9 @@ import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { FieldControl } from '@/components/form/FieldControl'
 import { useRecordForm } from '@/hooks/useRecordForm'
+import { fieldOf } from '@/lib/spec'
 import { spansFullWidth } from '@/lib/spec/anchors'
+import { readableFormula } from '@/lib/spec/readableFormula'
 import { cn } from '@/lib/utils'
 import type { FieldSpec } from '@/types/field'
 
@@ -32,6 +34,7 @@ export const FULL_WIDTH = new Set(['childlist'])
 
 export function FieldRow({ field, onCreateNew, className, requiredNow }: Props) {
   const form = useRecordForm()
+  const formula = readableFormula(field.computed_expr, (name) => fieldOf(field.module, name)?.label)
   const id = `${field.module}.${field.api_name}`
   const error = form.visibleErrors[field.api_name]
   // Shown only when the value is not ALSO malformed — "Must be a date" and
@@ -129,31 +132,38 @@ export function FieldRow({ field, onCreateNew, className, requiredNow }: Props) 
             </span>
           )}
         </Label>
-        {/* The prose formula from the register, never the executable one — a
-            reviewer should see the business statement they wrote.
+        {/* The tooltip, then — for a calculated field — the formula written
+            out from the one that runs (Setup 4e): "ARR × Contract Years + …".
+            Generated, so it can never describe a formula the CRM no longer
+            uses, which the hand-written sentence it replaced could.
 
             Where the sidecar carries a `note`, it follows underneath. That is
             how partners.exclusivity_expiry_date shows the register's own
             "Start date plus 90 days" next to the reason the engine computes 89:
             a reviewer needs to see both, not be quietly shown the corrected
             one. */}
-        {field.computed_formula ? (
+        {(field.description || formula) && (
           <Hint>
-            <span className="font-medium">Formula</span>
-            <br />
-            {field.computed_formula}
-            {field.note && (
+            {field.description}
+            {formula && (
+              <>
+                {field.description && <br />}
+                {field.description && <br />}
+                <span className="font-medium">Worked out as</span>
+                <br />
+                {formula}
+              </>
+            )}
+            {formula && field.note && (
               <>
                 <br />
                 <br />
-                <span className="font-medium">Prototype note</span>
+                <span className="font-medium">Note</span>
                 <br />
                 {field.note}
               </>
             )}
           </Hint>
-        ) : (
-          field.description && <Hint>{field.description}</Hint>
         )}
       </div>
 
@@ -165,9 +175,6 @@ export function FieldRow({ field, onCreateNew, className, requiredNow }: Props) 
         {error && <p className="text-xs text-destructive">{error}</p>}
         {missing && <p className="text-xs text-destructive">{missing}</p>}
 
-        {!error && !missing && form.mode === 'edit' && field.computed_formula && field.description && (
-          <p className="text-xs text-muted-foreground">{field.description}</p>
-        )}
       </div>
     </div>
   )
