@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { fieldOf, labelForValue } from '@/lib/spec'
 import type { Revenue } from '@/lib/revenue'
+import type { AccountMatch } from '@/lib/accountGroups'
 
 /**
  * Pursuit Groups — one project at one End Client pursued through more than one
@@ -84,6 +85,9 @@ export type PursuitErrorCode =
   | 'PURSUIT_ACTION_REQUIRED'
   | 'CANNOT_WITHDRAW'
   | 'NOT_AN_OPEN_PURSUIT'
+  // Accounts — backend/app/account_groups.py (Release 1.1).
+  | 'POSSIBLE_DUPLICATE_ACCOUNT'
+  | 'ACCOUNT_EXISTS'
 
 export interface PursuitMatch {
   pursuit: string
@@ -112,6 +116,8 @@ export interface PursuitError {
   suggested_reason?: string | null
   open?: { pursuit: string; module: string; record_id: string }[]
   options?: string[]
+  /** ACCOUNT_EXISTS: the company already in Accounts. */
+  existing?: AccountMatch
 }
 
 /** The server's structured refusal, when an axios error carries one. */
@@ -128,7 +134,13 @@ export function pursuitErrorOf(error: unknown): PursuitError | null {
  * dialog in PursuitSaveResolver, and the save runs again with the answer. Every
  * OTHER refusal is shown where the save was made, in its own words.
  */
-const ANSWERABLE = new Set<string>(['POSSIBLE_DUPLICATE', 'POSSIBLE_CONFLICT', 'PRIMARY_HAS_OPEN_SECONDARIES'])
+const ANSWERABLE = new Set<string>([
+  'POSSIBLE_DUPLICATE',
+  'POSSIBLE_CONFLICT',
+  'PRIMARY_HAS_OPEN_SECONDARIES',
+  'POSSIBLE_DUPLICATE_ACCOUNT',
+  'ACCOUNT_EXISTS',
+])
 
 export function answerableRefusalOf(error: unknown): PursuitError | null {
   const refusal = pursuitErrorOf(error)

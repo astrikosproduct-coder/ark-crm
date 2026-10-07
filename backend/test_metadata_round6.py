@@ -370,6 +370,7 @@ def main() -> int:
     # structural blocks (ranges, pipeline, stage_field, reassign) generated from
     # PostgreSQL too, so a publish regenerates it alongside the other three. Its
     # hand-authored blocks are preserved — see metadata_spec.module_split_document.
+    # Five since Release 1.1: dependencies.json, Region -> Country -> State.
     check(
         "16  publish regenerates the JSON",
         published.status_code == 200
@@ -379,6 +380,7 @@ def main() -> int:
                 f"frontend\\spec\\{FIELDS_JSON}",
                 f"frontend\\spec\\{PICKLISTS_JSON}",
                 f"frontend\\spec\\{STAGES_JSON}",
+                "frontend\\spec\\dependencies.json",
                 "frontend\\spec\\module_split.json",
             ]
         ),

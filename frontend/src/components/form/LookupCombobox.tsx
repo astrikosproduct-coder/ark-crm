@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { canCreateIn, fetchCollection } from '@/lib/collections'
+import { companyLine } from '@/lib/accountGroups'
 import { applyLookupFilter } from '@/lib/spec/conditions'
 import { collectionFor, displayNameOf, idOf } from '@/lib/spec'
 import { cn } from '@/lib/utils'
@@ -102,7 +103,9 @@ export function LookupCombobox({ field, value, onChange, onCreateNew, disabled, 
           disabled={disabled}
           className={cn('bg-input-bg data-[state=open]:border-ring data-[state=open]:ring-ring/50 data-[state=open]:ring-[3px] h-9 w-full justify-between font-normal', !value && 'text-muted-foreground')}
         >
-          <span className="truncate">{value ? selectedLabel : `Search ${field.lookup_target}…`}</span>
+          <span className="truncate" title={value ? selectedLabel : undefined}>
+            {value ? selectedLabel : `Search ${field.lookup_target}…`}
+          </span>
           <ChevronsUpDownIcon className="ml-2 size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -128,18 +131,28 @@ export function LookupCombobox({ field, value, onChange, onCreateNew, disabled, 
             <CommandGroup>
               {rows.map((row) => {
                 const rid = idOf(row)
+                // Accounts (Release 1.1): a registered name carries no country,
+                // so two companies of one name are told apart by the grey line
+                // under it — "MEA - United Arab Emirates". No record id is
+                // shown on any lookup (7 Oct 2026); a long name is read whole
+                // on hover.
+                const line = collection === 'accounts' ? companyLine(row) : ''
+                const name = displayNameOf(row)
                 return (
                   <CommandItem
                     key={rid}
-                    value={`${displayNameOf(row)} ${rid}`}
+                    value={`${name} ${line} ${rid}`}
+                    title={line ? `${name}\n${line}` : name}
                     onSelect={() => {
                       onChange(rid === value ? null : rid)
                       setOpen(false)
                     }}
                   >
                     <CheckIcon className={cn('size-4', value === rid ? 'opacity-100' : 'opacity-0')} />
-                    <span className="truncate">{displayNameOf(row)}</span>
-                    <span className="ml-auto text-xs text-muted-foreground">{rid}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate">{name}</span>
+                      {line && <span className="block truncate text-xs text-muted-foreground">{line}</span>}
+                    </span>
                   </CommandItem>
                 )
               })}

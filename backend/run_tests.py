@@ -72,6 +72,7 @@ WRITING = [
     "test_delete_guards.py",
     "test_required_fields.py",
     "test_pursuit_erase.py",
+    "test_release_1_1.py",
 ]
 
 

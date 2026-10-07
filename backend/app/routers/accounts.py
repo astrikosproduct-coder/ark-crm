@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..account_groups import file_under_head, group_rows, guard_duplicate, make_head, refuse_deleting_a_head
 from ..auth import current_user
+from ..group_revenue import group_figures
 from ..messages import already_exists, not_found, picked_record_missing, refusal
 from ..requirements import check_save
 from ..changes import custom_field_diff, diff, snapshot
@@ -31,12 +33,12 @@ ACCOUNT_ID_PATTERN = re.compile(r"^ACC-(\d+)$")
 
 # Fields `q` searches when the caller names none. Kept narrow and textual;
 # extensions.json list_views.accounts.search asks for exactly these three.
-DEFAULT_SEARCH = ("account_name", "region", "segment")
+DEFAULT_SEARCH = ("account_name", "region", "segments")
 
 MULTISELECTS = {"account_type"}
 
 #: Lookups whose joined name search and sort read, not the id underneath.
-ACCOUNT_LOOKUPS = ("account_owner",)
+ACCOUNT_LOOKUPS = ("account_owner", "parent_account")
 
 
 def _next_account_id(db: Session) -> str:
@@ -55,7 +57,7 @@ def _next_account_id(db: Session) -> str:
     return next_reference_id(db, "accounts", "ACC", 3, highest)
 
 
-def _serialise(account: Account, owner_names: dict[str, str]) -> dict:
+def _serialise(account: Account, owner_names: dict[str, str], groups: "_Groups | None" = None) -> dict:
     """One account in the shape the frontend's spec layer expects."""
     row = {
         "id": account.account_id,
@@ -68,8 +70,17 @@ def _serialise(account: Account, owner_names: dict[str, str]) -> dict:
         row[name] = float(value) if name.endswith("_score") and value is not None else value
 
     # The lookup display name, joined here so a list of 25 is one request.
+    labels: dict[str, str] = {}
     if account.account_owner and account.account_owner in owner_names:
-        row["__labels"] = {"account_owner": owner_names[account.account_owner]}
+        labels["account_owner"] = owner_names[account.account_owner]
+    # Release 1.1: the group, shown beside the name in pickers and lists.
+    # group_size counts the head too; 0 when the company is in no group.
+    groups = groups or _Groups.of(Session.object_session(account))
+    if account.parent_account:
+        labels["parent_account"] = groups.names.get(account.parent_account, account.parent_account)
+    row["group_size"] = groups.size(account)
+    if labels:
+        row["__labels"] = labels
 
     # Admin-created field values, read back flat so the form engine sees them
     # exactly like a register field. Never overwrites a typed column.
@@ -78,6 +89,26 @@ def _serialise(account: Account, owner_names: dict[str, str]) -> dict:
 
 def _owner_names(db: Session) -> dict[str, str]:
     return {u.user_id: u.name for u in db.scalars(select(User))}
+
+
+class _Groups:
+    """Names and sizes of the groups, read once for a whole list."""
+
+    def __init__(self, names: dict[str, str], counts: dict[str, int]):
+        self.names, self.counts = names, counts
+
+    @classmethod
+    def of(cls, db: Session | None) -> "_Groups":
+        rows = list(db.execute(select(Account.account_id, Account.account_name, Account.parent_account))) if db else []
+        counts: dict[str, int] = {}
+        for _, _, parent in rows:
+            if parent:
+                counts[parent] = counts.get(parent, 0) + 1
+        return cls({r[0]: r[1] for r in rows}, counts)
+
+    def size(self, account: Account) -> int:
+        members = self.counts.get(account.parent_account or account.account_id, 0)
+        return members + 1 if members else 0
 
 
 def _apply_multiselects(db: Session, account: Account, payload: AccountUpdate | AccountCreate,
@@ -109,7 +140,8 @@ def list_accounts(request: Request, response: Response, db: Session = Depends(ge
     """
     accounts = list(db.scalars(select(Account)))
     owner_names = _owner_names(db)
-    rows = [_serialise(a, owner_names) for a in accounts]
+    groups = _Groups.of(db)
+    rows = [_serialise(a, owner_names, groups) for a in accounts]
 
     # Filters, search, sort and page — the one list contract every live module
     # shares (app/list_query.py), so the Filter panel works here as on Leads.
@@ -123,6 +155,43 @@ def list_accounts(request: Request, response: Response, db: Session = Depends(ge
 @router.get("/accounts/{account_id}", response_model=AccountOut)
 def get_account(account_id: str, db: Session = Depends(get_db)):
     return _serialise(_get_or_404(db, account_id), _owner_names(db))
+
+
+@router.get("/accounts/{account_id}/group")
+def get_account_group(account_id: str, db: Session = Depends(get_db)):
+    """
+    The companies of this account's group, the head first, then the rest by
+    name, each with what it brings in — and the group's total. `companies` is
+    empty when the account is in no group. See app/account_groups.py and
+    app/group_revenue.py.
+    """
+    head, members = group_rows(db, _get_or_404(db, account_id))
+    if head is None:
+        return {"companies": [], "total": None}
+    owner_names = _owner_names(db)
+    groups = _Groups.of(db)
+    companies = [head, *members]
+    figures = group_figures(db, [a.account_id for a in companies])
+    return {
+        "companies": [
+            {**_serialise(a, owner_names, groups), "figures": figures["by_company"][a.account_id]} for a in companies
+        ],
+        "total": figures["total"],
+    }
+
+
+@router.post("/accounts/{account_id}/make-head", response_model=AccountOut)
+def make_account_head(
+    account_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """Make this the head of the group: the old head and the rest then point here."""
+    account = _get_or_404(db, account_id)
+    make_head(db, account, actor=user.user_id)
+    db.commit()
+    db.refresh(account)
+    return _serialise(account, _owner_names(db))
 
 
 @router.post("/accounts", response_model=AccountOut, status_code=status.HTTP_201_CREATED)
@@ -150,6 +219,7 @@ def create_account(
     db.flush()  # the junction tables have an FK to this row
 
     _apply_multiselects(db, account, payload, set(MULTISELECTS))
+    file_under_head(db, account, payload.parent_account, actor=user.user_id)
 
     # Values for Administration-created fields go to custom_fields JSONB,
     # never to a column of their own. Unknown keys are not stored — see
@@ -163,6 +233,11 @@ def create_account(
             extras=extras_of(payload),
         ),
     )
+
+    # Already in Accounts? Asked before the required fields, so "open the one
+    # that's there" comes before "fill in Segment" — app/account_groups.py.
+    guard_duplicate(db, account, different=bool(payload.different_company))
+
     record_audit(
         db,
         module="accounts",
@@ -198,9 +273,8 @@ def put_account(
     user: User = Depends(current_user),
 ):
     """
-    Full-record write, kept because the prototype's record editor and the Lead
-    account sync both PUT — see LeadAccountFieldSync.tsx, which writes the
-    account back when a Lead edits an inherited field.
+    Full-record write, kept because the record editor PUTs. (The Lead account
+    sync, LeadAccountFieldSync.tsx, PUT here too until Release 1.1 removed it.)
 
     Still applies only what was sent: a caller that PUTs a partial body is
     editing a form it rendered from the register, not asserting that every
@@ -222,6 +296,7 @@ def _write(db: Session, account_id: str, payload: AccountUpdate, sent: set[str],
         _check_owner(db, payload.account_owner)
     check_thresholds(db, "accounts", payload.model_dump(include=sent))
 
+    name_before = (account.account_name, account.country)
     for name in ACCOUNT_SCALARS:
         if name in sent:
             value = getattr(payload, name)
@@ -230,6 +305,8 @@ def _write(db: Session, account_id: str, payload: AccountUpdate, sent: set[str],
             setattr(account, name, value)
 
     _apply_multiselects(db, account, payload, sent & MULTISELECTS)
+    if "parent_account" in sent:
+        file_under_head(db, account, payload.parent_account, actor=user.user_id)
 
     # Values for Administration-created fields go to custom_fields JSONB,
     # never to a column of their own. Unknown keys are not stored — see
@@ -243,6 +320,10 @@ def _write(db: Session, account_id: str, payload: AccountUpdate, sent: set[str],
             extras=extras_of(payload),
         ),
     )
+    # A rename, or a move to another Country, is checked like a new company.
+    if (account.account_name, account.country) != name_before:
+        guard_duplicate(db, account, different=bool(payload.different_company))
+
     changed = diff(before, snapshot(account, tracked))
     changed += custom_field_diff(before_custom, account.custom_fields)
 
@@ -320,6 +401,7 @@ def delete_account(
     first, but this is the check that holds.
     """
     account = _get_or_404(db, account_id)
+    refuse_deleting_a_head(db, account)
 
     dependents = db.scalars(
         select(Contact.contact_id).where(Contact.account == account_id)

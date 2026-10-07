@@ -9,6 +9,8 @@ There are two ways to install it:
 
 [Updating](#updating-to-a-new-version), [changing the field register](#changing-the-field-register-in-production) and the release database apply to both.
 
+**Moving a server from V1 to Release 1.1?** Follow [Release 1.1: the one-time update](#release-11-the-one-time-update), not the ordinary update steps.
+
 ---
 
 ## The astrikos.xyz server (crm.astrikos.xyz)
@@ -318,6 +320,92 @@ Two things to know:
 - **People already working keep their page.** Nobody is interrupted. Within a few minutes, and on their next refused save, they see "There's a new update. Save your work, then reload to see it." Publish at quiet times, or tell the team first, when you change what's required.
 
 A new field that needs a database column comes with a migration. Run its script after `alembic upgrade head`, as the migration's *DEPLOY ORDER* says.
+
+---
+
+## Release 1.1: the one-time update
+
+Release 1.1 (`v1.1.0`, October 2026) moves a V1 server to:
+- Region → Country → State on Accounts and Leads;
+- Parent Account and groups of companies;
+- the duplicate-company check;
+- Segment in place of Theme;
+- the new Partner Tier choices;
+- the paid-pilot fix.
+
+It has **two migrations and three register scripts**, run in this exact order. Rehearsed on a copy of the release database on 7 Oct 2026.
+
+**Stop the backend for the whole update.** The scripts change the field register the running app reads. The old code must not serve it half-changed, and the new code must not start before its migrations (on start-up it creates any table it is missing, empty).
+
+### On the astrikos.xyz server
+
+```sh
+cd ~/ark-crm
+
+# 1. Copy the database FIRST: the only way back
+docker exec crm-postgres pg_dump -U ark -Fc ark_crm > ~/crm_before_1_1_$(date +%Y%m%d_%H%M).dump
+
+# 2. Stop the backend, then get v1.1.0 (main is at it)
+pm2 stop crm_be_4329
+git checkout -- frontend/spec
+git pull
+git describe --tags                                  # v1.1.0
+backend/.venv/bin/pip install -r backend/requirements.txt
+cd backend
+
+# 3. Read-only reports, worth a look before anything changes (they work on V1's database)
+.venv/bin/python release_1_1_duplicate_accounts.py   # accounts that look like the same company
+.venv/bin/python release_1_1_pilot_deals.py          # POC/Pilot Deals made without fee or PO date
+
+# 4. The two migrations
+.venv/bin/alembic upgrade head                       # ends at r11_0002_account_groups
+
+# 5. The three register scripts, IN THIS ORDER. Each: a dry run, read it, then --apply.
+.venv/bin/python release_1_1_fields_metadata.py      && .venv/bin/python release_1_1_fields_metadata.py --apply
+.venv/bin/python release_1_1_location_metadata.py    && .venv/bin/python release_1_1_location_metadata.py --apply
+.venv/bin/python release_1_1_accounts_metadata.py    && .venv/bin/python release_1_1_accounts_metadata.py --apply
+
+# 6. Build and start
+cd ../frontend && npm ci && npm run build && cd ..
+pm2 restart crm_be_4329 crm_3329
+```
+
+### With Docker
+
+```sh
+cd ark-crm
+docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' > ~/ark_before_1_1_$(date +%Y%m%d_%H%M).dump
+docker compose stop backend
+git pull && git describe --tags                     # v1.1.0
+docker compose build
+docker compose run --rm backend python release_1_1_duplicate_accounts.py
+docker compose run --rm backend python release_1_1_pilot_deals.py
+docker compose run --rm backend alembic upgrade head
+docker compose run --rm backend python release_1_1_fields_metadata.py --apply
+docker compose run --rm backend python release_1_1_location_metadata.py --apply
+docker compose run --rm backend python release_1_1_accounts_metadata.py --apply
+docker compose up -d
+```
+
+(Run each script without `--apply` first, as above, to see what it will do.)
+
+### What each step prints, and what to do about it
+
+| Step | Prints | Action |
+|---|---|---|
+| Duplicate accounts report | Accounts with the same name ("Siemens LLC" / "Siemens L.L.C."), and similar pairs | Merge or rename by hand if they're one company. Similar pairs are asked about once, the next time either is saved. |
+| Pilot deals report | Paid POC Deals with no fee, no PO date, or no POC behind them | Fill in the Deal, or erase the pursuit from its Lead and reopen the Lead |
+| `release_1_1_fields_metadata.py` | Old Segment and Account Target Phase deleted, Theme renamed Segment, Europe added | Nothing. The old values stay in the database, as with any deleted field. |
+| `release_1_1_location_metadata.py` | Leads whose free-text Country names no single country | Pick the Country on those Leads by hand. Every other one was converted ("UAE" → United Arab Emirates). |
+| `release_1_1_accounts_metadata.py` | Accounts still on Tier 1 Strategic or Tier 2 Commercial | Choose their new Partner Tier by hand. Retired tiers still show until then. |
+
+Every script is safe to run twice: a second run prints "nothing to do".
+
+### After the update
+
+- **Each person reloads once** to get the new fields.
+- **Existing Accounts have no Country yet.** Country is required, so the next edit of each asks for it. Choosing it is also when the duplicate check first runs on that account: if a look-alike name exists, it asks once.
+- **Undo:** stop both processes, restore the dump from step 1 (`pg_restore --clean`), `git reset --hard v1.0.0`, rebuild and start.
 
 ---
 

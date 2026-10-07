@@ -21,7 +21,13 @@ import { STAGE_PCT_FIELDS, alreadyConvertedOf, stageKeyOf, stageList, stagesFor,
 import { displayNameOf, fieldOf, fieldsOf, labelForValue } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
 import type { FieldSpec } from '@/types/field'
-import { RequiredBeforeMove, requiredBeforeMove, type MoveFieldsState } from '@/components/pipeline/RequiredBeforeMove'
+import {
+  canFillInMove,
+  RequiredBeforeMove,
+  requiredBeforeMove,
+  type MoveFieldFocus,
+  type MoveFieldsState,
+} from '@/components/pipeline/RequiredBeforeMove'
 
 interface Props {
   open: boolean
@@ -33,13 +39,6 @@ interface Props {
   onClose: () => void
   /** Fired after a same-module move — selects the new stage on this same page. */
   onAdvancedWithinLeads: (toStage: number) => void
-  /**
-   * Drill down from a readiness criterion to the field that proves it. Only
-   * offered for a same-module move — crossing to Opportunities shows the
-   * effects list instead of the readiness panel, so there is nothing to jump
-   * to on that branch.
-   */
-  onJumpToField?: (field: FieldSpec) => void
 }
 
 const LEADS_STAGES = stagesFor('leads')
@@ -95,7 +94,6 @@ export function LeadAdvanceDialog({
   skipped,
   onClose,
   onAdvancedWithinLeads,
-  onJumpToField,
 }: Props) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -119,18 +117,35 @@ export function LeadAdvanceDialog({
   const isSkip = target > currentStage + 1
   const isReversal = target < currentStage
   const reasonRequired = isSkip || isReversal
-  // Read against the Lead's own register fields in both directions: these are
-  // the Lead's values, and an Opportunity field name would not resolve as proof.
-  const attestations = useAttestations('leads', values, currentStage, target)
   // Layer 1, enforced (21 Sep 2026): the stage being left must be complete —
   // on a move into Opportunities too, which the server checks as it converts.
   // The missing fields are asked for right here and saved with the move.
   const forward = target > currentStage
   const required = requiredBeforeMove('leads', values, currentStage, target, skipped)
   const [moveFields, setMoveFields] = useState<MoveFieldsState | null>(null)
+  // Fields a check named, brought into the dialog — see RequiredBeforeMove.
+  const [pulledIn, setPulledIn] = useState<string[]>([])
+  const [focus, setFocus] = useState<MoveFieldFocus | null>(null)
   useEffect(() => {
-    if (open) setMoveFields(null)
+    if (open) {
+      setMoveFields(null)
+      setPulledIn([])
+      setFocus(null)
+    }
   }, [open])
+  // The checks read what is typed here too, not only the saved record: a field
+  // filled in this dialog ticks its check before the move is made.
+  const checkedValues = useMemo(
+    () => (forward && moveFields ? { ...values, ...moveFields.values } : values),
+    [forward, moveFields, values]
+  )
+  // Read against the Lead's own register fields in both directions: these are
+  // the Lead's values, and an Opportunity field name would not resolve as proof.
+  const attestations = useAttestations('leads', checkedValues, currentStage, target)
+  const fillHere = (field: FieldSpec) => {
+    setPulledIn((names) => (names.includes(field.api_name) ? names : [...names, field.api_name]))
+    setFocus({ name: field.api_name, seq: Date.now() })
+  }
   const movePatch = forward ? (moveFields?.patch ?? {}) : {}
   const stillMissing = forward ? (moveFields?.remaining ?? required.length) : 0
   const canConfirm =
@@ -332,31 +347,30 @@ export function LeadAdvanceDialog({
           {/* Shown for the cross into Opportunities too: leaving Stage 3 and
               entering Stage 4 have criteria like any other move, and that was
               the one move that showed none of them. */}
-          {forward && required.length > 0 && (
+          {forward && (required.length > 0 || pulledIn.length > 0) && (
             <RequiredBeforeMove
               module="leads"
               recordId={leadId}
               values={values}
               from={currentStage}
               skipped={skipped}
+              pulledIn={pulledIn}
+              focus={focus}
               onChange={setMoveFields}
             />
           )}
+          {/* A check's field is filled in HERE, never by leaving the dialog:
+              leaving threw away everything typed above (Oct 2026). */}
           <ReadinessPanel
-              module="leads"
-              values={values}
-              from={currentStage}
-              to={target}
-              attested={attestations.attested}
-              onToggleAttested={attestations.toggle}
-              onJumpToField={
-                onJumpToField &&
-                ((field) => {
-                  handleClose()
-                  onJumpToField(field)
-                })
-              }
-            />
+            module="leads"
+            values={checkedValues}
+            from={currentStage}
+            to={target}
+            attested={attestations.attested}
+            onToggleAttested={attestations.toggle}
+            onJumpToField={forward ? fillHere : undefined}
+            canJumpTo={canFillInMove}
+          />
           {attestations.outstanding.length > 0 && (
             <p className="text-xs text-amber-700 dark:text-amber-400">
               Tick the {attestations.outstanding.length} remaining check

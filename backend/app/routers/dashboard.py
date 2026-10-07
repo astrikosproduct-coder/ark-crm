@@ -461,7 +461,9 @@ def dashboard(
 
     filters = {
         "destination_region": region,
-        "segment": segment,
+        # The Segment filter reads the Lead's `theme` field, labelled Segment
+        # since Release 1.1 (6 Oct 2026); the old Segment field is deleted.
+        "theme": segment,
         "bd_owner": owner,
         "opportunity_type": opportunity_type,
     }

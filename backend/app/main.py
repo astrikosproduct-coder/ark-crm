@@ -3,6 +3,7 @@ import secrets
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from .auth import require_access, require_administration
@@ -56,6 +57,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Compressed responses. GET /api/spec carries the published register — with
+# Release 1.1's 3,590 states about 1.4 MB as JSON, ~160 KB compressed. Every
+# browser fetches it once per publish (ETag), but the first load of each
+# version should not cost the full size. Applies to any response over 1 KB.
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # The signed session cookie the sign-in flow writes and app/auth.py reads.
 #

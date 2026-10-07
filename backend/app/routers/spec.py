@@ -38,4 +38,7 @@ def get_spec(request: Request, response: Response, db: Session = Depends(get_db)
         "fields": register.fields,
         "picklists": register.picklists,
         "stages": register.stages,
+        # Region -> Country -> State (Release 1.1): which choices a field
+        # offers once its parent is chosen. The same map the server enforces.
+        "dependencies": register.dependencies,
     }

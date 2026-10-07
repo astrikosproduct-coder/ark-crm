@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
+import { DuplicateAccountDialog } from '@/components/accounts/DuplicateAccountDialog'
 import { PossibleConflictDialog } from '@/components/partners/PossibleConflictDialog'
 import { ChangePrimaryDialog } from '@/components/pursuits/ChangePrimaryDialog'
 import { DuplicatePursuitDialog } from '@/components/pursuits/DuplicatePursuitDialog'
+import type { AccountMatch } from '@/lib/accountGroups'
 import type { PossibleConflictMatch } from '@/lib/registrations'
 import type { Values } from '@/lib/spec/conditions'
 import { answerableRefusalOf } from '@/lib/pursuitGroups'
@@ -13,6 +16,12 @@ interface Props {
   pending: boolean
   /** Save again, with these values merged into the same payload. */
   retry: (extra: Values) => void
+  /**
+   * An Account save that duplicates a company: "use the one already here".
+   * Defaults to opening that account; a quick-create picks it instead.
+   */
+  onUseExisting?: (accountId: string) => void
+  useExistingLabel?: string
 }
 
 /**
@@ -30,9 +39,10 @@ interface Props {
  * with <ErrorNotice>. The line kept here is for after the dialog is closed
  * unanswered — the save still did not happen, and the page should say why.
  */
-export function PursuitSaveResolver({ error, pending, retry }: Props) {
+export function PursuitSaveResolver({ error, pending, retry, onUseExisting, useExistingLabel = 'Open it' }: Props) {
   const refusal = answerableRefusalOf(error)
   const [open, setOpen] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
     setOpen(Boolean(refusal))
@@ -59,6 +69,33 @@ export function PursuitSaveResolver({ error, pending, retry }: Props) {
       {/* A deal registration saved beside a similar project at the same End
           Client: raise a conflict, or say why it is a different project. The
           answer rides back in the same save. */}
+      {/* Accounts (Release 1.1): the same company, its group, or a different
+          company with a reason. The same name in the same Country has only
+          the first answer. */}
+      {(refusal.code === 'POSSIBLE_DUPLICATE_ACCOUNT' || refusal.code === 'ACCOUNT_EXISTS') && (
+        <DuplicateAccountDialog
+          open={open}
+          exact={refusal.code === 'ACCOUNT_EXISTS'}
+          matches={
+            refusal.code === 'ACCOUNT_EXISTS'
+              ? refusal.existing
+                ? [refusal.existing]
+                : []
+              : ((refusal.matches ?? []) as unknown as AccountMatch[])
+          }
+          pending={pending}
+          useExistingLabel={useExistingLabel}
+          onUseExisting={(accountId) => {
+            setOpen(false)
+            if (onUseExisting) onUseExisting(accountId)
+            else navigate(`/accounts/${accountId}`)
+          }}
+          onJoinGroup={(accountId) => retry({ parent_account: accountId })}
+          onDecline={() => retry({ different_company: true })}
+          onClose={() => setOpen(false)}
+        />
+      )}
+
       {refusal.code === 'POSSIBLE_CONFLICT' && (
         <PossibleConflictDialog
           open={open}

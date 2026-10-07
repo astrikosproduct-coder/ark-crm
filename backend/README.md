@@ -186,7 +186,7 @@ this collection filtered by `account_type`.
 | GET | `/api/accounts/{account_id}` | One account |
 | POST | `/api/accounts` | Create; the server allocates the next `ACC-nnn` |
 | PATCH | `/api/accounts/{account_id}` | Apply the fields sent |
-| PUT | `/api/accounts/{account_id}` | Same; kept because the record editor and `LeadAccountFieldSync` both PUT |
+| PUT | `/api/accounts/{account_id}` | Same; kept because the record editor PUTs |
 | DELETE | `/api/accounts/{account_id}` | Real delete — the register gives an account no `active` flag |
 
 ### The list contract

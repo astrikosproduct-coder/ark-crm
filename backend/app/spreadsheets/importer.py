@@ -60,8 +60,9 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from ..database import engine
+from ..live_register import published
 from ..models import User
-from .conditions import ConditionError, _tokens, evaluate
+from .conditions import ConditionError, _tokens, evaluate, slug
 from .fields import (
     CellError,
     Column,
@@ -306,6 +307,12 @@ def run_import(
     mapping = map_columns(columns, sheet, rows, overrides, directory)
     visibility = _Visibility(target, columns, directory)
     answers = answers or {}
+    # Region -> Country -> State (Release 1.1). A label two parents share —
+    # Punjab is a state of India and of Pakistan — is read within the row's own
+    # parent choice, below; read_cell alone takes the first match in the list.
+    register = published(db)
+    dependencies = register.dependencies.get(target.field_module, {}) if register else {}
+    picklist_of = {c.api_name: c.picklist for c in columns}
 
     def header_of(index: int) -> str:
         return str(mapping.header_row[index]).strip()
@@ -370,9 +377,11 @@ def run_import(
             notes: list[str] = []
             payload: dict[str, Any] = dict(target.defaults)
             picked: dict[str, list[str]] = {}
+            typed: dict[str, Any] = {}
             for index, slot in mapping.by_index.items():
                 column = slot.column
                 raw = row[index] if index < len(row) else None
+                typed[column.api_name] = raw
                 if slot.choice:
                     try:
                         if read_checkbox(raw):
@@ -404,6 +413,22 @@ def run_import(
                 merged.extend(k for k in keys if k not in merged)
                 if merged:
                     payload[api_name] = merged
+
+            # A dependent choice is read again within its parent's choices when
+            # the first reading fell outside them. Still outside, it is left for
+            # the create logic to refuse, naming the field.
+            for child, dep in dependencies.items():
+                value, parent = payload.get(child), payload.get(dep["parent"])
+                allowed = dep["map"].get(str(parent), []) if parent is not None else []
+                if value is None or value in allowed or is_blank(typed.get(child)):
+                    continue
+                want = slug(typed[child])
+                within = [
+                    k for k, label, active in directory.options(picklist_of.get(child))
+                    if active and k in allowed and want in (slug(k), slug(label))
+                ]
+                if within:
+                    payload[child] = within[0]
 
             # A value in a column that doesn't apply to this row is left out, not refused.
             for api_name in [k for k in payload if k in visibility.rules]:
@@ -442,7 +467,24 @@ def run_import(
 
             if not problems:
                 try:
-                    report["created"].append(target.create(model, session, acting))
+                    try:
+                        report["created"].append(target.create(model, session, acting))
+                    except HTTPException as exc:
+                        # A similar company name is a warning on a sheet, not a
+                        # refusal (decided 7 Oct 2026): the row imports as a
+                        # different company, and the warning names the others.
+                        detail = exc.detail if isinstance(exc.detail, dict) else {}
+                        if detail.get("code") != "POSSIBLE_DUPLICATE_ACCOUNT":
+                            raise
+                        session.rollback()
+                        names = ", ".join(m.get("account_name") or "" for m in detail.get("matches") or [])
+                        notes.append(
+                            f"A company with a similar name is already in ARK: {names}. "
+                            "Imported as a different company; if it's the same group, set its Parent Account."
+                        )
+                        report["created"].append(
+                            target.create(model.model_copy(update={"different_company": True}), session, acting)
+                        )
                 except HTTPException as exc:
                     session.rollback()
                     lines = _refusal_lines(exc)
@@ -452,6 +494,11 @@ def run_import(
                             "This End Client already has an open pursuit.",
                             f"Different project: fill in “{reason}” on this row." if reason else "Add it from the Leads screen instead.",
                             "Same project: add it from the Leads screen, where you can join its group.",
+                        ]
+                    if isinstance(exc.detail, dict) and exc.detail.get("code") == "ACCOUNT_EXISTS":
+                        lines = [
+                            "This company is already in ARK, with the same registered name in the same Country.",
+                            "Leave this row out of the sheet.",
                         ]
                     problems.extend(lines)
                 except Exception:  # a bug, not a refusal — reported, never half-applied

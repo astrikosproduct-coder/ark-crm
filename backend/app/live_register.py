@@ -28,7 +28,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .metadata_spec import FIELDS_JSON, PICKLISTS_JSON, STAGES_JSON, spec_documents
+from .metadata_spec import DEPENDENCIES_JSON, FIELDS_JSON, PICKLISTS_JSON, STAGES_JSON, spec_documents
 from .models import MetadataVersion
 
 
@@ -43,6 +43,9 @@ class Published:
     labels: dict[str, dict[str, str]] = field(default_factory=dict)
     #: module -> (first, last) stage it owns, from `stages.owner_module`.
     ranges: dict[str, tuple[int, int]] = field(default_factory=dict)
+    #: module -> child field -> {"parent": field, "map": {parent choice: [child choices]}}
+    #: Region -> Country -> State, Release 1.1. See app/field_dependencies.py.
+    dependencies: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     def fields_of(self, module: str) -> list[dict[str, Any]]:
         return self.by_module.get(module, [])
@@ -100,6 +103,7 @@ def published(db: Session) -> Published | None:
         by_module=by_module,
         labels={key: {str(v["key"]): v["label"] for v in values} for key, values in picklists.items()},
         ranges={module: (min(s), max(s)) for module, s in owned.items()},
+        dependencies=documents.get(DEPENDENCIES_JSON, {}),
     )
     with _lock:
         _cache.clear()  # only the latest is ever wanted

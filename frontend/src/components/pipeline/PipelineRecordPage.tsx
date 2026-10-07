@@ -417,7 +417,13 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
               probability band and an owner ROLE CODE that no reader of this
               screen acts on. The section header below already names the stage
               whose fields are on screen. */}
-          <StageRail stages={spec.stages} currentStage={currentStage} skipped={skipped} />
+          <StageRail
+            stages={spec.stages}
+            currentStage={currentStage}
+            skipped={skipped}
+            viewing={stageToShow}
+            onSelect={ctx.selectStage}
+          />
         </div>
 
         {/* The reference's sub-header: the view switcher as a segmented pill on
@@ -453,6 +459,22 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
             <p className="py-6 text-sm text-muted-foreground">Loading…</p>
           ) : (
             <div className="space-y-3">
+              {/* An earlier stage picked on the rail: its fields, while the
+                  record stays where it is. No reason asked — nothing moves. */}
+              {stageToShow !== currentStage && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-sm text-amber-700 dark:text-amber-400">
+                  <span>
+                    Showing Stage {stageToShow}
+                    {spec.stages.find((st) => st.stage === stageToShow)?.name
+                      ? ` · ${spec.stages.find((st) => st.stage === stageToShow)?.name}`
+                      : ''}
+                    . The record is still at Stage {currentStage}.
+                  </span>
+                  <Button variant="outline" size="sm" onClick={() => ctx.selectStage(currentStage)}>
+                    Back to Stage {currentStage}
+                  </Button>
+                </div>
+              )}
               <SectionBar title={spec.recordHeading}>
                 {!editingCurrent && !readOnly && (
                   <Button variant="outline" size="sm" onClick={() => switchMode(() => setEditingCurrent(true))}>
@@ -594,7 +616,6 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
           values={values}
           currentStage={currentStage}
           skipped={skippedList}
-          onJumpToField={jumpToField}
           onClose={() => setAdvanceOpen(false)}
           onAdvanced={(toStage) => setSelectedStage(toStage)}
         />

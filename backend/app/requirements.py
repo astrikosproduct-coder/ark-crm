@@ -70,6 +70,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .field_dependencies import check_choices, offers_choices
 from .live_register import Published, published
 from .messages import refusal
 from .metadata_spec import SPEC_DIR
@@ -229,6 +230,11 @@ def _applies(field: dict[str, Any], module: str) -> bool:
 
 def _demanded(field: dict[str, Any], rec: _Record) -> bool:
     """Visible, and required by its own rule. Unreadable rules never demand."""
+    # A field whose choices follow another (Region -> Country -> State) and
+    # has none to offer — no Country yet, or a Country with no States — is
+    # never demanded (Release 1.1). See app/field_dependencies.py.
+    if not offers_choices(rec.register, rec.module, field["api_name"], rec.raw):
+        return False
     visibility = field.get("visibility_condition")
     if visibility:
         names = set(re.findall(r"[A-Za-z_]\w*", visibility))
@@ -347,6 +353,32 @@ def _refuse(fields: list[dict[str, Any]], message: str) -> HTTPException:
     )
 
 
+#: The field whose Paid turns a Lead into its pilot Deal (app/progression.py).
+PILOT_MODEL = "pilot_commercial_model"
+
+
+def pilot_is_paid(db: Session, lead: Any) -> bool:
+    """
+    The pilot is Paid AND the field is showing (Release 1.1, 7 Oct 2026).
+
+    A Paid left behind when Agreed Next Step moved off POC scoping is hidden,
+    and a hidden value converts nothing: it once made a "Paid POC" Deal with no
+    fee and no PO date, because the fields that would have asked for them were
+    hidden too. Whether it shows is the register's own visibility rule, read
+    here, never restated.
+    """
+    if str(getattr(lead, PILOT_MODEL, "") or "").upper() != "PAID":
+        return False
+    register = published(db)
+    if register is None:
+        return True
+    field = next((f for f in register.fields_of("leads") if f["api_name"] == PILOT_MODEL), None)
+    if field is None:
+        return False
+    visibility = field.get("visibility_condition")
+    return not visibility or _Record("leads", lead, register, None).holds(visibility) is True
+
+
 def check_save(
     db: Session,
     module: str,
@@ -363,6 +395,9 @@ def check_save(
     """
     if not ENFORCED or (creating and converting):
         return
+    # A State outside its Country, a Country with no Region: refused before
+    # anything else is asked for (Release 1.1).
+    check_choices(db, module, record, record_id=record_id, creating=creating)
     if module in STAGE_FIELD:
         db.flush()
         rels = list(CHILD_LISTS.get(module, {}).values())
@@ -377,7 +412,8 @@ def check_save(
         # A pilot marked Paid converts this Lead into its Deal on this very
         # save (app/progression.py) — the Lead is leaving, so it is checked as
         # a move out of its stage. That is what asks for Pilot PO Received Date.
-        if module == "leads" and str(getattr(record, "pilot_commercial_model", "") or "").upper() == "PAID":
+        paid = module == "leads" and pilot_is_paid(db, record)
+        if paid:
             moving_on, previous_stage = True, stage
 
         if moving_on:
@@ -388,8 +424,22 @@ def check_save(
                 db, module, record, record_id=record_id, stage=previous_stage,
                 up_to=previous_stage, visited=visited, status_only=status_only,
             )
+            if paid:
+                # What the pilot's Deal is made of — the fields required BECAUSE
+                # it is Paid (Pilot Fee, Pilot PO Received Date) — whatever stage
+                # they belong to: a Lead marked Paid at Stage 0 never reached
+                # theirs, and its Deal was made with nothing (Release 1.1).
+                missing += [
+                    f for f in missing_fields(db, module, record, record_id=record_id, stage=stage, up_to=None)
+                    if PILOT_MODEL in (f.get("condition") or "") and f not in missing
+                ]
             if missing:
-                raise _refuse(missing, f"Fill in Stage {previous_stage}'s required fields before moving on.")
+                raise _refuse(
+                    missing,
+                    "Fill in the pilot's details before it becomes a Deal."
+                    if paid
+                    else f"Fill in Stage {previous_stage}'s required fields before moving on.",
+                )
 
         # Every save: the reason a status asks for (On Hold, Closed Lost),
         # read at the stage the record is at now.

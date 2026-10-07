@@ -18,12 +18,15 @@ export const FIELD_ANCHOR = 'data-field'
  * The focus is deliberately late and `preventScroll`: focusing an element
  * scrolls it into view INSTANTLY, which would cancel the smooth scroll that is
  * the whole point.
+ *
+ * `root` narrows the search. A dialog over a record page holds a second copy of
+ * the same field, and the page's own copy comes first in the document.
  */
-export function revealField(apiName: string, timeoutMs = 2000): void {
+export function revealField(apiName: string, timeoutMs = 2000, root: ParentNode = document): void {
   const deadline = Date.now() + timeoutMs
 
   const attempt = () => {
-    const el = document.querySelector<HTMLElement>(`[${FIELD_ANCHOR}="${CSS.escape(apiName)}"]`)
+    const el = root.querySelector<HTMLElement>(`[${FIELD_ANCHOR}="${CSS.escape(apiName)}"]`)
     if (!el) {
       if (Date.now() < deadline) window.setTimeout(attempt, 60)
       return

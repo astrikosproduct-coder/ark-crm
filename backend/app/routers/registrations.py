@@ -246,7 +246,7 @@ def create_registration(
     )
     db.flush()
 
-    # A similar project already registered at this End Client: the save carries
+    # Another partner live at this End Client (or this partner, similar name): the save carries
     # the answer (raise a conflict / a different project), or it is refused with
     # the matches — see app/registration_matching.py.
     raised = resolve_possible_conflicts(

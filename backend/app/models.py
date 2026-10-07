@@ -215,6 +215,25 @@ class Account(Base):
 
     # CORE
     region = Column(String(40), nullable=True)
+    # Release 1.1: ISO codes ("AE", "AE-DU"), offered by Region -> Country ->
+    # State (field_dependencies). Migration r11_0001_location_fields.
+    country = Column(String(10), nullable=True)
+    state = Column(String(10), nullable=True)
+    # Release 1.1: the head of this company's group, ONE level deep — a member
+    # points at the head, the head at nothing. Kept flat by the API, never by
+    # the caller (app/account_groups.py). Migration r11_0002_account_groups.
+    parent_account = Column(
+        String(20),
+        ForeignKey("accounts.account_id", ondelete="SET NULL", name="fk_accounts_parent_account"),
+        nullable=True,
+        index=True,
+    )
+    # The accounts the duplicate check's "a different company" answer was
+    # given about, so it is never asked about them again and still is about
+    # any other (app/account_matching.py). No reason is kept (7 Oct 2026).
+    not_duplicate_of: Mapped[list] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb")
+    )
     website = Column(String(300), nullable=True)
     phone = Column(String(50), nullable=True)
     address = Column(Text, nullable=True)
@@ -474,6 +493,13 @@ class Lead(StagePercentMixin, Base):
 
     city_state: Mapped[str | None] = mapped_column(
         String(120),
+        nullable=True,
+    )
+
+    # Release 1.1: an ISO 3166-2 code ("IN-MH"), offered by the Country chosen
+    # (field_dependencies). City / State above is "City" from this release.
+    state: Mapped[str | None] = mapped_column(
+        String(10),
         nullable=True,
     )
 
@@ -2479,6 +2505,58 @@ class Stage(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
     )
+
+
+class FieldDependency(Base):
+    """
+    One "this field's choices depend on that one" — Region -> Country, Country
+    -> State. Release 1.1 (6 Oct 2026), shaped as Zoho's Map Dependency Fields:
+    per module, a child field has at most one parent.
+
+    Register METADATA, like the rest of this file's tail: it holds which
+    choices go together, never a record's value. Published with the register
+    (metadata_spec.build_snapshot) and read from the published version by the
+    form and by app/field_dependencies.py, which refuses a mismatch on save.
+    """
+
+    __tablename__ = "field_dependencies"
+    __table_args__ = (
+        UniqueConstraint("module_key", "child_field", name="uq_field_dependencies_child"),
+        CheckConstraint("parent_field <> child_field", name="ck_field_dependencies_not_self"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    module_key: Mapped[str] = mapped_column(
+        String(60), ForeignKey("modules.module_key", ondelete="CASCADE"), nullable=False
+    )
+    parent_field: Mapped[str] = mapped_column(String(120), nullable=False)
+    child_field: Mapped[str] = mapped_column(String(120), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=now_utc, onupdate=now_utc
+    )
+
+    values: Mapped[list["FieldDependencyValue"]] = relationship(
+        back_populates="dependency", cascade="all, delete-orphan", passive_deletes=True
+    )
+
+
+class FieldDependencyValue(Base):
+    """One allowed pair: this parent choice offers this child choice."""
+
+    __tablename__ = "field_dependency_values"
+    __table_args__ = (
+        UniqueConstraint("dependency_id", "parent_value", "child_value", name="uq_field_dependency_values"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    dependency_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("field_dependencies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    parent_value: Mapped[str] = mapped_column(String(120), nullable=False)
+    child_value: Mapped[str] = mapped_column(String(120), nullable=False)
+
+    dependency: Mapped[FieldDependency] = relationship(back_populates="values")
 
 
 class MetadataVersion(Base):

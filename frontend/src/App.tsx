@@ -36,7 +36,6 @@ const LeadsPage = lazy(() => import('@/pages/LeadsPage').then((m) => ({ default:
 const ModuleDetailPage = lazy(() => import('@/pages/ModuleDetailPage').then((m) => ({ default: m.ModuleDetailPage })))
 const ModulePage = lazy(() => import('@/pages/ModulePage').then((m) => ({ default: m.ModulePage })))
 const NewRegistrationPage = lazy(() => import('@/pages/NewRegistrationPage').then((m) => ({ default: m.NewRegistrationPage })))
-const OpportunityCreatePage = lazy(() => import('@/pages/OpportunityCreatePage').then((m) => ({ default: m.OpportunityCreatePage })))
 const OpportunityDetailPage = lazy(() => import('@/pages/OpportunityDetailPage').then((m) => ({ default: m.OpportunityDetailPage })))
 const OpportunitiesPage = lazy(() => import('@/pages/OpportunitiesPage').then((m) => ({ default: m.OpportunitiesPage })))
 const PartnerDetailPage = lazy(() => import('@/pages/PartnerDetailPage').then((m) => ({ default: m.PartnerDetailPage })))
@@ -93,7 +92,8 @@ const router = createBrowserRouter(
           <Route path="leads/:id" element={<LeadDetailPage />} />
 
           <Route path="opportunities" element={<OpportunitiesPage />} />
-          <Route path="opportunities/new" element={<OpportunityCreatePage />} />
+          {/* No create page — Leads are the one door (7 Oct 2026). An old link lands on the list. */}
+          <Route path="opportunities/new" element={<Navigate to="/opportunities" replace />} />
           <Route path="opportunities/:id" element={<OpportunityDetailPage />} />
 
           <Route path="deals" element={<DealsPage />} />

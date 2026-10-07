@@ -13,7 +13,13 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ReadinessPanel } from '@/components/leads/ReadinessPanel'
-import { RequiredBeforeMove, requiredBeforeMove, type MoveFieldsState } from '@/components/pipeline/RequiredBeforeMove'
+import {
+  canFillInMove,
+  RequiredBeforeMove,
+  requiredBeforeMove,
+  type MoveFieldFocus,
+  type MoveFieldsState,
+} from '@/components/pipeline/RequiredBeforeMove'
 import { useAttestations } from '@/components/leads/useAttestations'
 import type { PipelineModuleSpec } from '@/components/pipeline/types'
 import { api } from '@/lib/api'
@@ -33,12 +39,6 @@ interface Props {
   skipped?: readonly number[]
   onClose: () => void
   onAdvanced?: (toStage: number) => void
-  /**
-   * Drill down from a criterion to the field that proves it. The dialog closes
-   * on the way — the field is on the record behind it, and a user who has just
-   * asked to go and fill something in does not want to answer a modal first.
-   */
-  onJumpToField?: (field: FieldSpec) => void
 }
 
 /**
@@ -72,7 +72,6 @@ export function AdvanceStageDialog({
   skipped,
   onClose,
   onAdvanced,
-  onJumpToField,
 }: Props) {
   const queryClient = useQueryClient()
   const stages = spec.stages
@@ -83,15 +82,32 @@ export function AdvanceStageDialog({
   const isSkip = target > currentStage + 1
   const isReversal = target < currentStage
   const reasonRequired = isSkip || isReversal
-  const attestations = useAttestations(spec.module, values, currentStage, target)
   // Layer 1, enforced (21 Sep 2026): the stage being left must be complete. The
   // missing fields are asked for right here and saved with the move.
   const forward = target > currentStage
   const required = requiredBeforeMove(spec.module, values, currentStage, target, skipped)
   const [moveFields, setMoveFields] = useState<MoveFieldsState | null>(null)
+  // Fields a check named, brought into the dialog — see RequiredBeforeMove.
+  const [pulledIn, setPulledIn] = useState<string[]>([])
+  const [focus, setFocus] = useState<MoveFieldFocus | null>(null)
   useEffect(() => {
-    if (open) setMoveFields(null)
+    if (open) {
+      setMoveFields(null)
+      setPulledIn([])
+      setFocus(null)
+    }
   }, [open])
+  // The checks read what is typed here too, not only the saved record: a field
+  // filled in this dialog ticks its check before the move is made.
+  const checkedValues = useMemo(
+    () => (forward && moveFields ? { ...values, ...moveFields.values } : values),
+    [forward, moveFields, values]
+  )
+  const attestations = useAttestations(spec.module, checkedValues, currentStage, target)
+  const fillHere = (field: FieldSpec) => {
+    setPulledIn((names) => (names.includes(field.api_name) ? names : [...names, field.api_name]))
+    setFocus({ name: field.api_name, seq: Date.now() })
+  }
   const stillMissing = forward ? (moveFields?.remaining ?? required.length) : 0
   const canConfirm =
     target !== currentStage &&
@@ -202,31 +218,30 @@ export function AdvanceStageDialog({
             />
           )}
 
-          {forward && required.length > 0 && (
+          {forward && (required.length > 0 || pulledIn.length > 0) && (
             <RequiredBeforeMove
               module={spec.module}
               recordId={recordId}
               values={values}
               from={currentStage}
               skipped={skipped}
+              pulledIn={pulledIn}
+              focus={focus}
               onChange={setMoveFields}
             />
           )}
 
+          {/* A check's field is filled in HERE, never by leaving the dialog:
+              leaving threw away everything typed above (Oct 2026). */}
           <ReadinessPanel
             module={spec.module}
-            values={values}
+            values={checkedValues}
             from={currentStage}
             to={target}
             attested={attestations.attested}
             onToggleAttested={attestations.toggle}
-            onJumpToField={
-              onJumpToField &&
-              ((field) => {
-                onClose()
-                onJumpToField(field)
-              })
-            }
+            onJumpToField={forward && !spec.isReadOnly?.(values) ? fillHere : undefined}
+            canJumpTo={canFillInMove}
           />
           {attestations.outstanding.length > 0 && (
             <p className="text-xs text-amber-700 dark:text-amber-400">

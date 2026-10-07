@@ -80,7 +80,16 @@ export function parentRequestFor(
   const via = parentLinkOf(module)
   if (!parent || !via || !record) return undefined
   const id = record[via]
-  return typeof id === 'string' && id ? { module: parent, id } : undefined
+  if (typeof id === 'string' && id) return { module: parent, id }
+  // One fallback (Release 1.1, from phase-2): a paid pilot's Deal has no
+  // Opportunity, but it carries parent_lead — the link an Opportunity uses to
+  // name its Lead. Without this, the Deal's page showed its id for a title and
+  // everything "from the Lead" as a broken link; lists and boards were right,
+  // because the server already follows parent_lead (app/read_through_rows.py).
+  const grandparent = parentModuleOf(parent)
+  const grandVia = parentLinkOf(parent)
+  const grandId = grandVia ? record[grandVia] : undefined
+  return grandparent && typeof grandId === 'string' && grandId ? { module: grandparent, id: grandId } : undefined
 }
 
 /**
@@ -104,10 +113,12 @@ export function resolveRecord(
     return { values: own, inherited: new Set(), sources: {}, chain: [], unresolved: [] }
   }
 
-  const parentModule = parentModuleOf(module)
+  const linked = parentRequestFor(module, record)
+  // The module actually linked — normally the declared parent, the Lead for a
+  // paid pilot's Deal (see parentRequestFor).
+  const parentModule = linked?.module ?? parentModuleOf(module)
   const via = parentLinkOf(module) ?? ''
   const parentRecord = parentModule ? parents[parentModule] : undefined
-  const linked = parentRequestFor(module, record)
 
   if (!parentModule || !parentRecord) {
     return {

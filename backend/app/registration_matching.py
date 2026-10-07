@@ -18,12 +18,22 @@ did not exist.
 
 WHAT COUNTS AS A MATCH
 ----------------------
-Same End Client, both registrations LIVE (Submitted, Acknowledged, Active,
-Extended — and an exclusivity window that has not closed), and a Project Name
-that is the same or SIMILAR. Similar is deliberately loose: a person confirms
-every match, so a false positive costs one click and a false negative costs an
-unadjudicated conflict. "Al Waha ICCC" is caught against "Al Waha Integrated
-Command & Control Centre" — see similarity().
+Same End Client and both registrations LIVE (Submitted, Acknowledged, Active,
+Extended — and an exclusivity window that has not closed), then:
+
+  * ANOTHER PARTNER — always a match, whatever the Project Name says (decided
+    6 Oct 2026). Until then the names had to be similar too, and "Demo Project
+    by P1" / "Demo Project by P2" scored 0.50 against a 0.60 bar: two partners
+    on one client, no question asked, no conflict. Partners name the same
+    project differently, so the name cannot be the gate. A person answers
+    every match, so a false positive costs one click; a missed one costs an
+    unadjudicated conflict.
+  * THE SAME PARTNER — only a SIMILAR Project Name (a duplicate claim, not a
+    conflict). One partner holding two projects at one client is ordinary
+    and is not asked about.
+
+Similarity still ORDERS the list, closest name first. "Al Waha ICCC" scores
+high against "Al Waha Integrated Command & Control Centre" — see similarity().
 
 A pair already in a conflict record, or already declared "a different project",
 is never asked about again.
@@ -277,8 +287,12 @@ def raise_conflict(
 
 
 def possible_matches(db: Session, reg: DealRegistration) -> list[DealRegistration]:
-    """Live registrations this one may collide with, oldest submission first."""
-    if not reg.end_client or not _slug(reg.project_name) or not is_live(reg):
+    """Live registrations this one may collide with, closest Project Name first.
+
+    Another partner's registration at the same End Client always counts; the
+    same partner's only when the names are similar — see the module docstring.
+    """
+    if not reg.end_client or not is_live(reg):
         return []
     dismissed = set(reg.not_conflict_with or [])
     today = today_company()
@@ -290,12 +304,22 @@ def possible_matches(db: Session, reg: DealRegistration) -> list[DealRegistratio
     ):
         if other.registration_id in dismissed or reg.registration_id in set(other.not_conflict_with or []):
             continue
-        if not is_live(other, today) or not same_project(reg.project_name, other.project_name):
+        if not is_live(other, today):
+            continue
+        same_partner = bool(other.partner) and other.partner == reg.partner
+        if same_partner and not same_project(reg.project_name, other.project_name):
             continue
         if pair_conflict(db, reg.registration_id, other.registration_id) is not None:
             continue
         out.append(other)
-    return sorted(out, key=lambda r: (r.submitted_date or date.max, r.registration_id))
+    return sorted(
+        out,
+        key=lambda r: (
+            -similarity(reg.project_name, r.project_name),
+            r.submitted_date or date.max,
+            r.registration_id,
+        ),
+    )
 
 
 def match_row(other: DealRegistration, reg: DealRegistration, accounts: dict[str, str]) -> dict[str, Any]:
@@ -402,7 +426,11 @@ def resolve_possible_conflicts(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             {
                 "code": "POSSIBLE_CONFLICT",
-                "message": "A similar project is already registered at this End Client.",
+                "message": (
+                    "This partner already registered a similar project at this End Client."
+                    if all(m.partner == reg.partner for m in matches)
+                    else "Another partner has a live registration at this End Client."
+                ),
                 "details": [
                     "Same project: it's saved and a conflict is raised for review.",
                     "Different project: tell us why.",

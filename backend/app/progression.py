@@ -421,7 +421,11 @@ def spin_off_pilot_deal(db: Session, lead: Lead, *, actor: str | None) -> Deal |
     Converted. One Deal per Lead, ever: an existing pilot Deal from this Lead
     is the answer, so saving the Lead again never creates a second.
     """
-    if (lead.pilot_commercial_model or "").upper() != PAID or lead.lead_status == CONVERTED:
+    from .requirements import pilot_is_paid  # local: requirements reads the register
+
+    # Paid AND showing — a Paid left hidden by another Agreed Next Step converts
+    # nothing (Release 1.1). See requirements.pilot_is_paid.
+    if not pilot_is_paid(db, lead) or lead.lead_status == CONVERTED:
         return None
     existing = db.scalar(
         select(Deal).where(Deal.parent_lead == lead.lead_id, Deal.lead_status == PILOT_STATUS)

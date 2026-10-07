@@ -166,7 +166,7 @@ export function DashboardPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <FilterSelect label="All regions" value={filters.region} onChange={setFilter('region')} options={leadOptions('destination_region')} />
-                  <FilterSelect label="All segments" value={filters.segment} onChange={setFilter('segment')} options={leadOptions('segment')} />
+                  <FilterSelect label="All segments" value={filters.segment} onChange={setFilter('segment')} options={leadOptions('theme')} />
                   <FilterSelect
                     label="All BD owners"
                     value={filters.owner}

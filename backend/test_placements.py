@@ -160,6 +160,11 @@ def case_2_administration_sees_the_crm(db) -> None:
     # Leads 80 -> 81: Pilot PO Received Date added on 21 Sep 2026
     # (pilot_po_received_date_metadata.py, after migration 0035) — a paid
     # pilot's Won date, copied to its Deal.
+    # Release 1.1 (6 Oct 2026): the old Segment was deleted — one field, on
+    # Leads and read through on Opportunities and Deals — so each loses one:
+    # Leads 81 -> 80, Opportunities 107 -> 106, Deals 98 -> 97.
+    # Then each gains State (release_1_1_location_metadata.py, own on Leads and
+    # From the Lead on the other two): back to 81, 107 and 98.
     for module, expected in (("leads", 81), ("opportunities", 107), ("deals", 98)):
         resolved = len(R.resolved_fields(db, module))
         api = client.get(
@@ -441,6 +446,7 @@ def case_9_read_through(db) -> None:
 
     plan = R.read_through_plan(db, "opportunities")
     # 27 since Pursuit Groups: fx_rate_at_entry reads through beside currency.
+    # 27 -> 26 -> 27: Release 1.1 deleted the old Segment and added State.
     check("Opportunities reads 27 fields through", len(plan) == 27, str(len(plan)))
     check("every one of them resolves to leads", set(plan.values()) == {"leads"})
 
@@ -461,8 +467,8 @@ def case_9_read_through(db) -> None:
         and all(f["read_through_via"] == "parent_lead" for f in rows),
     )
     check(
-        "segment is read through rather than stored on the Opportunity",
-        "segment" in plan,
+        "Segment (api_name theme) is read through rather than stored on the Opportunity",
+        "theme" in plan,
         str(sorted(plan)[:6]),
     )
 
@@ -512,9 +518,14 @@ def case_11_admin_created(db) -> None:
             f"{name} is gone from the register",
             db.scalar(select(FieldDefinition).where(FieldDefinition.api_name == name)) is None,
         )
+    # Since Release 1.1 the register holds deliberate, restorable deletes again
+    # (release_1_1_fields_metadata.py: Segment, Account Target Phase). What
+    # must not come back is the prototype's: nothing deleted before go-live.
     check(
         "no deleted placement is left over from the prototype",
-        not db.execute(text("SELECT count(*) FROM field_placements WHERE status = 'deleted'")).scalar(),
+        not db.execute(
+            text("SELECT count(*) FROM field_placements WHERE status = 'deleted' AND deleted_at < '2026-09-22'")
+        ).scalar(),
     )
     check(
         "the custom-field writer does not accept it on Opportunities",
