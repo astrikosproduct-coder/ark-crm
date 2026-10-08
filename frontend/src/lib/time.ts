@@ -90,6 +90,20 @@ const TIME = new Intl.DateTimeFormat('en-US', {
   hour12: true,
 })
 
+/** TIME with seconds — the top bar's running clock. */
+const TIME_SECONDS = new Intl.DateTimeFormat('en-US', {
+  timeZone: COMPANY_TZ,
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: true,
+})
+
+/** hh:mm:ss AM/PM on the company clock, for an instant given in epoch milliseconds. */
+export function companyClockTime(epochMs: number): string {
+  return TIME_SECONDS.format(new Date(epochMs))
+}
+
 /** 'en-CA' is ISO-shaped — 2026-09-12 — which is what makes it a sortable key. */
 const DAY_KEY = new Intl.DateTimeFormat('en-CA', {
   timeZone: COMPANY_TZ,

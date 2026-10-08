@@ -2,6 +2,7 @@ import { ChevronRightIcon, SettingsIcon } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 
 import { FeedbackButton } from '@/components/layout/FeedbackButton'
+import { ServerClock } from '@/components/layout/ServerClock'
 import { GlobalSearch } from '@/components/layout/GlobalSearch'
 import { UserMenu } from '@/components/layout/UserMenu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -126,6 +127,8 @@ export function TopBar() {
           something on every visit — and, for a developer, Setup's gear, left
           of the profile as in Zoho. */}
       <div className="flex shrink-0 items-center gap-1.5">
+        {/* The server's date and time (28 Sep 2026) — not the laptop's. */}
+        <ServerClock />
         <FeedbackButton />
         <SetupButton />
         <UserMenu />

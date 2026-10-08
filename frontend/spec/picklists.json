@@ -11,6 +11,12 @@
    "label": "Direct",
    "sort": 2,
    "active": true
+  },
+  {
+   "key": "TEST",
+   "label": "Test",
+   "sort": 3,
+   "active": false
   }
  ],
  "leads__opportunity_type": [
@@ -3260,6 +3266,12 @@
    "key": "+1",
    "label": "USA (+1)",
    "sort": 15,
+   "active": true
+  },
+  {
+   "key": "+49",
+   "label": "Germany (+49)",
+   "sort": 16,
    "active": true
   }
  ],

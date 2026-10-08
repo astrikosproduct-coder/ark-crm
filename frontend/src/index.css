@@ -126,6 +126,19 @@
   --chart-leads: #338cf0;
   --chart-opportunities: #eb6834;
   --chart-deals: #1baf7a;
+  /* Dashboard series (Phase 1 dashboard, 28 Sep 2026). Added beside the tokens
+     above, which are unchanged. Roles: navy target / primary bars, teal
+     forecast / good band, amber booked / warning band, crimson loss / critical
+     band, plum a fourth category, slate prior year, "Not set" and neutral.
+     Contrast >= 3:1 against --card in both themes; the dataviz validator flags
+     their colour-blind separation, so every chart also carries a legend or
+     label, a dash pattern or gap, and its table view. */
+  --series-navy: #1d3f6e;
+  --series-teal: #0f7d6b;
+  --series-amber: #b8791b;
+  --series-crimson: #9d2b2b;
+  --series-plum: #6b4a8f;
+  --series-slate: #5b6675;
   --radius: 0.375rem; /* 6px lg, 4px md — Zoho's tighter corner */
 
   /* What lifts a white surface off a near-white canvas — doing more work now
@@ -179,6 +192,12 @@
   --chart-leads: #6675ff;
   --chart-opportunities: #d95926;
   --chart-deals: #199e70;
+  --series-navy: #7aa7dd;
+  --series-teal: #43c3a6;
+  --series-amber: #e0a13f;
+  --series-crimson: #e07070;
+  --series-plum: #b193d8;
+  --series-slate: #93a0b0;
 
   /* Layering already separates the surfaces; a shadow on top of it only muddies
      the edge. Transparent rather than `none` so the utility still composes. */
@@ -223,6 +242,12 @@
   --color-chart-leads: var(--chart-leads);
   --color-chart-opportunities: var(--chart-opportunities);
   --color-chart-deals: var(--chart-deals);
+  --color-series-navy: var(--series-navy);
+  --color-series-teal: var(--series-teal);
+  --color-series-amber: var(--series-amber);
+  --color-series-crimson: var(--series-crimson);
+  --color-series-plum: var(--series-plum);
+  --color-series-slate: var(--series-slate);
 
   /* Drawer motion — see the keyframes below the theme block. */
   --animate-slide-in-right: ark-slide-in-right 260ms cubic-bezier(0.32, 0.72, 0, 1);

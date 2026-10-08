@@ -208,6 +208,28 @@ pm2 restart crm_be_4329 crm_3329
 - **To undo** before anyone has saved work: stop the backend, restore the dump
   (`pg_restore --clean -d ark_crm`), check out the previous version, rebuild, restart.
 
+### Dashboard Phase 1 — sales targets and pipeline snapshots
+
+Migrations 0040 and 0041 add two tables and change nothing else. They go in with the
+ordinary update above (`alembic upgrade head`, **before** the restart). After the restart:
+
+- **The API writes the first pipeline snapshot by itself** when the table is empty. After
+  that, it writes one at 23:55 IST on the last day of every month. This is the application's
+  only timer. `PIPELINE_SNAPSHOT_TIMER=off` in `backend/.env` turns it off, for a second
+  instance on the same database. If the server was down on a month-end night, an admin or
+  developer can take that snapshot within 7 days: `POST /api/pipeline-snapshots?snapshot_date=YYYY-MM-DD`.
+- **Seed the fiscal year's targets** once BD Owners exist and hold the role:
+  ```sh
+  (cd backend && .venv/bin/python seed_sales_targets.py --actor you@astrikos.ai)          # dry run
+  (cd backend && .venv/bin/python seed_sales_targets.py --actor you@astrikos.ai --apply)  # 12 drafts at 0 each
+  ```
+  Run it again when a new BD Owner joins. It adds only the rows that are missing.
+- **The fiscal year starts in April** unless `FISCAL_YEAR_START_MONTH` (1–12) says otherwise.
+  Set it before the first target exists and don't change it afterwards: each target is
+  labelled with its fiscal year when it's written.
+- **To undo:** `alembic downgrade 0039_metadata_v2_enforce` drops both tables and everything
+  in them. Snapshots can't be rebuilt.
+
 ---
 
 ## Docker install

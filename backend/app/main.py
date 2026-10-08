@@ -5,13 +5,15 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from .auth import require_access, require_administration
+from .auth import current_user, require_access, require_administration
 from .database import Base, engine
+from .pipeline_snapshots import lifespan
 from .routers import (
     accounts,
     admin,
     audit_log,
     auth,
+    clock,
     conflicts,
     contacts,
     conversions,
@@ -23,9 +25,11 @@ from .routers import (
     leads,
     metadata,
     opportunities,
+    pipeline_snapshots,
     pursuit_erase,
     pursuit_groups,
     registrations,
+    sales_targets,
     search,
     spec,
     transitions,
@@ -38,9 +42,13 @@ from .routers import (
 # database that migrations have already brought up to date. See backend/README.md.
 Base.metadata.create_all(bind=engine)
 
+# `lifespan` runs the month-end pipeline-snapshot timer — the one timer in this
+# application, and the one exception to CLAUDE.md hard rule 6 (28 Sep 2026). It
+# writes aggregates only. See app/pipeline_snapshots.py.
 app = FastAPI(
     title="ARK CRM API",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 
@@ -101,6 +109,10 @@ DEVELOPER_ONLY = [Depends(require_administration)]
 
 # Sign-in itself. Unauthenticated by necessity.
 app.include_router(auth.router, prefix="/api")
+
+# The server's time, for the top bar's clock (28 Sep 2026). Signed in, but no
+# role needed: a person waiting for access still sees the top bar.
+app.include_router(clock.router, prefix="/api", dependencies=[Depends(current_user)])
 
 # Administration — users, roles, the directory — at /api/admin. DEVELOPER-only
 # in V1; see app/auth.py::require_administration.
@@ -211,6 +223,13 @@ app.include_router(feedback.router, prefix="/api", dependencies=PROTECTED)
 # route; see app/spreadsheets/importer.py. Needs the handlers.ts passthrough and
 # the vite.config.ts proxy entry, both.
 app.include_router(spreadsheets.router, prefix="/api", dependencies=PROTECTED)
+
+# Dashboard Phase 1 (28 Sep 2026): monthly sales targets per BD Owner, and the
+# month-end record of the open pipeline. PROTECTED, so anyone with a role reads
+# them; every write is ADMIN or DEVELOPER, checked per route by
+# require_target_editor. No screen yet. The /api prefix is already proxied.
+app.include_router(sales_targets.router, prefix="/api", dependencies=PROTECTED)
+app.include_router(pipeline_snapshots.router, prefix="/api", dependencies=PROTECTED)
 
 
 @app.get("/")

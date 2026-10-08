@@ -36,21 +36,27 @@ export interface TableView {
 export function ChartCard({
   title,
   subtitle,
+  caption,
   info,
   table,
+  tableFirst = false,
   className,
   children,
 }: {
   title: string
   /** A few words at most. A sentence belongs in `info`. */
   subtitle?: ReactNode
+  /** The exact fields the tile reads, one line, small mono. */
+  caption?: string
   /** What this widget counts and what it leaves out — behind the ⓘ. */
   info?: ReactNode
   table?: TableView
+  /** Open on the table view — a tile whose natural form is a table. */
+  tableFirst?: boolean
   className?: string
   children: ReactNode
 }) {
-  const [asTable, setAsTable] = useState(false)
+  const [asTable, setAsTable] = useState(tableFirst)
 
   return (
     <section className={cn('bg-card text-card-foreground flex min-w-0 flex-col rounded-lg p-4 shadow-sm', className)}>
@@ -73,6 +79,7 @@ export function ChartCard({
               </Popover>
             )}
           </h2>
+          {caption && <p className="text-muted-foreground mt-0.5 font-mono text-[11px] leading-snug">{caption}</p>}
           {subtitle && <p className="text-muted-foreground text-meta mt-0.5">{subtitle}</p>}
         </div>
         {table && (

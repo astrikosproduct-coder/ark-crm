@@ -97,8 +97,8 @@ def require_administration(user: User = Depends(require_access)) -> User:
 
     Decided 21 Sep 2026 for V1: the whole module ships to developers and is
     released to administrators in version 2. This was ADMIN_ONLY until then.
-    The ADMIN role still exists and is still granted; it simply opens nothing
-    of its own in V1.
+    The ADMIN role still exists and is still granted; in V1 its one power of
+    its own is writing sales targets (require_target_editor, 28 Sep 2026).
 
     The consequence was weighed and accepted: in V1 only a developer can grant
     a role, so every new employee's "access pending" is resolved by a
@@ -121,6 +121,29 @@ def require_developer(user: User = Depends(require_access)) -> User:
     """
     if not _is_developer(user):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Only developers can read feedback.")
+    return user
+
+
+#: Who may set, change and lock sales targets, and take a pipeline snapshot by hand.
+TARGET_EDITOR_ROLES = frozenset({ADMIN_ROLE, DEVELOPER_ROLE})
+
+
+def require_target_editor(user: User = Depends(require_access)) -> User:
+    """
+    Sales targets — create, edit, lock, revise — ADMIN or DEVELOPER only,
+    decided 28 Sep 2026. The dashboard brief asked for a Sales Head; there is no
+    such role, and the user chose the two that exist over adding one. The first
+    thing ADMIN opens of its own in V1. Reading targets needs any role, like
+    every data route.
+
+    Enforced here, on the route. Also guards the hand-taken pipeline snapshot,
+    which writes history nobody can later correct.
+    """
+    if not any(role.role_id in TARGET_EDITOR_ROLES for role in user.roles):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            {"code": "TARGET_EDITOR_ONLY", "message": "Only an admin or a developer can change sales targets."},
+        )
     return user
 
 

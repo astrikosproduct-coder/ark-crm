@@ -26,7 +26,8 @@ expected state and gets nothing until someone grants one.
 roles and the field register all need the DEVELOPER role, enforced on the router mounts;
 the nav entry and the route are hidden from everyone else as a courtesy. It is released to
 administrators in version 2. The consequence was accepted: in V1 only a developer can grant
-a role to a new employee. The ADMIN role still exists and opens nothing of its own.
+a role to a new employee. The ADMIN role's one power of its own is writing sales targets
+(28 Sep 2026, shared with DEVELOPER).
 
 So **identity is available server-side on every request, and must be taken from there.**
 Never accept `created_by`, `modified_by`, an audit `actor`, or a transition `actor`/
@@ -72,6 +73,19 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    |---|---|---|
    | User feedback | `feedback` (+ picklists `feedback__category`, `feedback__status`) | `/api/feedback` — anyone sends; **DEVELOPER-only** to read, enforced by `app/auth.py::require_developer` |
    | Excel / CSV import & export | no table — files are read and discarded | `/api/spreadsheets/{module}/…` — see below |
+
+   | Added (28 Sep 2026, Dashboard Phase 1) | Tables | Served at |
+   |---|---|---|
+   | Monthly sales targets, BD Owner × month, USD | `sales_targets` (0040) | `/api/sales-targets` — anyone reads; **ADMIN or DEVELOPER** writes (`app/auth.py::require_target_editor`) |
+   | The open pipeline as it stood, one row per dimension | `pipeline_snapshots` (0041) | `/api/pipeline-snapshots` — written by the month-end timer (rule 6's exception) |
+
+   **Targets** (`app/sales_targets.py`): stored per owner × month only — region, segment and
+   company targets are sums, never rows. DRAFT is edited; LOCKED never changes (a trigger
+   enforces it); a change is a revision — a new LOCKED row with `revision_of` and a note, the
+   old one SUPERSEDED. One current row per owner-month (partial unique index). Audited.
+   **Snapshots** are the dashboard's Pipeline tile, written down: insert-only, one day once.
+   **The fiscal year is one setting**, `FISCAL_YEAR_START_MONTH` (default 4, April), read only
+   by `app/fiscal.py`; FY27 = Apr 2026–Mar 2027. Never name a month anywhere else.
 
    **Import / export** (`backend/app/spreadsheets/`). Export: every live module, a workbook of
    Summary + one sheet per form section + Stage history + child lists, rows from the module's
@@ -199,7 +213,16 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    Accounts, Contacts and Leads only.
    `/api/dashboard` is read-only aggregates over the live pipeline
    (`backend/app/routers/dashboard.py`), computed with `app/revenue.py`'s rule so its
-   totals reconcile with the boards.
+   totals reconcile with the boards. **Five tabs since 28 Sep 2026** — Performance (the
+   five KPI cards, unchanged, then the booking S-curve and quarter meters), Pipeline,
+   Partners, Accounts, Win & loss — under ONE filter row (Period, Booking Region, Segment,
+   BD Owner, Opportunity Type, Theme, Partner, Deal Source) that reaches every tile. The page
+   opens on the current fiscal year (`period=current_fy`), so the Booked line ends on the
+   Won card. Each tile is a server definition (`TILES`: population × dimension) and a
+   browser config object (`components/dashboard/config.ts`); a click opens its records from
+   `/api/dashboard/records`, grouped by the same code. Charts are hand-built SVG/Tailwind
+   (no chart library) in the `--series-*` tokens. On Hold stays in pipeline (the Open
+   pipeline card counts it); weighted is each record's own Probability %.
 3. **Never hardcode a field.** Every form renders from `spec/fields.json`. If a field is
    missing from a screen, the fix is in the spec, not in a component.
    *Two documented exceptions, both in Administration:*
@@ -224,6 +247,10 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    (`src/pages/ComingSoon.tsx`).
 6. **No automation.** No emails, no webhooks, no timers that act. There is no automation
    log either — it was planned and dropped on 21 Sep 2026; do not build one to stand in.
+   *One named exception* (decided 28 Sep 2026): the month-end **pipeline snapshot** timer
+   in `app/pipeline_snapshots.py`, started by the API's lifespan. It writes aggregate rows
+   to `pipeline_snapshots` at 23:55 IST on each month's last day and changes no record.
+   It is not a precedent — anything else that acts on a timer is still out.
 7. **No price-book watermark** either — removed with rule 5's banner, 21 Sep 2026.
 
 ## Stack
@@ -418,7 +445,7 @@ approvals queue · dashboard with real prototype data.
 
 Reports · Administration CRUD · Activities and Documents beyond a stub · the POC workspace
 (weekly logs, issue register, close-out report) · partner scorecards ·
-role-based permissions beyond "signed in with any role" / "is developer" (Administration and feedback) ·
+role-based permissions beyond "signed in with any role" / "is developer" (Administration and feedback) / "is admin or developer" (sales targets) ·
 file upload to anywhere real · **comment pins** (dropped 18 Sep 2026 — see above) ·
 **a Settings screen** (deleted 18 Sep 2026 — see below).
 

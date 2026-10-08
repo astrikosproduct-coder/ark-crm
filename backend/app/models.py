@@ -10,6 +10,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     ForeignKeyConstraint,
+    Index,
     Integer,
     Numeric,
     String,
@@ -3408,6 +3409,182 @@ class Feedback(Base):
 
     __table_args__ = (
         CheckConstraint("length(btrim(message)) > 0", name="ck_feedback_message_not_blank"),
+    )
+
+
+# --------------------------------------------------------------------------
+# Dashboard, Phase 1 (28 Sep 2026): what the live pipeline cannot answer.
+# --------------------------------------------------------------------------
+
+
+#: The life of a target. A DRAFT is edited in place; a LOCKED one never
+#: changes, and is replaced by a revision, which marks it SUPERSEDED.
+SALES_TARGET_STATUSES = ("DRAFT", "LOCKED", "SUPERSEDED")
+
+
+class SalesTarget(Base):
+    """
+    One BD Owner's booking target for one month, in USD. Migration 0040.
+
+    OWNER x MONTH, AND NOTHING ELSE. Region, segment and company targets are
+    never stored: they are the sum of the owners' rows, rolled up through each
+    owner's deals. Storing a second level beside the first is how a company
+    target ends up counted twice.
+
+    ONE CURRENT ROW per (fiscal year, month, owner): the partial unique index
+    ignores SUPERSEDED rows, which are the history a revision leaves behind.
+    The company target for FY27 is therefore
+    ``sum(target_amount_usd) WHERE fiscal_year = 'FY27' AND status <> 'SUPERSEDED'``.
+
+    LOCKED MEANS LOCKED, in the database and not only in the API: the trigger
+    ``trg_sales_targets_guard`` refuses any change to a LOCKED or SUPERSEDED
+    row except the one step LOCKED -> SUPERSEDED, and refuses to delete either.
+    A change to a locked target is a new row with `revision_of` pointing at it
+    and a `revision_note` saying why, so a mid-year change stays visible.
+
+    `fiscal_year` is derived from `period_month` by app/fiscal.py when the row
+    is written — never taken from a request. Who and when are the server's.
+    """
+
+    __tablename__ = "sales_targets"
+
+    target_id: Mapped[str] = mapped_column(String(20), primary_key=True)
+    fiscal_year: Mapped[str] = mapped_column(String(4), nullable=False)
+    period_month: Mapped[datetime] = mapped_column(Date, nullable=False)
+    bd_owner_id: Mapped[str] = mapped_column(
+        String(20), ForeignKey("users.user_id", ondelete="RESTRICT"), nullable=False
+    )
+    target_amount_usd: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD", server_default="USD")
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="DRAFT", server_default="DRAFT")
+    locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    locked_by: Mapped[str | None] = mapped_column(
+        String(20), ForeignKey("users.user_id", ondelete="RESTRICT"), nullable=True
+    )
+    revision_of: Mapped[str | None] = mapped_column(
+        String(20), ForeignKey("sales_targets.target_id", ondelete="RESTRICT"), nullable=True
+    )
+    revision_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=now_utc)
+    created_by: Mapped[str] = mapped_column(
+        String(20), ForeignKey("users.user_id", ondelete="RESTRICT"), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=now_utc, onupdate=now_utc
+    )
+    updated_by: Mapped[str] = mapped_column(
+        String(20), ForeignKey("users.user_id", ondelete="RESTRICT"), nullable=False
+    )
+
+    __table_args__ = (
+        CheckConstraint("fiscal_year ~ '^FY[0-9]{2}$'", name="ck_sales_targets_fiscal_year_format"),
+        CheckConstraint("extract(day from period_month) = 1", name="ck_sales_targets_period_month_first"),
+        CheckConstraint("target_amount_usd >= 0", name="ck_sales_targets_amount_not_negative"),
+        CheckConstraint("currency = 'USD'", name="ck_sales_targets_currency_usd"),
+        CheckConstraint("status IN ('DRAFT', 'LOCKED', 'SUPERSEDED')", name="ck_sales_targets_status"),
+        CheckConstraint(
+            "(status = 'DRAFT' AND locked_at IS NULL AND locked_by IS NULL)"
+            " OR (status <> 'DRAFT' AND locked_at IS NOT NULL AND locked_by IS NOT NULL)",
+            name="ck_sales_targets_lock_stamped",
+        ),
+        CheckConstraint(
+            "revision_of IS NULL OR length(btrim(coalesce(revision_note, ''))) > 0",
+            name="ck_sales_targets_revision_noted",
+        ),
+        Index(
+            "uq_sales_targets_current",
+            "fiscal_year",
+            "period_month",
+            "bd_owner_id",
+            unique=True,
+            postgresql_where=text("status <> 'SUPERSEDED'"),
+        ),
+        Index(
+            "uq_sales_targets_revision_of",
+            "revision_of",
+            unique=True,
+            postgresql_where=text("revision_of IS NOT NULL"),
+        ),
+        Index("ix_sales_targets_fiscal_year_month", "fiscal_year", "period_month"),
+        Index("ix_sales_targets_owner_month", "bd_owner_id", "period_month"),
+    )
+
+
+#: What one pipeline_snapshots row is cut by. ALL is the company rollup.
+SNAPSHOT_DIMENSIONS = ("ALL", "BD_OWNER", "BOOKING_REGION", "SEGMENT")
+
+
+class PipelineSnapshot(Base):
+    """
+    The open pipeline as it stood on one day. Migration 0041.
+
+    A won or lost pursuit leaves the pipeline, so a past month's pipeline cannot
+    be rebuilt from live rows; it has to be written down on the day. The
+    month-end timer does that (app/pipeline_snapshots.py), and a person can
+    take one by hand.
+
+    ONE DIMENSION PER ROW, never crossed: the ALL row, then one row per BD
+    Owner, per Booking Region and per Segment. `dimension` says which, because
+    NULL has to mean two things otherwise — "every region" on the ALL row, and
+    "no region recorded" on a Booking Region row. Inside a row, NULL in a column
+    that is not its dimension means "all".
+
+    Figures follow the dashboard's own rule (app/revenue.py): Leads and
+    Opportunities whose revenue is counted, in USD; weighted is each record's
+    USD x its own Probability %. `deal_count` counts those records;
+    `unpriced_count` how many of them counted as $0 for want of a value,
+    currency or FX rate.
+
+    INSERT-ONLY: the trigger ``trg_pipeline_snapshots_insert_only`` refuses
+    every UPDATE. The unique index treats NULLs as equal, so a second run for
+    the same day cannot add a row.
+    """
+
+    __tablename__ = "pipeline_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    snapshot_date: Mapped[datetime] = mapped_column(Date, nullable=False)
+    dimension: Mapped[str] = mapped_column(String(20), nullable=False)
+    bd_owner_id: Mapped[str | None] = mapped_column(
+        String(20), ForeignKey("users.user_id", ondelete="RESTRICT"), nullable=True
+    )
+    booking_region: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    segment: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    open_value_usd: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    weighted_value_usd: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    deal_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    unpriced_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=now_utc)
+    #: NULL when the month-end timer wrote it; the person, when taken by hand.
+    created_by: Mapped[str | None] = mapped_column(
+        String(20), ForeignKey("users.user_id", ondelete="RESTRICT"), nullable=True
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "dimension IN ('ALL', 'BD_OWNER', 'BOOKING_REGION', 'SEGMENT')", name="ck_pipeline_snapshots_dimension"
+        ),
+        CheckConstraint(
+            "(dimension = 'ALL' AND bd_owner_id IS NULL AND booking_region IS NULL AND segment IS NULL)"
+            " OR (dimension = 'BD_OWNER' AND booking_region IS NULL AND segment IS NULL)"
+            " OR (dimension = 'BOOKING_REGION' AND bd_owner_id IS NULL AND segment IS NULL)"
+            " OR (dimension = 'SEGMENT' AND bd_owner_id IS NULL AND booking_region IS NULL)",
+            name="ck_pipeline_snapshots_one_dimension",
+        ),
+        CheckConstraint(
+            "deal_count >= 0 AND unpriced_count >= 0 AND unpriced_count <= deal_count",
+            name="ck_pipeline_snapshots_counts",
+        ),
+        Index(
+            "uq_pipeline_snapshots_slice",
+            "snapshot_date",
+            "dimension",
+            "bd_owner_id",
+            "booking_region",
+            "segment",
+            unique=True,
+            postgresql_nulls_not_distinct=True,
+        ),
     )
 
 

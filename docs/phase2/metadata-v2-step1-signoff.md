@@ -1,6 +1,6 @@
 # Metadata model v2 — Step 1 sign-off list
 
-**Status:** approved 24 Sep 2026 · **Prepared:** 24 Sep 2026 · **Source:** development database, read-only
+**Status:** for approval · **Prepared:** 24 Sep 2026 · **Source:** development database, read-only
 
 **The rule for all of it: the structure changes, the behaviour doesn't.** Every
 outcome below keeps what a user sees and what a save does exactly as today.
@@ -22,7 +22,7 @@ that module. The other **55 are shared**, and each gets one of three outcomes.
 After v2: about **234 definitions**, each owned by exactly one module.
 Every `api_name` keeps its name. No business column or value changes.
 
-### A1. Shown live on Opportunities and Deals → "From the Lead" items (26)
+### A1. Shown live on Opportunities and Deals → "From the Lead" items (25)
 
 The Lead keeps the one definition. The Opportunity and Deal layouts **point at
 the Lead's field**. They own nothing, the value is shown live, and it can't be edited there
@@ -47,7 +47,6 @@ the Lead's field**. They own nothing, the value is shown live, and it can't be e
 | Primary Contact | Stage 0 | Optional |
 | Gorilla Flag | Stage 0 | Optional |
 | Lighthouse Project | Stage 0 | Optional |
-| **End Client** *(G1, decided: live on the Deal too)* | Stage 0 | Mandatory |
 | Suite Demonstrated | Stage 1 — Demo Presentation | Mandatory |
 | Alliance Structure | Stage 3 — Prescription | Mandatory |
 | Consultant / Specifier | Stage 3 | Mandatory |
@@ -57,7 +56,7 @@ the Lead's field**. They own nothing, the value is shown live, and it can't be e
 | Sales Owner | Stage 3 | Optional |
 | Total Project Value | Stage 3 | Optional |
 
-### A2. Copied once into the Deal → Deal owns the field + a Conversion Mapping row (6)
+### A2. Copied once into the Deal → Deal owns the field + a Conversion Mapping row (7)
 
 | Field | Owned by, before the Deal | Deal gets its own field, filled by mapping from |
 |---|---|---|
@@ -66,9 +65,10 @@ the Lead's field**. They own nothing, the value is shown live, and it can't be e
 | One-Time Revenue | Opportunity (Stage 4) | Opportunity → Deal |
 | 3rd-Party Revenue — One-Time | Opportunity (Stage 4) | Opportunity → Deal |
 | 3rd-Party Revenue — Recurring (per year) | Opportunity (Stage 4) | Opportunity → Deal |
-| Customer (Partner / SI) | Lead (Stage 0; the Opportunity shows it live) | Lead, through the Opportunity → Deal — *G1: stays the Deal's own field* |
+| End Client | Lead (Stage 0; the Opportunity shows it live) | Lead, through the Opportunity → Deal — *see G1* |
+| Customer (Partner / SI) | Lead (Stage 0; the Opportunity shows it live) | Lead, through the Opportunity → Deal — *see G1* |
 
-On the Deal these sit in **Stage 7 — Commercial Terms**, Mandatory, as today.
+On the Deal all seven sit in **Stage 7 — Commercial Terms**, Mandatory, as today.
 
 ### A3. Own value on each module → split, one definition per module (23)
 
@@ -100,14 +100,14 @@ Setup once the editing screen exists (item 3). **Locked** rows are shown greyed.
 | Path | Source → Target | Row |
 |---|---|---|
 | **Opportunity → Deal** | ARR · Contract Years · One-Time Revenue · 3rd-Party One-Time · 3rd-Party Recurring → same fields on the Deal | Editable |
-| | Customer (Partner / SI) → Deal's own field | Editable — *G1: stays the Deal's own field* |
+| | End Client · Customer (Partner / SI) → Deal's own fields | Editable — *see G1* |
 | | Parent link · Stage · Status · Progression / Probability | Locked (system) |
 | **Lead → Opportunity** | Nothing is copied: the Opportunity shows the Lead's fields live (A1) | — |
 | | Parent link · Stage · Status · Progression / Probability | Locked (system) |
 | **Lead → Deal (paid pilot)** | Pilot Fee → Contract Value | Locked — *see G2* |
 | | Pilot PO Received Date → PO Received Date | Locked |
 | | Opportunity Name → Deal Name (+ " — Paid POC") | Locked |
-| | Customer (Partner / SI) → Deal's own field | Locked — End Client is shown live, not copied |
+| | End Client · Customer (Partner / SI) → Deal's own fields | Locked |
 
 The paid-pilot copies are hard-coded in `backend/app/progression.py` today. v2 turns them into
 rows that show what happens, so they are no longer hidden.
@@ -128,14 +128,14 @@ Only the register rows that *describe* their fields move.
 Partners                      stays — the parent; the Partners screen is unchanged
  ├─ Deal Registrations        new module — 18 fields, own layout
  │    └─ Conflicts            new module — 13 fields, own layout
- └─ Partner Scorecards        new module — 8 fields (not built yet; stays visible)
+ └─ Partner Scorecards        new module — 8 fields, HIDDEN until built
 ```
 
 | Moves to | Fields |
 |---|---|
 | **Deal Registrations** | Registration ID · Partner · End Client · Project Name · **Currency** · Estimated Value · Expected Timeline · Partner Role · Submitted Date · Acknowledged Date · Acknowledgement SLA Met · Exclusivity Start Date · Exclusivity Expiry Date · Registration Status · Withdrawn Date · Withdrawal Reason · Extension Reason · Linked Lead |
 | **Conflicts** | Conflict ID · Registration A · Registration B · Who Registered First · Stronger Client Relationship · Better Delivery Capability · Decision · Primary Registration · Decision Rationale & Evidence · Evidence Link · Decision Date · Decided By · Both Partners Notified |
-| **Partner Scorecards** | Scorecard ID · Partner · Quarter · Leads Registered · Conversion Rate to Stage 4+ · Revenue Closed · Partner Satisfaction Score · QBR Date |
+| **Partner Scorecards** (hidden) | Scorecard ID · Partner · Quarter · Leads Registered · Conversion Rate to Stage 4+ · Revenue Closed · Partner Satisfaction Score · QBR Date |
 
 - **Currency on a registration** borrows the *Lead's* Currency definition today. It becomes
   the registration's own field, on the global Currency list (D).
@@ -148,46 +148,41 @@ Partners                      stays — the parent; the Partners screen is uncha
 
 ---
 
-## D. Picklists: 8 global, 7 local (decided 24 Sep, G3/G4)
+## D. Picklists: 7 global, 4 become local
+
+11 picklists are used on more than one module today. **4 are shared only because of
+read-through.** Once A1 makes the Lead the only owner, they belong to one field.
 
 | Picklist (key unchanged) | Label today → after | Used by after v2 | Outcome |
 |---|---|---|---|
 | `leads__currency` | Leads — Currency → **Currency** | Leads · Deal Registrations | **Global** |
-| `leads_stage` | Leads Stage → **Pipeline Stage** | Lead Stage · Opportunity Stage | **Global** (values follow the Stages table) |
+| `leads__lead_status` | Leads — Lead Status → **Pursuit Status** | Lead / Opportunity / Deal Status | **Global** — *see G3* |
+| `leads_stage` | Leads Stage → **Pipeline Stage** | Lead Stage · Opportunity Stage | **Global** |
 | `closed_lost_reason_code` | → **Closed Lost Reason** | Leads · Opportunities · Deals | **Global** |
 | `overall_rag` | Overall Rag → **Overall RAG** | Leads · Opportunities · Deals | **Global** |
 | `region` | Region | Accounts · Leads (Booking and Destination Region) | **Global** |
 | `segment` | Segment | Accounts · Leads | **Global** |
-| `contacts__dial_code` | → **Dial Code** | Contacts (Phone and Mobile) | **Global** — *found on the dry run: two fields share it* |
-| `bids_pocs__status` | unchanged | Bids & POCs (Bid, Gate and POC status) | **Global** — *found once no module was hidden* |
-| `leads__lead_status` | → **Lead Status** | Leads only | **Local** (G3) |
-| *new* `opportunities__lead_status` | **Opportunity Status** | Opportunities only | **Local** (G3) — starts as a copy of today's values minus POC/Pilot Deal |
-| *new* `deals__lead_status` | **Deal Status** | Deals only | **Local** (G3) — starts as a copy of today's values; the only list holding POC/Pilot Deal |
 | `leads__alliance_structure` | → **Alliance Structure** | Leads only | Local |
 | `leads__deal_source` | → **Deal Source** | Leads only | Local |
 | `leads__opportunity_type` | → **Opportunity Type** | Leads only | Local |
 | `theme` | Theme | Leads only | Local |
 
-**Status lists after G3:**
-- **The `extensions.json` rule that hides POC/Pilot Deal on Leads and Opportunities is deleted.**
-  The value is simply not on those lists.
-- **Stored values stay the same.** Each new list copies today's value keys exactly, so every
-  saved status still matches and nothing is rewritten.
-- **System values are protected.** The code reads the keys for Open, On Hold, Closed Lost,
-  Converted and POC/Pilot Deal: revenue totals, the Kanban, the stage-move rules. Their labels can
-  be renamed, but they can't be removed or deactivated. The server refuses with a clear message.
-  Any other value can be added, renamed or retired freely per module.
-
 Keys never change, because every stored value is written under them. Only labels change.
 The other 102 picklists are already used by one module and become local.
 
-## E. No module is hidden (changed 24 Sep 2026)
+---
 
-The first version of this list hid unbuilt modules in Administration. **Decided
-24 Sep: they stay exactly as they are.** Quotes, Products, Bids & POCs,
-Activities & Documents, `administration`, `demo_module` and the new Partner
-Scorecards all remain visible. The `hidden` flag exists in the schema but
-nothing sets it.
+## E. Modules hidden, not deleted
+
+Hidden means: not shown in Setup's module list, not in the spec the app reads, and every
+row kept. Nothing is dropped.
+
+| Module | Why hidden | Placements kept |
+|---|---|---|
+| `administration` | Users and Roles are hand-built screens; nothing reads these rows | 100 |
+| `demo_module` | Leftover, empty | 0 |
+| `bids_pocs` · `quotes` · `products` · `activities_docs` | Not built yet; each is un-hidden when its phase starts | 85 · 68 · 50 · 21 |
+| `partner_scorecards` (new, C) | Not built yet | 8 |
 
 ---
 
@@ -201,29 +196,15 @@ nothing sets it.
 
 ---
 
-## G. Judgement calls
+## G. Judgement calls — the only things that need your answer
 
-| # | Question | Decision |
+| # | Question | Recommendation |
 |---|---|---|
-| **G1** | End Client and Customer (Partner / SI) on the Deal | **Show the Lead's value live** (24 Sep). End Client: done, see A1. Customer (Partner / SI) **stays the Deal's own field** (confirmed 24 Sep) |
-| **G2** | Paid-pilot mapping rows | **Locked** (24 Sep): shown in Setup, copy happens exactly as today, nobody can change or remove the row |
-| **G3** | Status picklists | **Local, one list per module** (24 Sep): see D |
-| **G4** | Global / local split | Settled by G3: 8 global, 7 local (Dial Code and Bids & POCs status added during the run) |
+| **G1** | **End Client and Customer (Partner / SI) on the Deal.** Today the Deal keeps its own editable copy, taken at conversion, so it *can* drift from the Lead. The Opportunity shows the Lead's value live. | **Keep as today in v2** (structure only). Decide separately whether the Deal should show them live too. |
 
-**G1 consequence, for confirmation.** A converted record is read-only, so a field shown live
-from the Lead can no longer be changed anywhere once the Lead converts at Stage 3.
-- **End Client:** fine. The Opportunity already can't change it today, and it must not drift.
-- **Customer (Partner / SI):** today the Deal can change it at Stage 7, where it is Mandatory,
-  because the partner who signs the contract is not always the one expected at Stage 0.
-  Live would take that away.
+| **G2** | **Paid-pilot copies** (Pilot Fee → Contract Value, etc.): locked rows or editable? | **Locked.** They carry the Won rule decided on 21 Sep. |
+| **G3** | **"POC/Pilot Deal" status** lives on the global Pursuit Status list but is hidden on Leads and Opportunities by `extensions.json`. | **Keep that hide rule as is.** Per-field value hiding becomes a Setup setting later. |
+| **G4** | **7 global / 4 local picklists** as in D. | Approve as listed. |
 
-**Recommended:** End Client live · Customer (Partner / SI) stays the Deal's own field, copied
-at conversion (as today).
-
-**What G1 changes in the server:** the places that read the Deal's own End Client column switch
-to the Lead's value, through the Deal's Parent Lead, which every Deal has. Those places are the
-duplicate-pursuit check, the Pursuit Group End Client guard, the refusal to delete an Account a
-pursuit names, global search and Lead deletion. The Deal column stays and keeps its values, but
-nothing writes it or shows it from then on (never a DROP COLUMN).
-
-**Approved:** A–F, with the changes above.
+**To approve:** A (55 fields), B (mapping rows), C (Partners children), D (picklists),
+E (hidden modules), F (tidy-ups), and answers to G1–G4.

@@ -1,32 +1,31 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
+import { InfoIcon } from 'lucide-react'
 
-import { AtRiskList, DueList } from '@/components/dashboard/ActionLists'
-import { BarRows, type BarRow, type BarTone } from '@/components/dashboard/BarRows'
-import { ChartCard, EmptyChart } from '@/components/dashboard/ChartCard'
-import { CloseForecast } from '@/components/dashboard/CloseForecast'
+import { EmptyChart } from '@/components/dashboard/ChartCard'
+import { AccountsTab, PartnersTab, PerformanceTab, PipelineTab, WinLossTab } from '@/components/dashboard/DashboardTabs'
 import { monthLabel, seriesLabel } from '@/components/dashboard/format'
 import { KpiTile, type Delta } from '@/components/dashboard/KpiTile'
-import type { DashboardData, DashboardFilters } from '@/components/dashboard/types'
+import { RecordsSheet } from '@/components/dashboard/RecordsSheet'
+import { DashboardProvider } from '@/components/dashboard/Tile'
+import type { DashboardData, DashboardFilters, DrillRequest, PeriodPreset, SliceFilter } from '@/components/dashboard/types'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { api } from '@/lib/api'
-import { InfoIcon } from 'lucide-react'
-
 import { date, money } from '@/lib/format'
-import { moduleFor } from '@/lib/modules'
 import { usd } from '@/lib/revenue'
 import { fieldOf, optionsFor } from '@/lib/spec'
+import { useServerDay } from '@/lib/serverClock'
 import { cn } from '@/lib/utils'
 
 const ALL = '__all__'
 const CUSTOM = '__custom__'
 
-/** The RAG picklist keys as the app's status tones — the same mapping lib/rag.ts draws as a stripe. */
-const RAG_TONE: Record<string, BarTone> = { GREEN: 'success', AMBER: 'warning', RED: 'destructive' }
+/** The page opens on this fiscal year (decided 28 Sep 2026), so Booked and Won agree on sight. */
+const DEFAULT_FILTERS: DashboardFilters = { period: 'current_fy' }
 
 function plural(n: number, word: string): string {
   return `${n} ${word}${n === 1 ? '' : 's'}`
@@ -53,24 +52,37 @@ function errorMessage(error: unknown): string {
   return 'The dashboard could not be loaded.'
 }
 
+const presetKey = (p: Pick<PeriodPreset, 'start' | 'end'>) => `${p.start}|${p.end}`
+
+/** Every slice filter the page offers — each reaches every tile on every tab. */
+const SLICES: { key: SliceFilter; label: string; name: string; options: (data?: DashboardData) => { value: string; label: string }[] }[] = [
+  { key: 'region', name: 'Booking Region', label: 'All booking regions', options: () => leadOptions('booking_region') },
+  { key: 'segment', name: 'Segment', label: 'All segments', options: () => leadOptions('segment') },
+  { key: 'owner', name: 'BD Owner', label: 'All BD owners', options: (d) => (d?.owners ?? []).map((o) => ({ value: o.id, label: o.name })) },
+  { key: 'opportunity_type', name: 'Opportunity Type', label: 'All opportunity types', options: () => leadOptions('opportunity_type') },
+  { key: 'theme', name: 'Theme', label: 'All themes', options: () => leadOptions('theme') },
+  { key: 'partner', name: 'Partner', label: 'All partners', options: (d) => (d?.partners ?? []).map((p) => ({ value: p.id, label: p.name })) },
+  { key: 'deal_source', name: 'Deal Source', label: 'All deal sources', options: () => leadOptions('deal_source') },
+]
+
 /**
- * The management dashboard — Phase 1 skeleton, for the CEO and management.
+ * The management dashboard — five tabs, one filter row.
  *
  * Every number comes from GET /api/dashboard (backend/app/routers/dashboard.py),
- * computed with the same revenue rule as the Kanban boards, so a total here
- * reconciles with the board it summarises. Only the live PostgreSQL modules are
- * read; Gates, Quotes and POCs stay off until they migrate.
- *
- * The date range filters each widget by the date it is about — Expected Close
- * Month, date lost, or due date — and the scope line under the filters says so.
+ * computed with the same revenue rule as the Kanban boards. The filter row is
+ * the same on every tab and its state lives here, so switching tabs keeps it;
+ * every filter reaches every tile. What each tile draws is a config object
+ * (components/dashboard/config.ts); clicking a mark opens the records behind
+ * it (RecordsSheet).
  */
 export function DashboardPage() {
-  const [filters, setFilters] = useState<DashboardFilters>({})
+  const [filters, setFilters] = useState<DashboardFilters>(DEFAULT_FILTERS)
   // What the date inputs show. Copied into `filters` only while it is a valid
   // range, so an inverted range never reaches the server or blanks the page.
   const [draft, setDraft] = useState({ from: '', to: '' })
   // From / To are shown only once Custom range is chosen from the Period filter.
   const [custom, setCustom] = useState(false)
+  const [drill, setDrill] = useState<DrillRequest | null>(null)
   const inverted = Boolean(draft.from && draft.to && draft.from > draft.to)
 
   const { data, error, isLoading, isError, isFetching, isPlaceholderData, refetch } = useQuery({
@@ -80,174 +92,185 @@ export function DashboardPage() {
     placeholderData: keepPreviousData,
   })
 
-  const setFilter = (key: keyof DashboardFilters) => (value: string) =>
-    setFilters((f) => ({ ...f, [key]: value === ALL ? undefined : value }))
+  // When the SERVER's day turns, refetch — so "this fiscal year", "this quarter"
+  // and every meter's ended / open basis move on by themselves in a tab left
+  // open overnight. Only a change counts: learning the day on load does not.
+  const serverDay = useServerDay()
+  const seenDay = useRef<string | null>(null)
+  useEffect(() => {
+    if (!serverDay) return
+    if (seenDay.current && seenDay.current !== serverDay) void refetch()
+    seenDay.current = serverDay
+  }, [serverDay, refetch])
+
+  const setFilter = (key: SliceFilter) => (value: string) => setFilters((f) => ({ ...f, [key]: value === ALL ? undefined : value }))
 
   const setRange = (from: string, to: string) => {
     setDraft({ from, to })
     if (from && to && from > to) return
-    setFilters((f) => ({ ...f, date_from: from || undefined, date_to: to || undefined }))
+    setFilters((f) => ({ ...f, period: undefined, date_from: from || undefined, date_to: to || undefined }))
   }
 
-  const presets = data?.quarters ?? []
-  const preset = presets.find((q) => q.start === draft.from && q.end === draft.to)
-  const period = custom ? CUSTOM : !draft.from && !draft.to ? ALL : preset ? preset.start : CUSTOM
+  const presets = data?.periods ?? []
+  const currentFy = presets.find((p) => p.kind === 'fiscal_year' && p.current)
+  const matched = presets.find((p) => p.start === filters.date_from && p.end === filters.date_to)
+  const period = custom
+    ? CUSTOM
+    : filters.period === 'current_fy'
+      ? currentFy
+        ? presetKey(currentFy)
+        : 'current_fy'
+      : !filters.date_from && !filters.date_to
+        ? ALL
+        : matched
+          ? presetKey(matched)
+          : CUSTOM
   const onPeriod = (value: string) => {
-    // Custom keeps whatever dates are set (a quarter just picked, say) as a starting point.
     setCustom(value === CUSTOM)
-    if (value === CUSTOM) return
+    if (value === CUSTOM) {
+      // Custom starts from whatever period was showing.
+      setDraft({ from: data?.range.from ?? '', to: data?.range.to ?? '' })
+      return
+    }
     if (value === ALL) return setRange('', '')
-    const q = presets.find((p) => p.start === value)
-    if (q) setRange(q.start, q.end)
+    const p = presets.find((q) => presetKey(q) === value)
+    if (p) setRange(p.start, p.end)
   }
 
   const clearAll = () => {
     setCustom(false)
     setDraft({ from: '', to: '' })
-    setFilters({})
+    setFilters(DEFAULT_FILTERS)
   }
 
-  const filtered = Object.values(filters).some(Boolean) || Boolean(draft.from || draft.to)
+  const sliced = SLICES.some((s) => filters[s.key])
+  const moved = sliced || filters.period !== DEFAULT_FILTERS.period || custom
   const ranged = Boolean(data && (data.range.from || data.range.to))
 
-  return (
-    <PageLayout
-      wide
-      title="Dashboard"
-      subtitle={data ? `As of ${date(data.as_of)}` : undefined}
-      tabs={[
-        {
-          key: 'overview',
-          label: 'Overview',
-          content: (
-            <div className="space-y-4 pt-3">
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Select value={period} onValueChange={onPeriod}>
-                    <SelectTrigger className="w-56" aria-label="Period">
-                      <SelectValue placeholder="All dates" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={ALL}>All dates</SelectItem>
-                      {presets.map((q) => (
-                        <SelectItem key={q.start} value={q.start}>
-                          {q.label} ({monthLabel(q.start, 'MMM')}–{monthLabel(q.end, 'MMM')}){q.current ? ' · this quarter' : ''}
-                        </SelectItem>
-                      ))}
-                      <SelectItem value={CUSTOM}>Custom range</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {period === CUSTOM && (
-                    <>
-                      <label className="text-muted-foreground text-label flex items-center gap-1.5">
-                        From
-                        <Input
-                          type="date"
-                          className="w-40"
-                          value={draft.from}
-                          max={draft.to || undefined}
-                          aria-invalid={inverted || undefined}
-                          onChange={(e) => setRange(e.target.value, draft.to)}
-                        />
-                      </label>
-                      <label className="text-muted-foreground text-label flex items-center gap-1.5">
-                        To
-                        <Input
-                          type="date"
-                          className="w-40"
-                          value={draft.to}
-                          min={draft.from || undefined}
-                          aria-invalid={inverted || undefined}
-                          onChange={(e) => setRange(draft.from, e.target.value)}
-                        />
-                      </label>
-                    </>
-                  )}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <FilterSelect label="All regions" value={filters.region} onChange={setFilter('region')} options={leadOptions('destination_region')} />
-                  <FilterSelect label="All segments" value={filters.segment} onChange={setFilter('segment')} options={leadOptions('segment')} />
-                  <FilterSelect
-                    label="All BD owners"
-                    value={filters.owner}
-                    onChange={setFilter('owner')}
-                    options={(data?.owners ?? []).map((o) => ({ value: o.id, label: o.name }))}
-                  />
-                  <FilterSelect
-                    label="All opportunity types"
-                    value={filters.opportunity_type}
-                    onChange={setFilter('opportunity_type')}
-                    options={leadOptions('opportunity_type')}
-                  />
-                  {filtered && (
-                    <button type="button" onClick={clearAll} className="text-link text-label px-2 hover:underline">
-                      Clear filters
-                    </button>
-                  )}
-                  {/* The scope paragraph used to sit under these controls and
-                      run to forty words, on the screen where the fold matters
-                      most. It is unchanged and one click away — it is about the
-                      range control, so it lives on it. */}
-                  {data && <ScopeNote data={data} />}
-                </div>
-                {inverted && <p className="text-destructive text-meta">The From date must be on or before the To date.</p>}
-              </div>
+  // The filters in words, from what the SERVER computed with — every ⓘ lists them.
+  const filterLines = data
+    ? [
+        ...(ranged ? [`Period ${rangeText(data.range.from, data.range.to)}`] : []),
+        ...SLICES.filter((s) => data.filters[s.key]).map((s) => {
+          const value = data.filters[s.key]!
+          return `${s.name}: ${s.options(data).find((o) => o.value === value)?.label ?? value}`
+        }),
+      ]
+    : []
 
-              {isLoading && <EmptyChart>Loading the dashboard…</EmptyChart>}
-              {isError && (
-                <EmptyChart>
-                  {errorMessage(error)}{' '}
-                  <button type="button" onClick={() => refetch()} className="text-link hover:underline">
-                    Try again
-                  </button>
-                </EmptyChart>
-              )}
-              {data && !isError && (
-                <div className={cn('space-y-4 transition-opacity', isFetching && isPlaceholderData && 'opacity-60')}>
-                  <Kpis data={data} ranged={ranged} />
-                  {/* Forecast full width: it is the one chart read left to
-                      right over time, and at half a screen its months were
-                      three characters wide. Everything else pairs up — the old
-                      three-across row squeezed RAG, ageing and loss reasons
-                      into a third each, which is where this page stopped being
-                      readable. */}
-                  <Forecast data={data} ranged={ranged} />
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    <StageFunnel data={data} ranged={ranged} />
-                    <LossReasons data={data} ranged={ranged} />
-                  </div>
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    <RagBreakdown data={data} ranged={ranged} />
-                    <StageAgeing data={data} ranged={ranged} />
-                  </div>
-                  <div className="grid gap-4 xl:grid-cols-2">
-                    <DueList
-                      due={data.due}
-                      windowDays={data.thresholds.due_window_days}
-                      range={ranged ? rangeText(data.range.from, data.range.to) : null}
-                    />
-                    <AtRiskList atRisk={data.at_risk} stuckAfterDays={data.thresholds.stuck_after_days} />
-                  </div>
-                </div>
-              )}
-            </div>
-          ),
-        },
-      ]}
-    />
+  const filterRow = (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={period} onValueChange={onPeriod}>
+          <SelectTrigger className="w-64" aria-label="Period">
+            <SelectValue placeholder="This fiscal year" />
+          </SelectTrigger>
+          <SelectContent>
+            {!currentFy && <SelectItem value="current_fy">This fiscal year</SelectItem>}
+            {presets.map((p) => (
+              <SelectItem key={presetKey(p)} value={presetKey(p)}>
+                {p.label} ({monthLabel(p.start, 'MMM yy')}–{monthLabel(p.end, 'MMM yy')})
+                {p.current ? (p.kind === 'fiscal_year' ? ' · this year' : ' · this quarter') : ''}
+              </SelectItem>
+            ))}
+            <SelectItem value={ALL}>All dates</SelectItem>
+            <SelectItem value={CUSTOM}>Custom range</SelectItem>
+          </SelectContent>
+        </Select>
+        {period === CUSTOM && (
+          <>
+            <label className="text-muted-foreground text-label flex items-center gap-1.5">
+              From
+              <Input
+                type="date"
+                className="w-40"
+                value={draft.from}
+                max={draft.to || undefined}
+                aria-invalid={inverted || undefined}
+                onChange={(e) => setRange(e.target.value, draft.to)}
+              />
+            </label>
+            <label className="text-muted-foreground text-label flex items-center gap-1.5">
+              To
+              <Input
+                type="date"
+                className="w-40"
+                value={draft.to}
+                min={draft.from || undefined}
+                aria-invalid={inverted || undefined}
+                onChange={(e) => setRange(draft.from, e.target.value)}
+              />
+            </label>
+          </>
+        )}
+        {data && <ScopeNote data={data} />}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {SLICES.map((s) => (
+          <FilterSelect key={s.key} label={s.label} value={filters[s.key]} onChange={setFilter(s.key)} options={s.options(data)} />
+        ))}
+        {moved && (
+          <button type="button" onClick={clearAll} className="text-link text-label px-2 hover:underline">
+            Clear filters
+          </button>
+        )}
+      </div>
+      {inverted && <p className="text-destructive text-meta">The From date must be on or before the To date.</p>}
+    </div>
+  )
+
+  /** A tab: the shared filter row, then the tab's own tiles — or why there are none. */
+  const tab = (content: (data: DashboardData) => ReactNode) => (
+    <div className="space-y-4 pt-3">
+      {filterRow}
+      {isLoading && <EmptyChart>Loading the dashboard…</EmptyChart>}
+      {isError && (
+        <EmptyChart>
+          {errorMessage(error)}{' '}
+          <button type="button" onClick={() => refetch()} className="text-link hover:underline">
+            Try again
+          </button>
+        </EmptyChart>
+      )}
+      {data && !isError && (
+        <DashboardProvider value={{ data, filterLines, drill: setDrill }}>
+          <div className={cn('space-y-4 transition-opacity', isFetching && isPlaceholderData && 'opacity-60')}>{content(data)}</div>
+        </DashboardProvider>
+      )}
+    </div>
+  )
+
+  return (
+    <>
+      <PageLayout
+        wide
+        title="Dashboard"
+        tabs={[
+          {
+            key: 'performance',
+            label: 'Performance',
+            content: tab((d) => (
+              <>
+                <Kpis data={d} ranged={ranged} />
+                <PerformanceTab />
+              </>
+            )),
+          },
+          { key: 'pipeline', label: 'Pipeline', content: tab(() => <PipelineTab />) },
+          { key: 'partners', label: 'Partners', content: tab(() => <PartnersTab />) },
+          { key: 'accounts', label: 'Accounts', content: tab(() => <AccountsTab />) },
+          { key: 'win-loss', label: 'Win & loss', content: tab(() => <WinLossTab />) },
+        ]}
+      />
+      <RecordsSheet request={drill} filters={filters} onClose={() => setDrill(null)} />
+    </>
   )
 }
 
 /**
  * What the date range does to the page — behind an ⓘ on the range control.
- *
- * The range means a DIFFERENT DATE per widget, which is the one thing about
- * this page a reader genuinely has to be told and the last thing they want
- * told every time they look at it. It sat under the filters as a forty-word
- * paragraph; the words are unchanged, the position is not.
- *
- * The dead calendar-quarter branch is gone: FISCAL_YEAR_START_MONTH is 4, so
- * "until the fiscal year is confirmed" could never render.
+ * The range means a DIFFERENT DATE per tile, which is the one thing about this
+ * page a reader genuinely has to be told.
  */
 function ScopeNote({ data }: { data: DashboardData }) {
   const { from, to, left_out } = data.range
@@ -263,18 +286,20 @@ function ScopeNote({ data }: { data: DashboardData }) {
       </PopoverTrigger>
       <PopoverContent align="start" className="text-meta w-80 leading-relaxed">
         {!from && !to ? (
-          <p>Every record, whenever it is expected to close.</p>
+          <p>Every record, whenever it is expected to close. Performance shows this fiscal year.</p>
         ) : (
           <>
-            <p>Period {rangeText(from, to)}, read as a different date per widget:</p>
+            <p>Period {rangeText(from, to)}, read as a different date per tile:</p>
             <ul className="mt-1.5 list-disc space-y-0.5 pl-4">
-              <li>Revenue, stage, RAG, ageing and stale — by Expected Close Month.</li>
-              <li>Closed Lost — by the date it was lost.</li>
-              <li>The due list — by due date.</li>
+              <li>Pipeline, revenue and every Pipeline, Partners and Accounts tile — by Expected Close Month.</li>
+              <li>Won and the Booked line — by PO Received Date.</li>
+              <li>Closed Lost and Why we lose — by the date it was lost.</li>
+              <li>Performance — the fiscal year holding the period’s start, {data.performance.fiscal_year}.</li>
             </ul>
             {left_out > 0 && (
               <p className="mt-1.5">
-                {plural(left_out, 'record')} with no Expected Close Month {left_out === 1 ? 'is' : 'are'} left out.
+                {plural(left_out, 'record')} with no Expected Close Month {left_out === 1 ? 'is' : 'are'} left out. The Pipeline tab shows them
+                under “No month”.
               </p>
             )}
           </>
@@ -318,45 +343,13 @@ function closing(ranged: boolean): string {
 }
 
 /**
- * Why a widget is empty — which is three different facts wearing one sentence.
+ * The headline row — the first row of the Performance tab. Kept exactly as it
+ * was on the Overview tab: same labels, same figures, same captions, same
+ * order (28 Sep 2026). Only where it sits changed.
  *
- * "No live pursuits yet" about a company with a full pipeline and a Region
- * filter on is not a small imprecision: it is the screen telling a CXO the
- * business has no work. Emptiness that a FILTER caused has to say so, because
- * the filter is the thing they can undo. The same distinction the History tab
- * now makes, for the same reason.
- *
- * Filters are read off what the SERVER echoed back, not off local state, so
- * the sentence can never describe a filter the numbers were not computed with.
- */
-function nothingHere(data: DashboardData, thing: string): string {
-  const filtered = Object.values(data.filters).some(Boolean)
-  const ranged = Boolean(data.range.from || data.range.to)
-  if (filtered) return `No ${thing} match these filters.`
-  if (ranged) return `No ${thing} in this period.`
-  return `No ${thing} yet.`
-}
-
-/**
- * The headline row.
- *
- * FIVE TILES, NOT SIX, AND ONE LINE EACH (18 Sep 2026) — on ONE row from
- * lg up (21 Sep 2026; Won had been wrapping onto a second row alone)
- * ----------------------------------------------------
- * Six tiles on a three-column grid wrapped to two rows and read as a table of
- * contents. "Stale records" left the row entirely — it is a WORKLIST, not a
- * headline: nobody reports it to a board, and someone has to go and act on it,
- * which is what the At Risk panel at the foot of the page is for.
- *
- * Won is counted by PO Received Date (decided 21 Sep 2026; blank until then).
- * It is deliberately NOT Booking Date, which lags the PO — see the note in
- * backend/app/routers/dashboard.py. A Deal with no PO Received Date is not
- * won yet, whatever stage it has reached.
- *
- * DELTAS ONLY WHEN THERE IS SOMETHING TO COMPARE. `data.comparison` is null
- * unless the chosen period has two ends, so on "All dates" no tile claims a
- * movement. That is the point: a delta against nothing would be invention on
- * the screen that can least afford it.
+ * Won is counted by PO Received Date, never Booking Date. DELTAS ONLY WHEN
+ * THERE IS SOMETHING TO COMPARE: `data.comparison` is null unless the period
+ * has two ends.
  */
 function Kpis({ data, ranged }: { data: DashboardData; ranged: boolean }) {
   const { pipeline, actual, won, lost } = data.kpis
@@ -369,9 +362,6 @@ function Kpis({ data, ranged }: { data: DashboardData; ranged: boolean }) {
   const leadShare = pipeline.usd > 0 ? (pipeline.by_module.leads.usd / pipeline.usd) * 100 : 0
 
   return (
-    // Five across from lg up. This was lg:grid-cols-4 with five tiles in it,
-    // so Won — the last one — wrapped onto a row of its own and read as an
-    // afterthought under the headline rather than part of it.
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
       <KpiTile
         label="Open pipeline"
@@ -380,9 +370,6 @@ function Kpis({ data, ranged }: { data: DashboardData; ranged: boolean }) {
         line={`${plural(pipeline.count, 'pursuit')}${closing(ranged)}`}
         caveat={pipeline.unpriced > 0 ? `${plural(pipeline.unpriced, 'pursuit')} still needs a value, currency or exchange rate` : null}
       >
-        {/* The Leads / Opportunities split, as one bar rather than two more
-            lines of text. Hover names both figures; the shape alone answers
-            "how much of this is still early". */}
         {pipeline.usd > 0 && (
           <div
             className="bg-muted mt-2 flex h-1.5 overflow-hidden rounded-full"
@@ -406,9 +393,6 @@ function Kpis({ data, ranged }: { data: DashboardData; ranged: boolean }) {
         line={`${plural(actual.count, 'deal')} · contract value${closing(ranged)}`}
         caveat={actual.unpriced > 0 ? `${plural(actual.unpriced, 'deal')} still needs a value, currency or exchange rate` : null}
       />
-      {/* Beside the revenue it is a subset of — Won is Actual Revenue whose PO
-          has arrived — and ahead of Closed Lost, so the row reads pipeline,
-          then what closed, then what was lost. */}
       <KpiTile
         label="Won"
         value={usd(won.usd)}
@@ -423,159 +407,5 @@ function Kpis({ data, ranged }: { data: DashboardData; ranged: boolean }) {
         line={`${usd(lost.usd)} of pursuit value`}
       />
     </div>
-  )
-}
-
-function StageFunnel({ data, ranged }: { data: DashboardData; ranged: boolean }) {
-  let previous: string | null = null
-  const rows: BarRow[] = data.funnel.map((s) => {
-    const group = s.module !== previous ? (moduleFor(s.module ?? '')?.label ?? s.module ?? undefined) : undefined
-    previous = s.module
-    const label = `${s.stage} ${s.name}`
-    return {
-      key: String(s.stage),
-      label,
-      value: s.usd,
-      display: usd(s.usd),
-      note: String(s.count),
-      group,
-      tooltip: [label, `${usd(s.usd)} · ${plural(s.count, 'record')}`, `Weighted ${usd(s.weighted_usd)}`],
-    }
-  })
-
-  return (
-    <ChartCard
-      title="Pipeline by stage"
-      info={`Live primary pursuits by the stage they are in now, in USD${closing(ranged)}. The number after the value is the record count.`}
-      table={{
-        columns: ['Stage', 'Module', 'Records', 'USD', 'Weighted'],
-        rows: data.funnel.map((s) => [`${s.stage} ${s.name}`, moduleFor(s.module ?? '')?.label ?? '', String(s.count), usd(s.usd), usd(s.weighted_usd)]),
-      }}
-    >
-      {data.funnel.some((s) => s.count > 0) ? <BarRows rows={rows} /> : <EmptyChart>{nothingHere(data, 'live pursuits')}</EmptyChart>}
-    </ChartCard>
-  )
-}
-
-function Forecast({ data, ranged }: { data: DashboardData; ranged: boolean }) {
-  const { forecast, revenue_labels: labels } = data
-  const extra = [
-    forecast.overdue && ['Close month passed', forecast.overdue],
-    forecast.later && ['Later', forecast.later],
-    forecast.undated && ['No close month', forecast.undated],
-  ].filter((x): x is [string, NonNullable<typeof forecast.overdue>] => Boolean(x))
-
-  return (
-    <ChartCard
-      title="Expected revenue by close month"
-      info={
-        ranged
-          ? `Open Leads and Opportunities and counted Deals, by Expected Close Month, ${rangeText(data.range.from, data.range.to)}. USD.`
-          : 'Open Leads and Opportunities and counted Deals, by Expected Close Month, next six months. USD.'
-      }
-      table={{
-        columns: ['Month', seriesLabel(labels, 'leads'), seriesLabel(labels, 'opportunities'), seriesLabel(labels, 'deals'), 'Total', 'Weighted'],
-        rows: [
-          ...forecast.months.map((m) => [
-            monthLabel(m.month, 'MMM yyyy'),
-            usd(m.by_module.leads.usd),
-            usd(m.by_module.opportunities.usd),
-            usd(m.by_module.deals.usd),
-            usd(m.usd),
-            usd(m.weighted_usd),
-          ]),
-          ...extra.map(([label, b]) => [label, '', '', '', usd(b.usd), usd(b.weighted_usd)]),
-        ],
-      }}
-    >
-      <CloseForecast forecast={forecast} labels={labels} ranged={ranged} />
-    </ChartCard>
-  )
-}
-
-function RagBreakdown({ data, ranged }: { data: DashboardData; ranged: boolean }) {
-  const picklist = fieldOf('leads', 'overall_rag')?.picklist
-  const byKey = new Map(data.rag.map((b) => [b.rag, b]))
-  const order = [...optionsFor(picklist).map((o) => ({ key: o.key as string | null, label: o.label })).reverse(), { key: null, label: 'Not rated' }]
-
-  const rows: BarRow[] = order.map(({ key, label }) => {
-    const b = byKey.get(key) ?? { count: 0, usd: 0, weighted_usd: 0 }
-    return {
-      key: key ?? 'none',
-      label,
-      value: b.usd,
-      display: usd(b.usd),
-      note: String(b.count),
-      tone: key ? (RAG_TONE[key] ?? 'chart') : 'muted',
-      tooltip: [label, `${usd(b.usd)} · ${plural(b.count, 'record')}`],
-    }
-  })
-
-  return (
-    <ChartCard
-      title="Overall RAG"
-      info={`Open pipeline by the owner's RAG rating, in USD${closing(ranged)}.`}
-      table={{ columns: ['RAG', 'Records', 'USD'], rows: rows.map((r) => [r.label, r.note ?? '', r.display]) }}
-    >
-      {data.kpis.pipeline.count > 0 ? <BarRows rows={rows} /> : <EmptyChart>{nothingHere(data, 'open pipeline to rate')}</EmptyChart>}
-    </ChartCard>
-  )
-}
-
-function StageAgeing({ data, ranged }: { data: DashboardData; ranged: boolean }) {
-  const rows: BarRow[] = data.ageing.map((b) => ({
-    key: b.bucket,
-    label: `${b.bucket} days`,
-    value: b.count,
-    display: plural(b.count, 'record'),
-    note: usd(b.usd),
-    tooltip: [`${b.bucket} days in the current stage`, `${plural(b.count, 'record')} · ${usd(b.usd)}`],
-  }))
-
-  return (
-    <ChartCard
-      title="Time in current stage"
-      info={`Open pipeline by days since the record entered the stage it is in${closing(ranged)}.`}
-      table={{ columns: ['Days in stage', 'Records', 'USD'], rows: data.ageing.map((b) => [b.bucket, String(b.count), usd(b.usd)]) }}
-    >
-      {data.kpis.pipeline.count > 0 ? <BarRows rows={rows} /> : <EmptyChart>{nothingHere(data, 'open pipeline')}</EmptyChart>}
-    </ChartCard>
-  )
-}
-
-function LossReasons({ data, ranged }: { data: DashboardData; ranged: boolean }) {
-  const picklist = fieldOf('leads', 'closed_lost_reason_code')?.picklist
-  const labelOf = (key: string | null) =>
-    key === null ? 'No reason recorded' : (optionsFor(picklist).find((o) => o.key === key)?.label ?? key)
-  const lostAt = (stages: Record<string, number>) =>
-    Object.entries(stages)
-      .map(([stage, n]) => `Stage ${stage} × ${n}`)
-      .join(', ')
-
-  const rows: BarRow[] = data.loss_reasons.map((b) => ({
-    key: b.reason ?? 'none',
-    label: labelOf(b.reason),
-    value: b.count,
-    display: String(b.count),
-    note: usd(b.usd),
-    tone: b.reason === null ? 'muted' : 'chart',
-    tooltip: [labelOf(b.reason), `${plural(b.count, 'pursuit')} · ${usd(b.usd)}`, ...(lostAt(b.stages) ? [`Lost at ${lostAt(b.stages)}`] : [])],
-  }))
-
-  return (
-    <ChartCard
-      title="Why we lose"
-      info={
-        ranged
-          ? `Closed Lost primary pursuits lost ${rangeText(data.range.from, data.range.to)}, by the reason recorded at the stage they were lost.`
-          : 'All Closed Lost primary pursuits, by the reason recorded at the stage they were lost.'
-      }
-      table={{
-        columns: ['Reason', 'Pursuits', 'USD', 'Lost at'],
-        rows: data.loss_reasons.map((b) => [labelOf(b.reason), String(b.count), usd(b.usd), lostAt(b.stages) || '—']),
-      }}
-    >
-      {rows.length > 0 ? <BarRows rows={rows} /> : <EmptyChart>{nothingHere(data, 'losses')}</EmptyChart>}
-    </ChartCard>
   )
 }

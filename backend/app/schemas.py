@@ -1,5 +1,6 @@
 from datetime import date, datetime
-from typing import Any
+from decimal import Decimal
+from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -1849,3 +1850,55 @@ class FeedbackOut(BaseModel):
     created_at: datetime
     read_by: str | None
     read_at: datetime | None
+
+
+# ---------------------------------------------------------------------------
+# Sales targets (migration 0040, app/sales_targets.py). Who and when, the
+# fiscal year and the status are the server's; a request carries the rest.
+# ---------------------------------------------------------------------------
+
+#: Money is entered with no decimals (CLAUDE.md) but the column holds cents.
+TargetAmount = Annotated[Decimal, Field(ge=0, max_digits=18, decimal_places=2)]
+
+
+class SalesTargetCreate(BaseModel):
+    bd_owner_id: str = Field(min_length=1, max_length=20)
+    #: The first day of the month.
+    period_month: date
+    target_amount_usd: TargetAmount
+
+
+class SalesTargetEdit(BaseModel):
+    target_amount_usd: TargetAmount
+
+
+class SalesTargetRevise(BaseModel):
+    target_amount_usd: TargetAmount
+    revision_note: str = Field(min_length=1, max_length=2000)
+
+
+class SalesTargetOut(BaseModel):
+    id: str
+    target_id: str
+    fiscal_year: str
+    period_month: date
+    bd_owner_id: str
+    bd_owner_name: str | None
+    target_amount_usd: float
+    currency: str
+    status: str
+    locked_at: datetime | None
+    locked_by: str | None
+    revision_of: str | None
+    revision_note: str | None
+    created_at: datetime
+    created_by: str
+    updated_at: datetime
+    updated_by: str
+
+
+class SalesTargetList(BaseModel):
+    fiscal_year: str
+    #: The current rows' sum — the company target when no owner is named.
+    total_usd: float
+    items: list[SalesTargetOut]
