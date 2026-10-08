@@ -15,7 +15,6 @@ const FILTER_NAMES: Record<string, string> = {
   region: 'Region',
   segment: 'Segment',
   opportunity_type: 'Opportunity Type',
-  theme: 'Theme',
   deal_source: 'Deal Source',
   partner: 'Partner',
 }
@@ -315,7 +314,6 @@ export function PipelineTab() {
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
         <GroupDonut config={TILES.segment} groups={data.tiles['pipeline.segment']} />
-        <GroupDonut config={TILES.theme} groups={data.tiles['pipeline.theme']} />
         <GroupDonut config={TILES.deliveryRegion} groups={data.tiles['pipeline.delivery_region']} />
       </div>
       <MonthEndHistory />

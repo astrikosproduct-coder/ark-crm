@@ -165,9 +165,17 @@ read-through.** Once A1 makes the Lead the only owner, they belong to one field.
 | `leads__alliance_structure` | → **Alliance Structure** | Leads only | Local |
 | `leads__deal_source` | → **Deal Source** | Leads only | Local |
 | `leads__opportunity_type` | → **Opportunity Type** | Leads only | Local |
-| `theme` | Theme | Leads only | Local |
+| `theme` | Theme → **Segment** (Release 1.1) | Leads · Accounts (Release 1.1) | **Global** — *added 8 Oct 2026* |
+| `countries` | Country (Release 1.1) | Accounts · Leads | **Global** — *added 8 Oct 2026* |
+| `states` | State (Release 1.1) | Accounts · Leads | **Global** — *added 8 Oct 2026* |
 
 Keys never change, because every stored value is written under them. Only labels change.
+
+**Release 1.1, merged 8 Oct 2026.** A V1 server reaches this step through Release 1.1, which
+deleted the old 4-choice Segment (its list now serves no live field), relabelled Theme
+"Segment" and gave it to Accounts too, and added Country, State and the Lead field `state`
+(Lead-owned, shown From the Lead — added to A1). `metadata_v2.py` expects all of it; the
+dry run on a copy of the 1.1 database ended "only the expected differences".
 The other 102 picklists are already used by one module and become local.
 
 ---

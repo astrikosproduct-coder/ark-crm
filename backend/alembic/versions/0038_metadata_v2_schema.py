@@ -1,7 +1,7 @@
 """Metadata model v2, schema: layouts, conversion mappings, global picklists
 
 Revision ID: 0038_metadata_v2_schema
-Revises: 0037_required_on_create
+Revises: r11_0002_account_groups
 Create Date: 2026-09-24
 
 Phase 2, item 2 — "every field is owned by one module", as in Zoho. The
@@ -46,7 +46,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "0038_metadata_v2_schema"
-down_revision = "0037_required_on_create"
+down_revision = "r11_0002_account_groups"  # Release 1.1 comes first (merged 8 Oct 2026)
 branch_labels = None
 depends_on = None
 
@@ -184,6 +184,25 @@ def upgrade() -> None:
             name="ck_conversion_mappings_source",
         ),
     )
+
+    # Two field_placements columns that 0042 and 0043 introduced, added here
+    # too (8 Oct 2026). metadata_v2.py runs between this migration and 0039,
+    # on the CURRENT code, whose FieldPlacement model already maps them — so on
+    # a database that has never reached 0042 (production, coming from Release
+    # 1.1) it failed on "column default_value does not exist". Both are plain
+    # additions; 0042 and 0043 now add them only if missing.
+    _add_placement_columns_if_missing()
+
+
+def _add_placement_columns_if_missing() -> None:
+    columns = {c["name"] for c in sa.inspect(op.get_bind()).get_columns("field_placements")}
+    if "default_value" not in columns:
+        op.add_column("field_placements", sa.Column("default_value", sa.String(200), nullable=True))
+    if "asked_at_stage_move" not in columns:
+        op.add_column(
+            "field_placements",
+            sa.Column("asked_at_stage_move", sa.Boolean(), nullable=False, server_default=sa.false()),
+        )
 
 
 def downgrade() -> None:

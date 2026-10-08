@@ -116,12 +116,15 @@ class DirectoryUserOut(BaseModel):
 
 # --------------------------------------------------------------- accounts
 
-# The 17 register fields an account carries besides its id and the two
+# The register fields an account carries besides its id and the two
 # multiselects. Listed once, so create/update/serialise cannot drift apart.
 ACCOUNT_SCALARS = (
     "account_name",
     "account_owner",
     "region",
+    "country",
+    "state",
+    "parent_account",
     "website",
     "phone",
     "address",
@@ -179,6 +182,14 @@ class AccountBase(CustomFieldsMixin):
     account_name: str | None = Field(default=None, max_length=200)
     account_owner: str | None = Field(default=None, max_length=20)
     region: str | None = None
+    country: str | None = Field(default=None, max_length=10)
+    state: str | None = Field(default=None, max_length=10)
+    # Any company of the group may be sent; the server files it under the
+    # group's head (app/account_groups.py).
+    parent_account: str | None = Field(default=None, max_length=20)
+    # The duplicate check's "a different company" answer, for THIS save only —
+    # never stored as a value (app/account_groups.py::guard_duplicate).
+    different_company: bool | None = None
     website: str | None = Field(default=None, max_length=300)
     phone: str | None = Field(default=None, max_length=50)
     address: str | None = None
@@ -233,6 +244,9 @@ class AccountOut(BaseModel):
     account_name: str
     account_owner: str | None = None
     region: str | None = None
+    country: str | None = None
+    state: str | None = None
+    parent_account: str | None = None
     website: str | None = None
     phone: str | None = None
     address: str | None = None
@@ -368,6 +382,7 @@ LEAD_SCALARS = (
     "opportunity_name",
     "country",
     "city_state",
+    "state",
     "destination_region",
     "booking_region",
     "end_client",
@@ -514,6 +529,7 @@ class LeadBase(CustomFieldsMixin):
     opportunity_name: str | None = Field(default=None, max_length=150)
     country: str | None = Field(default=None, max_length=120)
     city_state: str | None = Field(default=None, max_length=120)
+    state: str | None = Field(default=None, max_length=10)
     destination_region: str | None = None
     booking_region: str | None = None
     end_client: str | None = Field(default=None, max_length=20)
@@ -641,6 +657,7 @@ class LeadOut(BaseModel):
     opportunity_name: str
     country: str | None = None
     city_state: str | None = None
+    state: str | None = None
     destination_region: str | None = None
     booking_region: str | None = None
     end_client: str | None = None

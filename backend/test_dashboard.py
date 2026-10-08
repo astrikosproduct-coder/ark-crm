@@ -134,7 +134,8 @@ try:
     month_end = today.replace(day=monthrange(today.year, today.month)[1])
     fy = fiscal.label_of(today)
     next_year = (date(today.year + 1, 1, 1), date(today.year + 1, 4, 30))
-    check("the endpoint answers every tab", all(k in before for k in ("kpis", "performance", "tiles")) and len(before["tiles"]) == 12, str(list(before["tiles"])))
+    check("the endpoint answers every tab", all(k in before for k in ("kpis", "performance", "tiles")) and len(before["tiles"]) == 11, str(list(before["tiles"])))
+    # 12 -> 11 with Release 1.1: Segment IS the Lead's theme field, so the Theme tile went.
     check("the removed widgets are gone", not any(k in before for k in ("forecast", "rag", "ageing", "due", "at_risk", "funnel", "loss_reasons", "quarters")))
     check("the answer carries the instant it was computed", bool(before["generated_at"]))
     presets = before["periods"]
@@ -160,7 +161,7 @@ try:
     r = post("/accounts", {"account_name": "Dashboard probe — client", "account_type": ["END_CLIENT"], "region": "APAC", "customer_class": "A_STRATEGIC_>$2M"}, "accounts")
     check("an End Client account saves", r.status_code == 201, r.text[:300])
     client_acc = r.json()["id"]
-    r = post("/accounts", {"account_name": "Dashboard probe — partner", "account_type": ["PARTNER_SI"], "region": "APAC", "partner_tier": "TIER_1_STRATEGIC"}, "accounts")
+    r = post("/accounts", {"account_name": "Dashboard probe — partner", "account_type": ["PARTNER_SI"], "region": "APAC", "partner_tier": "PLATINUM"}, "accounts")
     check("a partner account saves", r.status_code == 201, r.text[:300])
     partner_acc = r.json()["id"]
 
@@ -178,7 +179,6 @@ try:
             "expected_close_month": month0.isoformat(),
             "booking_region": "MEA",
             "destination_region": "INDIA",
-            "segment": "POWER",
             "theme": "SMART_CITIES",
             "deal_source": "PARTNER_SOURCED",
             "end_client": client_acc,
@@ -199,37 +199,35 @@ try:
     check("Stage 1 of the funnel grows by 1,000,000", close(stage_usd(after, 1) - stage_usd(before, 1), 1_000_000))
     check("this month's close-month column grows by 1,000,000", close(column(after, month0.isoformat())["usd"] - column(before, month0.isoformat())["usd"], 1_000_000))
     for tile, key, name in (
-        ("pipeline.segment", "POWER", "Segment Power"),
-        ("pipeline.theme", "SMART_CITIES", "Theme Smart Cities"),
+        ("pipeline.segment", "SMART_CITIES", "Segment Smart Cities"),
         ("pipeline.delivery_region", "INDIA", "delivery region India — Destination Region"),
         ("partners.partner", partner_acc, "the partner"),
         ("partners.deal_source", "PARTNER_SOURCED", "Partner-sourced"),
-        ("partners.tier", "TIER_1_STRATEGIC", "Tier 1"),
+        ("partners.tier", "PLATINUM", "Platinum"),
         ("accounts.end_client", client_acc, "the End Client"),
         ("accounts.customer_class", "A_STRATEGIC_>$2M", "Customer Class A"),
     ):
         check(f"{name} grows by 1,000,000", close(group(after, tile, key)["usd"] - group(before, tile, key)["usd"], 1_000_000), str(group(after, tile, key)))
-    check("the tier counts its partner", group(after, "partners.tier", "TIER_1_STRATEGIC")["distinct"] >= 1)
+    check("the tier counts its partner", group(after, "partners.tier", "PLATINUM")["distinct"] >= 1)
     check("the partner is offered as a filter", any(p["id"] == partner_acc for p in after["partners"]))
-    check("every donut adds up to the Open pipeline card", all(close(sum(g["usd"] for g in after["tiles"][t]), p1["usd"]) for t in ("pipeline.segment", "pipeline.theme", "pipeline.delivery_region", "partners.deal_source", "partners.tier", "accounts.customer_class")))
+    check("every donut adds up to the Open pipeline card", all(close(sum(g["usd"] for g in after["tiles"][t]), p1["usd"]) for t in ("pipeline.segment", "pipeline.delivery_region", "partners.deal_source", "partners.tier", "accounts.customer_class")))
 
     section("2  Filters reach every tile, and Region is the deal's Booking Region")
     mea = dash(region="MEA")
-    check("Booking Region MEA holds it", group(mea, "pipeline.segment", "POWER")["count"] >= 1 and mea["kpis"]["pipeline"]["count"] >= 1)
+    check("Booking Region MEA holds it", group(mea, "pipeline.segment", "SMART_CITIES")["count"] >= 1 and mea["kpis"]["pipeline"]["count"] >= 1)
     apac = dash(region="APAC")
     check("APAC — the region of both its accounts — does not", group(apac, "partners.partner", partner_acc)["count"] == 0 and group(apac, "accounts.end_client", client_acc)["count"] == 0)
     check("nor does India, where it is delivered", group(dash(region="INDIA"), "partners.partner", partner_acc)["count"] == 0)
     for name, value, wrong in (
-        ("theme", "SMART_CITIES", "DATA_CENTERS"),
         ("deal_source", "PARTNER_SOURCED", "DIRECT"),
         ("partner", partner_acc, client_acc),
-        ("segment", "POWER", "MOBILITY"),
+        ("segment", "SMART_CITIES", "DATA_CENTERS"),
         ("owner", USER.user_id, "USR-NOBODY-PROBE"),
     ):
         hit, miss = dash(**{name: value}), dash(**{name: wrong})
         check(
             f"filter {name}: the probe is in every tile with it, and in none without",
-            all(group(hit, t, k)["count"] >= 1 for t, k in (("partners.partner", partner_acc), ("accounts.end_client", client_acc), ("pipeline.segment", "POWER")))
+            all(group(hit, t, k)["count"] >= 1 for t, k in (("partners.partner", partner_acc), ("accounts.end_client", client_acc), ("pipeline.segment", "SMART_CITIES")))
             and stage_usd(hit, 1) >= 1_000_000
             and group(miss, "partners.partner", partner_acc)["count"] == 0
             and group(miss, "accounts.end_client", client_acc)["count"] == 0
@@ -237,9 +235,9 @@ try:
         )
 
     section("3  A mark's records add up to the mark")
-    drilled = records("pipeline.segment", "POWER")
-    check("the Power slice lists the probe", any(i["record_id"] == lead_a["id"] for i in drilled["items"]))
-    check("…and its records sum to the slice", close(drilled["usd"], group(after, "pipeline.segment", "POWER")["usd"]) and drilled["count"] == group(after, "pipeline.segment", "POWER")["count"])
+    drilled = records("pipeline.segment", "SMART_CITIES")
+    check("the Smart Cities slice lists the probe", any(i["record_id"] == lead_a["id"] for i in drilled["items"]))
+    check("…and its records sum to the slice", close(drilled["usd"], group(after, "pipeline.segment", "SMART_CITIES")["usd"]) and drilled["count"] == group(after, "pipeline.segment", "SMART_CITIES")["count"])
     drilled = records("pipeline.close_month", month0.isoformat())
     check("the close-month column's records sum to it", close(drilled["usd"], column(after, month0.isoformat())["usd"]))
     drilled = records("partners.partner", partner_acc, region="APAC")
@@ -371,7 +369,7 @@ try:
     check("once taken, this month shows the snapshot", this["usd"] is not None and this["snapshot_date"] == today.isoformat())
     check("the ALL row is read with no filters", history["dimension"] == "ALL")
     check("a BD Owner filter reads that owner's rows", dash(period="current_fy", owner=USER.user_id)["tiles"]["pipeline.month_end"]["dimension"] == "BD_OWNER")
-    check("a Theme filter cannot be answered, and says why", dash(theme="SMART_CITIES")["tiles"]["pipeline.month_end"]["available"] is False)
+    check("a Deal Source filter cannot be answered, and says why", dash(deal_source="PARTNER_SOURCED")["tiles"]["pipeline.month_end"]["available"] is False)
 
 finally:
     section("Cleanup")

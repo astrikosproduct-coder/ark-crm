@@ -106,7 +106,6 @@ export interface DashboardFilters {
   segment?: string
   owner?: string
   opportunity_type?: string
-  theme?: string
   deal_source?: string
   /** Customer (Partner / SI), an account id. */
   partner?: string
@@ -150,7 +149,6 @@ export interface DashboardData {
     'pipeline.stage': StageGroup[]
     'pipeline.close_month': { columns: MonthColumn[]; earlier: Bucket; later: Bucket }
     'pipeline.segment': Group[]
-    'pipeline.theme': Group[]
     'pipeline.delivery_region': Group[]
     'pipeline.month_end': { available: boolean; reason: string | null; dimension: string | null; months: SnapshotMonth[] }
     'partners.partner': Group[]

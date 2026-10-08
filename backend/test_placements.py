@@ -177,6 +177,8 @@ def case_2_administration_sees_the_crm(db) -> None:
     # Counts unchanged by metadata v2 (24 Sep 2026): the Deal's End Client
     # moved from Commercial Terms to From the Lead, which is one field either
     # way. History of these numbers is in git.
+    # Unchanged by Release 1.1 (6 Oct 2026) too: each module lost the old
+    # Segment and gained State (own on Leads, From the Lead on the other two).
     for module, expected in (("leads", 81), ("opportunities", 107), ("deals", 98)):
         resolved = len(R.resolved_fields(db, module))
         api = client.get(
@@ -423,6 +425,7 @@ def case_9_read_through(db) -> None:
 
     plan = R.read_through_plan(db, "opportunities")
     # 27 since Pursuit Groups: fx_rate_at_entry reads through beside currency.
+    # 27 -> 26 -> 27: Release 1.1 deleted the old Segment and added State.
     check("Opportunities reads 27 fields through", len(plan) == 27, str(len(plan)))
     check("every one of them resolves to leads", set(plan.values()) == {"leads"})
     deals = R.read_through_plan(db, "deals")
@@ -449,6 +452,11 @@ def case_9_read_through(db) -> None:
         "they sit in the From the Lead section",
         {f["section"] for f in rows} == {"From the Lead"},
         str({f["section"] for f in rows}),
+    )
+    check(
+        "Segment (api_name theme) is read through rather than stored on the Opportunity",
+        "theme" in plan,
+        str(sorted(plan)[:6]),
     )
 
 
@@ -488,9 +496,14 @@ def case_11_admin_created(db) -> None:
             f"{name} is gone from the register",
             db.scalar(select(FieldDefinition).where(FieldDefinition.api_name == name)) is None,
         )
+    # Since Release 1.1 the register holds deliberate, restorable deletes again
+    # (release_1_1_fields_metadata.py: Segment, Account Target Phase). What
+    # must not come back is the prototype's: nothing deleted before go-live.
     check(
         "no deleted placement is left over from the prototype",
-        not db.execute(text("SELECT count(*) FROM field_placements WHERE status = 'deleted'")).scalar(),
+        not db.execute(
+            text("SELECT count(*) FROM field_placements WHERE status = 'deleted' AND deleted_at < '2026-09-22'")
+        ).scalar(),
     )
     check(
         "the custom-field writer does not accept it on Opportunities",

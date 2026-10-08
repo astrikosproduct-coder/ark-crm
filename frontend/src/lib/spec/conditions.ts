@@ -1,4 +1,5 @@
 import { apiNamesOf, fieldOf, isAmbiguous, sectionsDefining, toPicklistKey } from './index'
+import { offersChoices } from './dependencies'
 import { evaluateBool, FUNCTION_NAMES, type EvalScope } from './evaluate'
 import { identifiersOf, parse, SpecExprError, type Node } from './parser'
 import type { FieldSpec } from '@/types/field'
@@ -162,6 +163,10 @@ export interface RequirementState {
  */
 export function requirementOf(field: FieldSpec, values: Values): RequirementState {
   if (!isVisible(field, values)) return { required: false }
+  // Nothing to choose — no Country yet, or a Country with no States — is
+  // never required (Release 1.1). The server applies the same rule
+  // (app/field_dependencies.py::offers_choices).
+  if (!offersChoices(field.module, field.api_name, values)) return { required: false }
 
   // A phase1_locked field is disabled — nobody can type a value into it — so
   // the register's Mandatory can no longer be demanded of the user without

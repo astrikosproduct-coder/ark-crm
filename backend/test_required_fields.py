@@ -69,9 +69,12 @@ ACCOUNT = {
     "account_type": ["END_CLIENT"],
     "account_owner": admin.user_id,
     "region": "MEA",
-    "segment": "INFRASTRUCTURE",
+    # Release 1.1: Country is required on an Account and must be in its Region.
+    "country": "AE",
+    # Release 1.1: Segment is multi-choice on an Account, over the seven
+    # choices a Lead's Segment has; Account Target Phase is gone.
+    "segments": ["SMART_CITIES", "DATA_CENTERS"],
     "customer_class": "A_STRATEGIC_>$2M",
-    "account_target_phase": "YEAR_1",
 }
 
 STAGE_1 = {
@@ -109,16 +112,22 @@ def transition(lead_id: str, frm: int, to: int) -> None:
 
 try:
     # ------------------------------------------------------------ accounts
-    partial = {k: v for k, v in ACCOUNT.items() if k != "region"}
+    # Without Country too: a Country with no Region is refused on its own
+    # (Release 1.1, "Choose a Region before the Country").
+    partial = {k: v for k, v in ACCOUNT.items() if k not in ("region", "country")}
     r = client.post("/api/accounts", json=partial)
     check("an Account with Region empty is refused", refused(r), f"{r.status_code} {r.text[:200]}")
+    # Country isn't named: with no Region it has no choices to offer, so it is
+    # not demanded yet — the same rule that asks for a State only when its
+    # Country has states (app/field_dependencies.py).
     check("…naming Region and nothing else", missing_of(r) == {"region"}, str(missing_of(r)))
     r = client.post("/api/accounts", json=ACCOUNT)
     check("a complete Account saves", r.status_code == 201, r.text[:200])
     account_id = r.json()["account_id"]
     created["accounts"].append(account_id)
-    r = client.patch(f"/api/accounts/{account_id}", json={"segment": None})
-    check("clearing a required Account field is refused", refused(r) and missing_of(r) == {"segment"}, r.text[:200])
+    check("…and keeps every Segment chosen", r.json().get("segments") == ["SMART_CITIES", "DATA_CENTERS"], r.text[:300])
+    r = client.patch(f"/api/accounts/{account_id}", json={"segments": []})
+    check("clearing a required Account field is refused", refused(r) and missing_of(r) == {"segments"}, r.text[:200])
 
     # ------------------------------------------------------------ contacts
     contact = {
@@ -148,11 +157,11 @@ try:
     if r.status_code == 201:
         minimal_id = r.json()["lead_id"]
         created["leads"].append(minimal_id)
-        r = client.patch(f"/api/leads/{minimal_id}", json={"segment": "INFRASTRUCTURE"})
+        r = client.patch(f"/api/leads/{minimal_id}", json={"theme": "SMART_CITIES"})
         check("…and saves again half-filled", r.status_code == 200, r.text[:300])
         r = client.patch(f"/api/leads/{minimal_id}", json={"project_stage": "1_DEMO"})
         missing = missing_of(r)
-        check("…but can't leave Stage 0 until Stage 0 is complete", refused(r) and {"theme", "estimated_value"} <= missing, str(missing))
+        check("…but can't leave Stage 0 until Stage 0 is complete", refused(r) and {"opportunity_type", "estimated_value"} <= missing, str(missing))
         check("…never asking for the system's own (stage, status, percentages)",
               not missing & {"project_stage", "lead_status", "probability_pct", "progression_pct"}, str(missing))
         check("…nor a later stage's (Demo Date is Stage 1)", "demo_date" not in missing, str(missing))
@@ -165,7 +174,6 @@ try:
         "deal_source": "DIRECT",
         "end_client": account_id,
         "opportunity_type": "NEW_LOGO",
-        "segment": "INFRASTRUCTURE",
         "theme": "SMART_CITIES",
         "sap_solution_suite": "SAP-CORE",
         "currency": "USD",
@@ -235,7 +243,20 @@ try:
 
     # ---------------- locked lookups into unbuilt modules never block (Opportunities)
     r = client.post("/api/opportunities", json={"project_stage": "4_RFP_RFI", "lead_status": "OPEN"})
-    check("a hand-made Opportunity at Stage 4 saves", r.status_code == 201, r.text[:300])
+    check("an Opportunity with no Lead is refused (Leads are the one door)",
+          r.status_code == 422 and r.json()["detail"]["code"] == "OPPORTUNITY_NEEDS_LEAD", r.text[:300])
+    # So this one is converted from a Lead — with the check off for the Lead's
+    # own stages, which are not what this test is about.
+    requirements.ENFORCED = False
+    try:
+        lead = client.post("/api/leads", json={"opportunity_name": "Locked Lookups Probe", "project_stage": "3_PRESCRIPTION", "currency": "USD"})
+        lead_id = lead.json().get("lead_id") if lead.status_code == 201 else None
+        if lead_id:
+            created.setdefault("leads", []).append(lead_id)
+        r = client.post("/api/opportunities", json={"parent_lead": lead_id, "project_stage": "4_RFP_RFI", "lead_status": "OPEN"})
+    finally:
+        requirements.ENFORCED = True
+    check("an Opportunity converted at Stage 4 saves", r.status_code == 201, r.text[:300])
     if r.status_code == 201:
         opp_id = r.json()["opportunity_id"]
         created.setdefault("opportunities", []).append(opp_id)

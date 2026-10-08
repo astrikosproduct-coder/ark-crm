@@ -10,6 +10,8 @@ interface Props {
   from: number
   to: number
   onJumpToField?: (field: FieldSpec) => void
+  /** Which proof fields onJumpToField can take. Others are named, not linked. */
+  canJumpTo?: (field: FieldSpec) => boolean
   className?: string
   /**
    * The Update Stage dialog's own ticks for the MANUAL checks. Given with
@@ -73,11 +75,13 @@ function ProofList({ proofs, checked }: { proofs: ProofField[]; checked: boolean
 function Item({
   item,
   onJumpToField,
+  canJumpTo,
   attested,
   onToggleAttested,
 }: {
   item: ReadinessItem
   onJumpToField?: (field: FieldSpec) => void
+  canJumpTo?: (field: FieldSpec) => boolean
   attested?: ReadonlySet<string>
   onToggleAttested?: (key: string) => void
 }) {
@@ -124,7 +128,7 @@ function Item({
   }
 
   const proof = item.proof
-  const canJump = Boolean(proof && onJumpToField)
+  const canJump = Boolean(proof && onJumpToField && (canJumpTo?.(proof) ?? true))
 
   // The record proves it, or the person has said so. A criterion the record
   // CANNOT prove may now be ticked by hand (16 Sep 2026) — the record is one
@@ -161,7 +165,7 @@ function Item({
         <button
           type="button"
           onClick={() => onJumpToField?.(proof as FieldSpec)}
-          title={ticked ? undefined : `Go to ${proof?.label}`}
+          title={ticked ? undefined : `Fill in ${proof?.label} here`}
           className="hover:bg-accent/60 -mx-2 flex w-full items-start gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors"
         >
           {body}
@@ -192,7 +196,7 @@ function Item({
         <button
           type="button"
           onClick={() => onJumpToField?.(proof as FieldSpec)}
-          title={`Go to ${proof?.label}`}
+          title={`Fill in ${proof?.label} here`}
           className="hover:bg-accent/60 -mx-2 flex min-w-0 flex-1 items-start rounded-md px-2 text-left transition-colors"
         >
           {text}
@@ -215,6 +219,7 @@ export function ReadinessLayers({
   from,
   to,
   onJumpToField,
+  canJumpTo,
   className,
   attested,
   onToggleAttested,
@@ -234,6 +239,7 @@ export function ReadinessLayers({
                 key={item.key}
                 item={item}
                 onJumpToField={onJumpToField}
+                canJumpTo={canJumpTo}
                 attested={attested}
                 onToggleAttested={onToggleAttested}
               />

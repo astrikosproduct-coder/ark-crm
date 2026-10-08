@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { DeleteLeadDialog } from '@/components/leads/DeleteLeadDialog'
 import { backfillContactsFromDemoAttendees } from '@/components/leads/DemoAttendeeSync'
 import { LeadAdvanceDialog } from '@/components/leads/LeadAdvanceDialog'
-import { LeadAccountFieldSync, backfillAccountFieldsFromLead } from '@/components/leads/LeadAccountFieldSync'
 import { PipelineRecordPage } from '@/components/pipeline/PipelineRecordPage'
 import { PipelineRelated } from '@/components/pipeline/PipelineRelated'
 import { PursuitBanner } from '@/components/pursuits/PursuitBanner'
@@ -159,7 +158,6 @@ function LeadActions({ ctx }: { ctx: PipelineRecordContext }) {
           skipped={ctx.skipped}
           onClose={() => setAdvanceOpen(false)}
           onAdvancedWithinLeads={(stage) => ctx.selectStage(stage)}
-          onJumpToField={ctx.jumpToField}
         />
       )}
     </>
@@ -240,15 +238,13 @@ export const leadsPipeline: PipelineModuleSpec = {
   Actions: LeadActions,
   Banner: LeadBanner,
   Related: LeadRelated,
-  // Segment <-> End Client account mapping lives only on Stage 0 — Connect,
-  // where end_client is captured. See LeadAccountFieldSync.
-  sideEffectsForStage: (stage) => (stage === 0 ? <LeadAccountFieldSync /> : undefined),
+  // No Segment copying between a Lead and its End Client account: a Lead's
+  // Segment is picked by hand, an Account's holds several (6 Oct 2026).
   // The Contact-record half of demo_attendees' field_sync only needs to run
   // once a Stage 1 save has actually happened — the live row <-> Contact
   // direction runs inside ChildListTable itself, on every stage that renders
   // the table, and needs no afterSave wiring at all.
   afterSaveForStage: (stage) => {
-    if (stage === 0) return backfillAccountFieldsFromLead
     if (stage === 1) return backfillContactsFromDemoAttendees
     return undefined
   },

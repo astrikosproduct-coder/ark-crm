@@ -45,6 +45,8 @@ from .metadata_resolver import (
 )
 from .models import (
     FieldDefinition,
+    FieldDependency,
+    FieldDependencyValue,
     FieldPlacement,
     Module,
     Picklist,
@@ -59,6 +61,10 @@ SPEC_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "spec"
 FIELDS_JSON = "fields.json"
 PICKLISTS_JSON = "picklists.json"
 STAGES_JSON = "stages.json"
+#: Region -> Country -> State and any other "choices depend on" pair, per
+#: module (Release 1.1). Written on publish beside the other three, so the
+#: built-in fallback offers the same filtered choices the server enforces.
+DEPENDENCIES_JSON = "dependencies.json"
 
 
 # ---------------------------------------------------------------- shape
@@ -287,6 +293,7 @@ def build_snapshot(db: Session) -> dict[str, Any]:
                 select(Picklist).order_by(Picklist.sort_order, Picklist.picklist_key)
             )
         ],
+        "dependencies": _dependencies(db),
         "stages": [
             {
                 "stage": s.stage,
@@ -303,6 +310,44 @@ def build_snapshot(db: Session) -> dict[str, Any]:
             for s in db.scalars(select(Stage).order_by(Stage.sort_order, Stage.stage))
         ],
     }
+
+
+def _dependencies(db: Session) -> list[dict[str, Any]]:
+    """Every field dependency, as {module_key, parent_field, child_field, map}.
+
+    `map` is parent choice -> the child choices it offers, both sorted, so a
+    republished version is byte-identical and its diff readable.
+    """
+    out = []
+    for dep in db.scalars(
+        select(FieldDependency).order_by(FieldDependency.module_key, FieldDependency.child_field)
+    ):
+        choices: dict[str, list[str]] = {}
+        for v in dep.values:
+            choices.setdefault(v.parent_value, []).append(v.child_value)
+        out.append(
+            {
+                "module_key": dep.module_key,
+                "parent_field": dep.parent_field,
+                "child_field": dep.child_field,
+                "map": {p: sorted(c) for p, c in sorted(choices.items())},
+            }
+        )
+    return out
+
+
+def dependencies_document(snapshot: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """{module: {child_field: {"parent": parent_field, "map": {...}}}} — what the form reads.
+
+    A snapshot published before Release 1.1 has none, and reads as {}.
+    """
+    out: dict[str, dict[str, Any]] = {}
+    for dep in snapshot.get("dependencies", []):
+        out.setdefault(dep["module_key"], {})[dep["child_field"]] = {
+            "parent": dep["parent_field"],
+            "map": dep["map"],
+        }
+    return out
 
 
 # ----------------------------------------------------- the three documents
@@ -377,6 +422,7 @@ def spec_documents(snapshot: dict[str, Any]) -> dict[str, Any]:
         FIELDS_JSON: fields,
         PICKLISTS_JSON: picklists,
         STAGES_JSON: stages,
+        DEPENDENCIES_JSON: dependencies_document(snapshot),
     }
 
     # module_split.json's structural blocks come from PostgreSQL now. Included
@@ -578,6 +624,8 @@ def read_spec_documents(spec_dir: Path = SPEC_DIR) -> dict[str, Any]:
     regenerate_spec.py --check can compare. Nothing imports from here.
     """
     names = [FIELDS_JSON, PICKLISTS_JSON, STAGES_JSON]
+    if (spec_dir / DEPENDENCIES_JSON).exists():
+        names.append(DEPENDENCIES_JSON)
     if (spec_dir / MODULE_SPLIT_JSON).exists():
         names.append(MODULE_SPLIT_JSON)
     return {
@@ -877,6 +925,33 @@ def validate_snapshot(snapshot: dict[str, Any]) -> ValidationResult:
                 f"picklist {picklist_key!r} is active but no field uses it"
             )
 
+    # 7b. field dependencies (Release 1.1): both ends are picklists placed on
+    # the module, and every pair names choices those picklists hold. A map
+    # naming a choice the list does not have would filter a dropdown down to
+    # nothing, or let the server accept a value no screen can show.
+    placed = {(r["module"], r["api_name"]): r for r in snapshot["fields"]}
+    for dep in snapshot.get("dependencies", []):
+        where = f"{dep['module_key']}: {dep['parent_field']} -> {dep['child_field']}"
+        ends = [placed.get((dep["module_key"], dep[k])) for k in ("parent_field", "child_field")]
+        if None in ends:
+            result.errors.append(f"field dependency {where} names a field not on that module")
+            continue
+        keys = []
+        for end in ends:
+            picklist = picklists.get(end.get("picklist") or "")
+            if end.get("type") != "picklist" or picklist is None:
+                result.errors.append(f"field dependency {where}: {end['api_name']} is not a picklist field")
+                break
+            keys.append({v["key"] for v in picklist["values"]})
+        else:
+            parents, children = keys
+            bad_parents = sorted(set(dep["map"]) - parents)
+            bad_children = sorted({c for cs in dep["map"].values() for c in cs} - children)
+            if bad_parents:
+                result.errors.append(f"field dependency {where} maps choices its parent list lacks: {bad_parents[:5]}")
+            if bad_children:
+                result.errors.append(f"field dependency {where} offers choices its list lacks: {bad_children[:5]}")
+
     # 8. stage sanity
     for stage in snapshot["stages"]:
         if not stage["active"]:
@@ -1031,6 +1106,16 @@ def diff_items(previous: dict[str, Any], current: dict[str, Any]) -> list[dict[s
                         f"{before[value][attr]!r} -> {after[value][attr]!r}",
                         name=key,
                     )
+
+    prev_dep = {(d["module_key"], d["child_field"]): d for d in previous.get("dependencies", [])}
+    curr_dep = {(d["module_key"], d["child_field"]): d for d in current.get("dependencies", [])}
+    for key in sorted(curr_dep.keys() - prev_dep.keys()):
+        changes.append(f"field dependency added — {key[0]}: {curr_dep[key]['parent_field']} -> {key[1]}")
+    for key in sorted(prev_dep.keys() - curr_dep.keys()):
+        changes.append(f"field dependency removed — {key[0]}: {prev_dep[key]['parent_field']} -> {key[1]}")
+    for key in sorted(curr_dep.keys() & prev_dep.keys()):
+        if prev_dep[key] != curr_dep[key]:
+            changes.append(f"field dependency changed — {key[0]}: {curr_dep[key]['parent_field']} -> {key[1]}")
 
     prev_st = {s["stage"]: s for s in previous.get("stages", [])}
     curr_st = {s["stage"]: s for s in current.get("stages", [])}
@@ -1427,5 +1512,33 @@ def restore_snapshot(db: Session, snapshot: dict[str, Any]) -> list[str]:
             placement.deleted_at = datetime.now(timezone.utc)
             placement.deleted_by_cascade = False
             actions.append(f"field deleted — {'.'.join(key)}")
+
+    # Field dependencies are reconciled whole. Unlike a field they hold no
+    # business data, so the maps are simply made to match the snapshot. A
+    # snapshot from before Release 1.1 carries no key at all and leaves them
+    # alone: it never said anything about them.
+    if "dependencies" in snapshot:
+        wanted = {(d["module_key"], d["child_field"]): d for d in snapshot["dependencies"]}
+        live = {(d.module_key, d.child_field): d for d in db.scalars(select(FieldDependency))}
+        for key, dep in live.items():
+            if key not in wanted:
+                db.delete(dep)
+                actions.append(f"field dependency removed — {key[0]}: {dep.parent_field} -> {key[1]}")
+        for key, row in wanted.items():
+            dep = live.get(key)
+            pairs = {(p, c) for p, cs in row["map"].items() for c in cs}
+            if dep is None:
+                dep = FieldDependency(module_key=key[0], parent_field=row["parent_field"], child_field=key[1])
+                db.add(dep)
+                db.flush()
+                actions.append(f"field dependency restored — {key[0]}: {row['parent_field']} -> {key[1]}")
+            elif dep.parent_field != row["parent_field"] or {(v.parent_value, v.child_value) for v in dep.values} != pairs:
+                actions.append(f"field dependency changed — {key[0]}: {row['parent_field']} -> {key[1]}")
+            else:
+                continue
+            dep.parent_field = row["parent_field"]
+            dep.values.clear()
+            db.flush()
+            dep.values.extend(FieldDependencyValue(parent_value=p, child_value=c) for p, c in sorted(pairs))
 
     return actions

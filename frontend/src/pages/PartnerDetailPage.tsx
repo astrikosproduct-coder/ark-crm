@@ -5,6 +5,7 @@ import { Building2Icon, PlusIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { PageLayout } from '@/components/layout/PageLayout'
+import { GroupCompanies } from '@/components/accounts/GroupCompanies'
 import { RecordForm } from '@/components/form/RecordForm'
 import { RecordListView } from '@/components/list/RecordListView'
 import { contactListCell } from '@/components/contacts/contactListCell'
@@ -44,12 +45,12 @@ export function PartnerDetailPage() {
     return (
       <PageLayout
         back
-        title={id ?? 'Partner'}
+        title="Partner"
         tabs={[
           {
             key: 'missing',
             label: 'Partner',
-            content: <p className="py-6 text-sm text-destructive">No account with id {id}.</p>,
+            content: <p className="py-6 text-sm text-destructive">This partner no longer exists. It may have been deleted.</p>,
           },
         ]}
       />
@@ -158,6 +159,12 @@ export function PartnerDetailPage() {
               />
             </div>
           ),
+        },
+        {
+          // Release 1.1: SE MEA links straight to SE India, its group's head.
+          key: 'group',
+          label: 'Group companies',
+          content: <GroupCompanies accountId={id ?? ''} />,
         },
         {
           key: 'contacts',

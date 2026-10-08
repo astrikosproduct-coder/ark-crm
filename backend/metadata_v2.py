@@ -79,6 +79,8 @@ READ_THROUGH = {
     "gorilla_flag", "lighthouse_project", "suite_demonstrated", "alliance_structure",
     "consultant_specifier", "pre_bid_alliance_partner", "probable_award_date",
     "presales_owner", "sales_owner", "total_project_value",
+    # Release 1.1 (merged 8 Oct 2026): State, beside Country — Region -> Country -> State.
+    "state",
 }
 #: A2 — owned before the Deal, copied into a Deal-owned field at conversion.
 CARRIED_FROM_OPPORTUNITY = {
@@ -115,6 +117,12 @@ GLOBAL_PICKLISTS = {
     "overall_rag": "Overall RAG",
     "region": "Region",
     "segment": "Segment",
+    # Release 1.1 (merged 8 Oct 2026): Theme, labelled Segment, now serves the
+    # Lead's one choice AND the Account's several; Country and State serve
+    # Accounts and Leads alike.
+    "theme": "Segment",
+    "countries": "Country",
+    "states": "State",
     # Found on the dry run, 24 Sep: Phone and Mobile on a Contact share it.
     "contacts__dial_code": "Dial Code",
     # Found once nothing was hidden, 24 Sep: the Bid, Gate and POC status

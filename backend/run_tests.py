@@ -79,6 +79,7 @@ WRITING = [
     "test_pursuit_erase.py",
     "test_sales_targets.py",
     "test_pipeline_snapshots.py",
+    "test_release_1_1.py",
 ]
 
 

@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
 
 import { PageLayout } from '@/components/layout/PageLayout'
 import { ModuleActions } from '@/components/list/ModuleActions'
@@ -19,14 +18,15 @@ function PriorityTabIcon({ flag }: { flag: string }) {
 }
 
 export function OpportunitiesPage() {
-  const navigate = useNavigate()
   // One filter for List and Kanban, held in the URL — see lib/listFilters.ts.
   const filters = useListFilters({ view: 'opportunities', stageField: 'project_stage' })
   const listFilter = useMemo(() => filters.params({ withStage: true }), [filters])
   const boardFilter = useMemo(() => filters.params({ withStage: false }), [filters])
 
-  // An Opportunity is meant to arrive by converting a Lead. The button exists
-  // because the route does; creating one by hand is the exception.
+  // No "New opportunity" (removed 7 Oct 2026): Leads are the one door. An
+  // Opportunity is a Lead moved past Stage 3 — one made by hand had no Lead,
+  // so its End Client, Partner and the rest "From the Lead" stayed blank.
+  // Deals have never had one either. The server refuses it too.
   return (
     <PageLayout
       wide
@@ -36,8 +36,6 @@ export function OpportunitiesPage() {
           module="opportunities"
           plural="Opportunities"
           noun="opportunity"
-          createLabel="New opportunity"
-          onCreate={() => navigate('/opportunities/new')}
           exportFilter={() => listFilter}
         />
       }

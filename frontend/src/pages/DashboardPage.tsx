@@ -57,10 +57,10 @@ const presetKey = (p: Pick<PeriodPreset, 'start' | 'end'>) => `${p.start}|${p.en
 /** Every slice filter the page offers — each reaches every tile on every tab. */
 const SLICES: { key: SliceFilter; label: string; name: string; options: (data?: DashboardData) => { value: string; label: string }[] }[] = [
   { key: 'region', name: 'Booking Region', label: 'All booking regions', options: () => leadOptions('booking_region') },
-  { key: 'segment', name: 'Segment', label: 'All segments', options: () => leadOptions('segment') },
+  // Segment is the Lead's `theme` field since Release 1.1; the old Segment and a separate Theme filter are gone.
+  { key: 'segment', name: 'Segment', label: 'All segments', options: () => leadOptions('theme') },
   { key: 'owner', name: 'BD Owner', label: 'All BD owners', options: (d) => (d?.owners ?? []).map((o) => ({ value: o.id, label: o.name })) },
   { key: 'opportunity_type', name: 'Opportunity Type', label: 'All opportunity types', options: () => leadOptions('opportunity_type') },
-  { key: 'theme', name: 'Theme', label: 'All themes', options: () => leadOptions('theme') },
   { key: 'partner', name: 'Partner', label: 'All partners', options: (d) => (d?.partners ?? []).map((p) => ({ value: p.id, label: p.name })) },
   { key: 'deal_source', name: 'Deal Source', label: 'All deal sources', options: () => leadOptions('deal_source') },
 ]

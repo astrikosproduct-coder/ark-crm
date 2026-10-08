@@ -24,7 +24,9 @@ import { WithdrawRegistrationDialog } from '@/components/partners/WithdrawRegist
 import { RecordTimelineTab, type RelatedTrail } from '@/components/pipeline/RecordTimelineTab'
 import { PursuitSaveResolver } from '@/components/pursuits/PursuitSaveResolver'
 import { api } from '@/lib/api'
-import { ErrorNotice } from '@/components/ui/notice'
+import { ErrorNotice, Notice } from '@/components/ui/notice'
+import { currentUserId } from '@/lib/currentUser'
+import { refusalOf } from '@/lib/errors'
 import { date as fmtDate, money } from '@/lib/format'
 import { ackSlaText, daysRemainingText, registrationState } from '@/lib/partners'
 import { answerableRefusalOf } from '@/lib/pursuitGroups'
@@ -146,6 +148,11 @@ export function RegistrationDetailPage() {
           opportunity_name: values?.project_name ?? '',
           end_client: values?.end_client ?? null,
           customer_partner_si: values?.partner ?? null,
+          // The person pressing the button owns the new lead. BD Owner is
+          // "Required when creating" and a registration has no user field to
+          // take it from — without this every press was refused (Oct 2026).
+          // The lead opens in Edit next, so it can be handed to someone else.
+          bd_owner: currentUserId(),
           deal_source: 'PARTNER_SOURCED',
           partner_deal_registration: id,
           // No not_duplicate_reason from the registration here. The server
@@ -302,7 +309,7 @@ export function RegistrationDetailPage() {
               />
 
               {createLead.isError && !answerableRefusalOf(createLead.error) && (
-                <ErrorNotice error={createLead.error} fallback="The lead wasn't created. Try again." />
+                <CreateLeadRefusal error={createLead.error} />
               )}
               {createLead.isError && (
                 <PursuitSaveResolver
@@ -541,5 +548,32 @@ function LifecycleBanner({
         </p>
       </div>
     </div>
+  )
+}
+
+/**
+ * Why Create lead failed, said about the LEAD. A required-fields refusal from
+ * the new lead's own form used to read "Fill in this required field. Each is
+ * marked with a red asterisk." on the registration's page — where no asterisk
+ * points at the field, so it looked like the registration's own fields were
+ * wrong. The lead's form is not on screen, so its fields are named here.
+ */
+function CreateLeadRefusal({ error }: { error: unknown }) {
+  const refusal = refusalOf(error)
+  if (refusal.code !== 'REQUIRED_FIELDS_MISSING') {
+    return <ErrorNotice error={error} suffix="The lead wasn't created." />
+  }
+  const named = Array.isArray(refusal.raw?.fields)
+    ? (refusal.raw.fields as { label?: unknown }[]).map((f) => String(f.label ?? '')).filter(Boolean)
+    : []
+  return (
+    <Notice
+      tone="error"
+      lead="The lead wasn't created."
+      bullets={[
+        named.length > 0 ? `A new lead also needs ${named.join(', ')}.` : 'A new lead needs more fields than this registration holds.',
+        'Create it from Leads → New and choose this registration there.',
+      ]}
+    />
   )
 }

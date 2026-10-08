@@ -317,16 +317,17 @@ def _rows(db: Session, leads: dict[str, Lead], opportunities: list[Opportunity],
 #: booking entity is where money is reported (28 Sep 2026).
 FILTERS: dict[str, Callable[[Row], Any]] = {
     "region": lambda r: r.lead("booking_region"),
-    "segment": lambda r: r.lead("segment"),
+    # Segment is the Lead's `theme` field, labelled Segment since Release 1.1;
+    # the old 4-choice Segment was deleted, and with it the separate Theme filter.
+    "segment": lambda r: r.lead("theme"),
     "owner": lambda r: r.lead("bd_owner"),
     "opportunity_type": lambda r: r.lead("opportunity_type"),
-    "theme": lambda r: r.lead("theme"),
     "deal_source": lambda r: r.lead("deal_source"),
     "partner": lambda r: r.customer,
 }
 
 #: Filters a monthly target cannot be split by — targets are owner x month only.
-NOT_TARGETED = ("region", "segment", "opportunity_type", "theme", "deal_source", "partner")
+NOT_TARGETED = ("region", "segment", "opportunity_type", "deal_source", "partner")
 
 
 def _in_slice(row: Row, filters: dict[str, str | None]) -> bool:
@@ -492,8 +493,7 @@ def _partner_tier(row: Row, scope: Scope) -> str | None:
 DIMENSIONS: dict[str, Dimension] = {
     "stage": Dimension(lambda r, s: r.stage, kind="stage"),
     "close_month": Dimension(lambda r, s: r.close_month.replace(day=1) if r.close_month else None, kind="month"),
-    "segment": Dimension(lambda r, s: r.lead("segment"), ("leads", "segment")),
-    "theme": Dimension(lambda r, s: r.lead("theme"), ("leads", "theme")),
+    "segment": Dimension(lambda r, s: r.lead("theme"), ("leads", "theme")),
     "destination_region": Dimension(lambda r, s: r.lead("destination_region"), ("leads", "destination_region")),
     "booking_region": Dimension(lambda r, s: r.lead("booking_region"), ("leads", "booking_region")),
     "deal_source": Dimension(lambda r, s: r.lead("deal_source"), ("leads", "deal_source")),
@@ -538,7 +538,6 @@ TILES: dict[str, Tile] = {
     "pipeline.stage": Tile("live", "stage"),
     "pipeline.close_month": Tile("pipeline_any_month", "close_month"),
     "pipeline.segment": Tile("pipeline", "segment"),
-    "pipeline.theme": Tile("pipeline", "theme"),
     "pipeline.delivery_region": Tile("pipeline", "destination_region"),
     "partners.partner": Tile("pipeline", "partner", top=TOP_N),
     "partners.deal_source": Tile("pipeline", "deal_source"),
@@ -956,7 +955,6 @@ def dashboard(
             "pipeline.stage": funnel(scope),
             "pipeline.close_month": close_month_columns(scope),
             "pipeline.segment": serialise_tile(scope, "pipeline.segment"),
-            "pipeline.theme": serialise_tile(scope, "pipeline.theme"),
             "pipeline.delivery_region": serialise_tile(scope, "pipeline.delivery_region"),
             "pipeline.month_end": month_end_history(db, scope),
             "partners.partner": serialise_tile(scope, "partners.partner"),

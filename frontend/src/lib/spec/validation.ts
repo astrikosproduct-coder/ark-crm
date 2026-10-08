@@ -402,6 +402,17 @@ export function missingDue(module: string, values: Values, options: DueOptions =
   return out
 }
 
+/**
+ * The pilot is Paid AND its field is showing — the server's
+ * requirements.pilot_is_paid. A Paid left hidden when Agreed Next Step moved
+ * off POC scoping converts nothing (Release 1.1).
+ */
+export function isPaidPilot(module: string, values: Values): boolean {
+  if (module !== 'leads' || String(values.pilot_commercial_model ?? '').toUpperCase() !== 'PAID') return false
+  const field = fieldsOf(module).find((f) => f.api_name === 'pilot_commercial_model')
+  return Boolean(field) && isVisible(field!, values)
+}
+
 export interface SaveOptions {
   /** The record is being created — nothing saved yet. */
   creating: boolean
@@ -430,8 +441,15 @@ export function missingOnSave(module: string, values: Values, options: SaveOptio
   if (values.lead_status === 'CONVERTED') return {}
 
   const stage = stageOf(values[stageField])
-  if (module === 'leads' && String(values.pilot_commercial_model ?? '').toUpperCase() === 'PAID') {
-    return missingDue(module, values, { skipped: options.skipped })
+  if (isPaidPilot(module, values)) {
+    // The stage, and what the pilot's Deal is made of (Pilot Fee, Pilot PO
+    // Received Date) whatever stage those belong to — as the server asks.
+    const out = missingDue(module, values, { skipped: options.skipped })
+    for (const [name, message] of Object.entries(missingRequired(module, values))) {
+      const field = fieldsOf(module).find((f) => f.api_name === name)
+      if ((field?.condition ?? '').includes('pilot_commercial_model')) out[name] = message
+    }
+    return out
   }
 
   const due = missingDue(module, values, { skipped: options.skipped })
@@ -505,8 +523,7 @@ export function requirementKindOf(
   if (module === 'deals' && status === 'POC_PILOT_DEAL' && due <= 7) return null
   if (STATUS_ONLY.has(status ?? '')) return null
 
-  const paidPilot = module === 'leads' && String(values.pilot_commercial_model ?? '').toUpperCase() === 'PAID'
-  if (paidPilot) return 'save'
+  if (isPaidPilot(module, values)) return 'save'
   if (options.creating) return 'move'
   return due < stage ? 'save' : 'move'
 }

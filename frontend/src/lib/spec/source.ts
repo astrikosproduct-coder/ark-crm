@@ -1,6 +1,7 @@
 import bundledFields from '../../../spec/fields.json'
 import bundledPicklists from '../../../spec/picklists.json'
 import bundledStages from '../../../spec/stages.json'
+import bundledDependencies from '../../../spec/dependencies.json'
 
 /**
  * WHERE THE REGISTER COMES FROM: the server first, the built-in copy second.
@@ -23,12 +24,16 @@ export const specSource: {
   fields: unknown
   picklists: unknown
   stages: unknown
+  /** Region -> Country -> State: which choices a field offers once its parent
+   *  is chosen (Release 1.1). See lib/spec/dependencies.ts. */
+  dependencies: unknown
   /** The published version in use, or null for the built-in copy. */
   version: number | null
 } = {
   fields: bundledFields,
   picklists: bundledPicklists,
   stages: bundledStages,
+  dependencies: bundledDependencies,
   version: null,
 }
 
@@ -37,6 +42,8 @@ interface PublishedSpec {
   fields: unknown[]
   picklists: Record<string, unknown>
   stages: unknown[]
+  /** Absent from a server older than Release 1.1. */
+  dependencies?: Record<string, unknown>
 }
 
 function isPublishedSpec(value: unknown): value is PublishedSpec {
@@ -86,6 +93,7 @@ export async function loadPublishedSpec(): Promise<void> {
     specSource.fields = doc.fields
     specSource.picklists = doc.picklists
     specSource.stages = doc.stages
+    if (doc.dependencies && typeof doc.dependencies === 'object') specSource.dependencies = doc.dependencies
     specSource.version = doc.version
   } catch {
     // Offline, server restarting: the built-in copy still renders every form.

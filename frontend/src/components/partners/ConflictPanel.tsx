@@ -41,7 +41,7 @@ const partnerOf = (registration: Values | undefined): string =>
  * Conflict adjudication — Partner Playbook §6.2.
  *
  * Every conflict here is a RECORD, raised by the server when the second
- * registration of a similar project was saved (app/registration_matching.py).
+ * registration at the same End Client was saved (app/registration_matching.py).
  * Nothing is detected in the browser any more. What remains to show are:
  *
  *   possible conflicts   registrations saved before the check existed, or
@@ -76,19 +76,12 @@ export function ConflictPanel({
         <div className="rounded-lg border p-4 text-sm">
           <p className="font-medium">No competing registration</p>
           <p className="text-muted-foreground mt-1">
-            No other partner has registered{' '}
-            <span className="text-foreground">{String(registration.project_name ?? 'this project')}</span>
-            {client ? (
-              <>
-                {' '}
-                at <span className="text-foreground">{client}</span>
-              </>
-            ) : null}
-            . Exclusivity is granted per client and project, so a different project at the same client is not a
-            conflict.
+            No other partner has a live registration at{' '}
+            <span className="text-foreground">{client ?? 'this End Client'}</span>. Exclusivity is granted per
+            client and project, so a different project at the same client is not a conflict.
           </p>
           <p className="text-muted-foreground mt-2">
-            When a second partner registers a similar project, ARK asks on save and raises the conflict here.
+            When another partner registers at this client, ARK asks on save whether it is the same project.
           </p>
         </div>
         <CriteriaReference />
@@ -159,7 +152,7 @@ function CandidateCard({ registrationId, match }: { registrationId: string; matc
       <p className="text-muted-foreground">
         {match.same_partner
           ? 'The same partner registered a similar project. If it is a separate project, say why.'
-          : 'Another partner registered a similar project at the same client. Raise a conflict if it is the same project.'}
+          : 'Another partner registered at the same client. Raise a conflict if it is the same project.'}
       </p>
 
       {declining ? (

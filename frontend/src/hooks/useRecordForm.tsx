@@ -15,6 +15,7 @@ import {
 } from '@/lib/stageScope'
 import { isChildColumnOnly } from '@/lib/spec/childSpec'
 import { isVisible, requirementOf, type Values } from '@/lib/spec/conditions'
+import { clearOrphanedChoices } from '@/lib/spec/dependencies'
 import { computeAll, type Children } from '@/lib/spec/formula'
 import { defaultValuesOf, fieldsOf } from '@/lib/spec'
 import type { InheritedSource, ResolvedRecord } from '@/lib/spec/resolveRecord'
@@ -51,7 +52,9 @@ interface State {
 }
 
 type Action =
-  | { t: 'set'; api_name: string; value: unknown }
+  // `module` lets a choice that follows this field be emptied when it no
+  // longer fits — a State outside the new Country (lib/spec/dependencies.ts).
+  | { t: 'set'; api_name: string; value: unknown; module?: string }
   // One edit that lands on MORE THAN ONE key. A per-stage field writes
   // `expected_close_month__s3`, and — when the stage being edited is the one
   // the record is at — the plain `expected_close_month` as well, so list
@@ -69,7 +72,11 @@ function reducer(state: State, action: Action): State {
       if (state.values[action.api_name] === action.value) return state
       return {
         ...state,
-        values: { ...state.values, [action.api_name]: action.value },
+        values: clearOrphanedChoices(
+          action.module,
+          { ...state.values, [action.api_name]: action.value },
+          action.api_name
+        ),
         touched: { ...state.touched, [action.api_name]: true },
         dirty: true,
       }
@@ -463,9 +470,9 @@ export function RecordFormProvider({
         })
         return
       }
-      dispatch({ t: 'set', api_name: apiName, value })
+      dispatch({ t: 'set', api_name: apiName, value, module })
     },
-    [scopedFields, stageScope]
+    [module, scopedFields, stageScope]
   )
 
   const setChildRows = useCallback((apiName: string, rows: Values[]) => {

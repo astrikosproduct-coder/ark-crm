@@ -14,6 +14,9 @@ import { FieldRow } from '@/components/form/FieldRow'
 import { RecordFormProvider, useRecordForm, visibleFieldsOf } from '@/hooks/useRecordForm'
 import { api } from '@/lib/api'
 import { ErrorNotice } from '@/components/ui/notice'
+import { PursuitSaveResolver } from '@/components/pursuits/PursuitSaveResolver'
+import { answerableRefusalOf } from '@/lib/pursuitGroups'
+import type { Values } from '@/lib/spec/conditions'
 import { collectionFor, fieldOf, fieldsOf, quickCreateExtraFieldsFor, sectionsFor } from '@/lib/spec'
 import { isUserEditable } from '@/lib/spec/validation'
 import type { FieldSpec } from '@/types/field'
@@ -116,7 +119,10 @@ function CreateNewBody({
   const fields = [...firstSectionFields, ...extraFields, ...requiredFields]
 
   const create = useMutation({
-    mutationFn: async () => (await api.post(`/${collection}`, form.toPayload())).data,
+    // `extra` is the answer to the server's question — "is this company
+    // already in Accounts?" — merged into the same payload. See
+    // PursuitSaveResolver.
+    mutationFn: async (extra?: Values) => (await api.post(`/${collection}`, { ...form.toPayload(), ...extra })).data,
     onSuccess: (record: Record<string, unknown>) => {
       void queryClient.invalidateQueries({ queryKey: ['collection', collection] })
       const id = record.id ?? record.sku ?? record.code
@@ -131,7 +137,7 @@ function CreateNewBody({
   const submit = () => {
     form.markSubmitted()
     if (Object.keys(form.allErrors).length > 0 || Object.keys(form.dueRequired).length > 0) return
-    create.mutate()
+    create.mutate(undefined)
   }
 
   return (
@@ -148,8 +154,21 @@ function CreateNewBody({
         </div>
       </div>
 
-      {create.isError && (
+      {create.isError && !answerableRefusalOf(create.error) && (
         <ErrorNotice error={create.error} fieldLabel={(name) => fieldOf(module, name)?.label} />
+      )}
+      {create.isError && (
+        // An account that is already here is PICKED, not made again.
+        <PursuitSaveResolver
+          error={create.error}
+          pending={create.isPending}
+          retry={(extra) => create.mutate(extra)}
+          useExistingLabel="Use this one"
+          onUseExisting={(id) => {
+            onCreated(id)
+            onClose()
+          }}
+        />
       )}
 
       <DialogFooter>

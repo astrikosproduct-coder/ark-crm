@@ -19,6 +19,7 @@ import { ChildListTable } from '@/components/form/ChildListTable'
 import { LookupCombobox } from '@/components/form/LookupCombobox'
 import { MultiSelect } from '@/components/form/MultiSelect'
 import { PhoneInput } from '@/components/form/PhoneInput'
+import { SEARCHABLE_FROM, SearchablePicklist } from '@/components/form/SearchablePicklist'
 import { NumericInput } from '@/components/ui/numeric-input'
 import {
   useOptionalRecordForm,
@@ -30,6 +31,7 @@ import { useResolvedRecord } from '@/hooks/useResolvedRecord'
 import { fetchCollection } from '@/lib/collections'
 import { date as fmtDate, dateTime as fmtDateTime, money, number, percent } from '@/lib/format'
 import { compileFor } from '@/lib/spec/conditions'
+import { allowedChoices, dependencyOf } from '@/lib/spec/dependencies'
 import { computedGap } from '@/lib/spec/formula'
 import {
   collectionFor,
@@ -193,7 +195,26 @@ export function FieldControl({ field, onCreateNew, scope }: Props) {
 
   switch (field.type) {
     case 'picklist': {
-      const options = fieldOptions(field)
+      const all = fieldOptions(field)
+      // Region -> Country -> State (Release 1.1): a field that follows another
+      // offers only the choices mapped to that field's value. Nothing to offer
+      // yet says why, instead of opening an empty list.
+      const allowed = scope ? null : allowedChoices(field.module, field.api_name, form.values)
+      if (allowed !== null && allowed.length === 0) {
+        const parent = fieldOf(field.module, dependencyOf(field.module, field.api_name)?.parent ?? '')
+        const parentLabel = parent?.label ?? 'the field above'
+        const parentChosen = Boolean(parent && form.values[parent.api_name])
+        return (
+          <Select disabled>
+            <SelectTrigger id={id} className="w-full">
+              <SelectValue
+                placeholder={parentChosen ? `None for this ${parentLabel}` : `Choose a ${parentLabel} first`}
+              />
+            </SelectTrigger>
+          </Select>
+        )
+      }
+      const options = allowed === null ? all : all.filter((o) => allowed.includes(o.key))
       // 11 picklist fields in the register name no value set. A free text box
       // is honest about that; an empty dropdown is not.
       if (!options.length) {
@@ -223,6 +244,20 @@ export function FieldControl({ field, onCreateNew, scope }: Props) {
             set={set}
             invalid={invalid}
             options={options}
+          />
+        )
+      }
+
+      // A long list — 249 countries — gets a search box.
+      if (options.length > SEARCHABLE_FROM) {
+        return (
+          <SearchablePicklist
+            id={id}
+            options={options}
+            value={(value as string) || null}
+            onChange={set}
+            invalid={invalid}
+            noun={field.label.toLowerCase()}
           />
         )
       }

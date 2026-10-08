@@ -293,6 +293,14 @@ def gap2() -> None:
             )
             db.commit()
 
+        # An Opportunity is made from a Lead (Release 1.1, 7 Oct 2026), so this
+        # one gets a throwaway parent, removed with it below.
+        parent_lead = None
+        if table == "opportunities":
+            made = client.post("/api/leads", json={"opportunity_name": "R6 gap parent", "project_stage": "3_PRESCRIPTION"})
+            parent_lead = made.json().get("lead_id") if made.status_code == 201 else None
+            body = {**body, "parent_lead": parent_lead}
+
         made_a = client.post(
             f"{META}/fields",
             json={
@@ -419,6 +427,10 @@ def gap2() -> None:
             db.execute(
                 text(f"DELETE FROM {table} WHERE {id_field} = :id"), {"id": record_id}
             )
+            if parent_lead:
+                db.execute(text("DELETE FROM conversions WHERE source_id = :id"), {"id": parent_lead})
+                db.execute(text("DELETE FROM stage_transitions WHERE record_id = :id"), {"id": parent_lead})
+                db.execute(text("DELETE FROM leads WHERE lead_id = :id"), {"id": parent_lead})
             # Round 7: these rows live in field_definitions/field_placements.
             # This teardown deleted from field_metadata until 10 Sep 2026 — the
             # legacy Round-6 table, which has held none of them since the

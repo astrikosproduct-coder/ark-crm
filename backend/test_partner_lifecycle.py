@@ -149,8 +149,16 @@ try:
     check("Who Registered First is derived: Registration A", conflict["who_registered_first"] == "REGISTRATION_A")
     check("it is named after the partners", conflict["name"].startswith("Conflict: ") and " vs " in conflict["name"])
 
+    # 6 Oct 2026: the Project Name no longer decides — another partner at the
+    # same End Client is always asked about, however different the name.
     r = registration(pc, ec, "Lifecycle probe water network")
-    check("a different project at the same client is not asked about", r.status_code == 201, r.text[:300])
+    check(
+        "another partner at the same client is asked about, whatever the name",
+        r.status_code == 422 and code_of(r) == "POSSIBLE_CONFLICT",
+        f"{r.status_code} {r.text[:300]}",
+    )
+    r = registration(pc, ec, "Lifecycle probe water network", not_conflict_reason="Water network tender, unrelated to the control centre.")
+    check("…and 'Different project' with a reason saves it", r.status_code == 201, r.text[:300])
     reg_c = r.json()["id"]
 
     r = registration(pc, ec, "Lifecycle probe command and control centre", not_conflict_reason="A separate control-room fit-out package.")
@@ -164,6 +172,44 @@ try:
         "the same partner twice cannot be raised as a conflict",
         r.status_code == 422 and code_of(r) == "SAME_PARTNER_NOT_A_CONFLICT",
         f"{r.status_code} {r.text[:200]}",
+    )
+
+    section("1b  The Project Name no longer hides a conflict")
+    ec_names = account("EC-2", ["END_CLIENT"])
+    r = registration(pa, ec_names, "Demo Project by P1", days_ago=1)
+    check("Partner-A registers at a fresh client", r.status_code == 201, r.text[:300])
+    p1 = r.json()["id"]
+    r = registration(pb, ec_names, "Demo Project by P2")
+    check(
+        "'Demo Project by P1' vs 'Demo Project by P2' is asked about (was silent before 6 Oct)",
+        r.status_code == 422 and code_of(r) == "POSSIBLE_CONFLICT",
+        f"{r.status_code} {r.text[:300]}",
+    )
+    matches = r.json()["detail"].get("matches", []) if r.status_code == 422 else []
+    check("…naming Partner-A's registration", [m["registration_id"] for m in matches] == [p1], str(matches)[:300])
+    check(
+        "…in another partner's words",
+        r.status_code == 422 and r.json()["detail"]["message"].startswith("Another partner"),
+        r.text[:300],
+    )
+    r = registration(pb, ec_names, "Demo Project by P2", raise_conflict_with=[p1])
+    check("'Same project' raises the conflict", r.status_code == 201 and len(r.json().get("raised_conflicts") or []) == 1, r.text[:300])
+    created["conflicts"].extend(r.json().get("raised_conflicts") or [])
+
+    ec_same = account("EC-3", ["END_CLIENT"])
+    r = registration(pa, ec_same, "Lifecycle probe Alpha tower", days_ago=1)
+    check("Partner-A registers one project at a third client", r.status_code == 201, r.text[:300])
+    alpha = r.json()["id"]
+    r = registration(pa, ec_same, "Lifecycle probe Beta campus")
+    check("the same partner's different project there is not asked about", r.status_code == 201, r.text[:300])
+    r = registration(pa, ec_same, "Lifecycle probe Alpha tower phase 2")
+    check(
+        "the same partner's similar project is still caught, as a duplicate",
+        r.status_code == 422
+        and code_of(r) == "POSSIBLE_CONFLICT"
+        and r.json()["detail"]["message"].startswith("This partner")
+        and any(m["registration_id"] == alpha and m["same_partner"] for m in r.json()["detail"]["matches"]),
+        f"{r.status_code} {r.text[:300]}",
     )
 
     # ---------------------------------------------------------------- Q5
@@ -209,7 +255,7 @@ try:
     check("a registration nothing depends on deletes", r.status_code == 204, r.text[:200])
     if r.status_code == 204:
         created["registrations"].remove(reg_c)
-    r = registration(pc, ec, "Lifecycle probe street lighting")
+    r = registration(pc, ec, "Lifecycle probe street lighting", not_conflict_reason="Street lighting, a separate tender.")
     check("the next registration saves", r.status_code == 201, r.text[:200])
     check("…with a new number — a deleted id is never reused", int(r.json()["id"].split("-")[1]) > deleted_number, r.json()["id"])
 

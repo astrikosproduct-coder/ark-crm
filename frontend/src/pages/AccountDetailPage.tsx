@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { NetworkIcon, PencilIcon, PlusIcon, RotateCcwIcon, Trash2Icon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { PageLayout } from '@/components/layout/PageLayout'
+import { GroupCompanies } from '@/components/accounts/GroupCompanies'
 import { RecordForm } from '@/components/form/RecordForm'
 import { RecordEditor } from '@/components/record/RecordEditor'
 import { RecordListView } from '@/components/list/RecordListView'
@@ -23,6 +24,7 @@ const COLLECTION = 'accounts'
 export function AccountDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   // Bumped only by an explicit Discard in the header badge — folded into the
@@ -40,6 +42,9 @@ export function AccountDetailPage() {
 
   const website = typeof values?.website === 'string' ? values.website.trim() : ''
   const inactive = values?.active === false
+  // Release 1.1: a member of a group names its head beside the title.
+  const parentId = typeof values?.parent_account === 'string' ? values.parent_account : ''
+  const parentName = (values?.__labels as Record<string, string> | undefined)?.parent_account ?? parentId
 
   const setActive = useSetRecordActive(COLLECTION, id ?? '', {
     noun: 'account',
@@ -50,12 +55,12 @@ export function AccountDetailPage() {
     return (
       <PageLayout
         back
-        title={id ?? 'Account'}
+        title="Account"
         tabs={[
           {
             key: 'missing',
             label: 'Overview',
-            content: <p className="py-6 text-sm text-destructive">No account with id {id}.</p>,
+            content: <p className="py-6 text-sm text-destructive">This account no longer exists. It may have been deleted.</p>,
           },
         ]}
       />
@@ -87,6 +92,14 @@ export function AccountDetailPage() {
                 {website}
               </a>
             </>
+          )}
+          {parentId && (
+            <span className="text-muted-foreground text-sm font-normal">
+              Group:{' '}
+              <Link className="text-primary underline-offset-2 hover:underline" to={`/accounts/${parentId}`}>
+                {parentName}
+              </Link>
+            </span>
           )}
           {inactive && <span className="text-muted-foreground text-sm font-normal">Inactive</span>}
         </>
@@ -148,7 +161,10 @@ export function AccountDetailPage() {
               collection={COLLECTION}
               recordId={id}
               initialValues={values}
-              onSaved={() => setEditing(false)}
+              onSaved={() => {
+                setEditing(false)
+                void queryClient.invalidateQueries({ queryKey: ['account-group'] })
+              }}
               onCancel={() => setEditing(false)}
             />
           ) : (
@@ -163,13 +179,18 @@ export function AccountDetailPage() {
           ),
         },
         {
+          key: 'group',
+          label: 'Group companies',
+          content: <GroupCompanies accountId={id ?? ''} />,
+        },
+        {
           key: 'contacts',
           label: 'Contacts',
           content: (
             <div className="space-y-3 py-3">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm text-muted-foreground">
-                  Everybody whose Account is {id}.
+                  Contacts at {values ? displayNameOf(values) : 'this account'}.
                 </p>
                 <Button
                   variant="outline"

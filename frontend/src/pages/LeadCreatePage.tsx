@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { PageLayout } from '@/components/layout/PageLayout'
-import { LeadAccountFieldSync, backfillAccountFieldsFromLead } from '@/components/leads/LeadAccountFieldSync'
 import { RecordEditor } from '@/components/record/RecordEditor'
 import { STAGE_PCT_FIELDS, createFormSections, stageKeyOf, stagesFor } from '@/lib/pipeline'
 import type { Values } from '@/lib/spec/conditions'
@@ -81,8 +80,6 @@ export function LeadCreatePage() {
               // Reason would write the plain api_name here and the record page
               // — which reads the per-stage key — would show nothing.
               stageScope={CREATE_STAGE}
-              sideEffects={<LeadAccountFieldSync />}
-              afterSave={backfillAccountFieldsFromLead}
               saveLabel="Create lead"
               stamp={{
               }}

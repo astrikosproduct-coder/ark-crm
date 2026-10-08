@@ -28,8 +28,9 @@ interface Props {
 type Choice = 'same' | 'different'
 
 /**
- * "A similar project is already registered at this End Client." Asked by the
- * server when a registration is saved beside one
+ * "Another partner has a live registration at this End Client." Asked by the
+ * server when a registration is saved beside one — whatever the two Project
+ * Names say (6 Oct 2026); the closest name is listed first
  * (backend/app/registration_matching.py) — the same shape as the Leads
  * duplicate check, so there is one pattern to learn.
  *
@@ -97,7 +98,7 @@ export function PossibleConflictDialog({ open, matches, pending, onResolve, onCl
           <DialogDescription>
             {onlySamePartner
               ? 'Same claim: open the existing registration instead. Separate project: tell us why.'
-              : "A similar project is already registered at this End Client. Same project: it's saved and a conflict is raised for review. Different project: tell us why."}
+              : "Another partner has a live registration at this End Client. Same project: it's saved and a conflict is raised for review. Different project: tell us why."}
           </DialogDescription>
         </DialogHeader>
 

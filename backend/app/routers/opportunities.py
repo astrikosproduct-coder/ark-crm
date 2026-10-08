@@ -331,6 +331,18 @@ def create_opportunity(
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
+    # Leads are the one door (decided 7 Oct 2026): an Opportunity is a Lead
+    # that left Stage 3. One made by hand had no Lead, so everything it shows
+    # "From the Lead" — End Client, Partner, Segment — stayed blank for good.
+    if not payload.parent_lead:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            refusal(
+                "OPPORTUNITY_NEEDS_LEAD",
+                "An Opportunity is made from a Lead.",
+                ["Open the Lead and move it past Stage 3."],
+            ),
+        )
     opportunity_id = payload.opportunity_id or _next_opportunity_id(db)
 
     if db.get(Opportunity, opportunity_id) is not None:

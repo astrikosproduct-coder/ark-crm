@@ -119,9 +119,9 @@ try:
         **({"end_client": account} if account else {}),
     }
     for name, extra in (
-        ("Snapshot probe — MEA infra", {"estimated_value": 400000, "booking_region": "MEA", "segment": "INFRASTRUCTURE"}),
+        ("Snapshot probe — MEA infra", {"estimated_value": 400000, "booking_region": "MEA", "theme": "SMART_CITIES"}),
         ("Snapshot probe — India, no segment", {"estimated_value": 100000, "booking_region": "INDIA"}),
-        ("Snapshot probe — unpriced", {"booking_region": "MEA", "segment": "POWER"}),
+        ("Snapshot probe — unpriced", {"booking_region": "MEA", "theme": "DATA_CENTERS"}),
     ):
         r = client.post("/api/leads", json={"opportunity_name": name, "project_stage": "0_CONNECT", **base, **extra})
         check(f"lead saves: {name}", r.status_code == 201, r.text[:300])

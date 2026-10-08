@@ -30,6 +30,9 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # 0038 adds it too since 8 Oct 2026, for metadata_v2.py's sake — see there.
+    if "asked_at_stage_move" in {c["name"] for c in sa.inspect(op.get_bind()).get_columns("field_placements")}:
+        return
     op.add_column(
         "field_placements",
         sa.Column("asked_at_stage_move", sa.Boolean(), nullable=False, server_default=sa.false()),

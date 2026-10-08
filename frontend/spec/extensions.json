@@ -15,23 +15,27 @@
    "columns": [
     "accounts.account_name",
     "accounts.account_type",
-    "accounts.segment",
+    "accounts.segments",
     "accounts.customer_class",
     "accounts.region",
+    "accounts.country",
+    "accounts.parent_account",
     "accounts.account_owner"
    ],
    "default_sort": "account_name",
    "search": [
     "account_name",
     "region",
-    "segment"
+    "segments"
    ],
    "filters": [
     "accounts.account_type",
     "accounts.account_owner",
-    "accounts.segment",
+    "accounts.segments",
     "accounts.customer_class",
-    "accounts.region"
+    "accounts.region",
+    "accounts.country",
+    "accounts.parent_account"
    ]
   },
   "contacts": {
@@ -65,13 +69,15 @@
     "accounts.partner_type",
     "accounts.engagement_cadence",
     "accounts.region",
+    "accounts.country",
+    "accounts.parent_account",
     "accounts.account_owner"
    ],
    "default_sort": "account_name",
    "search": [
     "account_name",
     "region",
-    "segment"
+    "segments"
    ],
    "filters": [
     "accounts.account_type",
@@ -79,6 +85,8 @@
     "accounts.partner_type",
     "accounts.engagement_cadence",
     "accounts.region",
+    "accounts.country",
+    "accounts.parent_account",
     "accounts.account_owner"
    ]
   },
@@ -129,7 +137,7 @@
     "leads.bd_owner",
     "leads.lead_status",
     "leads.end_client",
-    "leads.segment",
+    "leads.theme",
     "leads.destination_region",
     "leads.expected_close_month",
     "leads.estimated_value"
@@ -157,7 +165,7 @@
     "opportunities.sales_owner",
     "opportunities.lead_status",
     "opportunities.end_client",
-    "opportunities.segment",
+    "opportunities.theme",
     "opportunities.destination_region",
     "opportunities.submission_deadline",
     "opportunities.total_value_tcv"
@@ -185,7 +193,7 @@
     "deals.delivery_pm",
     "deals.lead_status",
     "deals.end_client",
-    "deals.segment",
+    "deals.theme",
     "deals.destination_region",
     "deals.go_live_date",
     "deals.contract_value"

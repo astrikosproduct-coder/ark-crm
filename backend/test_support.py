@@ -75,7 +75,7 @@ from typing import Any
 
 from sqlalchemy import select
 
-from app import requirements
+from app import account_groups, requirements
 from app.database import SessionLocal
 from app.models import FieldPlacement
 
@@ -84,6 +84,10 @@ from app.models import FieldPlacement
 # switched off for them here, in code — never by configuration, so production
 # cannot be — and test_required_fields.py switches it back on to test it.
 requirements.ENFORCED = False
+
+# The same for the duplicate-company check (Release 1.1): the older scripts make
+# accounts named alike on purpose. test_release_1_1.py switches it back on.
+account_groups.CHECK_DUPLICATES = False
 
 # Every placement column an Administration edit can change. Identity columns
 # (id, definition_id, module_key, api_name) are deliberately absent: if one of

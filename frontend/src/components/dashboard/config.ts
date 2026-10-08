@@ -71,7 +71,7 @@ export const TILES = {
       exclusions: [
         'Booked has no point after this month.',
         'Forecast leaves out records whose close month has passed or is not set.',
-        'Targets are set per BD Owner, so they cannot be drawn under a Region, Segment, Theme, Deal Source, Partner or Opportunity Type filter.',
+        'Targets are set per BD Owner, so they cannot be drawn under a Region, Segment, Deal Source, Partner or Opportunity Type filter.',
         UNPRICED,
       ],
     },
@@ -128,18 +128,8 @@ export const TILES = {
     chart: 'donut',
     measure: 'usd',
     dimension: 'Segment',
-    caption: 'pipeline value by leads.segment',
+    caption: 'pipeline value by leads.theme (labelled Segment)',
     definition: { measure: OPEN_PIPELINE, dimension: 'Segment, on the Lead each record descends from.', exclusions: [CLOSING, UNPRICED] },
-    empty: 'open pipeline',
-  },
-  theme: {
-    id: 'pipeline.theme',
-    title: 'Pipeline by theme',
-    chart: 'donut',
-    measure: 'usd',
-    dimension: 'Theme',
-    caption: 'pipeline value by leads.theme',
-    definition: { measure: OPEN_PIPELINE, dimension: 'Theme, on the Lead each record descends from.', exclusions: [CLOSING, UNPRICED] },
     empty: 'open pipeline',
   },
   deliveryRegion: {

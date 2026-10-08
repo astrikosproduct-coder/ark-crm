@@ -268,7 +268,16 @@ class Directory:
         db = self.db
         if target == "account":
             rows = [
-                Target(a.account_id, a.account_name, attrs={"account_type": sorted(t.account_type for t in a.types), "active": getattr(a, "active", True)})
+                Target(
+                    a.account_id,
+                    a.account_name,
+                    attrs={
+                        "account_type": sorted(t.account_type for t in a.types),
+                        "active": getattr(a, "active", True),
+                        # Release 1.1: what tells two companies of one name apart.
+                        "place": self.label("countries", a.country) if getattr(a, "country", None) else None,
+                    },
+                )
                 for a in db.scalars(select(Account))
             ]
         elif target == "user":
@@ -312,8 +321,12 @@ _ISO_DATE = re.compile(r"^(\d{4})[/.\-](\d{1,2})[/.\-](\d{1,2})(?:[ T].*)?$")
 _NUMERIC_MONTH = re.compile(r"^(?:(\d{1,2})[/.\-](\d{4})|(\d{4})[/.\-](\d{1,2}))$")
 
 #: A lookup cell may carry the record id after the name — the sample file's
-#: dropdown does that only where two records share a name.
+#: dropdown does that only where two records share a name and nothing else
+#: tells them apart.
 _NAME_AND_ID = re.compile(r"^(?P<name>.*\S)\s*\((?P<id>[A-Z]+-\d+)\)$")
+
+#: …or, for accounts, their Country: "Astrikos Inc (United States)" — Release 1.1.
+_NAME_AND_PLACE = re.compile(r"^(?P<name>.*\S)\s*\((?P<place>[^()]+)\)$")
 
 #: A multi-choice field with at most this many choices gets one Yes/No column
 #: per choice in the sample file, so nobody has to type a choice's exact words.
@@ -439,7 +452,8 @@ def lookup_choices(column: Column, directory: Directory) -> list[str]:
     """
     What the sample file's dropdown offers for a lookup: every record the form
     would let you pick, by name. Two records with one name are told apart by
-    their id — the only place an id is shown, because the name alone can't do it.
+    their Country when they are accounts that have one (Release 1.1), else by
+    their id — the only place an id is shown, because nothing else can do it.
     """
     eligible = [
         t for t in directory.targets(column.lookup_target)
@@ -448,7 +462,21 @@ def lookup_choices(column: Column, directory: Directory) -> list[str]:
     counts: dict[str, int] = {}
     for t in eligible:
         counts[slug(t.name)] = counts.get(slug(t.name), 0) + 1
-    names = [t.name if counts[slug(t.name)] == 1 else f"{t.name} ({t.id})" for t in eligible]
+    places: dict[str, int] = {}
+    for t in eligible:
+        if t.attrs.get("place"):
+            key = f"{slug(t.name)}|{slug(t.attrs['place'])}"
+            places[key] = places.get(key, 0) + 1
+
+    def shown(t: Target) -> str:
+        if counts[slug(t.name)] == 1:
+            return t.name
+        place = t.attrs.get("place")
+        if place and places.get(f"{slug(t.name)}|{slug(place)}") == 1:
+            return f"{t.name} ({place})"
+        return f"{t.name} ({t.id})"
+
+    names = [shown(t) for t in eligible]
     return sorted(names, key=str.lower)
 
 
@@ -545,6 +573,12 @@ def read_cell(column: Column, raw: Any, directory: Directory, answers: dict[str,
         if not by_id and tagged:
             by_id = [t for t in candidates if t.id == tagged["id"] and slug(t.name) == slug(tagged["name"])]
         hits = by_id or [t for t in candidates if slug(t.name) == slug(text) or (t.extra and t.extra.lower() == text.lower())]
+        placed = _NAME_AND_PLACE.match(text)
+        if not hits and placed:
+            hits = [
+                t for t in candidates
+                if slug(t.name) == slug(placed["name"]) and slug(t.attrs.get("place") or "") == slug(placed["place"])
+            ]
         if not hits:
             raise MissingRecord(text, _noun(column.lookup_target))
         allowed = [t for t in hits if matches_filter(column.lookup_filter_expr, t, directory)]

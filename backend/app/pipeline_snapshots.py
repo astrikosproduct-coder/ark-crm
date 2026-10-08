@@ -130,7 +130,8 @@ def position(db: Session) -> list[dict[str, Any]]:
         root = r.root
         owner = root.bd_owner if root else None
         region = root.booking_region if root else None
-        segment = root.segment if root else None
+        # Segment is the Lead's `theme` field since Release 1.1 (the old Segment is deleted).
+        segment = root.theme if root else None
         groups.setdefault(("BD_OWNER", owner, None, None), []).append(r)
         groups.setdefault(("BOOKING_REGION", None, region, None), []).append(r)
         groups.setdefault(("SEGMENT", None, None, segment), []).append(r)

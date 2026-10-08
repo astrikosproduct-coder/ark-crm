@@ -87,10 +87,56 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    **The fiscal year is one setting**, `FISCAL_YEAR_START_MONTH` (default 4, April), read only
    by `app/fiscal.py`; FY27 = Apr 2026–Mar 2027. Never name a month anywhere else.
 
+   | Release 1.1 (`v1.1.0`, 7 Oct 2026) | Tables / columns | Served at |
+   |---|---|---|
+   | Map Dependency Fields — Region → Country → State | `field_dependencies`, `field_dependency_values` (r11_0001); `accounts.country/state`, `leads.state` | in the published register: `/api/spec` → `dependencies`, `spec/dependencies.json` |
+   | Groups of companies, the duplicate-company check | `accounts.parent_account`, `accounts.not_duplicate_of` (r11_0002) | `/api/accounts`, `/api/accounts/{id}/group`, `/api/accounts/{id}/make-head` |
+
+   **Release 1.1** shipped on its own branch from V1, before Phase 2 (DEPLOY.md, "Release 1.1:
+   the one-time update"). What it decided:
+   - **Region → Country → State** (Zoho's Map Dependency Fields): per module, a child field
+     has one parent; the maps are rows, published with the register, read by the form
+     (`lib/spec/dependencies.ts` — a child offers only its parent's values and is cleared when
+     they change) and by the server (`app/field_dependencies.py` — DEPENDENT_CHOICE refusal;
+     a field with nothing to offer is never demanded). Accounts: Region → Country (required)
+     → State (optional). Leads: Destination Region → Country → State, State required when
+     the Country has states; Opportunities and Deals show them From the Lead. Data: every
+     ISO country and first-level state (`backend/data/locations.json`, from
+     `tools/build_locations.py`); India is a Region and a Country. Import reads a shared
+     state name ("Punjab") within the row's Country. Setup will edit the maps in Phase 2.
+   - **Segment**: the old 4-choice Segment and Account Target Phase are deleted; Theme is
+     labelled **Segment** (7 choices) — one choice on Leads (picked by hand, never copied
+     from the Account), several and required on Accounts (`accounts.segments`). Region
+     gains **Europe**. Partner Tier is Platinum, Gold, Authorized, Registered, Not a partner.
+   - **Account Name is the registered legal name**, never a region or country in it — the
+     Country is shown beside it: pickers show no record id anywhere, and an account's grey
+     second line is "Region - Country".
+   - **Parent Account, one level deep** (`app/account_groups.py`): every company points at
+     its group's head; picking any member files the account under the head; a head joining
+     another group brings its companies; "Make head of group" re-points the rest; a head
+     with companies can't be deleted. "Group" is shown, never stored. The Group companies
+     tab (Accounts and Partners) shows each company's Open pipeline and Won — pursuits
+     where it is End Client or Partner, by `app/revenue.py`'s rule — and a group total that
+     counts a pursuit once (`app/group_revenue.py`).
+   - **The duplicate-company check** (`app/account_matching.py`, on create and on a change of
+     name or Country): the same registered name — case, punctuation and legal-form spelling
+     ignored — in the same Country is REFUSED (ACCOUNT_EXISTS); a similar name (same name
+     without its legal form, a typo apart, or one name the start of the other) is ASKED
+     (POSSIBLE_DUPLICATE_ACCOUNT): open the existing one, add to its group, or "a different
+     company" in one click (`different_company`, no reason kept; remembered in
+     `not_duplicate_of`). **No company name and no "common words" list is ever written in
+     code** — only the legal forms (Pvt, Ltd, Inc…). Import: same name refused, similar a
+     warning. `account_groups.CHECK_DUPLICATES` is a test-only constant, switched off for
+     the older scripts in `test_support.py` like `requirements.ENFORCED`.
+   - **Conflicts no longer need a similar project name**: the same End Client, a different
+     partner and both registrations live is always asked (`app/registration_matching.py`).
+   - **Leads are the one door**: there is no "New opportunity" (and never was a "New deal");
+     the server refuses an Opportunity with no Lead (OPPORTUNITY_NEEDS_LEAD).
+
    **Import / export** (`backend/app/spreadsheets/`). Export: every live module, a workbook of
    Summary + one sheet per form section + Stage history + child lists, rows from the module's
    own list endpoint under the screen's filters. Import: Leads, Accounts, Contacts, Partners —
-   **never Opportunities or Deals** (born by conversion), and **Leads at Stage 0 only** (a Stage 1
+   **never Opportunities or Deals** (born by conversion — Leads are the one door), and **Leads at Stage 0 only** (a Stage 1
    move has blocking checks a sheet cannot confirm). Every row goes through the module's own
    create logic (`leads.insert_lead`, `create_account`, `create_contact`) inside one outer
    transaction with a savepoint per row: preview rolls back, commit is all-or-nothing. Rows
@@ -168,7 +214,8 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    `parent_lead` on the server (`carry_forward.parent_record`) and on the record page
    (`resolveRecord.parentRequestFor`). The API refuses a second owning module
    (`FIELD_OWNED_ELSEWHERE`). **Picklists are global or local** (`picklists.is_global`,
-   Zoho's Global Sets): 8 global lists serve several fields; a local list serves ONE field
+   Zoho's Global Sets): 11 global lists serve several fields (8 at v2; Release 1.1 added Theme —
+   labelled Segment — for Leads and Accounts, Country and State); a local list serves ONE field
    (`PICKLIST_IS_LOCAL`). Lead, Opportunity and Deal Status each have their own list (G3);
    values the server reads by key — Open, On Hold, Closed Lost, Converted, POC/Pilot Deal —
    are `picklist_values.is_system`: renamable, never retired (`SYSTEM_VALUE`). **No module
@@ -216,7 +263,8 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    totals reconcile with the boards. **Five tabs since 28 Sep 2026** — Performance (the
    five KPI cards, unchanged, then the booking S-curve and quarter meters), Pipeline,
    Partners, Accounts, Win & loss — under ONE filter row (Period, Booking Region, Segment,
-   BD Owner, Opportunity Type, Theme, Partner, Deal Source) that reaches every tile. The page
+   BD Owner, Opportunity Type, Partner, Deal Source — Segment is the Lead's `theme` field since
+   Release 1.1, so there is no separate Theme filter) that reaches every tile. The page
    opens on the current fiscal year (`period=current_fy`), so the Booked line ends on the
    Won card. Each tile is a server definition (`TILES`: population × dimension) and a
    browser config object (`components/dashboard/config.ts`); a click opens its records from
@@ -346,6 +394,12 @@ work; Probability moves on the client's decisions.** Rules:
   refuses it on a Lead or Opportunity. What the pilot's Deal takes from the Lead is the
   locked "Lead → Deal (paid pilot)" rows of Conversion Mapping, not code. How the programme after a pilot is tracked (Expansion lead vs new logo)
   is a phase-2 decision; do not build it.
+  **"Paid" counts only while it shows** (Release 1.1, `requirements.pilot_is_paid`): a Paid
+  left hidden after Agreed Next Step moved off POC scoping once made a Deal with no fee and
+  no PO date. The save that marks a pilot Paid asks for every field required BECAUSE it is
+  Paid (Pilot Fee, Pilot PO Received Date), whatever stage the Lead is at. Agreed Next Step
+  "Implementation" means nothing to the pipeline yet — what it should do (a direct award
+  to a Deal?) is a phase-2 decision.
 - Never reintroduce an evidence ladder, band midpoints, or automatic boosts. Nomination Bid
   and Incumbent Only are reasons to override, not uplifts. The 0016 progression ladder
   (`progression_criteria`, `rung_proof_conditions`) was removed for writing the same two
@@ -503,9 +557,18 @@ that *would* have fired was planned and never built; it is not coming. See rule 
   one, dropping deleted fields and retired choices. Both are one-offs; do not rerun them on
   a database with real data.
 - **`test_parity.py` compares against the register as accepted** (frozen for go-live on
-  21 Sep 2026, re-frozen for metadata v2 on 25 Sep 2026 — 190 planned moves;
+  21 Sep 2026, re-frozen for metadata v2 on 25 Sep 2026 — 190 planned moves — for Release
+  1.1 on 7 Oct 2026, and for 1.1 merged into phase-2 on 8 Oct 2026;
   `freeze_parity_baseline.py --from-database --replace`). A field that moves without a
   deliberate re-freeze fails.
+- **Release 1.1's order** (DEPLOY.md): dump → stop the backend → `alembic upgrade head`
+  (r11_0001, r11_0002) → `release_1_1_fields_metadata.py` → `release_1_1_location_metadata.py`
+  → `release_1_1_accounts_metadata.py` (each dry run, then `--apply`) → build → start. Two
+  read-only reports go first: `release_1_1_duplicate_accounts.py`, `release_1_1_pilot_deals.py`.
+  The migrations are named `r11_…`, not 0038: phase-2 already had a 0038. **Merged into
+  phase-2 on 8 Oct 2026: 0038 now revises `r11_0002_account_groups`**, so a V1 server reaches
+  Phase 2 through Release 1.1 — 0037 → r11_0001 → r11_0002 → 0038 → `metadata_v2.py` → 0039 →
+  0042 → 0043 → 0040 → 0041 (0040 follows Setup's 0043; one head).
 
 ## Conventions
 
