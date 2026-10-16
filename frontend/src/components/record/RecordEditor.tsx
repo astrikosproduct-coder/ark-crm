@@ -57,6 +57,8 @@ export interface RecordEditorProps {
   only?: string[]
   /** Overrides the register's section name in the header of a single section. */
   sectionTitle?: string
+  /** Sections without a card, under a small heading — see FormSection. */
+  flat?: boolean
   /**
    * Merged into the payload on save — values this form does not collect but
    * the record needs, like a registration's opening status or the two records
@@ -144,6 +146,7 @@ function EditorBody({
   hiddenFields,
   only,
   sectionTitle,
+  flat,
   stamp,
   sideEffects,
   afterSave,
@@ -397,6 +400,7 @@ function EditorBody({
           onCreateNew={handleCreateNew}
           only={sections?.length === 1 ? only : undefined}
           title={sections?.length === 1 ? sectionTitle : undefined}
+          flat={flat}
         />
       ))}
 

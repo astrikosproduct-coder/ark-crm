@@ -87,3 +87,37 @@ def resolve_priority_flag_patch(
             out[pf.rank] = None
 
     return out
+
+
+def resolve_reorder(
+    all_opportunities: Sequence[Mapping[str, object]],
+    flag: str,
+    ranks: Mapping[str, object],
+) -> dict[str, tuple[int | None, int]]:
+    """
+    New ranks for picks ALREADY on one list, set together — a drag on the Low
+    Hanging / Top 10 screen (Release 1.2, 15 Oct 2026). A swap is two moves at
+    once; one at a time, the first would land on a rank the second still holds.
+
+    Returns {id: (old rank, new rank)} for the picks that move. Raises
+    PriorityFlagError when the flag is unknown, an id is not on that list, a
+    rank is out of range, or the list would end with two picks on one rank.
+    It never adds to or takes off the list — that is the record's own save.
+    """
+    pf = next((p for p in PRIORITY_FLAGS if p.flag == flag), None)
+    if pf is None:
+        raise PriorityFlagError("That list doesn't exist.")
+    on_list = {row.get("id"): row.get(pf.rank) for row in all_opportunities if row.get(pf.flag)}
+    moves: dict[str, tuple[int | None, int]] = {}
+    for opp_id, rank in ranks.items():
+        if opp_id not in on_list:
+            raise PriorityFlagError(f"That opportunity isn't on {pf.label} any more. Reload the page.")
+        if not isinstance(rank, int) or isinstance(rank, bool) or not (1 <= rank <= pf.cap):
+            raise PriorityFlagError(f"Pick a rank between 1 and {pf.cap} for {pf.label}.")
+        if on_list[opp_id] != rank:
+            moves[opp_id] = (on_list[opp_id], rank)  # type: ignore[assignment]
+    final = {**on_list, **{opp_id: new for opp_id, (_, new) in moves.items()}}
+    held = [r for r in final.values() if r is not None]
+    if len(held) != len(set(held)):
+        raise PriorityFlagError(f"Two picks can't share a rank on {pf.label}. Reload the page and try again.")
+    return moves

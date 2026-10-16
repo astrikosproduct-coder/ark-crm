@@ -146,13 +146,10 @@ function UsersTab({ onEdit }: { onEdit: (user: AdminUser) => void }) {
       <table className="w-full text-sm">
         <thead className="text-muted-foreground text-label [&>tr>th]:border-border [&>tr>th]:border-b">
           <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:text-left [&>th]:font-medium">
-            <th className="w-28">User ID</th>
-            {/* HR's number for this person, read from the directory on their
-                first sign-in. Blank until then, and blank for good if the
-                tenant does not populate employeeId — which is why it sits
-                beside User ID rather than replacing it. */}
-            <th className="w-28">Employee ID</th>
+            {/* No User ID column: ARK shows no record numbers (14 Oct 2026).
+                Employee ID is HR's number for the person, not ARK's. */}
             <th>Name</th>
+            <th className="w-28">Employee ID</th>
             <th>Email</th>
             <th>Roles</th>
             <th className="w-24">Status</th>
@@ -165,12 +162,11 @@ function UsersTab({ onEdit }: { onEdit: (user: AdminUser) => void }) {
               key={user.user_id}
               className="border-t [&>td]:px-3 [&>td]:py-2 [&>td]:align-top"
             >
-              <td className="text-muted-foreground font-mono text-xs">{user.user_id}</td>
-              <td className="text-muted-foreground font-mono text-xs">
-                {user.employee_id ?? <span className="opacity-50">—</span>}
-              </td>
               <td className={user.active ? 'font-medium' : 'text-muted-foreground'}>
                 {user.name}
+              </td>
+              <td className="text-muted-foreground font-mono text-xs">
+                {user.employee_id ?? <span className="opacity-50">—</span>}
               </td>
               <td className="text-muted-foreground">{user.email}</td>
               <td>
@@ -223,7 +219,6 @@ function RolesTab() {
         <table className="w-full text-sm">
           <thead className="text-muted-foreground text-label [&>tr>th]:border-border [&>tr>th]:border-b">
             <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:text-left [&>th]:font-medium">
-              <th className="w-52">Role ID</th>
               <th className="w-52">Name</th>
               <th>Description</th>
             </tr>
@@ -231,7 +226,6 @@ function RolesTab() {
           <tbody>
             {(roles ?? []).map((role) => (
               <tr key={role.role_id} className="border-t [&>td]:px-3 [&>td]:py-2">
-                <td className="text-muted-foreground font-mono text-xs">{role.role_id}</td>
                 <td className="font-medium">{role.name}</td>
                 <td className="text-muted-foreground">{role.description}</td>
               </tr>

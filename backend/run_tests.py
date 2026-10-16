@@ -73,6 +73,8 @@ WRITING = [
     "test_required_fields.py",
     "test_pursuit_erase.py",
     "test_release_1_1.py",
+    "test_market_segments.py",
+    "test_priority_reorder.py",
 ]
 
 

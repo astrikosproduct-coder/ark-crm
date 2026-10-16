@@ -13,6 +13,11 @@ import { specSource } from './source'
  *   - a child with nothing to offer — parent empty, or a parent mapped to no
  *     choices — is never required (offersChoices);
  *   - a child choice its parent does not offer is refused on save.
+ *
+ * SEVERAL CHOICES (Release 1.2; first built for Products on phase-2): an
+ * Account's Segment -> Segment Category -> Subsegment are multi-choice. A
+ * child then offers the choices of EVERY parent choice held, and a parent
+ * choice taken away removes only the child choices that came with it.
  */
 
 export interface FieldDependency {
@@ -54,13 +59,70 @@ export function allowedChoices(module: string, apiName: string, values: Record<s
   if (!dep) return null
   const parentValue = values[dep.parent]
   if (blank(parentValue)) return []
-  return dep.map[String(parentValue)] ?? []
+  if (!Array.isArray(parentValue)) return dep.map[String(parentValue)] ?? []
+  const out: string[] = []
+  for (const parent of parentValue) {
+    for (const choice of dep.map[String(parent)] ?? []) {
+      if (!out.includes(choice)) out.push(choice)
+    }
+  }
+  return out
 }
 
 /** Does this field have anything to choose from right now? */
 export function offersChoices(module: string, apiName: string, values: Record<string, unknown>): boolean {
   const allowed = allowedChoices(module, apiName, values)
   return allowed === null || allowed.length > 0
+}
+
+/**
+ * Can this field be picked from ANY parent choice? (14 Oct 2026: "I could not
+ * find Vietnam".) True for a field whose parent follows nothing itself —
+ * Country under Region — so a person who does not know a country's region
+ * still finds it; picking it fills the Region in (fillParents). A State stays
+ * inside its Country: its parent follows Region, and a state name means
+ * nothing without its country.
+ */
+export function findableAcrossParents(module: string, apiName: string): boolean {
+  const dep = dependencyOf(module, apiName)
+  return dep !== null && dependencyOf(module, dep.parent) === null
+}
+
+/** The parent choice that offers `value` — Vietnam's Region is APAC. */
+export function parentChoiceFor(module: string, apiName: string, value: unknown): string | null {
+  const dep = dependencyOf(module, apiName)
+  if (!dep || blank(value)) return null
+  const wanted = String(value)
+  const hit = Object.entries(dep.map).find(([, choices]) => choices.includes(wanted))
+  return hit ? hit[0] : null
+}
+
+/** Every choice any parent offers, for a field that is findable across parents. */
+export function choicesOfEveryParent(module: string, apiName: string): Set<string> {
+  const dep = dependencyOf(module, apiName)
+  return new Set(dep ? Object.values(dep.map).flat() : [])
+}
+
+/**
+ * After `changed` takes a value its parent does not offer, set the parent to
+ * the choice that does — picking Vietnam with Region India (or none) makes the
+ * Region APAC. Only for a field findable across parents; returns `values`
+ * itself when nothing had to change. Run BEFORE clearOrphanedChoices, which
+ * then empties whatever followed the old value (the State).
+ */
+export function fillParents(
+  module: string | undefined,
+  values: Record<string, unknown>,
+  changed: string
+): Record<string, unknown> {
+  if (!module || !findableAcrossParents(module, changed)) return values
+  const dep = dependencyOf(module, changed)
+  const value = values[changed]
+  // One choice only: a several-choice field has no single parent to fill in.
+  if (!dep || blank(value) || Array.isArray(value)) return values
+  if ((allowedChoices(module, changed, values) ?? []).includes(String(value))) return values
+  const parent = parentChoiceFor(module, changed, value)
+  return parent ? { ...values, [dep.parent]: parent } : values
 }
 
 /**
@@ -80,6 +142,13 @@ export function clearOrphanedChoices(
     const current = out[child]
     if (blank(current)) continue
     const allowed = allowedChoices(module, child, out) ?? []
+    if (Array.isArray(current)) {
+      // Several choices: keep the ones still on offer, drop the rest.
+      const kept = current.filter((v) => allowed.includes(String(v)))
+      if (kept.length === current.length) continue
+      out = clearOrphanedChoices(module, { ...out, [child]: kept }, child)
+      continue
+    }
     if (allowed.includes(String(current))) continue
     out = clearOrphanedChoices(module, { ...out, [child]: null }, child)
   }

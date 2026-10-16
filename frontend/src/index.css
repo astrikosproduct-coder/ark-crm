@@ -229,6 +229,8 @@
   --animate-slide-out-right: ark-slide-out-right 200ms cubic-bezier(0.32, 0.72, 0, 1);
   --animate-slide-in-left: ark-slide-in-left 260ms cubic-bezier(0.32, 0.72, 0, 1);
   --animate-slide-out-left: ark-slide-out-left 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  --animate-slide-in-top: ark-slide-in-top 260ms cubic-bezier(0.32, 0.72, 0, 1);
+  --animate-slide-out-top: ark-slide-out-top 200ms cubic-bezier(0.32, 0.72, 0, 1);
   --animate-fade-in: ark-fade-in 200ms ease-out;
   --animate-fade-out: ark-fade-out 180ms ease-in;
   --radius-sm: calc(var(--radius) - 4px);
@@ -362,6 +364,22 @@ body {
   }
   to {
     transform: translateX(-100%);
+  }
+}
+@keyframes ark-slide-in-top {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes ark-slide-out-top {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-100%);
   }
 }
 @keyframes ark-fade-in {

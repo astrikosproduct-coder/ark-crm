@@ -165,7 +165,9 @@ def case_2_administration_sees_the_crm(db) -> None:
     # Leads 81 -> 80, Opportunities 107 -> 106, Deals 98 -> 97.
     # Then each gains State (release_1_1_location_metadata.py, own on Leads and
     # From the Lead on the other two): back to 81, 107 and 98.
-    for module, expected in (("leads", 81), ("opportunities", 107), ("deals", 98)):
+    # Release 1.2 (15 Oct 2026): Segment Category and Subsegment, on Leads and
+    # From the Lead on the other two: 83, 109 and 100.
+    for module, expected in (("leads", 83), ("opportunities", 109), ("deals", 100)):
         resolved = len(R.resolved_fields(db, module))
         api = client.get(
             "/api/admin/metadata/fields", params={"module": module}
@@ -447,7 +449,8 @@ def case_9_read_through(db) -> None:
     plan = R.read_through_plan(db, "opportunities")
     # 27 since Pursuit Groups: fx_rate_at_entry reads through beside currency.
     # 27 -> 26 -> 27: Release 1.1 deleted the old Segment and added State.
-    check("Opportunities reads 27 fields through", len(plan) == 27, str(len(plan)))
+    # 27 -> 29: Release 1.2 added Segment Category and Subsegment.
+    check("Opportunities reads 29 fields through", len(plan) == 29, str(len(plan)))
     check("every one of them resolves to leads", set(plan.values()) == {"leads"})
 
     rows = [

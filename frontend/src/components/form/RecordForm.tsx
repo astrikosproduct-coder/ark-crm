@@ -45,6 +45,8 @@ export interface RecordFormProps {
   stageScope?: StageScope
   onCreateNew?: (field: FieldSpec) => void
   footer?: React.ReactNode
+  /** Sections without a card, under a small heading — see FormSection. */
+  flat?: boolean
 }
 
 /**
@@ -63,6 +65,7 @@ export function RecordForm({
   stageScope,
   onCreateNew,
   footer,
+  flat,
 }: RecordFormProps) {
   return (
     <RecordFormProvider
@@ -79,6 +82,7 @@ export function RecordForm({
         hiddenFields={hiddenFields}
         onCreateNew={onCreateNew}
         footer={footer}
+        flat={flat}
       />
     </RecordFormProvider>
   )
@@ -90,12 +94,14 @@ function RecordFormBody({
   hiddenFields,
   onCreateNew,
   footer,
+  flat,
 }: {
   module: string
   sections?: string[]
   hiddenFields?: ReadonlySet<string>
   onCreateNew?: (field: FieldSpec) => void
   footer?: React.ReactNode
+  flat?: boolean
 }) {
   const list = useMemo(() => sections ?? sectionsFor(module), [module, sections])
 
@@ -108,6 +114,7 @@ function RecordFormBody({
           section={section}
           hiddenFields={hiddenFields}
           onCreateNew={onCreateNew}
+          flat={flat}
         />
       ))}
       {footer}
@@ -145,6 +152,7 @@ export function FormSection({
   defaultOpen = true,
   only,
   title,
+  flat = false,
 }: {
   module: string
   section: string
@@ -161,6 +169,12 @@ export function FormSection({
   only?: string[]
   /** Overrides the register's section name in the header. */
   title?: string
+  /**
+   * No card and a small heading: the section is one part of a panel that is
+   * already a surface — a conflict's adjudication inside its Conflict tab —
+   * where a second card and a page-size title read as boxes in boxes.
+   */
+  flat?: boolean
 }) {
   const form = useRecordForm()
   const [open, setOpen] = useState(defaultOpen)
@@ -190,16 +204,20 @@ export function FormSection({
     <Collapsible
       open={open}
       onOpenChange={setOpen}
-      className="bg-card rounded-lg shadow-sm"
+      className={flat ? undefined : 'bg-card rounded-lg shadow-sm'}
     >
-      <CollapsibleTrigger className="flex w-full items-center gap-2 px-6 pt-5 pb-1 text-left">
+      <CollapsibleTrigger
+        className={cn('flex w-full items-center gap-2 text-left', flat ? 'pb-1' : 'px-6 pt-5 pb-1')}
+      >
         <ChevronDownIcon
           className={cn(
             'text-muted-foreground size-4 shrink-0 transition-transform',
             !open && '-rotate-90'
           )}
         />
-        <span className="text-page-title font-bold tracking-tight">{title ?? section}</span>
+        <span className={flat ? 'text-sm font-semibold' : 'text-page-title font-bold tracking-tight'}>
+          {title ?? section}
+        </span>
         {errorCount > 0 && (
           <Badge variant="destructive" className="ml-auto">
             {errorCount}
@@ -227,7 +245,12 @@ export function FormSection({
             cell — and the whole page — sideways instead of scrolling inside
             its own overflow box. With no column template at all, the one
             implicit column grew to the table's width the same way. */}
-        <div className="grid grid-cols-1 gap-x-10 gap-y-5 px-6 pt-4 pb-7 *:min-w-0 [--ark-form-label:9rem] @3xl:grid-cols-2">
+        <div
+          className={cn(
+            'grid grid-cols-1 gap-x-10 gap-y-5 *:min-w-0 [--ark-form-label:9rem] @3xl:grid-cols-2',
+            flat ? 'pt-3 pb-1' : 'px-6 pt-4 pb-7'
+          )}
+        >
           {nodes.map((node) => (
             <AnchorCell
               key={node.field.qref}

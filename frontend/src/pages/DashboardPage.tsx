@@ -20,6 +20,7 @@ import { date, money } from '@/lib/format'
 import { moduleFor } from '@/lib/modules'
 import { usd } from '@/lib/revenue'
 import { fieldOf, optionsFor } from '@/lib/spec'
+import { allowedChoices } from '@/lib/spec/dependencies'
 import { cn } from '@/lib/utils'
 
 const ALL = '__all__'
@@ -35,6 +36,17 @@ function plural(n: number, word: string): string {
 /** A Lead field's picklist, so every filter offers exactly what the Lead form offers. */
 function leadOptions(apiName: string) {
   return optionsFor(fieldOf('leads', apiName)?.picklist).map((o) => ({ value: o.key, label: o.label }))
+}
+
+/**
+ * A Lead field's choices as the Lead form would offer them for these parent
+ * values: Segment Category under the Segment chosen, Subsegment under the
+ * Category. Everything when nothing above it is chosen.
+ */
+function dependentLeadOptions(apiName: string, values: Record<string, unknown>) {
+  const allowed = allowedChoices('leads', apiName, values)
+  const all = leadOptions(apiName)
+  return allowed === null || allowed.length === 0 ? all : all.filter((o) => allowed.includes(o.value))
 }
 
 /** "01 Jan 2027 – 30 Apr 2027", or the one end that is set. */
@@ -83,6 +95,29 @@ export function DashboardPage() {
   const setFilter = (key: keyof DashboardFilters) => (value: string) =>
     setFilters((f) => ({ ...f, [key]: value === ALL ? undefined : value }))
 
+  // Segment -> Segment Category -> Subsegment narrow one another, as on the
+  // Lead form; a new Segment drops a Category (and Subsegment) outside it.
+  const categoryOptions = dependentLeadOptions('segment_category', { theme: filters.segment })
+  const subsegmentOptions = filters.segment_category
+    ? dependentLeadOptions('subsegment', { segment_category: filters.segment_category })
+    : dependentLeadOptions('subsegment', { segment_category: categoryOptions.map((o) => o.value) })
+  const setSegment = (value: string) =>
+    setFilters((f) => {
+      const segment = value === ALL ? undefined : value
+      const categories = dependentLeadOptions('segment_category', { theme: segment }).map((o) => o.value)
+      const category = f.segment_category && categories.includes(f.segment_category) ? f.segment_category : undefined
+      const subsegments = dependentLeadOptions('subsegment', { segment_category: category ?? categories }).map((o) => o.value)
+      const subsegment = f.subsegment && subsegments.includes(f.subsegment) ? f.subsegment : undefined
+      return { ...f, segment, segment_category: category, subsegment }
+    })
+  const setCategory = (value: string) =>
+    setFilters((f) => {
+      const category = value === ALL ? undefined : value
+      const subsegments = category ? dependentLeadOptions('subsegment', { segment_category: category }).map((o) => o.value) : null
+      const subsegment = f.subsegment && (!subsegments || subsegments.includes(f.subsegment)) ? f.subsegment : undefined
+      return { ...f, segment_category: category, subsegment }
+    })
+
   const setRange = (from: string, to: string) => {
     setDraft({ from, to })
     if (from && to && from > to) return
@@ -113,6 +148,7 @@ export function DashboardPage() {
   return (
     <PageLayout
       wide
+      titleInTopBar
       title="Dashboard"
       subtitle={data ? `As of ${date(data.as_of)}` : undefined}
       tabs={[
@@ -166,7 +202,19 @@ export function DashboardPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <FilterSelect label="All regions" value={filters.region} onChange={setFilter('region')} options={leadOptions('destination_region')} />
-                  <FilterSelect label="All segments" value={filters.segment} onChange={setFilter('segment')} options={leadOptions('theme')} />
+                  <FilterSelect label="All segments" value={filters.segment} onChange={setSegment} options={leadOptions('theme')} />
+                  <FilterSelect
+                    label="All segment categories"
+                    value={filters.segment_category}
+                    onChange={setCategory}
+                    options={categoryOptions}
+                  />
+                  <FilterSelect
+                    label="All subsegments"
+                    value={filters.subsegment}
+                    onChange={setFilter('subsegment')}
+                    options={subsegmentOptions}
+                  />
                   <FilterSelect
                     label="All BD owners"
                     value={filters.owner}

@@ -52,6 +52,7 @@ export function ListFilterBar({
   filters,
   plural,
   showStage = true,
+  showScope = true,
   searchPlaceholder = 'Search…',
 }: {
   filters: ListFilters
@@ -59,6 +60,8 @@ export function ListFilterBar({
   plural: string
   /** False on Kanban, whose columns ARE the stages. */
   showStage?: boolean
+  /** False on a list page, which shows the scope beside its title (ListPageLayout). */
+  showScope?: boolean
   searchPlaceholder?: string
 }) {
   const hidden = showStage ? undefined : filters.stageField
@@ -69,8 +72,8 @@ export function ListFilterBar({
   )
 
   return (
-    <div className="flex flex-wrap items-center gap-2 pt-3">
-      <ScopePicker filters={filters} />
+    <div className="flex flex-wrap items-center gap-2">
+      {showScope && <ScopePicker filters={filters} />}
       <FilterPanel filters={filters} plural={plural} hidden={hidden} activeCount={active.length} />
       <SearchBox filters={filters} placeholder={searchPlaceholder} />
       {active.map(([key, condition]) => {
@@ -147,7 +150,7 @@ function defaultCondition(field: FilterField): Condition {
  * says plainly that the filter has taken over, and removing the chip gives the
  * scope back.
  */
-function ScopePicker({ filters }: { filters: ListFilters }) {
+export function ScopePicker({ filters }: { filters: ListFilters }) {
   const scope = filters.scope
   if (!scope) return null
   return (

@@ -471,7 +471,7 @@ def spin_off_pilot_deal(db: Session, lead: Lead, *, actor: str | None) -> Deal |
         record_id=deal_id,
         action="created",
         actor=actor,
-        changed_fields=[f"from {lead.lead_id} — paid POC/pilot", *copied],
+        changed_fields=["from the Lead — paid POC/pilot", *copied],
     )
 
     was = lead.lead_status

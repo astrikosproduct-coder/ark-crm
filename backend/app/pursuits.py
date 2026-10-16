@@ -277,6 +277,13 @@ def _registration_label(db: Session, registration_id: str | None) -> str:
     return f"{who}'s registration"
 
 
+def _conflict_label(db: Session, conflict: RegistrationConflict) -> str:
+    """"Conflict: Siemens vs Avanceon" — named by its partners, never its number."""
+    from .registration_matching import account_names, conflict_name, partner_names_of_registrations
+
+    return conflict_name(conflict, partner_names_of_registrations(db, account_names(db)))
+
+
 def _roots_named(changes: dict[str, tuple[Any, Any]]) -> Iterable[str]:
     for old, new in changes.values():
         for value in (old, new):
@@ -859,7 +866,7 @@ def apply_conflict_decision(db: Session, conflict: RegistrationConflict, *, prev
             group.group_id,
             actor,
             "created",
-            f"Conflict {conflict.conflict_id} decided: both pursued.",
+            f"{_conflict_label(db, conflict)} decided: both pursued.",
             primary_registration=(None, conflict.primary_registration),
         )
     elif group.primary_registration != conflict.primary_registration:
@@ -871,7 +878,7 @@ def apply_conflict_decision(db: Session, conflict: RegistrationConflict, *, prev
             group.group_id,
             actor,
             "primary_registration_changed",
-            f"Conflict {conflict.conflict_id} changed its primary registration.",
+            f"{_conflict_label(db, conflict)} changed its primary registration.",
             primary_registration=(old, conflict.primary_registration),
         )
 

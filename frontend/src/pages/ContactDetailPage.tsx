@@ -61,7 +61,7 @@ export function ContactDetailPage() {
           {
             key: 'missing',
             label: 'Overview',
-            content: <p className="py-6 text-sm text-destructive">No contact with id {id}.</p>,
+            content: <p className="py-6 text-sm text-destructive">This contact does not exist.</p>,
           },
         ]}
       />

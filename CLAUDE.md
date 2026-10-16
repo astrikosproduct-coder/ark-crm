@@ -72,6 +72,10 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    | Map Dependency Fields — Region → Country → State | `field_dependencies`, `field_dependency_values` (r11_0001); `accounts.country/state`, `leads.state` | in the published register: `/api/spec` → `dependencies`, `spec/dependencies.json` |
    | Groups of companies, the duplicate-company check | `accounts.parent_account`, `accounts.not_duplicate_of` (r11_0002) | `/api/accounts`, `/api/accounts/{id}/group`, `/api/accounts/{id}/make-head` |
 
+   | Release 1.2 (`v1.2.0`, 15 Oct 2026) | Tables | Served at |
+   |---|---|---|
+   | Each person's own list columns and Kanban board | `user_view_preferences` (r11_0003) | `/api/view-preferences/{list:… \| kanban:…}` — the caller's own only |
+
    **Release 1.1** shipped on its own branch from V1, before Phase 2 (DEPLOY.md, "Release 1.1:
    the one-time update"). What it decided:
    - **Region → Country → State** (Zoho's Map Dependency Fields): per module, a child field
@@ -112,6 +116,75 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
      partner and both registrations live is always asked (`app/registration_matching.py`).
    - **Leads are the one door**: there is no "New opportunity" (and never was a "New deal");
      the server refuses an Opportunity with no Lead (OPPORTUNITY_NEEDS_LEAD).
+
+   **Release 1.2** (`v1.2.0`, 14–15 Oct 2026; planned as 1.1.1 + 1.2, shipped as one — DEPLOY.md,
+   "Release 1.2"). What it decided:
+   - **No record numbers anywhere a person reads** (Zoho): autonumber fields are never drawn
+     (`useRecordForm.visibleFieldsOf`); History names the other record ("Converted from Lead:
+     …", `/api/conversions` serves `source_name`/`target_name`, and an old note's number is
+     replaced by the name when read); a pursuit group's history names a conflict by its
+     partners. Numbers stay in the address bar and in Export. Administration shows no user or
+     role ids either.
+   - **Partner Tier only for a Systems Integrator or a Strategic MSI** (the head's rule;
+     `release_1_2_partner_tier_metadata.py`, a register change — no code).
+   - **Country is findable without its Region** (`dependencies.ts::findableAcrossParents`): a
+     child whose parent follows nothing lists its parent's choices first, then every other
+     choice with its parent beside it; picking one fills the parent in (`fillParents`). State
+     stays inside its Country. The server's DEPENDENT_CHOICE check is unchanged.
+   - **Each person's own list columns and Kanban board** (Zoho's Manage Columns / Kanban View
+     Settings), in `user_view_preferences` (r11_0003) behind `/api/view-preferences/{view}` —
+     always the caller's, from the session; no row is the default view, which nobody else's
+     choice changes. A list offers exactly the fields its Filter panel offers (plus its default
+     columns): the page passes `columnChoices`, never a list of names. Lists: columns, order,
+     widths, rows per page, clip/wrap. Boards: Categorize By (any single-choice field), Aggregate
+     By (Value, or Weighted = each counted record's USD × its own Probability), up to six card
+     fields. The default card reads "End Client · Partner". Aggregate By may be None (no
+     totals). Lists also pin (`pinned`) and hide columns from each header's ☰ menu (Asc, Desc,
+     Pin, Hide); there are no sort arrows. These are layout, not data: **not audited**.
+   - **Segment -> Segment Category -> Subsegment on Leads and Accounts**
+     (`release_1_2_market_segments_metadata.py`, from `backend/data/market_segments.json` —
+     the file and list keys phase-2's Products use; 41 categories, 132 subsegments). Leads:
+     ONE choice each (`segment_category`, `subsegment`), so a pursuit is counted once when
+     grouped; Opportunities and Deals show them From the Lead, never a copy. Accounts:
+     SEVERAL each (`segment_categories`, `subsegments`) under their several Segments. All
+     Optional, values in `custom_fields` (no DDL), picked by hand on a Lead — never copied
+     from the Account. The Dashboard filters by the Lead's, as by Segment. A dependency may
+     now join multi-choice fields (`field_dependencies.allowed`, `dependencies.ts::
+     allowedChoices`): a child offers the choices of every parent choice held — ported from
+     phase-2, identical code.
+   - **Low Hanging / Top 10 work from their own screen** (`RankedOpportunityList`): three cards
+     on top (slots, Revenue, Weighted), the List's records box and cells with its View
+     Settings (keys `list:opportunities_low_hanging` / `_top_ten` in `user_view_preferences` —
+     no new table), drag a pick onto another slot to move or swap (`PUT
+     /api/opportunities/priority/{flag}`, one transaction, a History line per record,
+     `priority_flags.resolve_reorder`), add to an open slot in place (the record's own save;
+     one on the other list moves, said before it is picked — the two stay mutually
+     exclusive), Remove behind ⋯ and a question.
+   - **Each person's default view of a module** (`ListPageLayout pageKey`): a ☆ beside the
+     view icons makes the view on screen the one Leads, Opportunities, Deals or Partners opens
+     on for them — `page:<module>` in `user_view_preferences` (r11_0003's check allows
+     `list|kanban|page`). Nothing changes for anyone else.
+   - **Every module's list screen is `ListPageLayout`** (Zoho's): the title and scope sit in
+     the top bar, then one toolbar line (filter bar, view icons, the module's split button),
+     then a records box that fills the screen and is the only thing that scrolls
+     (`RecordListView fill`, a sticky header, the footer inside; Kanban columns scroll their
+     own cards). **A new module's list page uses it, with `fill` and `columnChoices`** —
+     never `PageLayout`, which is for record and create screens. Each view keeps the filter
+     bar, and the filter applies to it (Low Hanging / Top 10 included). One split button per
+     module: create on the left, Import / Export under ▾.
+   - **The Conflict tab reads as one record**: a header line, the pursuits, the adjudication
+     as ordinary fields (`FormSection flat`) — no boxes inside boxes, no explainer text. The
+     Registration page has no line under its name.
+   - **`backend/bring_in.py` brings a BD owner's existing pipeline in at each pursuit's stage**
+     (decided 14 Oct 2026, the ROB load): a developer-run onboarding tool, never part of the
+     app. Every pursuit is created as a Lead and moved/converted by the app's own routes, in one
+     transaction (dry run = rolled back; `--apply` = all or nothing; a re-run skips what is
+     there). The "brought in at Stage N" rule waives the fields of stages already passed, by
+     switching `requirements.ENFORCED` off for that one request in that process only. Two
+     partners on one project are two rows with **Primary** Yes/No → two registrations, a
+     conflict decided Both pursued, a pursuit group. Deal registrations are made ONLY for that
+     case (the head's rule). The value lands as the Lead's Estimated Value, the Opportunity's
+     One-Time Revenue (so TCV equals it) and the Deal's Contract Value.
 
    **Import / export** (`backend/app/spreadsheets/`). Export: every live module, a workbook of
    Summary + one sheet per form section + Stage history + child lists, rows from the module's

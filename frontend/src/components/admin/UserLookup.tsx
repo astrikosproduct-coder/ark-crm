@@ -145,7 +145,7 @@ export function UserLookup({ users, loading, onPick, onPickDirectory, onCreateNe
                       </span>
                     </span>
                     <span className="text-muted-foreground ml-auto shrink-0 text-xs">
-                      {person.user_id ? `In ARK CRM · ${person.user_id}` : 'Add'}
+                      {person.user_id ? 'Already in ARK CRM' : 'Add'}
                     </span>
                   </CommandItem>
                 ))}

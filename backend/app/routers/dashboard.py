@@ -320,9 +320,17 @@ def _rows(db: Session, leads: dict[str, Lead], opportunities: list[Opportunity],
     return rows
 
 
+def _lead_value(lead: Lead, name: str) -> Any:
+    """A Lead's value: its column, else its custom_fields (Segment Category and
+    Subsegment live there since Release 1.2, as Administration's fields do)."""
+    if hasattr(type(lead), name):
+        return getattr(lead, name)
+    return (lead.custom_fields or {}).get(name)
+
+
 def _in_slice(row: Row, filters: dict[str, str | None]) -> bool:
     for attr, wanted in filters.items():
-        if wanted and (row.root is None or getattr(row.root, attr) != wanted):
+        if wanted and (row.root is None or _lead_value(row.root, attr) != wanted):
             return False
     return True
 
@@ -436,6 +444,8 @@ def _refuse(code: str, message: str) -> HTTPException:
 def dashboard(
     region: str | None = None,
     segment: str | None = None,
+    segment_category: str | None = None,
+    subsegment: str | None = None,
     owner: str | None = None,
     opportunity_type: str | None = None,
     date_from: date | None = None,
@@ -464,6 +474,10 @@ def dashboard(
         # The Segment filter reads the Lead's `theme` field, labelled Segment
         # since Release 1.1 (6 Oct 2026); the old Segment field is deleted.
         "theme": segment,
+        # Release 1.2: the Lead's own Segment Category and Subsegment, so an
+        # Opportunity or Deal is sliced by its Lead's, as it is by Segment.
+        "segment_category": segment_category,
+        "subsegment": subsegment,
         "bd_owner": owner,
         "opportunity_type": opportunity_type,
     }
@@ -644,7 +658,14 @@ def dashboard(
             "stuck_after_days": STUCK_AFTER_DAYS,
             "due_window_days": DUE_WINDOW_DAYS,
         },
-        "filters": {"region": region, "segment": segment, "owner": owner, "opportunity_type": opportunity_type},
+        "filters": {
+            "region": region,
+            "segment": segment,
+            "segment_category": segment_category,
+            "subsegment": subsegment,
+            "owner": owner,
+            "opportunity_type": opportunity_type,
+        },
         "owners": sorted(
             ({"id": uid, "name": users.get(uid, uid)} for uid in owner_ids), key=lambda o: o["name"].lower()
         ),

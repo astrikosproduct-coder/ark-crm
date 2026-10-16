@@ -918,7 +918,9 @@ def validate_snapshot(snapshot: dict[str, Any]) -> ValidationResult:
         keys = []
         for end in ends:
             picklist = picklists.get(end.get("picklist") or "")
-            if end.get("type") != "picklist" or picklist is None:
+            # A multi-choice field is a picklist too (Release 1.2): it then
+            # offers the choices of every parent choice held.
+            if end.get("type") not in ("picklist", "multiselect") or end.get("lookup_target") or picklist is None:
                 result.errors.append(f"field dependency {where}: {end['api_name']} is not a picklist field")
                 break
             keys.append({v["key"] for v in picklist["values"]})

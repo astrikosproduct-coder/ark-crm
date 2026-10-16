@@ -116,6 +116,9 @@ export interface DashboardData {
 export interface DashboardFilters {
   region?: string
   segment?: string
+  /** The Lead's Segment Category and Subsegment (Release 1.2). */
+  segment_category?: string
+  subsegment?: string
   owner?: string
   opportunity_type?: string
   /** 'YYYY-MM-DD', inclusive. */

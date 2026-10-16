@@ -26386,5 +26386,1047 @@
    "sort": 3590,
    "active": true
   }
+ ],
+ "segment_categories": [
+  {
+   "key": "PUBLIC_SAFETY",
+   "label": "Public Safety",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "GOVERNMENT",
+   "label": "Government",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "URBAN_SERVICES",
+   "label": "Urban Services",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "DEVELOPMENT",
+   "label": "Development",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "CITIZEN_FACING",
+   "label": "Citizen-Facing",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "EDUCATION",
+   "label": "Education",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "COMMERCIAL_REAL_ESTATE",
+   "label": "Commercial Real Estate",
+   "sort": 7,
+   "active": true
+  },
+  {
+   "key": "HEALTHCARE",
+   "label": "Healthcare",
+   "sort": 8,
+   "active": true
+  },
+  {
+   "key": "RETAIL_LEISURE",
+   "label": "Retail & Leisure",
+   "sort": 9,
+   "active": true
+  },
+  {
+   "key": "RESIDENTIAL",
+   "label": "Residential",
+   "sort": 10,
+   "active": true
+  },
+  {
+   "key": "INSTITUTIONAL",
+   "label": "Institutional",
+   "sort": 11,
+   "active": true
+  },
+  {
+   "key": "AVIATION",
+   "label": "Aviation",
+   "sort": 12,
+   "active": true
+  },
+  {
+   "key": "RAIL",
+   "label": "Rail",
+   "sort": 13,
+   "active": true
+  },
+  {
+   "key": "ROAD",
+   "label": "Road",
+   "sort": 14,
+   "active": true
+  },
+  {
+   "key": "MARITIME",
+   "label": "Maritime",
+   "sort": 15,
+   "active": true
+  },
+  {
+   "key": "LOGISTICS",
+   "label": "Logistics",
+   "sort": 16,
+   "active": true
+  },
+  {
+   "key": "PUBLIC_TRANSIT",
+   "label": "Public Transit",
+   "sort": 17,
+   "active": true
+  },
+  {
+   "key": "PROCESS",
+   "label": "Process",
+   "sort": 18,
+   "active": true
+  },
+  {
+   "key": "DISCRETE",
+   "label": "Discrete",
+   "sort": 19,
+   "active": true
+  },
+  {
+   "key": "INDUSTRIAL_ZONES",
+   "label": "Industrial Zones",
+   "sort": 20,
+   "active": true
+  },
+  {
+   "key": "ENABLERS_CHANNEL",
+   "label": "Enablers (Channel)",
+   "sort": 21,
+   "active": true
+  },
+  {
+   "key": "POWER",
+   "label": "Power",
+   "sort": 22,
+   "active": true
+  },
+  {
+   "key": "RENEWABLES",
+   "label": "Renewables",
+   "sort": 23,
+   "active": true
+  },
+  {
+   "key": "OIL_GAS",
+   "label": "Oil & Gas",
+   "sort": 24,
+   "active": true
+  },
+  {
+   "key": "WATER",
+   "label": "Water",
+   "sort": 25,
+   "active": true
+  },
+  {
+   "key": "DISTRICT_SERVICES",
+   "label": "District Services",
+   "sort": 26,
+   "active": true
+  },
+  {
+   "key": "TELECOM",
+   "label": "Telecom",
+   "sort": 27,
+   "active": true
+  },
+  {
+   "key": "OTHER_CRITICAL_INFRA",
+   "label": "Other Critical Infra",
+   "sort": 28,
+   "active": true
+  },
+  {
+   "key": "HYPERSCALE",
+   "label": "Hyperscale",
+   "sort": 29,
+   "active": true
+  },
+  {
+   "key": "COLOCATION",
+   "label": "Colocation",
+   "sort": 30,
+   "active": true
+  },
+  {
+   "key": "ENTERPRISE",
+   "label": "Enterprise",
+   "sort": 31,
+   "active": true
+  },
+  {
+   "key": "SOVEREIGN",
+   "label": "Sovereign",
+   "sort": 32,
+   "active": true
+  },
+  {
+   "key": "EDGE",
+   "label": "Edge",
+   "sort": 33,
+   "active": true
+  },
+  {
+   "key": "DEVELOPERS_OPERATORS",
+   "label": "Developers & Operators",
+   "sort": 34,
+   "active": true
+  },
+  {
+   "key": "ARMED_FORCES",
+   "label": "Armed Forces",
+   "sort": 35,
+   "active": true
+  },
+  {
+   "key": "DEFENCE_ASSETS",
+   "label": "Defence Assets",
+   "sort": 36,
+   "active": true
+  },
+  {
+   "key": "DEFENCE_INDUSTRY",
+   "label": "Defence Industry",
+   "sort": 37,
+   "active": true
+  },
+  {
+   "key": "SPACE",
+   "label": "Space",
+   "sort": 38,
+   "active": true
+  },
+  {
+   "key": "HOMELAND_SECURITY",
+   "label": "Homeland Security",
+   "sort": 39,
+   "active": true
+  },
+  {
+   "key": "PROTECTED_MARKETS",
+   "label": "Protected Markets",
+   "sort": 40,
+   "active": true
+  },
+  {
+   "key": "SOVEREIGN_PROGRAMMES",
+   "label": "Sovereign Programmes",
+   "sort": 41,
+   "active": true
+  }
+ ],
+ "subsegments": [
+  {
+   "key": "POLICE_INTERNAL_SECURITY",
+   "label": "Police & Internal Security",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "key": "CIVIL_DEFENCE_EMERGENCY_SERVICES",
+   "label": "Civil Defence & Emergency Services",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "key": "BORDER_COASTAL_SECURITY",
+   "label": "Border & Coastal Security",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "key": "NATIONAL_FEDERAL_GOVERNMENT",
+   "label": "National / Federal Government",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "key": "MUNICIPAL_CITY_COUNCILS",
+   "label": "Municipal & City Councils",
+   "sort": 5,
+   "active": true
+  },
+  {
+   "key": "FREE_ZONES_SPECIAL_ECONOMIC_ZONES",
+   "label": "Free Zones & Special Economic Zones",
+   "sort": 6,
+   "active": true
+  },
+  {
+   "key": "TRAFFIC_MOBILITY_MANAGEMENT",
+   "label": "Traffic & Mobility Management",
+   "sort": 7,
+   "active": true
+  },
+  {
+   "key": "WASTE_ENVIRONMENT",
+   "label": "Waste & Environment",
+   "sort": 8,
+   "active": true
+  },
+  {
+   "key": "WATER_STREET_LIGHTING",
+   "label": "Water & Street Lighting",
+   "sort": 9,
+   "active": true
+  },
+  {
+   "key": "PARKING_PUBLIC_SPACE_MANAGEMENT",
+   "label": "Parking & Public Space Management",
+   "sort": 10,
+   "active": true
+  },
+  {
+   "key": "MASTER_DEVELOPERS_GIGA_PROJECTS",
+   "label": "Master Developers & Giga-Projects",
+   "sort": 11,
+   "active": true
+  },
+  {
+   "key": "REAL_ESTATE_TOWNSHIP_DEVELOPERS",
+   "label": "Real Estate & Township Developers",
+   "sort": 12,
+   "active": true
+  },
+  {
+   "key": "GREENFIELD_NEW_CITY_DEVELOPMENTS",
+   "label": "Greenfield / New-City Developments",
+   "sort": 13,
+   "active": true
+  },
+  {
+   "key": "TOURISM_EVENTS",
+   "label": "Tourism & Events",
+   "sort": 14,
+   "active": true
+  },
+  {
+   "key": "PUBLIC_HEALTH_AUTHORITIES",
+   "label": "Public Health Authorities",
+   "sort": 15,
+   "active": true
+  },
+  {
+   "key": "SMART_GOVERNMENT_SERVICE_PORTALS",
+   "label": "Smart Government Service Portals",
+   "sort": 16,
+   "active": true
+  },
+  {
+   "key": "UNIVERSITIES",
+   "label": "Universities",
+   "sort": 17,
+   "active": true
+  },
+  {
+   "key": "K_12_SCHOOL_GROUPS",
+   "label": "K-12 & School Groups",
+   "sort": 18,
+   "active": true
+  },
+  {
+   "key": "RESEARCH_CAMPUSES",
+   "label": "Research Campuses",
+   "sort": 19,
+   "active": true
+  },
+  {
+   "key": "OFFICE_TOWERS",
+   "label": "Office Towers",
+   "sort": 20,
+   "active": true
+  },
+  {
+   "key": "BUSINESS_PARKS",
+   "label": "Business Parks",
+   "sort": 21,
+   "active": true
+  },
+  {
+   "key": "MIXED_USE_DEVELOPMENTS",
+   "label": "Mixed-Use Developments",
+   "sort": 22,
+   "active": true
+  },
+  {
+   "key": "FACILITY_MANAGEMENT_COMPANIES",
+   "label": "Facility Management Companies",
+   "sort": 23,
+   "active": true
+  },
+  {
+   "key": "HOSPITALS",
+   "label": "Hospitals",
+   "sort": 24,
+   "active": true
+  },
+  {
+   "key": "CLINICS_MEDICAL_CITIES",
+   "label": "Clinics & Medical Cities",
+   "sort": 25,
+   "active": true
+  },
+  {
+   "key": "PHARMA_LIFE_SCIENCE_CAMPUSES",
+   "label": "Pharma & Life-Science Campuses",
+   "sort": 26,
+   "active": true
+  },
+  {
+   "key": "MALLS",
+   "label": "Malls",
+   "sort": 27,
+   "active": true
+  },
+  {
+   "key": "HOTELS_RESORTS",
+   "label": "Hotels & Resorts",
+   "sort": 28,
+   "active": true
+  },
+  {
+   "key": "STADIUMS_ENTERTAINMENT_VENUES",
+   "label": "Stadiums & Entertainment Venues",
+   "sort": 29,
+   "active": true
+  },
+  {
+   "key": "CONVENTION_CENTRES",
+   "label": "Convention Centres",
+   "sort": 30,
+   "active": true
+  },
+  {
+   "key": "PREMIUM_RESIDENTIAL_TOWERS",
+   "label": "Premium Residential Towers",
+   "sort": 31,
+   "active": true
+  },
+  {
+   "key": "GATED_COMMUNITIES",
+   "label": "Gated Communities",
+   "sort": 32,
+   "active": true
+  },
+  {
+   "key": "STUDENT_STAFF_HOUSING",
+   "label": "Student & Staff Housing",
+   "sort": 33,
+   "active": true
+  },
+  {
+   "key": "GOVERNMENT_BUILDINGS",
+   "label": "Government Buildings",
+   "sort": 34,
+   "active": true
+  },
+  {
+   "key": "EMBASSIES",
+   "label": "Embassies",
+   "sort": 35,
+   "active": true
+  },
+  {
+   "key": "RELIGIOUS_SITES",
+   "label": "Religious Sites",
+   "sort": 36,
+   "active": true
+  },
+  {
+   "key": "CORPORATE_HQS",
+   "label": "Corporate HQs",
+   "sort": 37,
+   "active": true
+  },
+  {
+   "key": "AIRPORTS",
+   "label": "Airports",
+   "sort": 38,
+   "active": true
+  },
+  {
+   "key": "AIRLINES_GROUND_HANDLERS",
+   "label": "Airlines & Ground Handlers",
+   "sort": 39,
+   "active": true
+  },
+  {
+   "key": "METRO_LIGHT_RAIL",
+   "label": "Metro & Light Rail",
+   "sort": 40,
+   "active": true
+  },
+  {
+   "key": "MAINLINE_HIGH_SPEED_RAIL",
+   "label": "Mainline & High-Speed Rail",
+   "sort": 41,
+   "active": true
+  },
+  {
+   "key": "RAIL_STATIONS",
+   "label": "Rail Stations",
+   "sort": 42,
+   "active": true
+  },
+  {
+   "key": "HIGHWAYS_TUNNELS",
+   "label": "Highways & Tunnels",
+   "sort": 43,
+   "active": true
+  },
+  {
+   "key": "TOLLING_OPERATORS",
+   "label": "Tolling Operators",
+   "sort": 44,
+   "active": true
+  },
+  {
+   "key": "BRIDGES",
+   "label": "Bridges",
+   "sort": 45,
+   "active": true
+  },
+  {
+   "key": "SMART_PARKING",
+   "label": "Smart Parking",
+   "sort": 46,
+   "active": true
+  },
+  {
+   "key": "SEAPORTS_CONTAINER_TERMINALS",
+   "label": "Seaports & Container Terminals",
+   "sort": 47,
+   "active": true
+  },
+  {
+   "key": "FREE_ZONE_LOGISTICS_HUBS",
+   "label": "Free-Zone Logistics Hubs",
+   "sort": 48,
+   "active": true
+  },
+  {
+   "key": "INLAND_DRY_PORTS",
+   "label": "Inland & Dry Ports",
+   "sort": 49,
+   "active": true
+  },
+  {
+   "key": "WAREHOUSING_FULFILMENT",
+   "label": "Warehousing & Fulfilment",
+   "sort": 50,
+   "active": true
+  },
+  {
+   "key": "FREIGHT_CORRIDORS",
+   "label": "Freight Corridors",
+   "sort": 51,
+   "active": true
+  },
+  {
+   "key": "LAST_MILE_FLEET_OPERATORS",
+   "label": "Last-Mile & Fleet Operators",
+   "sort": 52,
+   "active": true
+  },
+  {
+   "key": "BUS_NETWORKS",
+   "label": "Bus Networks",
+   "sort": 53,
+   "active": true
+  },
+  {
+   "key": "RIDE_HAILING_MOBILITY_SERVICES",
+   "label": "Ride-Hailing & Mobility Services",
+   "sort": 54,
+   "active": true
+  },
+  {
+   "key": "EV_CHARGING_NETWORKS",
+   "label": "EV Charging Networks",
+   "sort": 55,
+   "active": true
+  },
+  {
+   "key": "OIL_GAS_DOWNSTREAM_INDUSTRIAL",
+   "label": "Oil & Gas (Downstream & Industrial)",
+   "sort": 56,
+   "active": true
+  },
+  {
+   "key": "CEMENT_BUILDING_MATERIALS",
+   "label": "Cement & Building Materials",
+   "sort": 57,
+   "active": true
+  },
+  {
+   "key": "STEEL_METALS",
+   "label": "Steel & Metals",
+   "sort": 58,
+   "active": true
+  },
+  {
+   "key": "CHEMICALS_SPECIALTY_MATERIALS",
+   "label": "Chemicals & Specialty Materials",
+   "sort": 59,
+   "active": true
+  },
+  {
+   "key": "PHARMA_LIFE_SCIENCES",
+   "label": "Pharma & Life Sciences",
+   "sort": 60,
+   "active": true
+  },
+  {
+   "key": "FOOD_BEVERAGE_CONSUMER_GOODS",
+   "label": "Food, Beverage & Consumer Goods",
+   "sort": 61,
+   "active": true
+  },
+  {
+   "key": "MINING_MINERALS",
+   "label": "Mining & Minerals",
+   "sort": 62,
+   "active": true
+  },
+  {
+   "key": "PULP_PAPER_PRINTING",
+   "label": "Pulp, Paper & Printing",
+   "sort": 63,
+   "active": true
+  },
+  {
+   "key": "AUTOMOTIVE",
+   "label": "Automotive",
+   "sort": 64,
+   "active": true
+  },
+  {
+   "key": "AEROSPACE_HEAVY_ENGINEERING",
+   "label": "Aerospace & Heavy Engineering",
+   "sort": 65,
+   "active": true
+  },
+  {
+   "key": "ELECTRONICS_SEMICONDUCTORS",
+   "label": "Electronics & Semiconductors",
+   "sort": 66,
+   "active": true
+  },
+  {
+   "key": "OTHER_DISCRETE_MANUFACTURING",
+   "label": "Other Discrete Manufacturing",
+   "sort": 67,
+   "active": true
+  },
+  {
+   "key": "SMART_INDUSTRIAL_PARKS_FREE_ZONE_CLUSTERS",
+   "label": "Smart Industrial Parks & Free-Zone Clusters",
+   "sort": 68,
+   "active": true
+  },
+  {
+   "key": "GIGAFACTORIES",
+   "label": "Gigafactories",
+   "sort": 69,
+   "active": true
+  },
+  {
+   "key": "OEMS_MACHINE_BUILDERS",
+   "label": "OEMs & Machine Builders",
+   "sort": 70,
+   "active": true
+  },
+  {
+   "key": "SYSTEM_INTEGRATORS_EPCS",
+   "label": "System Integrators & EPCs",
+   "sort": 71,
+   "active": true
+  },
+  {
+   "key": "POWER_GENERATION",
+   "label": "Power Generation",
+   "sort": 72,
+   "active": true
+  },
+  {
+   "key": "TRANSMISSION_DISTRIBUTION",
+   "label": "Transmission & Distribution",
+   "sort": 73,
+   "active": true
+  },
+  {
+   "key": "SOLAR_WIND_FARMS",
+   "label": "Solar & Wind Farms",
+   "sort": 74,
+   "active": true
+  },
+  {
+   "key": "BATTERY_STORAGE",
+   "label": "Battery Storage",
+   "sort": 75,
+   "active": true
+  },
+  {
+   "key": "GREEN_HYDROGEN",
+   "label": "Green Hydrogen",
+   "sort": 76,
+   "active": true
+  },
+  {
+   "key": "UPSTREAM",
+   "label": "Upstream",
+   "sort": 77,
+   "active": true
+  },
+  {
+   "key": "MIDSTREAM_PIPELINES",
+   "label": "Midstream & Pipelines",
+   "sort": 78,
+   "active": true
+  },
+  {
+   "key": "REFINERIES_LNG_TERMINALS_SHARED_WITH_INDUSTRY_4_0",
+   "label": "Refineries & LNG Terminals (shared with Industry 4.0)",
+   "sort": 79,
+   "active": true
+  },
+  {
+   "key": "DESALINATION",
+   "label": "Desalination",
+   "sort": 80,
+   "active": true
+  },
+  {
+   "key": "WATER_DISTRIBUTION",
+   "label": "Water Distribution",
+   "sort": 81,
+   "active": true
+  },
+  {
+   "key": "WASTEWATER_TREATMENT",
+   "label": "Wastewater Treatment",
+   "sort": 82,
+   "active": true
+  },
+  {
+   "key": "DISTRICT_COOLING_HEATING",
+   "label": "District Cooling & Heating",
+   "sort": 83,
+   "active": true
+  },
+  {
+   "key": "GAS_DISTRIBUTION",
+   "label": "Gas Distribution",
+   "sort": 84,
+   "active": true
+  },
+  {
+   "key": "MOBILE_OPERATORS",
+   "label": "Mobile Operators",
+   "sort": 85,
+   "active": true
+  },
+  {
+   "key": "FIBRE_TOWER_COMPANIES",
+   "label": "Fibre & Tower Companies",
+   "sort": 86,
+   "active": true
+  },
+  {
+   "key": "SUBSEA_CABLE_LANDING_STATIONS",
+   "label": "Subsea Cable Landing Stations",
+   "sort": 87,
+   "active": true
+  },
+  {
+   "key": "DAMS",
+   "label": "Dams",
+   "sort": 88,
+   "active": true
+  },
+  {
+   "key": "NUCLEAR_FACILITIES",
+   "label": "Nuclear Facilities",
+   "sort": 89,
+   "active": true
+  },
+  {
+   "key": "FINANCIAL_MARKET_INFRASTRUCTURE",
+   "label": "Financial Market Infrastructure",
+   "sort": 90,
+   "active": true
+  },
+  {
+   "key": "HEALTHCARE_SUPPLY_CHAINS",
+   "label": "Healthcare Supply Chains",
+   "sort": 91,
+   "active": true
+  },
+  {
+   "key": "HYPERSCALERS_CLOUD_PROVIDERS",
+   "label": "Hyperscalers & Cloud Providers",
+   "sort": 92,
+   "active": true
+  },
+  {
+   "key": "AI_GPU_CAMPUSES",
+   "label": "AI & GPU Campuses",
+   "sort": 93,
+   "active": true
+  },
+  {
+   "key": "WHOLESALE_COLOCATION",
+   "label": "Wholesale Colocation",
+   "sort": 94,
+   "active": true
+  },
+  {
+   "key": "RETAIL_COLOCATION",
+   "label": "Retail Colocation",
+   "sort": 95,
+   "active": true
+  },
+  {
+   "key": "CARRIER_NEUTRAL_INTERCONNECTION_HUBS",
+   "label": "Carrier-Neutral & Interconnection Hubs",
+   "sort": 96,
+   "active": true
+  },
+  {
+   "key": "BANKING_FINANCIAL_SERVICES",
+   "label": "Banking & Financial Services",
+   "sort": 97,
+   "active": true
+  },
+  {
+   "key": "TELECOM_OPERATORS",
+   "label": "Telecom Operators",
+   "sort": 98,
+   "active": true
+  },
+  {
+   "key": "LARGE_CORPORATES",
+   "label": "Large Corporates",
+   "sort": 99,
+   "active": true
+  },
+  {
+   "key": "GOVERNMENT_NATIONAL_DATA_CENTRES",
+   "label": "Government & National Data Centres",
+   "sort": 100,
+   "active": true
+  },
+  {
+   "key": "SOVEREIGN_CLOUD",
+   "label": "Sovereign Cloud",
+   "sort": 101,
+   "active": true
+  },
+  {
+   "key": "EDGE_MICRO_DATA_CENTRES",
+   "label": "Edge & Micro Data Centres",
+   "sort": 102,
+   "active": true
+  },
+  {
+   "key": "TELCO_EDGE_SITES",
+   "label": "Telco Edge Sites",
+   "sort": 103,
+   "active": true
+  },
+  {
+   "key": "DATA_CENTRE_DEVELOPERS_REITS",
+   "label": "Data-Centre Developers & REITs",
+   "sort": 104,
+   "active": true
+  },
+  {
+   "key": "EPC_CONTRACTORS",
+   "label": "EPC Contractors",
+   "sort": 105,
+   "active": true
+  },
+  {
+   "key": "MANAGED_SERVICE_OPERATIONS_PROVIDERS",
+   "label": "Managed Service & Operations Providers",
+   "sort": 106,
+   "active": true
+  },
+  {
+   "key": "ARMY",
+   "label": "Army",
+   "sort": 107,
+   "active": true
+  },
+  {
+   "key": "NAVY",
+   "label": "Navy",
+   "sort": 108,
+   "active": true
+  },
+  {
+   "key": "AIR_FORCE",
+   "label": "Air Force",
+   "sort": 109,
+   "active": true
+  },
+  {
+   "key": "JOINT_COMMANDS",
+   "label": "Joint Commands",
+   "sort": 110,
+   "active": true
+  },
+  {
+   "key": "MILITARY_BASES_GARRISONS",
+   "label": "Military Bases & Garrisons",
+   "sort": 111,
+   "active": true
+  },
+  {
+   "key": "COMMAND_CONTROL_CENTRES",
+   "label": "Command & Control Centres",
+   "sort": 112,
+   "active": true
+  },
+  {
+   "key": "TRAINING_RANGES",
+   "label": "Training Ranges",
+   "sort": 113,
+   "active": true
+  },
+  {
+   "key": "DEFENCE_LOGISTICS_DEPOTS",
+   "label": "Defence Logistics Depots",
+   "sort": 114,
+   "active": true
+  },
+  {
+   "key": "PRIME_CONTRACTORS",
+   "label": "Prime Contractors",
+   "sort": 115,
+   "active": true
+  },
+  {
+   "key": "SHIPYARDS",
+   "label": "Shipyards",
+   "sort": 116,
+   "active": true
+  },
+  {
+   "key": "AEROSPACE_DEFENCE_MANUFACTURERS",
+   "label": "Aerospace Defence Manufacturers",
+   "sort": 117,
+   "active": true
+  },
+  {
+   "key": "MUNITIONS_LAND_SYSTEMS_MAKERS",
+   "label": "Munitions & Land Systems Makers",
+   "sort": 118,
+   "active": true
+  },
+  {
+   "key": "NATIONAL_SPACE_AGENCIES",
+   "label": "National Space Agencies",
+   "sort": 119,
+   "active": true
+  },
+  {
+   "key": "LAUNCH_SITES_SPACEPORTS",
+   "label": "Launch Sites & Spaceports",
+   "sort": 120,
+   "active": true
+  },
+  {
+   "key": "MISSION_CONTROL_GROUND_STATIONS",
+   "label": "Mission Control & Ground Stations",
+   "sort": 121,
+   "active": true
+  },
+  {
+   "key": "SATELLITE_OPERATORS_COMMERCIAL",
+   "label": "Satellite Operators (Commercial)",
+   "sort": 122,
+   "active": true
+  },
+  {
+   "key": "LAUNCH_PROVIDERS_SATELLITE_MANUFACTURERS",
+   "label": "Launch Providers & Satellite Manufacturers",
+   "sort": 123,
+   "active": true
+  },
+  {
+   "key": "MILITARY_SPACE_PROGRAMMES",
+   "label": "Military Space Programmes",
+   "sort": 124,
+   "active": true
+  },
+  {
+   "key": "BORDER_CONTROL_CUSTOMS",
+   "label": "Border Control & Customs",
+   "sort": 125,
+   "active": true
+  },
+  {
+   "key": "COUNTER_TERRORISM_UNITS",
+   "label": "Counter-Terrorism Units",
+   "sort": 126,
+   "active": true
+  },
+  {
+   "key": "CYBER_DEFENCE_AGENCIES",
+   "label": "Cyber-Defence Agencies",
+   "sort": 127,
+   "active": true
+  },
+  {
+   "key": "INTELLIGENCE_NATIONAL_SECURITY_AGENCIES",
+   "label": "Intelligence & National Security Agencies",
+   "sort": 128,
+   "active": true
+  },
+  {
+   "key": "NUCLEAR_STRATEGIC_ASSETS",
+   "label": "Nuclear & Strategic Assets",
+   "sort": 129,
+   "active": true
+  },
+  {
+   "key": "ROYAL_PRESIDENTIAL_PROTECTION",
+   "label": "Royal & Presidential Protection",
+   "sort": 130,
+   "active": true
+  },
+  {
+   "key": "IN_COUNTRY_LOCALISED_MANDATES",
+   "label": "In-Country / Localised Mandates",
+   "sort": 131,
+   "active": true
+  },
+  {
+   "key": "NATIONAL_SECURITY_FREE_ZONES",
+   "label": "National Security Free Zones",
+   "sort": 132,
+   "active": true
+  }
  ]
 }

@@ -14,9 +14,9 @@ import { cn } from '@/lib/utils'
  * filled chip, because the NUMBER is the information and the icon is decoration
  * around it.
  *
- * WEIGHT BY RANK, NOT COLOUR BY RANK. #1 and #8 used to look identical, so
- * reading a board in priority order meant hunting. The top three now draw
- * solid and the rest outlined, so the first pick arrives first.
+ * ONE STYLE FOR EVERY RANK (Release 1.2, 15 Oct 2026). The top three drew
+ * solid and the rest outlined, which read as two kinds of pick rather than an
+ * order; every rank is now the same solid chip, and the number carries the order.
  *
  * NO HUE AT ALL — the chip is pure contrast (foreground on background), never
  * red, amber or green. Colour on these screens belongs to the Overall RAG
@@ -24,9 +24,6 @@ import { cn } from '@/lib/utils'
  * reader asking whether #1 was also somehow "green". Contrast says "important"
  * without entering that argument.
  */
-
-/** Ranks at or above this draw solid. The top of a list of five or ten. */
-const HEAVY_THROUGH = 3
 
 export interface PriorityFlagMarkProps {
   row: Record<string, unknown> | undefined
@@ -49,7 +46,6 @@ export function PriorityFlagMark({ row, variant, className }: PriorityFlagMarkPr
   // The icon alone does not explain itself to someone new, so the full meaning
   // is always one hover away, and always read out by a screen reader.
   const meaning = held.rank === null ? held.pick.label : `${held.pick.label} · rank ${held.rank}`
-  const heavy = held.rank !== null && held.rank <= HEAVY_THROUGH
 
   return (
     <span
@@ -63,8 +59,7 @@ export function PriorityFlagMark({ row, variant, className }: PriorityFlagMarkPr
         <span
           aria-hidden
           className={cn(
-            'inline-flex h-4 min-w-4 items-center justify-center rounded px-1 text-[11px] leading-none font-semibold tabular-nums',
-            heavy ? 'bg-foreground text-background' : 'border-foreground/40 text-foreground border'
+            'bg-foreground text-background inline-flex h-4 min-w-4 items-center justify-center rounded px-1 text-[11px] leading-none font-semibold tabular-nums'
           )}
         >
           {held.rank}

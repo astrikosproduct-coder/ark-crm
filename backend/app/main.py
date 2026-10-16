@@ -19,6 +19,7 @@ from .routers import (
     dashboard,
     deals,
     feedback,
+    view_preferences,
     spreadsheets,
     directory,
     leads,
@@ -218,6 +219,10 @@ app.include_router(feedback.router, prefix="/api", dependencies=PROTECTED)
 # route; see app/spreadsheets/importer.py. Needs the handlers.ts passthrough and
 # the vite.config.ts proxy entry, both.
 app.include_router(spreadsheets.router, prefix="/api", dependencies=PROTECTED)
+
+# Each person's own list columns and Kanban board, at /api/view-preferences
+# (Release 1.2, 14 Oct 2026). PROTECTED; always the caller's own, from the session.
+app.include_router(view_preferences.router, prefix="/api", dependencies=PROTECTED)
 
 
 @app.get("/")

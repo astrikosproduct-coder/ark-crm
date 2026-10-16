@@ -31,7 +31,13 @@ import { useResolvedRecord } from '@/hooks/useResolvedRecord'
 import { fetchCollection } from '@/lib/collections'
 import { date as fmtDate, dateTime as fmtDateTime, money, number, percent } from '@/lib/format'
 import { compileFor } from '@/lib/spec/conditions'
-import { allowedChoices, dependencyOf } from '@/lib/spec/dependencies'
+import {
+  allowedChoices,
+  choicesOfEveryParent,
+  dependencyOf,
+  findableAcrossParents,
+  parentChoiceFor,
+} from '@/lib/spec/dependencies'
 import { computedGap } from '@/lib/spec/formula'
 import {
   collectionFor,
@@ -200,6 +206,35 @@ export function FieldControl({ field, onCreateNew, scope }: Props) {
       // offers only the choices mapped to that field's value. Nothing to offer
       // yet says why, instead of opening an empty list.
       const allowed = scope ? null : allowedChoices(field.module, field.api_name, form.values)
+      // Country: findable without knowing its Region (14 Oct 2026). The
+      // Region's own countries first, then every other country with its
+      // Region beside it; picking one of those sets the Region.
+      if (allowed !== null && findableAcrossParents(field.module, field.api_name)) {
+        const parent = fieldOf(field.module, dependencyOf(field.module, field.api_name)?.parent ?? '')
+        const everywhere = choicesOfEveryParent(field.module, field.api_name)
+        const own = all.filter((o) => allowed.includes(o.key))
+        const rest = all
+          .filter((o) => everywhere.has(o.key) && !allowed.includes(o.key))
+          .map((o) => ({
+            ...o,
+            hint: labelForValue(parent?.picklist, parentChoiceFor(field.module, field.api_name, o.key)),
+          }))
+        const parentNoun = (parent?.label ?? 'region').toLowerCase()
+        return (
+          <SearchablePicklist
+            id={id}
+            options={own}
+            others={{
+              heading: own.length ? `Other ${parentNoun}s` : `Every ${field.label.toLowerCase()}`,
+              options: rest,
+            }}
+            value={(value as string) || null}
+            onChange={set}
+            invalid={invalid}
+            noun={field.label.toLowerCase()}
+          />
+        )
+      }
       if (allowed !== null && allowed.length === 0) {
         const parent = fieldOf(field.module, dependencyOf(field.module, field.api_name)?.parent ?? '')
         const parentLabel = parent?.label ?? 'the field above'
@@ -279,14 +314,7 @@ export function FieldControl({ field, onCreateNew, scope }: Props) {
     }
 
     case 'multiselect':
-      return (
-        <MultiSelect
-          id={id}
-          options={fieldOptions(field)}
-          value={Array.isArray(value) ? (value as string[]) : []}
-          onChange={set}
-        />
-      )
+      return <DependentMultiSelect id={id} field={field} value={value} set={set} values={scope ? null : form.values} />
 
     case 'lookup':
       return (
@@ -791,6 +819,51 @@ export function formatComputed(field: FieldSpec, value: unknown): string {
  * with one.
  */
 const CUSTOM_OPTION = '__other__'
+
+/**
+ * Several choices from a list — and, when the field follows another (an
+ * Account's Segment Category follows its Segments), only the choices those
+ * hold. Nothing to offer yet says why, as the single-choice dropdown does.
+ *
+ * A choice already on the record stays among the options even when its parent
+ * no longer offers it, so it can be seen and taken off rather than hidden.
+ */
+function DependentMultiSelect({
+  field,
+  id,
+  value,
+  set,
+  values,
+}: {
+  field: FieldSpec
+  id: string
+  value: unknown
+  set: (next: unknown) => void
+  /** The record's values, or null where the field stands alone (a child row). */
+  values: Values | null
+}) {
+  const all = fieldOptions(field)
+  const held = Array.isArray(value) ? (value as string[]) : []
+  const allowed = values ? allowedChoices(field.module, field.api_name, values) : null
+  if (allowed !== null && allowed.length === 0 && held.length === 0) {
+    const parent = fieldOf(field.module, dependencyOf(field.module, field.api_name)?.parent ?? '')
+    const parentLabel = parent?.label ?? 'the field above'
+    const parentValue = parent ? values?.[parent.api_name] : null
+    const parentChosen = Array.isArray(parentValue) ? parentValue.length > 0 : Boolean(parentValue)
+    return (
+      <MultiSelect
+        id={id}
+        options={[]}
+        value={[]}
+        onChange={set}
+        disabled
+        placeholder={parentChosen ? `None for this ${parentLabel}` : `Choose a ${parentLabel} first`}
+      />
+    )
+  }
+  const options = allowed === null ? all : all.filter((o) => allowed.includes(o.key) || held.includes(o.key))
+  return <MultiSelect id={id} options={options} value={held} onChange={set} />
+}
 
 /**
  * A picklist the sidecar marks as not closed — allow_custom_value in

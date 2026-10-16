@@ -1523,8 +1523,10 @@ class ConversionOut(BaseModel):
     id: str
     source_module: str
     source_id: str
+    source_name: str | None = None
     target_module: str
     target_id: str
+    target_name: str | None = None
     actor: str | None
     timestamp: datetime
     copied_fields: list[str]

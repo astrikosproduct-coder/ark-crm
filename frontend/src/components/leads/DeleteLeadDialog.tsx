@@ -144,7 +144,7 @@ export function DeleteLeadDialog({ open, leadId, onClose, onDeleted }: Props) {
             <ul className="list-disc space-y-0.5 pl-5">
               {plan.blockers.map((b) => {
                 const { noun, path } = BLOCKER[b.kind]
-                const label = b.name ?? b.id
+                const label = b.name ?? 'Unnamed record'
                 return (
                   <li key={`${b.kind}:${b.id}`}>
                     <span className="text-muted-foreground">{noun}: </span>
@@ -236,7 +236,7 @@ function LinkedList({ title, records, withLinked }: { title: string; records: Li
         {records.map((r) => (
           <li key={r.id} className="flex items-start justify-between gap-3 px-3 py-1.5">
             <span className="min-w-0">
-              <span className="font-medium">{r.name ?? r.id}</span>
+              <span className="font-medium">{r.name ?? 'Unnamed record'}</span>
               <span className="text-muted-foreground block text-xs">
                 {r.via.map((api) => fieldOf('leads', api)?.label ?? api).join(' · ')}
               </span>

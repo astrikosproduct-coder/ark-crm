@@ -1,0 +1,1034 @@
+{
+ "source": "Segments_and_Subsegments.xlsx",
+ "segments": [
+  {
+   "key": "SMART_CITIES",
+   "workbook_label": "Smart Cities"
+  },
+  {
+   "key": "SMART_BUILDINGS_CAMPUSES",
+   "workbook_label": "Smart Buildings & Campuses"
+  },
+  {
+   "key": "SMART_TRANSPORT_INFRASTRUCTURE",
+   "workbook_label": "Smart Transport & Infrastructure"
+  },
+  {
+   "key": "INDUSTRY_4_0_MANUFACTURING",
+   "workbook_label": "Industry 4.0 & Manufacturing"
+  },
+  {
+   "key": "ENERGY_UTILITIES_CRITICAL_INFRASTRUCTURE",
+   "workbook_label": "Energy, Utilities & Critical Infra"
+  },
+  {
+   "key": "DATA_CENTERS",
+   "workbook_label": "Data Centres"
+  },
+  {
+   "key": "DEFENCE_PROTECTED_MARKETS",
+   "workbook_label": "Defence, Space & Protected Markets"
+  }
+ ],
+ "categories": [
+  {
+   "key": "PUBLIC_SAFETY",
+   "label": "Public Safety",
+   "segment": "SMART_CITIES"
+  },
+  {
+   "key": "GOVERNMENT",
+   "label": "Government",
+   "segment": "SMART_CITIES"
+  },
+  {
+   "key": "URBAN_SERVICES",
+   "label": "Urban Services",
+   "segment": "SMART_CITIES"
+  },
+  {
+   "key": "DEVELOPMENT",
+   "label": "Development",
+   "segment": "SMART_CITIES"
+  },
+  {
+   "key": "CITIZEN_FACING",
+   "label": "Citizen-Facing",
+   "segment": "SMART_CITIES"
+  },
+  {
+   "key": "EDUCATION",
+   "label": "Education",
+   "segment": "SMART_BUILDINGS_CAMPUSES"
+  },
+  {
+   "key": "COMMERCIAL_REAL_ESTATE",
+   "label": "Commercial Real Estate",
+   "segment": "SMART_BUILDINGS_CAMPUSES"
+  },
+  {
+   "key": "HEALTHCARE",
+   "label": "Healthcare",
+   "segment": "SMART_BUILDINGS_CAMPUSES"
+  },
+  {
+   "key": "RETAIL_LEISURE",
+   "label": "Retail & Leisure",
+   "segment": "SMART_BUILDINGS_CAMPUSES"
+  },
+  {
+   "key": "RESIDENTIAL",
+   "label": "Residential",
+   "segment": "SMART_BUILDINGS_CAMPUSES"
+  },
+  {
+   "key": "INSTITUTIONAL",
+   "label": "Institutional",
+   "segment": "SMART_BUILDINGS_CAMPUSES"
+  },
+  {
+   "key": "AVIATION",
+   "label": "Aviation",
+   "segment": "SMART_TRANSPORT_INFRASTRUCTURE"
+  },
+  {
+   "key": "RAIL",
+   "label": "Rail",
+   "segment": "SMART_TRANSPORT_INFRASTRUCTURE"
+  },
+  {
+   "key": "ROAD",
+   "label": "Road",
+   "segment": "SMART_TRANSPORT_INFRASTRUCTURE"
+  },
+  {
+   "key": "MARITIME",
+   "label": "Maritime",
+   "segment": "SMART_TRANSPORT_INFRASTRUCTURE"
+  },
+  {
+   "key": "LOGISTICS",
+   "label": "Logistics",
+   "segment": "SMART_TRANSPORT_INFRASTRUCTURE"
+  },
+  {
+   "key": "PUBLIC_TRANSIT",
+   "label": "Public Transit",
+   "segment": "SMART_TRANSPORT_INFRASTRUCTURE"
+  },
+  {
+   "key": "PROCESS",
+   "label": "Process",
+   "segment": "INDUSTRY_4_0_MANUFACTURING"
+  },
+  {
+   "key": "DISCRETE",
+   "label": "Discrete",
+   "segment": "INDUSTRY_4_0_MANUFACTURING"
+  },
+  {
+   "key": "INDUSTRIAL_ZONES",
+   "label": "Industrial Zones",
+   "segment": "INDUSTRY_4_0_MANUFACTURING"
+  },
+  {
+   "key": "ENABLERS_CHANNEL",
+   "label": "Enablers (Channel)",
+   "segment": "INDUSTRY_4_0_MANUFACTURING"
+  },
+  {
+   "key": "POWER",
+   "label": "Power",
+   "segment": "ENERGY_UTILITIES_CRITICAL_INFRASTRUCTURE"
+  },
+  {
+   "key": "RENEWABLES",
+   "label": "Renewables",
+   "segment": "ENERGY_UTILITIES_CRITICAL_INFRASTRUCTURE"
+  },
+  {
+   "key": "OIL_GAS",
+   "label": "Oil & Gas",
+   "segment": "ENERGY_UTILITIES_CRITICAL_INFRASTRUCTURE"
+  },
+  {
+   "key": "WATER",
+   "label": "Water",
+   "segment": "ENERGY_UTILITIES_CRITICAL_INFRASTRUCTURE"
+  },
+  {
+   "key": "DISTRICT_SERVICES",
+   "label": "District Services",
+   "segment": "ENERGY_UTILITIES_CRITICAL_INFRASTRUCTURE"
+  },
+  {
+   "key": "TELECOM",
+   "label": "Telecom",
+   "segment": "ENERGY_UTILITIES_CRITICAL_INFRASTRUCTURE"
+  },
+  {
+   "key": "OTHER_CRITICAL_INFRA",
+   "label": "Other Critical Infra",
+   "segment": "ENERGY_UTILITIES_CRITICAL_INFRASTRUCTURE"
+  },
+  {
+   "key": "HYPERSCALE",
+   "label": "Hyperscale",
+   "segment": "DATA_CENTERS"
+  },
+  {
+   "key": "COLOCATION",
+   "label": "Colocation",
+   "segment": "DATA_CENTERS"
+  },
+  {
+   "key": "ENTERPRISE",
+   "label": "Enterprise",
+   "segment": "DATA_CENTERS"
+  },
+  {
+   "key": "SOVEREIGN",
+   "label": "Sovereign",
+   "segment": "DATA_CENTERS"
+  },
+  {
+   "key": "EDGE",
+   "label": "Edge",
+   "segment": "DATA_CENTERS"
+  },
+  {
+   "key": "DEVELOPERS_OPERATORS",
+   "label": "Developers & Operators",
+   "segment": "DATA_CENTERS"
+  },
+  {
+   "key": "ARMED_FORCES",
+   "label": "Armed Forces",
+   "segment": "DEFENCE_PROTECTED_MARKETS"
+  },
+  {
+   "key": "DEFENCE_ASSETS",
+   "label": "Defence Assets",
+   "segment": "DEFENCE_PROTECTED_MARKETS"
+  },
+  {
+   "key": "DEFENCE_INDUSTRY",
+   "label": "Defence Industry",
+   "segment": "DEFENCE_PROTECTED_MARKETS"
+  },
+  {
+   "key": "SPACE",
+   "label": "Space",
+   "segment": "DEFENCE_PROTECTED_MARKETS"
+  },
+  {
+   "key": "HOMELAND_SECURITY",
+   "label": "Homeland Security",
+   "segment": "DEFENCE_PROTECTED_MARKETS"
+  },
+  {
+   "key": "PROTECTED_MARKETS",
+   "label": "Protected Markets",
+   "segment": "DEFENCE_PROTECTED_MARKETS"
+  },
+  {
+   "key": "SOVEREIGN_PROGRAMMES",
+   "label": "Sovereign Programmes",
+   "segment": "DEFENCE_PROTECTED_MARKETS"
+  }
+ ],
+ "subsegments": [
+  {
+   "key": "POLICE_INTERNAL_SECURITY",
+   "label": "Police & Internal Security",
+   "category": "PUBLIC_SAFETY",
+   "examples": "City and national police, command & control centres"
+  },
+  {
+   "key": "CIVIL_DEFENCE_EMERGENCY_SERVICES",
+   "label": "Civil Defence & Emergency Services",
+   "category": "PUBLIC_SAFETY",
+   "examples": "Fire, ambulance, disaster management"
+  },
+  {
+   "key": "BORDER_COASTAL_SECURITY",
+   "label": "Border & Coastal Security",
+   "category": "PUBLIC_SAFETY",
+   "examples": "Coast guard, border posts"
+  },
+  {
+   "key": "NATIONAL_FEDERAL_GOVERNMENT",
+   "label": "National / Federal Government",
+   "category": "GOVERNMENT",
+   "examples": "Ministries, national programmes"
+  },
+  {
+   "key": "MUNICIPAL_CITY_COUNCILS",
+   "label": "Municipal & City Councils",
+   "category": "GOVERNMENT",
+   "examples": "Municipalities, city authorities"
+  },
+  {
+   "key": "FREE_ZONES_SPECIAL_ECONOMIC_ZONES",
+   "label": "Free Zones & Special Economic Zones",
+   "category": "GOVERNMENT",
+   "examples": "Free-zone authorities"
+  },
+  {
+   "key": "TRAFFIC_MOBILITY_MANAGEMENT",
+   "label": "Traffic & Mobility Management",
+   "category": "URBAN_SERVICES",
+   "examples": "Adaptive signals, ITS"
+  },
+  {
+   "key": "WASTE_ENVIRONMENT",
+   "label": "Waste & Environment",
+   "category": "URBAN_SERVICES",
+   "examples": "Waste collection, air-quality monitoring"
+  },
+  {
+   "key": "WATER_STREET_LIGHTING",
+   "label": "Water & Street Lighting",
+   "category": "URBAN_SERVICES",
+   "examples": "Smart lighting, network monitoring"
+  },
+  {
+   "key": "PARKING_PUBLIC_SPACE_MANAGEMENT",
+   "label": "Parking & Public Space Management",
+   "category": "URBAN_SERVICES",
+   "examples": "Smart parking, public realm"
+  },
+  {
+   "key": "MASTER_DEVELOPERS_GIGA_PROJECTS",
+   "label": "Master Developers & Giga-Projects",
+   "category": "DEVELOPMENT",
+   "examples": "New cities, mega-projects"
+  },
+  {
+   "key": "REAL_ESTATE_TOWNSHIP_DEVELOPERS",
+   "label": "Real Estate & Township Developers",
+   "category": "DEVELOPMENT",
+   "examples": "Integrated townships"
+  },
+  {
+   "key": "GREENFIELD_NEW_CITY_DEVELOPMENTS",
+   "label": "Greenfield / New-City Developments",
+   "category": "DEVELOPMENT",
+   "examples": "Planned cities"
+  },
+  {
+   "key": "TOURISM_EVENTS",
+   "label": "Tourism & Events",
+   "category": "CITIZEN_FACING",
+   "examples": "Destination management, events"
+  },
+  {
+   "key": "PUBLIC_HEALTH_AUTHORITIES",
+   "label": "Public Health Authorities",
+   "category": "CITIZEN_FACING",
+   "examples": "Health departments, public health command"
+  },
+  {
+   "key": "SMART_GOVERNMENT_SERVICE_PORTALS",
+   "label": "Smart Government Service Portals",
+   "category": "CITIZEN_FACING",
+   "examples": "Citizen service platforms"
+  },
+  {
+   "key": "UNIVERSITIES",
+   "label": "Universities",
+   "category": "EDUCATION",
+   "examples": "Higher-ed campuses"
+  },
+  {
+   "key": "K_12_SCHOOL_GROUPS",
+   "label": "K-12 & School Groups",
+   "category": "EDUCATION",
+   "examples": "School networks"
+  },
+  {
+   "key": "RESEARCH_CAMPUSES",
+   "label": "Research Campuses",
+   "category": "EDUCATION",
+   "examples": "Research institutes, tech parks"
+  },
+  {
+   "key": "OFFICE_TOWERS",
+   "label": "Office Towers",
+   "category": "COMMERCIAL_REAL_ESTATE",
+   "examples": "Grade-A offices"
+  },
+  {
+   "key": "BUSINESS_PARKS",
+   "label": "Business Parks",
+   "category": "COMMERCIAL_REAL_ESTATE",
+   "examples": "Corporate campuses"
+  },
+  {
+   "key": "MIXED_USE_DEVELOPMENTS",
+   "label": "Mixed-Use Developments",
+   "category": "COMMERCIAL_REAL_ESTATE",
+   "examples": "Office, retail, residential combined"
+  },
+  {
+   "key": "FACILITY_MANAGEMENT_COMPANIES",
+   "label": "Facility Management Companies",
+   "category": "COMMERCIAL_REAL_ESTATE",
+   "examples": "FM and integrated FM providers"
+  },
+  {
+   "key": "HOSPITALS",
+   "label": "Hospitals",
+   "category": "HEALTHCARE",
+   "examples": "Public and private hospitals"
+  },
+  {
+   "key": "CLINICS_MEDICAL_CITIES",
+   "label": "Clinics & Medical Cities",
+   "category": "HEALTHCARE",
+   "examples": "Multi-specialty and medical cities"
+  },
+  {
+   "key": "PHARMA_LIFE_SCIENCE_CAMPUSES",
+   "label": "Pharma & Life-Science Campuses",
+   "category": "HEALTHCARE",
+   "examples": "R&D campuses"
+  },
+  {
+   "key": "MALLS",
+   "label": "Malls",
+   "category": "RETAIL_LEISURE",
+   "examples": "Shopping centres"
+  },
+  {
+   "key": "HOTELS_RESORTS",
+   "label": "Hotels & Resorts",
+   "category": "RETAIL_LEISURE",
+   "examples": "Hospitality groups"
+  },
+  {
+   "key": "STADIUMS_ENTERTAINMENT_VENUES",
+   "label": "Stadiums & Entertainment Venues",
+   "category": "RETAIL_LEISURE",
+   "examples": "Arenas, theme parks"
+  },
+  {
+   "key": "CONVENTION_CENTRES",
+   "label": "Convention Centres",
+   "category": "RETAIL_LEISURE",
+   "examples": "Exhibition and conference venues"
+  },
+  {
+   "key": "PREMIUM_RESIDENTIAL_TOWERS",
+   "label": "Premium Residential Towers",
+   "category": "RESIDENTIAL",
+   "examples": "Luxury high-rises"
+  },
+  {
+   "key": "GATED_COMMUNITIES",
+   "label": "Gated Communities",
+   "category": "RESIDENTIAL",
+   "examples": "Master-planned communities"
+  },
+  {
+   "key": "STUDENT_STAFF_HOUSING",
+   "label": "Student & Staff Housing",
+   "category": "RESIDENTIAL",
+   "examples": "Accommodation complexes"
+  },
+  {
+   "key": "GOVERNMENT_BUILDINGS",
+   "label": "Government Buildings",
+   "category": "INSTITUTIONAL",
+   "examples": "Ministries, courts"
+  },
+  {
+   "key": "EMBASSIES",
+   "label": "Embassies",
+   "category": "INSTITUTIONAL",
+   "examples": "Diplomatic missions"
+  },
+  {
+   "key": "RELIGIOUS_SITES",
+   "label": "Religious Sites",
+   "category": "INSTITUTIONAL",
+   "examples": "Places of worship, pilgrimage sites"
+  },
+  {
+   "key": "CORPORATE_HQS",
+   "label": "Corporate HQs",
+   "category": "INSTITUTIONAL",
+   "examples": "Flagship headquarters"
+  },
+  {
+   "key": "AIRPORTS",
+   "label": "Airports",
+   "category": "AVIATION",
+   "examples": "Terminals, airside, cargo"
+  },
+  {
+   "key": "AIRLINES_GROUND_HANDLERS",
+   "label": "Airlines & Ground Handlers",
+   "category": "AVIATION",
+   "examples": "Carriers, handling agents"
+  },
+  {
+   "key": "METRO_LIGHT_RAIL",
+   "label": "Metro & Light Rail",
+   "category": "RAIL",
+   "examples": "Urban rail"
+  },
+  {
+   "key": "MAINLINE_HIGH_SPEED_RAIL",
+   "label": "Mainline & High-Speed Rail",
+   "category": "RAIL",
+   "examples": "Intercity networks"
+  },
+  {
+   "key": "RAIL_STATIONS",
+   "label": "Rail Stations",
+   "category": "RAIL",
+   "examples": "Stations and interchanges"
+  },
+  {
+   "key": "HIGHWAYS_TUNNELS",
+   "label": "Highways & Tunnels",
+   "category": "ROAD",
+   "examples": "Road operators, tunnel control"
+  },
+  {
+   "key": "TOLLING_OPERATORS",
+   "label": "Tolling Operators",
+   "category": "ROAD",
+   "examples": "Toll concessions"
+  },
+  {
+   "key": "BRIDGES",
+   "label": "Bridges",
+   "category": "ROAD",
+   "examples": "Structural health monitoring"
+  },
+  {
+   "key": "SMART_PARKING",
+   "label": "Smart Parking",
+   "category": "ROAD",
+   "examples": "Off-street and on-street"
+  },
+  {
+   "key": "SEAPORTS_CONTAINER_TERMINALS",
+   "label": "Seaports & Container Terminals",
+   "category": "MARITIME",
+   "examples": "Port authorities, terminal operators"
+  },
+  {
+   "key": "FREE_ZONE_LOGISTICS_HUBS",
+   "label": "Free-Zone Logistics Hubs",
+   "category": "MARITIME",
+   "examples": "Port-linked free zones"
+  },
+  {
+   "key": "INLAND_DRY_PORTS",
+   "label": "Inland & Dry Ports",
+   "category": "MARITIME",
+   "examples": "Inland container depots"
+  },
+  {
+   "key": "WAREHOUSING_FULFILMENT",
+   "label": "Warehousing & Fulfilment",
+   "category": "LOGISTICS",
+   "examples": "3PLs, e-commerce"
+  },
+  {
+   "key": "FREIGHT_CORRIDORS",
+   "label": "Freight Corridors",
+   "category": "LOGISTICS",
+   "examples": "Cross-border corridors"
+  },
+  {
+   "key": "LAST_MILE_FLEET_OPERATORS",
+   "label": "Last-Mile & Fleet Operators",
+   "category": "LOGISTICS",
+   "examples": "Delivery and fleet management"
+  },
+  {
+   "key": "BUS_NETWORKS",
+   "label": "Bus Networks",
+   "category": "PUBLIC_TRANSIT",
+   "examples": "Public bus operators"
+  },
+  {
+   "key": "RIDE_HAILING_MOBILITY_SERVICES",
+   "label": "Ride-Hailing & Mobility Services",
+   "category": "PUBLIC_TRANSIT",
+   "examples": "Taxi, ride-hail"
+  },
+  {
+   "key": "EV_CHARGING_NETWORKS",
+   "label": "EV Charging Networks",
+   "category": "PUBLIC_TRANSIT",
+   "examples": "Charge-point operators"
+  },
+  {
+   "key": "OIL_GAS_DOWNSTREAM_INDUSTRIAL",
+   "label": "Oil & Gas (Downstream & Industrial)",
+   "category": "PROCESS",
+   "examples": "Refineries, petrochemical, gas processing, LNG, fertiliser"
+  },
+  {
+   "key": "CEMENT_BUILDING_MATERIALS",
+   "label": "Cement & Building Materials",
+   "category": "PROCESS",
+   "examples": "Cement, glass, ceramics, aggregates"
+  },
+  {
+   "key": "STEEL_METALS",
+   "label": "Steel & Metals",
+   "category": "PROCESS",
+   "examples": "Steel mills, aluminium smelters, non-ferrous, foundries"
+  },
+  {
+   "key": "CHEMICALS_SPECIALTY_MATERIALS",
+   "label": "Chemicals & Specialty Materials",
+   "category": "PROCESS",
+   "examples": "Commodity and specialty chemicals, plastics"
+  },
+  {
+   "key": "PHARMA_LIFE_SCIENCES",
+   "label": "Pharma & Life Sciences",
+   "category": "PROCESS",
+   "examples": "Drug manufacturing, biotech, medical devices"
+  },
+  {
+   "key": "FOOD_BEVERAGE_CONSUMER_GOODS",
+   "label": "Food, Beverage & Consumer Goods",
+   "category": "PROCESS",
+   "examples": "F&B processing, FMCG, packaging"
+  },
+  {
+   "key": "MINING_MINERALS",
+   "label": "Mining & Minerals",
+   "category": "PROCESS",
+   "examples": "Mines, mineral processing, quarries"
+  },
+  {
+   "key": "PULP_PAPER_PRINTING",
+   "label": "Pulp, Paper & Printing",
+   "category": "PROCESS",
+   "examples": "Paper mills, converting plants"
+  },
+  {
+   "key": "AUTOMOTIVE",
+   "label": "Automotive",
+   "category": "DISCRETE",
+   "examples": "OEM assembly, Tier-1/Tier-2, EV and battery plants"
+  },
+  {
+   "key": "AEROSPACE_HEAVY_ENGINEERING",
+   "label": "Aerospace & Heavy Engineering",
+   "category": "DISCRETE",
+   "examples": "Aircraft, shipbuilding, rolling stock, heavy machinery"
+  },
+  {
+   "key": "ELECTRONICS_SEMICONDUCTORS",
+   "label": "Electronics & Semiconductors",
+   "category": "DISCRETE",
+   "examples": "Fabs, electronics assembly, EMS"
+  },
+  {
+   "key": "OTHER_DISCRETE_MANUFACTURING",
+   "label": "Other Discrete Manufacturing",
+   "category": "DISCRETE",
+   "examples": "Industrial machinery, appliances, textiles, furniture, metal fabrication"
+  },
+  {
+   "key": "SMART_INDUSTRIAL_PARKS_FREE_ZONE_CLUSTERS",
+   "label": "Smart Industrial Parks & Free-Zone Clusters",
+   "category": "INDUSTRIAL_ZONES",
+   "examples": "Manufacturing clusters"
+  },
+  {
+   "key": "GIGAFACTORIES",
+   "label": "Gigafactories",
+   "category": "INDUSTRIAL_ZONES",
+   "examples": "Battery, solar"
+  },
+  {
+   "key": "OEMS_MACHINE_BUILDERS",
+   "label": "OEMs & Machine Builders",
+   "category": "ENABLERS_CHANNEL",
+   "examples": "Equipment makers"
+  },
+  {
+   "key": "SYSTEM_INTEGRATORS_EPCS",
+   "label": "System Integrators & EPCs",
+   "category": "ENABLERS_CHANNEL",
+   "examples": "Automation SIs, EPC contractors"
+  },
+  {
+   "key": "POWER_GENERATION",
+   "label": "Power Generation",
+   "category": "POWER",
+   "examples": "Thermal, nuclear"
+  },
+  {
+   "key": "TRANSMISSION_DISTRIBUTION",
+   "label": "Transmission & Distribution",
+   "category": "POWER",
+   "examples": "T&D utilities, grid operators"
+  },
+  {
+   "key": "SOLAR_WIND_FARMS",
+   "label": "Solar & Wind Farms",
+   "category": "RENEWABLES",
+   "examples": "IPPs and developers"
+  },
+  {
+   "key": "BATTERY_STORAGE",
+   "label": "Battery Storage",
+   "category": "RENEWABLES",
+   "examples": "Grid-scale storage"
+  },
+  {
+   "key": "GREEN_HYDROGEN",
+   "label": "Green Hydrogen",
+   "category": "RENEWABLES",
+   "examples": "Electrolyser and export projects"
+  },
+  {
+   "key": "UPSTREAM",
+   "label": "Upstream",
+   "category": "OIL_GAS",
+   "examples": "Exploration and production"
+  },
+  {
+   "key": "MIDSTREAM_PIPELINES",
+   "label": "Midstream & Pipelines",
+   "category": "OIL_GAS",
+   "examples": "Pipelines, storage, terminals"
+  },
+  {
+   "key": "REFINERIES_LNG_TERMINALS_SHARED_WITH_INDUSTRY_4_0",
+   "label": "Refineries & LNG Terminals (shared with Industry 4.0)",
+   "category": "OIL_GAS",
+   "examples": "Primary home to be decided"
+  },
+  {
+   "key": "DESALINATION",
+   "label": "Desalination",
+   "category": "WATER",
+   "examples": "Desal plants"
+  },
+  {
+   "key": "WATER_DISTRIBUTION",
+   "label": "Water Distribution",
+   "category": "WATER",
+   "examples": "Network operators"
+  },
+  {
+   "key": "WASTEWATER_TREATMENT",
+   "label": "Wastewater Treatment",
+   "category": "WATER",
+   "examples": "Treatment plants"
+  },
+  {
+   "key": "DISTRICT_COOLING_HEATING",
+   "label": "District Cooling & Heating",
+   "category": "DISTRICT_SERVICES",
+   "examples": "District energy providers"
+  },
+  {
+   "key": "GAS_DISTRIBUTION",
+   "label": "Gas Distribution",
+   "category": "DISTRICT_SERVICES",
+   "examples": "Gas utilities"
+  },
+  {
+   "key": "MOBILE_OPERATORS",
+   "label": "Mobile Operators",
+   "category": "TELECOM",
+   "examples": "MNOs"
+  },
+  {
+   "key": "FIBRE_TOWER_COMPANIES",
+   "label": "Fibre & Tower Companies",
+   "category": "TELECOM",
+   "examples": "Towercos, fibre networks"
+  },
+  {
+   "key": "SUBSEA_CABLE_LANDING_STATIONS",
+   "label": "Subsea Cable Landing Stations",
+   "category": "TELECOM",
+   "examples": "International connectivity"
+  },
+  {
+   "key": "DAMS",
+   "label": "Dams",
+   "category": "OTHER_CRITICAL_INFRA",
+   "examples": "Dam monitoring and control"
+  },
+  {
+   "key": "NUCLEAR_FACILITIES",
+   "label": "Nuclear Facilities",
+   "category": "OTHER_CRITICAL_INFRA",
+   "examples": "Civil nuclear"
+  },
+  {
+   "key": "FINANCIAL_MARKET_INFRASTRUCTURE",
+   "label": "Financial Market Infrastructure",
+   "category": "OTHER_CRITICAL_INFRA",
+   "examples": "Exchanges, payment systems"
+  },
+  {
+   "key": "HEALTHCARE_SUPPLY_CHAINS",
+   "label": "Healthcare Supply Chains",
+   "category": "OTHER_CRITICAL_INFRA",
+   "examples": "Critical medical supply"
+  },
+  {
+   "key": "HYPERSCALERS_CLOUD_PROVIDERS",
+   "label": "Hyperscalers & Cloud Providers",
+   "category": "HYPERSCALE",
+   "examples": "Global and regional cloud"
+  },
+  {
+   "key": "AI_GPU_CAMPUSES",
+   "label": "AI & GPU Campuses",
+   "category": "HYPERSCALE",
+   "examples": "AI training and inference sites"
+  },
+  {
+   "key": "WHOLESALE_COLOCATION",
+   "label": "Wholesale Colocation",
+   "category": "COLOCATION",
+   "examples": "Large-scale leased halls"
+  },
+  {
+   "key": "RETAIL_COLOCATION",
+   "label": "Retail Colocation",
+   "category": "COLOCATION",
+   "examples": "Rack and cage level"
+  },
+  {
+   "key": "CARRIER_NEUTRAL_INTERCONNECTION_HUBS",
+   "label": "Carrier-Neutral & Interconnection Hubs",
+   "category": "COLOCATION",
+   "examples": "IXPs, cloud on-ramps"
+  },
+  {
+   "key": "BANKING_FINANCIAL_SERVICES",
+   "label": "Banking & Financial Services",
+   "category": "ENTERPRISE",
+   "examples": "Bank-owned data centres"
+  },
+  {
+   "key": "TELECOM_OPERATORS",
+   "label": "Telecom Operators",
+   "category": "ENTERPRISE",
+   "examples": "Operator-owned facilities"
+  },
+  {
+   "key": "LARGE_CORPORATES",
+   "label": "Large Corporates",
+   "category": "ENTERPRISE",
+   "examples": "Corporate data centres"
+  },
+  {
+   "key": "GOVERNMENT_NATIONAL_DATA_CENTRES",
+   "label": "Government & National Data Centres",
+   "category": "SOVEREIGN",
+   "examples": "State-owned facilities"
+  },
+  {
+   "key": "SOVEREIGN_CLOUD",
+   "label": "Sovereign Cloud",
+   "category": "SOVEREIGN",
+   "examples": "In-country cloud"
+  },
+  {
+   "key": "EDGE_MICRO_DATA_CENTRES",
+   "label": "Edge & Micro Data Centres",
+   "category": "EDGE",
+   "examples": "Distributed compute"
+  },
+  {
+   "key": "TELCO_EDGE_SITES",
+   "label": "Telco Edge Sites",
+   "category": "EDGE",
+   "examples": "MEC and cell-site edge"
+  },
+  {
+   "key": "DATA_CENTRE_DEVELOPERS_REITS",
+   "label": "Data-Centre Developers & REITs",
+   "category": "DEVELOPERS_OPERATORS",
+   "examples": "Developers, investors"
+  },
+  {
+   "key": "EPC_CONTRACTORS",
+   "label": "EPC Contractors",
+   "category": "DEVELOPERS_OPERATORS",
+   "examples": "Design and build"
+  },
+  {
+   "key": "MANAGED_SERVICE_OPERATIONS_PROVIDERS",
+   "label": "Managed Service & Operations Providers",
+   "category": "DEVELOPERS_OPERATORS",
+   "examples": "Facility O&M"
+  },
+  {
+   "key": "ARMY",
+   "label": "Army",
+   "category": "ARMED_FORCES",
+   "examples": "Land forces"
+  },
+  {
+   "key": "NAVY",
+   "label": "Navy",
+   "category": "ARMED_FORCES",
+   "examples": "Maritime forces"
+  },
+  {
+   "key": "AIR_FORCE",
+   "label": "Air Force",
+   "category": "ARMED_FORCES",
+   "examples": "Air forces"
+  },
+  {
+   "key": "JOINT_COMMANDS",
+   "label": "Joint Commands",
+   "category": "ARMED_FORCES",
+   "examples": "Tri-service commands"
+  },
+  {
+   "key": "MILITARY_BASES_GARRISONS",
+   "label": "Military Bases & Garrisons",
+   "category": "DEFENCE_ASSETS",
+   "examples": "Installations"
+  },
+  {
+   "key": "COMMAND_CONTROL_CENTRES",
+   "label": "Command & Control Centres",
+   "category": "DEFENCE_ASSETS",
+   "examples": "C2 and operations centres"
+  },
+  {
+   "key": "TRAINING_RANGES",
+   "label": "Training Ranges",
+   "category": "DEFENCE_ASSETS",
+   "examples": "Live and simulated training"
+  },
+  {
+   "key": "DEFENCE_LOGISTICS_DEPOTS",
+   "label": "Defence Logistics Depots",
+   "category": "DEFENCE_ASSETS",
+   "examples": "Supply and maintenance"
+  },
+  {
+   "key": "PRIME_CONTRACTORS",
+   "label": "Prime Contractors",
+   "category": "DEFENCE_INDUSTRY",
+   "examples": "Large defence primes"
+  },
+  {
+   "key": "SHIPYARDS",
+   "label": "Shipyards",
+   "category": "DEFENCE_INDUSTRY",
+   "examples": "Naval shipbuilding"
+  },
+  {
+   "key": "AEROSPACE_DEFENCE_MANUFACTURERS",
+   "label": "Aerospace Defence Manufacturers",
+   "category": "DEFENCE_INDUSTRY",
+   "examples": "Aircraft, missiles, UAVs"
+  },
+  {
+   "key": "MUNITIONS_LAND_SYSTEMS_MAKERS",
+   "label": "Munitions & Land Systems Makers",
+   "category": "DEFENCE_INDUSTRY",
+   "examples": "Ammunition, vehicles"
+  },
+  {
+   "key": "NATIONAL_SPACE_AGENCIES",
+   "label": "National Space Agencies",
+   "category": "SPACE",
+   "examples": "Civil space programmes"
+  },
+  {
+   "key": "LAUNCH_SITES_SPACEPORTS",
+   "label": "Launch Sites & Spaceports",
+   "category": "SPACE",
+   "examples": "Launch infrastructure"
+  },
+  {
+   "key": "MISSION_CONTROL_GROUND_STATIONS",
+   "label": "Mission Control & Ground Stations",
+   "category": "SPACE",
+   "examples": "Ground segment"
+  },
+  {
+   "key": "SATELLITE_OPERATORS_COMMERCIAL",
+   "label": "Satellite Operators (Commercial)",
+   "category": "SPACE",
+   "examples": "Comms, EO operators"
+  },
+  {
+   "key": "LAUNCH_PROVIDERS_SATELLITE_MANUFACTURERS",
+   "label": "Launch Providers & Satellite Manufacturers",
+   "category": "SPACE",
+   "examples": "Commercial space supply chain"
+  },
+  {
+   "key": "MILITARY_SPACE_PROGRAMMES",
+   "label": "Military Space Programmes",
+   "category": "SPACE",
+   "examples": "Defence satellites, space situational awareness, space commands"
+  },
+  {
+   "key": "BORDER_CONTROL_CUSTOMS",
+   "label": "Border Control & Customs",
+   "category": "HOMELAND_SECURITY",
+   "examples": "Ports of entry"
+  },
+  {
+   "key": "COUNTER_TERRORISM_UNITS",
+   "label": "Counter-Terrorism Units",
+   "category": "HOMELAND_SECURITY",
+   "examples": "Specialist units"
+  },
+  {
+   "key": "CYBER_DEFENCE_AGENCIES",
+   "label": "Cyber-Defence Agencies",
+   "category": "HOMELAND_SECURITY",
+   "examples": "National cyber"
+  },
+  {
+   "key": "INTELLIGENCE_NATIONAL_SECURITY_AGENCIES",
+   "label": "Intelligence & National Security Agencies",
+   "category": "PROTECTED_MARKETS",
+   "examples": "Intelligence services"
+  },
+  {
+   "key": "NUCLEAR_STRATEGIC_ASSETS",
+   "label": "Nuclear & Strategic Assets",
+   "category": "PROTECTED_MARKETS",
+   "examples": "Strategic sites"
+  },
+  {
+   "key": "ROYAL_PRESIDENTIAL_PROTECTION",
+   "label": "Royal & Presidential Protection",
+   "category": "PROTECTED_MARKETS",
+   "examples": "VIP protection"
+  },
+  {
+   "key": "IN_COUNTRY_LOCALISED_MANDATES",
+   "label": "In-Country / Localised Mandates",
+   "category": "SOVEREIGN_PROGRAMMES",
+   "examples": "Local-content requirements"
+  },
+  {
+   "key": "NATIONAL_SECURITY_FREE_ZONES",
+   "label": "National Security Free Zones",
+   "category": "SOVEREIGN_PROGRAMMES",
+   "examples": "Restricted zones"
+  }
+ ]
+}

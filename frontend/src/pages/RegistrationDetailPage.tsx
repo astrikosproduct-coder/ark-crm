@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   AlertTriangleIcon,
@@ -27,7 +27,7 @@ import { api } from '@/lib/api'
 import { ErrorNotice, Notice } from '@/components/ui/notice'
 import { currentUserId } from '@/lib/currentUser'
 import { refusalOf } from '@/lib/errors'
-import { date as fmtDate, money } from '@/lib/format'
+import { date as fmtDate } from '@/lib/format'
 import { ackSlaText, daysRemainingText, registrationState } from '@/lib/partners'
 import { answerableRefusalOf } from '@/lib/pursuitGroups'
 import {
@@ -106,7 +106,6 @@ export function RegistrationDetailPage() {
 
   const partnerName = labels?.partner ?? nameOf(values?.partner)
   const clientName = labels?.end_client ?? nameOf(values?.end_client)
-  const createdByName = labels?.created_by
   const registrationName = String(values?.name ?? values?.project_name ?? '')
 
   const statusKey = String(values?.registration_status ?? '')
@@ -217,44 +216,6 @@ export function RegistrationDetailPage() {
             className="text-muted-foreground text-base font-normal"
           />
         </>
-      }
-      subtitle={
-        values ? (
-          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            {values.partner ? (
-              <Link className="hover:text-foreground underline underline-offset-2" to={`/partners/${values.partner}`}>
-                {partnerName}
-              </Link>
-            ) : (
-              <span className="text-destructive">No partner</span>
-            )}
-            <span aria-hidden>→</span>
-            <Link className="hover:text-foreground underline underline-offset-2" to={`/accounts/${values.end_client}`}>
-              {clientName}
-            </Link>
-            {typeof values.estimated_value === 'number' && (
-              <>
-                <span aria-hidden>·</span>
-                <span>
-                  {typeof values.currency === 'string' && values.currency ? `${values.currency} ` : ''}
-                  {money(values.estimated_value)} estimated
-                </span>
-              </>
-            )}
-            {/* When it was ENTERED, server-stamped — not Submitted Date, which is
-                the partner's own date and may legitimately be earlier. Absent
-                on registrations created before migration 0024 recorded it. */}
-            {typeof values.created_date === 'string' && (
-              <>
-                <span aria-hidden>·</span>
-                <span>
-                  Registered {fmtDate(values.created_date)}
-                  {createdByName && ` by ${createdByName}`}
-                </span>
-              </>
-            )}
-          </span>
-        ) : undefined
       }
       actions={
         !editing && (

@@ -63,13 +63,6 @@ export function UserMenu() {
           </SheetHeader>
 
           <dl className="flex flex-col gap-4 border-t pt-5">
-            {/* The ARK user id, not the directory's employee_id: this is the
-                value that appears as an owner on every record, so it is the one
-                worth being able to read off your own profile. */}
-            <Detail label="User ID">
-              <span className="font-mono">{user.user_id}</span>
-            </Detail>
-
             <Detail label="Name">{user.name}</Detail>
 
             <Detail label="Email">
