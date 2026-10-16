@@ -21,6 +21,12 @@ Two rules, and the form follows the same two (src/lib/spec/dependencies.ts):
 A record saved before the map existed may hold a pair the map refuses — a Lead
 whose free-text Country did not convert. Such a pair is refused only when the
 save CHANGES it, so an unrelated edit to that record still saves.
+
+SEVERAL CHOICES (Products, 13 Oct 2026). A product serves several markets, so
+its Segment -> Segment Category -> Subsegment are multi-choice. The rules are
+the same two, read for a list: a child offers the choices of EVERY parent
+choice held, and each child choice must be one of them. `allowed` is the one
+place that is worked out; the form's twin is allowedChoices.
 """
 
 from __future__ import annotations
@@ -53,6 +59,26 @@ def dependency(register: Published | None, module: str, child: str) -> dict[str,
     return register.dependencies.get(module, {}).get(child)
 
 
+def _choices(value: Any) -> list[str]:
+    """A field's value as the choices it holds: one, several, or none."""
+    if _blank(value):
+        return []
+    if isinstance(value, (list, tuple, set)):
+        return [str(v) for v in value if not _blank(v)]
+    return [str(value)]
+
+
+def allowed(dep: dict[str, Any], parent_value: Any) -> list[str]:
+    """The child choices on offer for what the parent holds — every choice of
+    every parent choice, once each."""
+    out: list[str] = []
+    for parent in _choices(parent_value):
+        for choice in dep["map"].get(parent, []):
+            if choice not in out:
+                out.append(choice)
+    return out
+
+
 def offers_choices(register: Published | None, module: str, child: str, value_of: Callable[[str], Any]) -> bool:
     """Does this field have anything to choose from, given its parent's value?
 
@@ -62,8 +88,7 @@ def offers_choices(register: Published | None, module: str, child: str, value_of
     dep = dependency(register, module, child)
     if dep is None:
         return True
-    parent_value = value_of(dep["parent"])
-    return not _blank(parent_value) and bool(dep["map"].get(str(parent_value)))
+    return bool(allowed(dep, value_of(dep["parent"])))
 
 
 def _label(register: Published, module: str, name: str) -> str:
@@ -98,10 +123,11 @@ def check_choices(db: Session, module: str, record: Any, *, record_id: str | Non
             continue  # unchanged by this save — see the module docstring
         child_label = _label(register, module, child)
         parent_label = _label(register, module, dep["parent"])
+        on_offer = allowed(dep, parent_value)
         if _blank(parent_value):
             message = f"Choose a {parent_label} before the {child_label}."
             details = [f"The {child_label} list follows the {parent_label} chosen."]
-        elif str(child_value) not in dep["map"].get(str(parent_value), []):
+        elif any(choice not in on_offer for choice in _choices(child_value)):
             message = f"That {child_label} isn't in the {parent_label} chosen."
             details = [f"Choose the {child_label} again from the list for that {parent_label}."]
         else:

@@ -23,6 +23,16 @@ export const ACCOUNT_REFERRERS: ReferrerSpec[] = [
 ]
 
 /**
+ * Collections that can name a Product: a Lead's suite fields, shown on its
+ * Opportunity and Deal too, and a Deal's own Expansion Suites.
+ */
+export const PRODUCT_REFERRERS: ReferrerSpec[] = [
+  { collection: 'leads', module: 'leads', basePath: '/leads' },
+  { collection: 'opportunities', module: 'opportunities', basePath: '/opportunities' },
+  { collection: 'deals', module: 'deals', basePath: '/deals' },
+]
+
+/**
  * Collections that can name a Contact.
  *
  * Accounts is absent on purpose: the account/contact link lives on the CONTACT

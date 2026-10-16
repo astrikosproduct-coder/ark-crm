@@ -51,6 +51,7 @@ export function ImportDialog({
   plural,
   noun,
   extraNote,
+  namesRecords = true,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -61,6 +62,8 @@ export function ImportDialog({
   noun: string
   /** One more bullet under the drop zone — "Leads are imported at Stage 0 · Connect." */
   extraNote?: string
+  /** False for a sheet that names no account or person — Products. */
+  namesRecords?: boolean
 }) {
   const queryClient = useQueryClient()
   const input = useRef<HTMLInputElement>(null)
@@ -231,7 +234,7 @@ export function ImportDialog({
             className="text-muted-foreground text-sm"
             items={[
               'Start from the sample file. It has dropdowns and says what each column takes.',
-              'Accounts and people named in the file must already be in ARK. Import Accounts first.',
+              namesRecords && 'Accounts and people named in the file must already be in ARK. Import Accounts first.',
               'Up to 1,000 rows and 5 MB per file.',
               extraNote,
             ]}

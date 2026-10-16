@@ -249,6 +249,116 @@ ordinary update above (`alembic upgrade head`, **before** the restart). After th
 - **To undo:** `alembic downgrade 0039_metadata_v2_enforce` drops both tables and everything
   in them. Snapshots can't be rebuilt.
 
+### Products, step 1 — the catalogue becomes a table
+
+> **The order below changed with phase 3.** `load_price_book.py` now runs AFTER every
+> Products register script, not first. On a server that has none of Products yet, use the
+> one list under "Products, phase 3" and skip the commands here.
+
+Migration 0044 adds `products` and `product_prices` and changes no other table. It goes in
+with the ordinary update (`alembic upgrade head`, **before** the restart). Then, in this
+order, each one a dry run first:
+
+```sh
+cd backend
+.venv/bin/python load_price_book.py                # dry run: the 31 items and 173 prices it would add
+.venv/bin/python load_price_book.py --apply
+.venv/bin/python products_step1_metadata.py        # dry run: the four fields that become pickers
+.venv/bin/python products_step1_metadata.py --apply   # publishes a register version
+.venv/bin/python products_typed_suites.py          # report: what people typed into those fields
+```
+
+- **Load the price book before the register script.** The register script turns S!aP
+  Solution Suite, Suite Demonstrated, Secondary S!aP Suites and Expansion Suites into
+  pickers; with an empty catalogue they would offer nothing.
+- **Run all of it before the restart.** The new version with the old register shows
+  Secondary S!aP Suites and Expansion Suites with nothing to pick, until the register
+  script has published.
+- **Read the last report before doing anything about it.** It lists what was typed into the
+  four fields since 3 Sep 2026. Nothing typed is lost: it stays on the record as text until
+  someone picks a product. `--apply` converts only text that is exactly a product's name or
+  SKU; `--map "what was typed=SKU"` converts one a person has confirmed.
+- **Running `load_price_book.py` again is safe, and after the first fill it changes prices
+  only.** Products are edited in the app since phase 2 (below), so a product already in the
+  catalogue keeps its name, category and the rest; a difference from the file is listed, not
+  written. An item in the file and not in the catalogue is listed too, and added only with
+  `--add-missing` — it may have been deleted in the app on purpose.
+- **Prices are still changed through the file** (`frontend/spec/seed/prices.json`, then the
+  loader on each server) until Price Books is built.
+- **To undo:** `alembic downgrade 0041_pipeline_snapshots` drops both tables. A picked
+  product then shows as its number on the Lead, so restore the dump instead if anyone has
+  picked one.
+
+### Products, phases 1 and 2 — market segments, and editing the catalogue
+
+No migration: nothing is added to a table. One register script, **after** step 1's three
+and **before** the restart:
+
+```sh
+cd backend
+.venv/bin/python products_market_segments_metadata.py           # dry run
+.venv/bin/python products_market_segments_metadata.py --apply   # publishes a register version
+```
+
+- **What it adds.** Segment, Segment Category and Subsegment on a product, several choices
+  each, linked like Region → Country → State; 41 categories and 132 subsegments from
+  `backend/data/market_segments.json` (built from `docs/Segments_and_Subsegments.xlsx` by
+  `tools/build_market_segments.py` — the server needs neither the workbook nor that tool).
+- **It leaves Segment's labels alone.** The workbook spells three of the seven differently
+  ("Data Centres"); the run lists them. Renaming one shows on every Lead and Account, so it
+  is done in Setup, by a person.
+- **Running it again is safe.** It adds only choices and pairs that are missing; a label
+  changed or a choice retired in Setup since is kept.
+- **Who can change products.** Create, edit, deactivate, delete and import need the ADMIN or
+  DEVELOPER role; everyone with a role reads and exports. Check that whoever keeps the
+  catalogue has one of the two.
+- **Old code with the new register** shows the three fields with every choice, unlinked,
+  and cannot save a product at all (it has no write routes) — harmless, but run the script
+  just before the restart rather than days ahead.
+- **To undo:** delete the three fields in Setup → Modules and Fields → Products and
+  publish. Their values stay stored and come back if a field is restored.
+
+### Products, phase 3 — Price Books and the Sizing Guide
+
+Migration 0045 adds `price_books`, `price_book_editions`, `price_book_entries` and
+`deployment_sizes`, moves every price already loaded into the Standard book's first edition,
+and drops `product_prices`. Dump first. All of it **before** the restart.
+
+**A server that has none of Products yet** — the whole of it, in order:
+
+```sh
+cd backend
+.venv/bin/alembic upgrade head                                   # 0044, 0045
+.venv/bin/python products_step1_metadata.py --apply
+.venv/bin/python products_market_segments_metadata.py --apply
+.venv/bin/python products_phase3_metadata.py                     # dry run
+.venv/bin/python products_phase3_metadata.py --apply
+.venv/bin/python load_price_book.py                              # dry run: read what it would add
+.venv/bin/python load_price_book.py --apply
+.venv/bin/python products_typed_suites.py                        # report
+```
+
+**A server whose catalogue is already loaded** (step 1 was deployed): the same from
+`alembic upgrade head`, skipping the two scripts already run, and the loader as
+`load_price_book.py --apply --add-missing` — read its dry run first.
+
+- **What the loader adds on a loaded server:** the nine regional price books, what each
+  size covers, four Service products, four Support products and "Additional User", with
+  their prices. `--add-missing` is needed because the catalogue is not empty, and something
+  missing from it may have been deleted on purpose — the dry run lists every addition.
+- **It never changes what is there**: not a product, a price, an FX rate or a size. A
+  difference from the files is listed under "To know" and left alone.
+- **Register script before the loader.** The loader stops, writing nothing, if "Per user"
+  is not yet a Unit of Measure — the register script adds it.
+- **After it:** Price Books and CPQ appear in the navigation. Prices are changed there from
+  now on (Price Books → Editions → New edition), by an ADMIN or a DEVELOPER; the files in
+  `frontend/spec/seed/` are not read again.
+- **Editing a price book asks for its Rate Effective Date** the first time: the register
+  requires it and the files never stated one.
+- **To undo:** restore the dump. `alembic downgrade 0044_products` brings back one price
+  list from the Standard book's edition in use, and loses every other edition and every
+  regional price; the register would still describe the new modules.
+
 ---
 
 ## Docker install

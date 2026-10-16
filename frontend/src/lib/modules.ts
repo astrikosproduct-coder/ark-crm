@@ -7,6 +7,8 @@ import {
   Users,
   Network,
   Package,
+  BookOpenText,
+  SlidersHorizontal,
   FileText,
   ShieldCheck,
   ClipboardCheck,
@@ -33,7 +35,12 @@ export const MODULES: ModuleDef[] = [
   { key: 'accounts', label: 'Accounts', icon: Building2, built: true },
   { key: 'contacts', label: 'Contacts', icon: Users, built: true },
   { key: 'partners', label: 'Partners', icon: Network, built: true },
-  { key: 'products', label: 'Products', icon: Package, built: false },
+  { key: 'products', label: 'Products', icon: Package, built: true },
+  // Products phase 3 (13 Oct 2026). CPQ is a module here — in Zoho it sits
+  // under Setup — and holds the Sizing Guide today, the configurator and the
+  // price rules from phase 4.
+  { key: 'price_books', label: 'Price Books', icon: BookOpenText, built: true },
+  { key: 'cpq', label: 'CPQ', icon: SlidersHorizontal, built: true },
   { key: 'quotes', label: 'Quotes', icon: FileText, built: false },
   { key: 'bids_pocs', label: 'Bids & POCs', icon: ShieldCheck, built: false },
   { key: 'approvals', label: 'Approvals', icon: ClipboardCheck, built: false },
@@ -65,7 +72,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
     label: 'Sales',
     keys: ['leads', 'opportunities', 'deals', 'accounts', 'contacts', 'partners'],
   },
-  { label: 'Commercial', keys: ['products', 'quotes', 'approvals'] },
+  { label: 'Commercial', keys: ['products', 'price_books', 'cpq', 'quotes', 'approvals'] },
   { label: "POC's & Documents", keys: ['bids_pocs', 'activities_docs'] },
 ]
 

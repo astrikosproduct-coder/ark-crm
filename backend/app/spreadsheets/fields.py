@@ -28,7 +28,7 @@ from sqlalchemy.orm import Session
 
 from ..metadata_resolver import resolved_fields
 from ..metadata_spec import SPEC_DIR
-from ..models import Account, Contact, Deal, DealRegistration, Lead, PicklistValue, User
+from ..models import Account, Contact, Deal, DealRegistration, Lead, PicklistValue, Product, User
 from .conditions import ConditionError, evaluate, slug
 
 # ------------------------------------------------------------------ the sidecar
@@ -51,17 +51,6 @@ def extensions() -> dict[str, Any]:
 def extension_of(module: str, api_name: str) -> dict[str, Any]:
     entry = extensions().get("fields", {}).get(f"{module}.{api_name}")
     return entry if isinstance(entry, dict) else {}
-
-
-@lru_cache(maxsize=4)
-def _products_at(mtime: float) -> list[dict[str, Any]]:
-    return _read_json(SPEC_DIR / "seed" / "products.json")
-
-
-def products() -> list[dict[str, Any]]:
-    """The product catalogue is still seed data in the browser store, read from the same file."""
-    path = SPEC_DIR / "seed" / "products.json"
-    return _products_at(path.stat().st_mtime) if path.exists() else []
 
 
 # ------------------------------------------------------------------ columns
@@ -237,6 +226,26 @@ class Target:
     attrs: dict[str, Any] = field(default_factory=dict)
 
 
+def product_target(product: Product) -> Target:
+    """
+    A catalogue item as a lookup target: matched by its name or its SKU, and
+    carrying what a lookup filter reads ("catalogue_category == 'Segment
+    Library'"). Shared with app/products.py, so a sheet and a form are held to
+    the same rule.
+    """
+    return Target(
+        product.product_id,
+        product.item_name,
+        product.sku_code,
+        attrs={
+            "catalogue_category": product.catalogue_category,
+            "charge_type": product.charge_type,
+            "pricing_basis": product.pricing_basis,
+            "active": product.active,
+        },
+    )
+
+
 class Directory:
     """Picklists and lookup targets, loaded once per request."""
 
@@ -294,7 +303,7 @@ class Directory:
         elif target == "lead":
             rows = [Target(l.lead_id, l.opportunity_name or l.lead_id) for l in db.scalars(select(Lead))]
         elif target == "product":
-            rows = [Target(p["sku"], p["name"], p["sku"], attrs=dict(p)) for p in products()]
+            rows = [product_target(p) for p in db.scalars(select(Product))]
         else:
             rows = []
         self._targets[target] = rows
@@ -429,7 +438,12 @@ class MissingRecord(CellError):
 def matches_filter(expr: str | None, target: Target, directory: Directory) -> bool:
     if not expr:
         return True
-    picklist_of = {"account_type": "accounts__account_type"}
+    picklist_of = {
+        "account_type": "accounts__account_type",
+        "catalogue_category": "products__catalogue_category",
+        "charge_type": "products__charge_type",
+        "pricing_basis": "products__pricing_basis",
+    }
     try:
         return evaluate(
             expr,
@@ -606,6 +620,10 @@ def display_value(column: Column, value: Any, directory: Directory, labels: dict
         return directory.label(column.picklist, value) or value
     if kind == "multiselect":
         items = value if isinstance(value, list) else [value]
+        if column.lookup_target:
+            # Several records picked (Secondary S!aP Suites): their names. What
+            # was typed before the catalogue existed reads as typed.
+            return "; ".join(directory.name_of(column.lookup_target, v) or str(v) for v in items)
         return "; ".join(directory.label(column.picklist, v) or str(v) for v in items)
     if kind == "lookup":
         return (labels or {}).get(column.api_name) or directory.name_of(column.lookup_target, value) or value

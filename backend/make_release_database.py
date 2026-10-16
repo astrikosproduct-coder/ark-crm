@@ -60,6 +60,16 @@ KEEP = {
     "picklist_values",
     "stages",
     "metadata_versions",
+    # Products, step 1 (0044): the catalogue and its prices are the price book,
+    # not prototype data — a release database without them would offer nothing
+    # to pick on a Lead. load_price_book.py refills them on any database.
+    "products",
+    # Price Books (0045): the books, their editions and prices, and the sizes a
+    # price is set at. `product_prices` (0044) became `price_book_entries`.
+    "price_books",
+    "price_book_editions",
+    "price_book_entries",
+    "deployment_sizes",
     "roles",
     "users",
     "user_roles",

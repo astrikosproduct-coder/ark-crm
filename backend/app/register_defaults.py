@@ -27,8 +27,12 @@ def _blank(value: Any) -> bool:
     return value is None or (isinstance(value, str) and value.strip() == "")
 
 
-def apply_defaults(db: Session, module: str, record: Any) -> None:
-    """Fill each blank field of `record` that has a default on `module`."""
+def apply_defaults(db: Session, module: str, record: Any, only: set[str] | None = None) -> None:
+    """Fill each blank field of `record` that has a default on `module`.
+
+    `only` names the fields this kind of record holds, for a module whose
+    register describes more than one (Products — app/products.py::record_fields).
+    """
     register = published(db)
     if register is None:
         return
@@ -40,6 +44,8 @@ def apply_defaults(db: Session, module: str, record: Any) -> None:
         if default is None or field.get("value_mode") == "read_through":
             continue
         name = field["api_name"]
+        if only is not None and name not in only:
+            continue
         if name in columns and name != "custom_fields":
             if _blank(getattr(record, name)):
                 setattr(record, name, default)

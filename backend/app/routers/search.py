@@ -54,7 +54,7 @@ from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Account, Contact, Deal, Lead, Opportunity
+from ..models import Account, Contact, Deal, Lead, Opportunity, Product
 from ..pursuits import end_client_of
 
 router = APIRouter(tags=["search"])
@@ -250,6 +250,25 @@ def _search_contacts(db: Session, term: str, account_ids: Iterable[str], limit: 
     ], total
 
 
+def _search_products(db: Session, term: str, limit: int):
+    """The catalogue, by an item's name or SKU. Retired items are left out."""
+    query = (
+        select(Product)
+        .where(Product.active.is_(True))
+        .where(
+            or_(
+                Product.item_name.ilike(_like(term), escape="\\"),
+                Product.sku_code.ilike(_like(term), escape="\\"),
+            )
+        )
+        .order_by(Product.item_name)
+    )
+    rows, total = _capped(db, query, limit)
+    return [
+        _hit(module="products", record_id=r.product_id, title=r.item_name, subtitle=r.sku_code) for r in rows
+    ], total
+
+
 #: Group order is reading order, not alphabetical: the pipeline first, because
 #: that is what people are looking for nine times in ten, then the parties.
 GROUP_LABELS = [
@@ -258,6 +277,7 @@ GROUP_LABELS = [
     ("deals", "Deals"),
     ("accounts", "Accounts"),
     ("contacts", "Contacts"),
+    ("products", "Products"),
 ]
 
 
@@ -288,6 +308,7 @@ def global_search(request: Request, db: Session = Depends(get_db)) -> dict:
         "deals": _search_deals(db, term, account_ids, limit),
         "accounts": _search_accounts(db, term, limit),
         "contacts": _search_contacts(db, term, account_ids, limit),
+        "products": _search_products(db, term, limit),
     }
 
     groups = []

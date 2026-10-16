@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ChildListTable } from '@/components/form/ChildListTable'
 import { LookupCombobox } from '@/components/form/LookupCombobox'
+import { LookupMultiSelect, LookupValues } from '@/components/form/LookupMultiSelect'
 import { MultiSelect } from '@/components/form/MultiSelect'
 import { PhoneInput } from '@/components/form/PhoneInput'
 import { SEARCHABLE_FROM, SearchablePicklist } from '@/components/form/SearchablePicklist'
@@ -279,14 +280,19 @@ export function FieldControl({ field, onCreateNew, scope }: Props) {
     }
 
     case 'multiselect':
-      return (
-        <MultiSelect
-          id={id}
-          options={fieldOptions(field)}
-          value={Array.isArray(value) ? (value as string[]) : []}
-          onChange={set}
-        />
-      )
+      // Several RECORDS, not several choices — Secondary S!aP Suites picks
+      // products. The register says so by naming a lookup target.
+      if (field.lookup_target) {
+        return (
+          <LookupMultiSelect
+            id={id}
+            field={field}
+            value={Array.isArray(value) ? (value as string[]) : []}
+            onChange={set}
+          />
+        )
+      }
+      return <DependentMultiSelect id={id} field={field} value={value} set={set} values={scope ? null : form.values} />
 
     case 'lookup':
       return (
@@ -674,6 +680,8 @@ export function ReadOnlyValue({ field, value }: { field: FieldSpec; value: unkno
   // Comma-separated text rather than a row of filled chips — a multiselect is
   // one field with several values, and it reads as one line.
   if (Array.isArray(value)) {
+    if (value.length === 0) return <p className="px-3 py-2 text-sm text-muted-foreground">—</p>
+    if (field.lookup_target) return <LookupValues field={field} value={value.map(String)} />
     return (
       <p className="px-3 py-2 text-sm">
         {value.map((v) => labelForValue(field.picklist, v)).join(', ')}
@@ -778,7 +786,11 @@ function formatValue(field: FieldSpec, value: unknown): string {
 export function formatComputed(field: FieldSpec, value: unknown): string {
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
   if (typeof value === 'number') {
-    return field.api_name.includes('_pct') ? percent(value) : money(value)
+    if (field.api_name.includes('_pct')) return percent(value)
+    // A small figure that is not whole is a ratio or a multiplier (a price
+    // book's Effective Multiplier, 3.6725), not an amount of money: rounding
+    // it to the unit would show "4".
+    return !Number.isInteger(value) && Math.abs(value) < 1000 ? number(value) : money(value)
   }
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) return fmtDate(value)
   return String(value)
@@ -791,6 +803,51 @@ export function formatComputed(field: FieldSpec, value: unknown): string {
  * with one.
  */
 const CUSTOM_OPTION = '__other__'
+
+/**
+ * Several choices from a list — and, when the field follows another (a
+ * product's Segment Category follows its Segments), only the choices those
+ * hold. Nothing to offer yet says why, as the single-choice dropdown does.
+ *
+ * A choice already on the record stays among the options even when its parent
+ * no longer offers it, so it can be seen and taken off rather than hidden.
+ */
+function DependentMultiSelect({
+  field,
+  id,
+  value,
+  set,
+  values,
+}: {
+  field: FieldSpec
+  id: string
+  value: unknown
+  set: (next: unknown) => void
+  /** The record's values, or null where the field stands alone (a child row). */
+  values: Values | null
+}) {
+  const all = fieldOptions(field)
+  const held = Array.isArray(value) ? (value as string[]) : []
+  const allowed = values ? allowedChoices(field.module, field.api_name, values) : null
+  if (allowed !== null && allowed.length === 0 && held.length === 0) {
+    const parent = fieldOf(field.module, dependencyOf(field.module, field.api_name)?.parent ?? '')
+    const parentLabel = parent?.label ?? 'the field above'
+    const parentValue = parent ? values?.[parent.api_name] : null
+    const parentChosen = Array.isArray(parentValue) ? parentValue.length > 0 : Boolean(parentValue)
+    return (
+      <MultiSelect
+        id={id}
+        options={[]}
+        value={[]}
+        onChange={set}
+        disabled
+        placeholder={parentChosen ? `None for this ${parentLabel}` : `Choose a ${parentLabel} first`}
+      />
+    )
+  }
+  const options = allowed === null ? all : all.filter((o) => allowed.includes(o.key) || held.includes(o.key))
+  return <MultiSelect id={id} options={options} value={held} onChange={set} />
+}
 
 /**
  * A picklist the sidecar marks as not closed — allow_custom_value in

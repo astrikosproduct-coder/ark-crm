@@ -8,9 +8,9 @@ import { api } from '@/lib/api'
  * discarded — never stored.
  */
 
-export type SpreadsheetModule = 'leads' | 'opportunities' | 'deals' | 'accounts' | 'contacts' | 'partners'
+export type SpreadsheetModule = 'leads' | 'opportunities' | 'deals' | 'accounts' | 'contacts' | 'partners' | 'products'
 
-export const IMPORTABLE: ReadonlySet<SpreadsheetModule> = new Set(['leads', 'accounts', 'contacts', 'partners'])
+export const IMPORTABLE: ReadonlySet<SpreadsheetModule> = new Set(['leads', 'accounts', 'contacts', 'partners', 'products'])
 
 export interface ImportRowError {
   row: number

@@ -449,7 +449,10 @@ function ValueEditor({
 /** The choices of a picklist, lookup or stage field, labelled as the form labels them. */
 function useChoiceOptions(field: FilterField, filters: ListFilters): { options: Option[]; loading: boolean } {
   const spec = field.field
-  const collection = field.kind === 'choice' && spec.type === 'lookup' ? collectionFor(spec.lookup_target) : undefined
+  // A lookup — or a multiselect that picks several records (Secondary S!aP
+  // Suites) — offers the records of its collection, not a picklist's choices.
+  const picksRecords = spec.type === 'lookup' || (spec.type === 'multiselect' && Boolean(spec.lookup_target))
+  const collection = field.kind === 'choice' && picksRecords ? collectionFor(spec.lookup_target) : undefined
   const { data: rows, isLoading } = useQuery({
     queryKey: ['collection', collection],
     queryFn: () => fetchCollection(collection!),
@@ -460,7 +463,7 @@ function useChoiceOptions(field: FilterField, filters: ListFilters): { options: 
   const options = useMemo<Option[]>(() => {
     if (field.kind !== 'choice') return []
     let out: Option[]
-    if (spec.type !== 'lookup') {
+    if (!picksRecords) {
       out = fieldOptions(spec).map((o) => ({ key: o.key, label: o.label }))
       if (spec.api_name === filters.stageField) {
         // A stage field offers only the stages this module carries.
@@ -474,7 +477,7 @@ function useChoiceOptions(field: FilterField, filters: ListFilters): { options: 
         .sort((a, b) => a.label.localeCompare(b.label))
     }
     return limit ? out.filter((o) => limit.includes(o.key)) : out
-  }, [field.kind, spec, rows, limit, filters.stageField, filters.module])
+  }, [field.kind, spec, picksRecords, rows, limit, filters.stageField, filters.module])
   return { options, loading: isLoading && Boolean(collection) }
 }
 

@@ -45,12 +45,15 @@ class ExportTarget:
     rows: Callable[[], list[dict[str, Any]]]
     #: Child lists live under another module's sidecar key (payment_milestones is leads.*).
     child_module_of: dict[str, str] = field(default_factory=dict)
+    #: The api_names this kind of record holds, where the register module
+    #: describes more than one (Products). None: every field of the module.
+    only: set[str] | None = None
 
 
 def export_workbook(db: Session, target: ExportTarget, generated: date | datetime) -> bytes:
     rows = target.rows()
     directory = Directory(db)
-    columns = [c for c in register_columns(db, target.field_module)]
+    columns = [c for c in register_columns(db, target.field_module) if target.only is None or c.api_name in target.only]
     by_api = {c.api_name: c for c in columns}
     book = new_book()
     book.properties.title = f"ARK CRM {target.title} export"

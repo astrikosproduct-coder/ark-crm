@@ -39,6 +39,14 @@ const OpportunityDetailPage = lazy(() => import('@/pages/OpportunityDetailPage')
 const OpportunitiesPage = lazy(() => import('@/pages/OpportunitiesPage').then((m) => ({ default: m.OpportunitiesPage })))
 const PartnerDetailPage = lazy(() => import('@/pages/PartnerDetailPage').then((m) => ({ default: m.PartnerDetailPage })))
 const PartnersPage = lazy(() => import('@/pages/PartnersPage').then((m) => ({ default: m.PartnersPage })))
+const CpqPage = lazy(() => import('@/pages/CpqPage').then((m) => ({ default: m.CpqPage })))
+const EditionDetailPage = lazy(() => import('@/pages/EditionDetailPage').then((m) => ({ default: m.EditionDetailPage })))
+const PriceBookDetailPage = lazy(() => import('@/pages/PriceBookDetailPage').then((m) => ({ default: m.PriceBookDetailPage })))
+const PriceBooksPage = lazy(() => import('@/pages/PriceBooksPage').then((m) => ({ default: m.PriceBooksPage })))
+const SizeDetailPage = lazy(() => import('@/pages/SizeDetailPage').then((m) => ({ default: m.SizeDetailPage })))
+const ProductCreatePage = lazy(() => import('@/pages/ProductCreatePage').then((m) => ({ default: m.ProductCreatePage })))
+const ProductDetailPage = lazy(() => import('@/pages/ProductDetailPage').then((m) => ({ default: m.ProductDetailPage })))
+const ProductsPage = lazy(() => import('@/pages/ProductsPage').then((m) => ({ default: m.ProductsPage })))
 const RegistrationDetailPage = lazy(() => import('@/pages/RegistrationDetailPage').then((m) => ({ default: m.RegistrationDetailPage })))
 const RecordCreatePage = lazy(() => import('@/pages/RecordCreatePage').then((m) => ({ default: m.RecordCreatePage })))
 const SetupPage = lazy(() => import('@/pages/SetupPage').then((m) => ({ default: m.SetupPage })))
@@ -141,6 +149,62 @@ const router = createBrowserRouter(
           <Route path="partners/registrations/new" element={<NewRegistrationPage />} />
           <Route path="partners/registrations/:id" element={<RegistrationDetailPage />} />
           <Route path="partners/:id" element={<PartnerDetailPage />} />
+
+          {/* The catalogue. /new outranks /:id; ?clone=<id> opens it as a copy. */}
+          <Route path="products" element={<ProductsPage />} />
+          <Route path="products/new" element={<ProductCreatePage />} />
+          <Route path="products/:id" element={<ProductDetailPage />} />
+
+          {/* Price Books and their editions (Products phase 3). The static
+              segments outrank price_books/:id, so "new" and "editions" are
+              never read as a book's id. */}
+          <Route path="price_books" element={<PriceBooksPage />} />
+          <Route
+            path="price_books/new"
+            element={
+              <RecordCreatePage
+                module="price_books"
+                collection="price-books"
+                basePath="/price_books"
+                title="New price book"
+                subtitle="Prices every product at once: the Standard price × its Region Pricing % × its FX Rate."
+              />
+            }
+          />
+          <Route
+            path="price_books/editions/new"
+            element={
+              <RecordCreatePage
+                module="price_book_editions"
+                collection="price-book-editions"
+                basePath="/price_books/editions"
+                title="New edition"
+                subtitle="Starts as a draft, holding a copy of every price in the edition in use."
+              />
+            }
+          />
+          {/* Editions are a tab of Price Books, not a page: Cancel on "New
+              edition" comes back here, and so does a hand-typed address. */}
+          <Route path="price_books/editions" element={<Navigate to="/price_books" replace />} />
+          <Route path="price_books/editions/:id" element={<EditionDetailPage />} />
+          <Route path="price_books/:id" element={<PriceBookDetailPage />} />
+
+          {/* CPQ: the Sizing Guide today; the configurator and price rules in phase 4. */}
+          <Route path="cpq" element={<CpqPage />} />
+          <Route
+            path="cpq/sizes/new"
+            element={
+              <RecordCreatePage
+                module="deployment_sizes"
+                collection="sizes"
+                basePath="/cpq/sizes"
+                title="New size"
+                subtitle="Becomes a column of every price book."
+              />
+            }
+          />
+          <Route path="cpq/sizes" element={<Navigate to="/cpq" replace />} />
+          <Route path="cpq/sizes/:id" element={<SizeDetailPage />} />
 
           {/* Everything not built yet still resolves, through the generic
               spec-driven screens. */}

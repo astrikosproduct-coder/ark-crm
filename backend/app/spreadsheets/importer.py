@@ -60,6 +60,7 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from ..database import engine
+from ..field_dependencies import allowed as allowed_choices
 from ..live_register import published
 from ..models import User
 from .conditions import ConditionError, _tokens, evaluate, slug
@@ -114,6 +115,9 @@ class ImportTarget:
     row_rule: Callable[[dict[str, Any], Directory], str | None] | None = None
     #: Values every imported row starts from, before its own cells.
     defaults: dict[str, Any] = field(default_factory=dict)
+    #: The api_names this kind of record holds, where the register module
+    #: describes more than one (Products). None: every field of the module.
+    only: Callable[[Session], set[str] | None] | None = None
 
 
 @dataclass
@@ -137,7 +141,9 @@ class Mapping:
 
 
 def columns_for(db: Session, target: ImportTarget) -> list[Column]:
-    return import_columns(db, target.field_module, max_stage=target.max_stage)
+    columns = import_columns(db, target.field_module, max_stage=target.max_stage)
+    only = target.only(db) if target.only else None
+    return columns if only is None else [c for c in columns if c.api_name in only]
 
 
 def pick_sheet(target: ImportTarget, sheets: dict[str, list[list[Any]]]) -> tuple[str, list[list[Any]]]:
@@ -419,7 +425,11 @@ def run_import(
             # the create logic to refuse, naming the field.
             for child, dep in dependencies.items():
                 value, parent = payload.get(child), payload.get(dep["parent"])
-                allowed = dep["map"].get(str(parent), []) if parent is not None else []
+                # Several choices (a product's Segment Category) are already
+                # read whole; the create logic checks each against its parent.
+                if isinstance(value, list):
+                    continue
+                allowed = allowed_choices(dep, parent)
                 if value is None or value in allowed or is_blank(typed.get(child)):
                     continue
                 want = slug(typed[child])

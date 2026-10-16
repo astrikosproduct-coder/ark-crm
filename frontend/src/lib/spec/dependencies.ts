@@ -13,6 +13,11 @@ import { specSource } from './source'
  *   - a child with nothing to offer — parent empty, or a parent mapped to no
  *     choices — is never required (offersChoices);
  *   - a child choice its parent does not offer is refused on save.
+ *
+ * SEVERAL CHOICES (Products, 13 Oct 2026): a product's Segment -> Segment
+ * Category -> Subsegment are multi-choice. A child then offers the choices of
+ * EVERY parent choice held, and a parent choice taken away removes only the
+ * child choices that came with it.
  */
 
 export interface FieldDependency {
@@ -54,7 +59,14 @@ export function allowedChoices(module: string, apiName: string, values: Record<s
   if (!dep) return null
   const parentValue = values[dep.parent]
   if (blank(parentValue)) return []
-  return dep.map[String(parentValue)] ?? []
+  if (!Array.isArray(parentValue)) return dep.map[String(parentValue)] ?? []
+  const out: string[] = []
+  for (const parent of parentValue) {
+    for (const choice of dep.map[String(parent)] ?? []) {
+      if (!out.includes(choice)) out.push(choice)
+    }
+  }
+  return out
 }
 
 /** Does this field have anything to choose from right now? */
@@ -80,6 +92,13 @@ export function clearOrphanedChoices(
     const current = out[child]
     if (blank(current)) continue
     const allowed = allowedChoices(module, child, out) ?? []
+    if (Array.isArray(current)) {
+      // Several choices: keep the ones still on offer, drop the rest.
+      const kept = current.filter((v) => allowed.includes(String(v)))
+      if (kept.length === current.length) continue
+      out = clearOrphanedChoices(module, { ...out, [child]: kept }, child)
+      continue
+    }
     if (allowed.includes(String(current))) continue
     out = clearOrphanedChoices(module, { ...out, [child]: null }, child)
   }

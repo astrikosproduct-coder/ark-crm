@@ -6,8 +6,13 @@
     POST /spreadsheets/{module}/import/preview?filename=   check every row, save nothing
     POST /spreadsheets/{module}/import?filename=           save every row, or none
 
-    import:  leads (Stage 0), accounts, contacts, partners
-    export:  the same four, plus opportunities and deals
+    import:  leads (Stage 0), accounts, contacts, partners, products
+    export:  the same five, plus opportunities and deals
+
+Products (phase 2, 13 Oct 2026): a sheet carries a product's own fields only —
+not the price matrix or the pricing tables the same register module describes
+(app/products.py::record_fields) — and importing is an admin's or a
+developer's, as every other change to the catalogue is.
 
 The upload is the raw file as the request body — read, checked and discarded;
 nothing is stored (file upload stays out of scope). `mapping` is an optional
@@ -30,13 +35,14 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
-from ..auth import current_user
+from ..auth import current_user, is_catalogue_editor, require_catalogue_editor
 from ..clock import now_utc
 from ..database import get_db
 from ..messages import refusal
 from ..models import User
-from ..routers import accounts, contacts, deals, leads, opportunities
-from ..schemas import AccountCreate, ContactCreate, LeadCreate
+from ..products import record_fields
+from ..routers import accounts, contacts, deals, leads, opportunities, products
+from ..schemas import AccountCreate, ContactCreate, LeadCreate, ProductCreate
 from ..spreadsheets.exporter import ExportTarget, export_filename, export_workbook
 from ..spreadsheets.fields import Directory, extensions
 from ..spreadsheets.importer import ImportTarget, columns_for, run_import
@@ -69,6 +75,13 @@ def _create_contact(payload, db, user) -> str:
     return contacts.create_contact(payload=payload, db=db, user=user)["id"]
 
 
+def _create_product(payload, db, user) -> str:
+    # Called as a plain function, so the route's own role check does not run:
+    # it is made here, per row, and once up front in `_import`.
+    require_catalogue_editor(user)
+    return products.create_product(payload=payload, db=db, user=user)["id"]
+
+
 def _import_target(module: str) -> ImportTarget:
     if module == "leads":
         return ImportTarget(
@@ -90,6 +103,11 @@ def _import_target(module: str) -> ImportTarget:
         return ImportTarget(
             key="contacts", field_module="contacts", title="Contacts", noun="contact", plural="Contacts",
             name_field="full_name", schema=ContactCreate, create=_create_contact,
+        )
+    if module == "products":
+        return ImportTarget(
+            key="products", field_module="products", title="Products", noun="product", plural="Products",
+            name_field="item_name", schema=ProductCreate, create=_create_product, only=record_fields,
         )
     if module in ("opportunities", "deals"):
         raise HTTPException(
@@ -127,6 +145,11 @@ def _export_target(module: str, request: Request, db: Session) -> ExportTarget:
         )
     if module == "contacts":
         return ExportTarget("contacts", "contacts", "contacts", "Contacts", "full_name", list_rows(contacts.list_contacts))
+    if module == "products":
+        return ExportTarget(
+            "products", "products", "products", "Products", "item_name",
+            list_rows(products.list_products), only=record_fields(db),
+        )
     raise HTTPException(status.HTTP_404_NOT_FOUND, refusal("NOT_FOUND", "There is nothing to export here."))
 
 
@@ -220,6 +243,8 @@ def _json_object(text: str | None) -> dict:
 
 async def _import(module: str, request: Request, db: Session, user: User, *, commit: bool) -> dict:
     target = _import_target(module)
+    if module == "products" and not is_catalogue_editor(user):
+        require_catalogue_editor(user)  # raises the 403 a person can read
     filename = request.query_params.get("filename") or ""
     overrides = _json_object(request.query_params.get("mapping"))
     answers = {k: v for k, v in _json_object(request.query_params.get("answers")).items() if isinstance(v, dict)}

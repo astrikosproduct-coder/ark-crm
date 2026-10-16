@@ -27,10 +27,31 @@ export function money(value: unknown): string {
   return n.toLocaleString('en-US', { maximumFractionDigits: 0 })
 }
 
+/**
+ * The sign a currency is written with — "$" for USD, "₹" for INR — or its code
+ * where it has no sign of its own ("AED"). Asked of the browser, which knows
+ * every currency; none is listed here. Empty when there is no currency.
+ */
+export function currencySign(code: unknown): string {
+  if (typeof code !== 'string' || !code) return ''
+  try {
+    const parts = new Intl.NumberFormat('en-US', { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol' }).formatToParts(0)
+    return parts.find((p) => p.type === 'currency')?.value ?? code
+  } catch {
+    // Not a currency the browser knows (a code typed into Setup): show it as it is.
+    return code
+  }
+}
+
+/**
+ * A plain number, as it is held. Up to six decimals, because that is what an
+ * FX rate carries (3.6725): two would show a different rate from the one the
+ * prices were worked out with.
+ */
 export function number(value: unknown): string {
   const n = typeof value === 'number' ? value : Number(value)
   if (!Number.isFinite(n)) return ''
-  return n.toLocaleString('en-US', { maximumFractionDigits: 2 })
+  return n.toLocaleString('en-US', { maximumFractionDigits: 6 })
 }
 
 /**

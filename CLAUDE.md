@@ -26,8 +26,8 @@ expected state and gets nothing until someone grants one.
 roles and the field register all need the DEVELOPER role, enforced on the router mounts;
 the nav entry and the route are hidden from everyone else as a courtesy. It is released to
 administrators in version 2. The consequence was accepted: in V1 only a developer can grant
-a role to a new employee. The ADMIN role's one power of its own is writing sales targets
-(28 Sep 2026, shared with DEVELOPER).
+a role to a new employee. The ADMIN role's powers of its own are writing sales targets
+(28 Sep 2026) and changing the product catalogue (13 Oct 2026), both shared with DEVELOPER.
 
 So **identity is available server-side on every request, and must be taken from there.**
 Never accept `created_by`, `modified_by`, an audit `actor`, or a transition `actor`/
@@ -92,6 +92,125 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    | Map Dependency Fields — Region → Country → State | `field_dependencies`, `field_dependency_values` (r11_0001); `accounts.country/state`, `leads.state` | in the published register: `/api/spec` → `dependencies`, `spec/dependencies.json` |
    | Groups of companies, the duplicate-company check | `accounts.parent_account`, `accounts.not_duplicate_of` (r11_0002) | `/api/accounts`, `/api/accounts/{id}/group`, `/api/accounts/{id}/make-head` |
 
+   | Added (12 Oct 2026, Products step 1) | Tables | Served at |
+   |---|---|---|
+   | The catalogue and its price matrix | `products`, `product_prices` (0044; `price_book_entries` since 0045) | `/api/products`, `/api/products/{id}` (with `prices`), `/api/products/{id}/pursuits` — anyone reads; **ADMIN or DEVELOPER** writes (`app/auth.py::require_catalogue_editor`) |
+
+   | Added (13 Oct 2026, Products phase 3) | Tables | Served at |
+   |---|---|---|
+   | Price Books, their editions and prices | `price_books`, `price_book_editions`, `price_book_entries` (0045) | `/api/price-books`, `/api/price-books/{id}/prices`, `/api/price-book-editions` (+ `/make-current`) |
+   | CPQ's Sizing Guide | `deployment_sizes` (0045) | `/api/sizes` — all of it: anyone reads, **ADMIN or DEVELOPER** writes |
+
+   **Products, step 1** (`app/products.py`, `app/routers/products.py`). What it decided:
+   - **The catalogue is a table, first filled from the price book file** by
+     `backend/load_price_book.py` (`spec/seed/products.json`, `prices.json`, matched by SKU).
+     Since phase 2 products are edited in the app, so a re-run changes PRICES only: a product
+     already there keeps its fields, and one the catalogue lacks is added only with
+     `--add-missing`. Since phase 3 prices are edited in Price Books too, so the loader
+     only ever ADDS what is missing — it changes no product, price, size or book that is
+     there. It is the first fill of a new server and nothing else.
+   - **The loader stores only what the file states.** Supports Perpetual, Has Annual Updates
+     Option, Quantity Allowed, Unit of Measure, the effective dates and Price Book Version
+     are in no file, so on the 31 loaded products they are NULL — unanswered, never defaulted
+     to "No" (the record page leaves an unanswered box off). A user pack's one price has no
+     size.
+   - **Four fields pick from it**: S!aP Solution Suite, Suite Demonstrated, Secondary S!aP
+     Suites (Leads) and Expansion Suites (Deals). All four offer **Segment Library items
+     only** — "the suites"; there is no Suite Type field. The rule is the field's
+     `lookup_filter_expr` in `spec/extensions.json`, read by the form AND by the server
+     (`products.check_picks`), which checks a pick only when it CHANGES.
+   - **A several-pick is a `multiselect` that names a `lookup_target`** — it picks records,
+     not choices (`LookupMultiSelect.tsx`). Stored as product ids joined by commas in the
+     column it always had; the API serves a list. Not a junction table and no foreign key:
+     those columns held typed text from 3 Sep 2026, and **what was typed is kept as typed**
+     until someone picks — never rewritten, never guessed at. `products_typed_suites.py`
+     reports it and converts exact names only.
+   - **A product's Pursuits tab** lists every Lead, Opportunity and Deal naming it, each once
+     as the record it is today, with Open pipeline and Won by `app/revenue.py`'s rule.
+   - **Not done, on purpose:** the feature-gap table's Suite / Module column is still typed;
+     Platform Licence List Price is still typed (Quotes will fill it); the Products register
+     module still holds eight unrelated sections (see `open_questions`, ref `products`).
+
+   **Products, phases 1 and 2** (13 Oct 2026; plan: Products → Price Books → CPQ rules →
+   Quotes, as close to Zoho as ARK's rules allow, nothing hardcoded). What they decided:
+   - **Segment → Segment Category → Subsegment on a product** (phase 1,
+     `products_market_segments_metadata.py`): three multi-choice fields linked by Map
+     Dependency Fields, values in `products.custom_fields` — no DDL. Segment is the SAME list
+     Leads and Accounts use (`theme`); Segment Category (41) and Subsegment (132) are new
+     global lists from `backend/data/market_segments.json` (`tools/build_market_segments.py`,
+     from `docs/Segments_and_Subsegments.xlsx`). **Products only** — nothing was added to
+     Leads or Accounts (decided 12 Oct 2026); a Lead is matched to a product through its own
+     Segment, later. The workbook's Priority and Owner columns are empty and were not taken.
+   - **A dependency may join multi-choice fields.** A child then offers the choices of EVERY
+     parent choice held, and each child choice must be one of them
+     (`field_dependencies.allowed`, `dependencies.ts::allowedChoices`); removing a parent
+     choice drops only the child choices that came with it.
+   - **Products are edited in the app** (phase 2): New, Edit, Clone (`/products/new?clone=`,
+     everything but the number and the SKU Code; prices are not copied), Deactivate /
+     Reactivate, Delete, Import and Export. **ADMIN or DEVELOPER only**, enforced on the
+     routes and inside the import; everyone reads and exports. Audited.
+   - **Which register fields are a product's**: the section holding Product ID, read off the
+     published register by the server (`products.record_fields`) and the form
+     (`lib/products.ts::productSections`) — no section is named in code. The required-field
+     check, defaults, import and export are scoped to it (`check_save(..., only=)`). Phase 3
+     moved the seven pricing sections out, so today that section is the whole module; the
+     scoping stays because it costs nothing and holds if a section is ever added.
+   - **A product's rules**: SKU Code is one product's (case and outer spaces ignored —
+     `SKU_EXISTS`); it can't end before it starts (`EFFECTIVE_DATES`); SKU Code, Item Name
+     and Catalogue Category can never be empty, whatever the register says. A box left
+     unticked on a product a person saves is "No".
+   - **Delete is refused while a Lead or Deal names the product** (`PRODUCT_IN_USE`,
+     `products.records_naming` — converted Leads count; the pick columns have no foreign
+     key, so this check is all there is). Deleting takes its list prices with it; its number
+     is never reused. Deactivate instead: it keeps showing on records and stops being
+     offered.
+
+   **Products, phase 3 — Price Books and the Sizing Guide** (13 Oct 2026,
+   `app/price_books.py`, `app/routers/price_books.py`). The five commercial modules are
+   **Products · Price Books · CPQ · Quotes · Approvals**; POCs and Gates follow. What it decided:
+   - **Nothing lives in Setup** (the user's rule): sizes, regions, currencies, FX and rates
+     are RECORDS inside those modules. Only a dropdown's choices stay in Modules and Fields.
+     **CPQ is a module** (Sizing Guide built; Product Configurator and Price Rules are phase
+     4) — a deliberate departure from Zoho, where CPQ sits under Setup.
+   - **One Standard price book, and regional books worked out from it.** The Standard book
+     (USA USD, `is_standard`, one by a partial unique index) holds entered prices at 100% and
+     FX 1 — it can't be re-rated, deactivated or deleted. A regional book IS the old "Region
+     & FX" row: its price is `Standard × Region Pricing % × FX Rate`, computed when read,
+     never stored, unless the book holds an entry OF ITS OWN (an override, in its currency).
+   - **A price has one of three shapes, read off the product's Pricing Basis**: per size
+     (By T-shirt size), one price (anything else), or a percentage of the licence (% of
+     licence — Standard book only, the same in every book). Those two choices are
+     `is_system` values; no product, category or size is named in code.
+   - **Editions** (`price_book_editions`, covering every book): DRAFT is edited freely;
+     CURRENT (one, by index) takes a FIRST price for a product that has none and no change;
+     RETIRED takes nothing. To change a price: New edition (a draft copy of the current one)
+     → edit → Make current, which retires the previous one the same day. An FX rate is the
+     book's, not the edition's. `price_book_version` is the edition's name.
+   - **A price is changed in ONE place** (the user, 13 Oct 2026): Price Books → Editions →
+     the edition → Prices, where a Price book box turns the grid to a regional book. A price
+     book's own Prices tab is read-only for everyone and links there. The grid's tables give
+     SKU Code a column of its own, and every money column names its currency — "XS ($)"
+     (`format.currencySign`, asked of the browser, never a list).
+   - **Sizes are records** (`deployment_sizes`, CPQ → Sizing Guide), not dropdowns: a price
+     names its size by `size_id`; a new size is a column of every book; one with prices
+     can't be deleted (`SIZE_IN_USE`) — deactivate it.
+   - **Services and Support are products**: four Service products (L1–L4, Per day rate, the
+     OFFSITE rate — onsite ×1.5 is a phase-4 price rule and an option on a quote line), four
+     Support products (% of licence), and **Additional User** (320 a year) beside the user
+     packs, because extra users are sold both ways. Level/Role and Tier/Coverage are product
+     fields shown only for a Service or a Support product.
+   - **The register followed** (`products_phase3_metadata.py`): Products keeps CATALOGUE
+     ITEM; new modules `price_books`, `price_book_entries` and `price_book_editions` (under
+     Price Books), `cpq`, `deployment_sizes` (under CPQ). The rate card's four rates, Region
+     Code, Is Derived and a Sort Order were deleted (logically); Service Category moved to
+     Quotes. The pricing parameters stay bundled, read-only on CPQ's Price Rules tab, until
+     phase 4 makes them rules.
+   - **Quotes will be a separate entity from Leads, Opportunities and Deals** (the user,
+     13 Oct 2026): do not link a quote to the pipeline or write pipeline revenue from one
+     until asked.
+   - **Not done, on purpose:** no import/export of prices; no price rules, so nothing works
+     out the Unlimited tier or the onsite rate yet — every price is entered.
+
    **Release 1.1** shipped on its own branch from V1, before Phase 2 (DEPLOY.md, "Release 1.1:
    the one-time update"). What it decided:
    - **Region → Country → State** (Zoho's Map Dependency Fields): per module, a child field
@@ -104,6 +223,7 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
      ISO country and first-level state (`backend/data/locations.json`, from
      `tools/build_locations.py`); India is a Region and a Country. Import reads a shared
      state name ("Punjab") within the row's Country. Setup will edit the maps in Phase 2.
+     Since 13 Oct 2026 a dependency may also join multi-choice fields (Products, above).
    - **Segment**: the old 4-choice Segment and Account Target Phase are deleted; Theme is
      labelled **Segment** (7 choices) — one choice on Leads (picked by hand, never copied
      from the Account), several and required on Accounts (`accounts.segments`). Region
@@ -135,7 +255,8 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
 
    **Import / export** (`backend/app/spreadsheets/`). Export: every live module, a workbook of
    Summary + one sheet per form section + Stage history + child lists, rows from the module's
-   own list endpoint under the screen's filters. Import: Leads, Accounts, Contacts, Partners —
+   own list endpoint under the screen's filters. Import: Leads, Accounts, Contacts, Partners,
+   Products (a product's own fields only; ADMIN or DEVELOPER) —
    **never Opportunities or Deals** (born by conversion — Leads are the one door), and **Leads at Stage 0 only** (a Stage 1
    move has blocking checks a sheet cannot confirm). Every row goes through the module's own
    create logic (`leads.insert_lead`, `create_account`, `create_contact`) inside one outer
@@ -164,10 +285,10 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    (removed 17 Sep 2026 at the user's request); column headers still sort. Opportunity/Deal list rows carry their
    read-through identity (`app/read_through_rows.py`) — list rows only, never a record read.
 
-   **No table for a module that is not live** (decided 21 Sep 2026). Products, Quotes,
-   Gates, Bids and POCs get tables when they are built, not before; a lookup onto one of
-   them offers nothing yet (`src/lib/collections.ts`). The price book is bundled, not
-   stored — see rule 2.
+   **No table for a module that is not live** (decided 21 Sep 2026). Quotes, Gates, Bids
+   and POCs get tables when they are built, not before; a lookup onto one of them offers
+   nothing yet (`src/lib/collections.ts`). Products got its two on 12 Oct 2026; the pricing
+   tables only Quotes will read are still bundled, not stored — see rule 2.
    **The register stores metadata, not business data.** Those tables define what a record
    may contain; they never hold a lead, an account or a quote. Deleting a field there is a
    logical delete — `field_definitions.status` / `field_placements.status = 'deleted'` — and **never** a `DROP COLUMN`:
@@ -224,8 +345,9 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    (snapshot schema < 3) can be read but not rolled back to.
    **Their seed files were removed** — `spec/seed/users.json`, `accounts.json` and
    `contacts.json` no longer exist; PostgreSQL is the source of truth. `spec/seed/leads.json`
-   and `registrations.json` are read only by the backend's migrate scripts; the frontend
-   bundles nothing from `spec/seed` but the price book (`src/lib/catalogue.ts`).
+   and `registrations.json` are read only by the backend's migrate scripts, and
+   the price book files only by `load_price_book.py`; the frontend bundles nothing from
+   `spec/seed` but the pricing parameters (`src/lib/catalogue.ts`).
    **Deleting an Account or Contact that a pursuit names is refused by the server**
    (`app/record_references.py`): those foreign keys are ON DELETE SET NULL, so the database
    alone would silently blank the End Client or Primary Contact on live records.
@@ -253,11 +375,11 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
    `VITE_API_URL`, or the image stops being portable and sign-in breaks (the session
    cookie is set on the host the browser signs in through, which must be the app's own).
    **Lookups, filters and pickers read a collection through `src/lib/collections.ts`**,
-   which decides where it comes from: the bundled price book (`src/lib/catalogue.ts` —
-   products, prices, sizes, rate card, support tiers, regions, pricing params; read-only,
-   changed by editing `spec/seed/*.json` and rebuilding), nothing yet for a module not
-   built, or `GET /api/<collection>`. It also decides where "+ Create new" is offered:
-   Accounts, Contacts and Leads only.
+   which decides where it comes from: the one bundled table (`src/lib/catalogue.ts` — the
+   pricing parameters; read-only until CPQ's price rules), nothing yet for a module not
+   built, or `GET /api/<collection>` — products since 12 Oct 2026, price books, editions
+   and sizes since 13 Oct 2026. It also decides where
+   "+ Create new" is offered: Accounts, Contacts and Leads only.
    `/api/dashboard` is read-only aggregates over the live pipeline
    (`backend/app/routers/dashboard.py`), computed with `app/revenue.py`'s rule so its
    totals reconcile with the boards. **Five tabs since 28 Sep 2026** — Performance (the
@@ -337,7 +459,7 @@ failing), no longer what a signed-in user sees.
 | `spec/module_split.json` | The pipeline split | **Part generated.** `pipeline`, `ranges`, `stage_field`, `reassign` and `read_through.parent_of`/`parent_link` come from PostgreSQL; the per-field judgement blocks stay hand-authored |
 | `spec/criteria.json` | Entry and exit criteria per stage, with enforcement | Still generated from the workbook |
 | `spec/gates.json` | The three gates and their checklist items | Still generated from the workbook |
-| `spec/seed/*.json` | The price book (bundled into the frontend by `src/lib/catalogue.ts`), plus seed leads and registrations read only by `backend/migrate_*.py`. **Not users, accounts or contacts** — those live in PostgreSQL | Still generated from the workbook |
+| `spec/seed/*.json` | The price book: `products.json` and `prices.json` are loaded into PostgreSQL by `backend/load_price_book.py`, with `sizes`, `regions`, `rate_card` and `support_tiers` (the first fill of a server — never read again); only `pricing_params.json` is bundled into the frontend by `src/lib/catalogue.ts`. Plus seed leads and registrations read only by `backend/migrate_*.py`. **Not users, accounts or contacts** — those live in PostgreSQL | Still generated from the workbook |
 
 The three generated-from-PostgreSQL files are **build artefacts. Never hand-edit them.** An
 edit there has no path back into the database and the next publish overwrites it. To change
@@ -499,7 +621,7 @@ approvals queue · dashboard with real prototype data.
 
 Reports · Administration CRUD · Activities and Documents beyond a stub · the POC workspace
 (weekly logs, issue register, close-out report) · partner scorecards ·
-role-based permissions beyond "signed in with any role" / "is developer" (Administration and feedback) / "is admin or developer" (sales targets) ·
+role-based permissions beyond "signed in with any role" / "is developer" (Administration and feedback) / "is admin or developer" (sales targets, the product catalogue) ·
 file upload to anywhere real · **comment pins** (dropped 18 Sep 2026 — see above) ·
 **a Settings screen** (deleted 18 Sep 2026 — see below).
 
@@ -510,8 +632,9 @@ the browser store and reseeded it, which stopped meaning anything once every mod
 reach moved to PostgreSQL — the button's own promise, "clears every record created or edited in
 this browser", had become false for Leads, Opportunities, Deals, Accounts, Contacts and
 Registrations alike. Its one remaining job was refreshing a stale copy of the CATALOGUE, and
-that is fixed at the source instead: **the price book is bundled from `spec/seed/*.json` at
-build time** (`src/lib/catalogue.ts`) and never stored anywhere. Edit the file and rebuild.
+that is fixed at the source instead: the catalogue (12 Oct 2026) and then its prices, sizes
+and price books (13 Oct 2026) moved into PostgreSQL, and the one table still bundled at
+build time is the pricing parameters (`src/lib/catalogue.ts`). None is kept in the browser.
 Do not reintroduce a reset; there is no browser store left to reset.
 
 ## How reviewers tell us things
@@ -561,6 +684,16 @@ that *would* have fired was planned and never built; it is not coming. See rule 
   1.1 on 7 Oct 2026, and for 1.1 merged into phase-2 on 8 Oct 2026;
   `freeze_parity_baseline.py --from-database --replace`). A field that moves without a
   deliberate re-freeze fails.
+- **Products step 1's order** (DEPLOY.md): `alembic upgrade head` (0044, which revises
+  0041) → `load_price_book.py` → `products_step1_metadata.py` → `products_typed_suites.py`
+  (a report; read it before `--apply`). Each a dry run first, all before the restart.
+- **Products phases 1 and 2's order** (DEPLOY.md): no migration —
+  `products_market_segments_metadata.py` (dry run, then `--apply`) after step 1's scripts,
+  before the restart. `test_parity.py`'s baseline was updated for the Products module only.
+- **Products phase 3's order** (DEPLOY.md): `alembic upgrade head` (0045) →
+  `products_phase3_metadata.py` → `load_price_book.py` (the loader reads choices the
+  register script adds, so it now runs AFTER every Products register script; `--add-missing`
+  on a server whose catalogue is already loaded). Baseline updated for the modules touched.
 - **Release 1.1's order** (DEPLOY.md): dump → stop the backend → `alembic upgrade head`
   (r11_0001, r11_0002) → `release_1_1_fields_metadata.py` → `release_1_1_location_metadata.py`
   → `release_1_1_accounts_metadata.py` (each dry run, then `--apply`) → build → start. Two
@@ -568,7 +701,7 @@ that *would* have fired was planned and never built; it is not coming. See rule 
   The migrations are named `r11_…`, not 0038: phase-2 already had a 0038. **Merged into
   phase-2 on 8 Oct 2026: 0038 now revises `r11_0002_account_groups`**, so a V1 server reaches
   Phase 2 through Release 1.1 — 0037 → r11_0001 → r11_0002 → 0038 → `metadata_v2.py` → 0039 →
-  0042 → 0043 → 0040 → 0041 (0040 follows Setup's 0043; one head).
+  0042 → 0043 → 0040 → 0041 → 0044 → 0045 (0040 follows Setup's 0043; one head).
 
 ## Conventions
 

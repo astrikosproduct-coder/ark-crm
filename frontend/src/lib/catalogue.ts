@@ -1,34 +1,25 @@
 /**
- * The price book and the catalogue — read-only reference data, bundled with
- * the application.
+ * The one pricing table still bundled with the application: the pricing
+ * parameters — the perpetual multiplier, the onsite premium and their
+ * neighbours. They are read-only until CPQ's price rules hold them (phase 4),
+ * and shown on CPQ's Price Rules tab.
  *
- * Products, prices, T-shirt sizes, the rate card, support tiers, regions and
- * pricing parameters are the same for every user and change only when the
- * price book is revised. They are not business records, so they have no table
- * and no endpoint: the files in spec/seed are imported at build time and a new
- * revision ships with the next build. Decided 21 Sep 2026, with MSW's removal —
- * no table is created for a module that is not live.
+ * EVERYTHING ELSE THAT WAS HERE IS IN POSTGRESQL NOW, edited in the app:
+ *   · products and prices   Products step 1 (12 Oct 2026) and Price Books
+ *   · sizes                 CPQ's Sizing Guide — /api/sizes
+ *   · regions               the price books themselves — /api/price-books
+ *   · the rate card,        Service and Support products, priced in a price
+ *     the support tiers     book like everything else
+ * (Products phase 3, 13 Oct 2026.) Those files in spec/seed are read once, by
+ * the backend's load_price_book.py, and never by the browser.
  *
- * Seven files are imported by name rather than globbing spec/seed/*.json: the
- * same folder holds seed Leads and Registrations that the backend's migrate
- * scripts read, and those must not be bundled into the frontend.
+ * Imported by name rather than globbing spec/seed/*.json: the same folder
+ * holds files the backend scripts read, which must not be bundled.
  */
-import products from '../../spec/seed/products.json'
-import prices from '../../spec/seed/prices.json'
-import sizes from '../../spec/seed/sizes.json'
-import rateCard from '../../spec/seed/rate_card.json'
-import supportTiers from '../../spec/seed/support_tiers.json'
-import regions from '../../spec/seed/regions.json'
 import pricingParams from '../../spec/seed/pricing_params.json'
 
-/** Each catalogue collection, by the collection name a lookup resolves to. */
+/** Each bundled collection, by the collection name a lookup resolves to. */
 const CATALOGUE: Record<string, unknown> = {
-  products,
-  prices,
-  sizes,
-  rateCard,
-  supportTiers,
-  regions,
   pricingParams,
 }
 

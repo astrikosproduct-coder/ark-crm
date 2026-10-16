@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class RoleOut(BaseModel):
@@ -372,6 +372,154 @@ class ActiveFlag(BaseModel):
     active: bool
 
 
+# --------------------------------------------------------------- products
+
+# The register's CATALOGUE ITEM fields that are columns of `products`, in the
+# register's order. Listed once so create/update/serialise cannot drift apart —
+# same convention as ACCOUNT_SCALARS and CONTACT_SCALARS. Fields added in Setup
+# (Segment, Segment Category, Subsegment) are not here: they live in
+# custom_fields and travel as extras.
+PRODUCT_SCALARS = (
+    "sku_code",
+    "item_name",
+    "catalogue_category",
+    "description",
+    "charge_type",
+    "pricing_basis",
+    "supports_perpetual",
+    "has_annual_updates_option",
+    "quantity_allowed",
+    "unit_of_measure",
+    "display_order",
+    "active",
+    "effective_from",
+    "effective_to",
+)
+
+
+class ProductBase(CustomFieldsMixin):
+    """
+    Every field is optional here, including the three the table insists on
+    (SKU Code, Item Name, Catalogue Category): the route refuses a blank one
+    with the same REQUIRED_FIELDS_MISSING a form marks, where a schema error
+    would name a key nobody typed. See app/routers/products.py.
+    """
+
+    sku_code: str | None = Field(default=None, max_length=30)
+    item_name: str | None = Field(default=None, max_length=150)
+    catalogue_category: str | None = Field(default=None, max_length=40)
+    description: str | None = None
+    charge_type: str | None = Field(default=None, max_length=40)
+    pricing_basis: str | None = Field(default=None, max_length=40)
+    supports_perpetual: bool | None = None
+    has_annual_updates_option: bool | None = None
+    quantity_allowed: bool | None = None
+    unit_of_measure: str | None = Field(default=None, max_length=40)
+    display_order: int | None = None
+    active: bool | None = None
+    effective_from: date | None = None
+    effective_to: date | None = None
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def _emptied_is_none(cls, value: Any) -> Any:
+        """A box a person cleared arrives as "" — a date or a number can't be
+        read from that, and it means the same as no value."""
+        return None if isinstance(value, str) and value.strip() == "" else value
+
+
+class ProductCreate(ProductBase):
+    """A new product. Its Product ID is always allocated by the server."""
+
+
+class ProductUpdate(ProductBase):
+    """PATCH and PUT both use this; only the fields sent are applied."""
+
+
+# --------------------------------------------------------------- price books
+# Products phase 3 (13 Oct 2026): price books, their editions, and the Sizing
+# Guide's sizes. Each tuple is the register fields that are columns a PERSON
+# writes — what the server sets itself (Standard, an edition's Status and its
+# Effective To) is deliberately absent, so no payload can reach it.
+
+PRICE_BOOK_SCALARS = (
+    "price_book_name",
+    "currency",
+    "region_pricing_pct",
+    "fx_rate_local_per_usd",
+    "display_format",
+    "rate_effective_date",
+    "active",
+)
+
+EDITION_SCALARS = ("price_book_version", "effective_from", "notes")
+
+SIZE_SCALARS = (
+    "size_code",
+    "managed_assets_cap",
+    "typical_deployment",
+    "subsystem_types",
+    "base_users_included",
+    "sort_order",
+    "active",
+)
+
+
+class _ClearedIsNone(CustomFieldsMixin):
+    """A box a person cleared arrives as "" — the same as no value."""
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def _emptied_is_none(cls, value: Any) -> Any:
+        return None if isinstance(value, str) and value.strip() == "" else value
+
+
+class PriceBookWrite(_ClearedIsNone):
+    """Create and update. The name is checked by the route, as a product's is."""
+
+    price_book_name: str | None = Field(default=None, max_length=120)
+    currency: str | None = Field(default=None, max_length=10)
+    region_pricing_pct: Decimal | None = Field(default=None, ge=0, max_digits=9, decimal_places=6)
+    fx_rate_local_per_usd: Decimal | None = Field(default=None, gt=0, max_digits=18, decimal_places=6)
+    display_format: str | None = Field(default=None, max_length=80)
+    rate_effective_date: date | None = None
+    active: bool | None = None
+
+
+class EditionWrite(_ClearedIsNone):
+    price_book_version: str | None = Field(default=None, max_length=40)
+    effective_from: date | None = None
+    notes: str | None = None
+    #: On create only: the edition whose prices the new draft starts from.
+    #: Left out, it starts from the edition in use.
+    copy_from: str | None = Field(default=None, max_length=20)
+
+
+class SizeWrite(_ClearedIsNone):
+    size_code: str | None = Field(default=None, max_length=20)
+    managed_assets_cap: str | None = Field(default=None, max_length=30)
+    typical_deployment: str | None = Field(default=None, max_length=200)
+    subsystem_types: str | None = Field(default=None, max_length=20)
+    base_users_included: int | None = Field(default=None, ge=0)
+    sort_order: int | None = None
+    active: bool | None = None
+
+
+class PriceCell(BaseModel):
+    product: str
+    #: A size's id, or null for a product with one price whatever the size.
+    size: str | None = None
+    #: The price, or null to take it away.
+    value: Decimal | None = None
+
+
+class PriceCells(BaseModel):
+    """Body of PUT /price-books/{id}/prices."""
+
+    edition: str
+    cells: list[PriceCell] = Field(default_factory=list, max_length=2000)
+
+
 # --------------------------------------------------------------- leads
 
 # Every real Lead column except lead_id and the secondary_sap_suites
@@ -579,9 +727,10 @@ class LeadBase(CustomFieldsMixin):
     demo_debrief_notes: str | None = None
     poc_record: str | None = Field(default=None, max_length=20)
     poc_brief_gate: str | None = Field(default=None, max_length=20)
-    # PHASE-1 FREEZE, 03 Sep 2026: was list[str] | None (a junction-table
-    # multiselect of product ids) — see models.Lead.secondary_sap_suites.
-    secondary_sap_suites: str | None = Field(default=None, max_length=255)
+    # Several products, picked from the catalogue (Products, step 1). The form
+    # sends a list of product ids; the router joins it into the column. A
+    # string is still accepted — it is what the column holds. See app/products.py.
+    secondary_sap_suites: list[str] | str | None = None
     consultant_specifier: str | None = Field(default=None, max_length=20)
     sales_owner: str | None = Field(default=None, max_length=20)
     presales_owner: str | None = Field(default=None, max_length=20)
@@ -703,7 +852,7 @@ class LeadOut(BaseModel):
     demo_debrief_notes: str | None = None
     poc_record: str | None = None
     poc_brief_gate: str | None = None
-    secondary_sap_suites: str | None = None
+    secondary_sap_suites: list[str] | None = None
     consultant_specifier: str | None = None
     sales_owner: str | None = None
     presales_owner: str | None = None
@@ -1122,8 +1271,8 @@ class OpportunityOut(BaseModel):
 
 # Every real Deal column except deal_id and the two childlists. guarantee_—_*
 # are NOT here — see models.Deal's docstring: they are columns of
-# bid_commitments_register, not scalars. expansion_suites IS here, PHASE-1
-# FREEZE (03 Sep 2026) — see models.Deal.expansion_suites.
+# bid_commitments_register, not scalars. expansion_suites IS here: several
+# product ids in one column — see app/products.py.
 DEAL_SCALARS = (
     "deal_name",
     "parent_lead",
@@ -1309,9 +1458,9 @@ class DealBase(CustomFieldsMixin):
     reference_document: str | None = Field(default=None, max_length=255)
     re_engagement_30_day_date: date | None = None
     re_engagement_90_day_date: date | None = None
-    # PHASE-1 FREEZE, 03 Sep 2026: was list[str] | None (a junction-table
-    # multiselect of free strings) — see models.Deal.expansion_suites.
-    expansion_suites: str | None = Field(default=None, max_length=255)
+    # Several products, picked from the catalogue (Products, step 1) — as
+    # leads.secondary_sap_suites. See app/products.py.
+    expansion_suites: list[str] | str | None = None
     incremental_value: float | None = None
     contract_expiry_date: date | None = None
     renewal_status: str | None = None
@@ -1417,7 +1566,7 @@ class DealOut(BaseModel):
     reference_document: str | None = None
     re_engagement_30_day_date: date | None = None
     re_engagement_90_day_date: date | None = None
-    expansion_suites: str | None = None
+    expansion_suites: list[str] | None = None
     incremental_value: float | None = None
     contract_expiry_date: date | None = None
     renewal_status: str | None = None

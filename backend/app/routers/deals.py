@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from ..auth import current_user
 from ..list_query import run_list_query
 from ..read_through_rows import attach_read_through, read_through_names
+from ..products import PRODUCT_PICKS, check_picks, join_picks, pick_labels, product_names, split_picks
 from ..messages import already_exists, not_found, picked_record_missing, refusal
 from ..requirements import check_save
 from ..changes import child_snapshot, custom_field_diff, diff, list_changes, snapshot
@@ -88,6 +89,24 @@ def _next_deal_id(db: Session) -> str:
     return next_reference_id(db, "deals", "DEAL", 5, highest)
 
 
+# Expansion Suites picks several products from the catalogue. Checked when it
+# changes and stored joined in its own column — see app/products.py.
+PRODUCT_FIELDS = PRODUCT_PICKS["deals"]
+# …and the Lead's three, which a Deal's list row shows From the Lead.
+PICK_COLUMNS = {*PRODUCT_FIELDS, *PRODUCT_PICKS["leads"]}
+
+
+def _check_products(db: Session, payload, sent: set[str], deal: Deal | None) -> None:
+    for name in PRODUCT_FIELDS:
+        if name in sent:
+            check_picks(db, "deals", name, getattr(payload, name), getattr(deal, name, None))
+
+
+def _stored(name: str, value):
+    """A payload value as its column holds it: several picks are joined."""
+    return join_picks(split_picks(value)) if PRODUCT_FIELDS.get(name) else value
+
+
 def _label_maps(db: Session) -> dict[str, dict[str, str]]:
     """id -> display name for each collection a Deal looks up.
 
@@ -112,6 +131,8 @@ def _label_maps(db: Session) -> dict[str, dict[str, str]]:
         "users": users,
         "leads": leads,
         "opportunities": {},
+        # Not in DEAL_LOOKUPS — the column carries no foreign key.
+        "products": product_names(db),
         # What each row contributes to its stage's total — see app/revenue.py.
         "revenue": revenue_context(db),
         # Not a lookup collection — no column points at it. Rides here for the
@@ -133,6 +154,10 @@ def _serialise(deal: Deal, labels: dict[str, dict[str, str]]) -> dict:
     for name in DEAL_SCALARS:
         value = getattr(deal, name)
         row[name] = float(value) if name in _MONEY_LIKE and value is not None else value
+    # A several-pick column reads back as the list the form holds.
+    for name, several in PRODUCT_FIELDS.items():
+        if several:
+            row[name] = split_picks(row[name])
     row["created_date"] = deal.created_date
     row["modified_date"] = deal.modified_date
 
@@ -185,6 +210,7 @@ def _serialise(deal: Deal, labels: dict[str, dict[str, str]]) -> dict:
     # and overridden_by is never a payload field.
     if deal.overridden_by and deal.overridden_by in labels["users"]:
         joined["overridden_by"] = labels["users"][deal.overridden_by]
+    joined.update(pick_labels("deals", deal, labels["products"]))
     if joined:
         row["__labels"] = joined
 
@@ -293,7 +319,10 @@ def list_deals(request: Request, response: Response, db: Session = Depends(get_d
     attach_read_through(db, "deals", list(zip(records, rows)))
 
     rows, total = run_list_query(
-        rows, request.query_params, lookups=set(DEAL_LOOKUPS) | set(LEAD_LOOKUPS), default_search=DEFAULT_SEARCH
+        rows,
+        request.query_params,
+        lookups=set(DEAL_LOOKUPS) | set(LEAD_LOOKUPS) | PICK_COLUMNS,
+        default_search=DEFAULT_SEARCH,
     )
     response.headers["X-Total-Count"] = str(total)
     return rows
@@ -317,6 +346,7 @@ def create_deal(
 
     sent = set(payload.model_dump(exclude_unset=True))
     _check_links(db, payload, sent & set(DEAL_LOOKUPS))
+    _check_products(db, payload, sent, None)
     # Min / Max value from the register, e.g. CSAT Score 1-10 — app/thresholds.py.
     check_thresholds(db, "deals", payload.model_dump(include=sent))
     # Opportunity -> Deal (or a pre-split Lead -> Deal) is one transaction,
@@ -343,7 +373,7 @@ def create_deal(
         value = getattr(payload, name)
         if value is None and name in _BOOL_DEFAULTS:
             value = _BOOL_DEFAULTS[name]
-        setattr(deal, name, value)
+        setattr(deal, name, _stored(name, value))
     # A Deal is born open; nothing could ever have saved one otherwise.
     if not deal.lead_status:
         deal.lead_status = "OPEN"
@@ -457,6 +487,7 @@ def put_deal(
 def _write(db: Session, deal_id: str, payload: DealUpdate, sent: set[str], user: User) -> dict:
     deal = _get_or_404(db, deal_id)
     _check_links(db, payload, sent & set(DEAL_LOOKUPS))
+    _check_products(db, payload, sent, deal)
     check_thresholds(db, "deals", payload.model_dump(include=sent))
 
     # The before half of the diff, read before anything is applied — see
@@ -478,7 +509,7 @@ def _write(db: Session, deal_id: str, payload: DealUpdate, sent: set[str], user:
     for name in DEAL_SCALARS:
         if name not in sent or name in PURSUIT_STAMPED or name in SYSTEM_STAMPED or name in shown_live:
             continue
-        setattr(deal, name, getattr(payload, name))
+        setattr(deal, name, _stored(name, getattr(payload, name)))
 
     if "bid_commitments_register" in sent:
         _apply_bid_commitments(db, deal, payload)

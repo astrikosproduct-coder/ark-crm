@@ -789,12 +789,12 @@ class Lead(StagePercentMixin, Base):
         nullable=True,
     )
 
-    # Free text, PHASE-1 FREEZE (03 Sep 2026): was a multiselect of product
-    # ids, backed by the lead_secondary_suites junction table below. Products
-    # is a Round-5 table with no frozen fields yet, so there was nothing for
-    # the picker to offer. Revert to the junction table once Products ships —
-    # frontend/spec/extensions.json leads.secondary_sap_suites carries the
-    # matching type_override and the revert note.
+    # Several products picked from the catalogue: their product_ids joined
+    # by commas (Products, step 1, 12 Oct 2026). It was free text from 3 Sep
+    # 2026, and a value typed then stays here as typed until someone picks —
+    # which is why this is still one column and not the junction table once
+    # planned: a table of product ids could not keep "Customized". The API
+    # serves it as a list. See app/products.py.
     secondary_sap_suites: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
@@ -1817,13 +1817,9 @@ class Deal(StagePercentMixin, Base):
     # STAGE 9 — EXPANSION & RENEWAL
     # ---------------------------------------------------------
 
-    # Free text, PHASE-1 FREEZE (03 Sep 2026): was a multiselect with NO
-    # backing picklist, stored as a junction table of free strings
-    # (DealExpansionSuite, same shape lead_secondary_suites followed).
-    # Products is a Round-5 table with no frozen fields yet, so there was
-    # nothing for the picker to offer. Revert to the junction table once
-    # Products ships — frontend/spec/extensions.json deals.expansion_suites
-    # carries the matching type_override and the revert note.
+    # Several products picked from the catalogue: product_ids joined by
+    # commas, exactly as leads.secondary_sap_suites — see the note there and
+    # app/products.py.
     expansion_suites: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     incremental_value: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
@@ -3663,6 +3659,257 @@ class PipelineSnapshot(Base):
             unique=True,
             postgresql_nulls_not_distinct=True,
         ),
+    )
+
+
+# --------------------------------------------------------------------------
+# Products, step 1 (12 Oct 2026) — migration 0044.
+# --------------------------------------------------------------------------
+
+
+class Product(Base):
+    """
+    One catalogue item — the register's CATALOGUE ITEM section, column for
+    column. Migration 0044.
+
+    load_price_book.py filled this table first, from the price book file. Since
+    phase 2 (13 Oct 2026) a product is created, edited, deactivated and deleted
+    through /api/products by an admin or a developer (app/routers/products.py).
+    Its PRICES are not here: they are entries of a price book, in an edition
+    (PriceBookEntry below, phase 3), so a quote can keep the price it was
+    issued at.
+
+    Picklist columns hold the KEY — 'SEGMENT_LIBRARY', not 'Segment Library' —
+    as every other business table does.
+
+    A NULL BOX IS UNANSWERED, NOT "NO". The price book file states no Supports
+    Perpetual, Quantity Allowed, Unit of Measure or effective dates, and the
+    loader claims no answer nobody gave. A product a person saves has its boxes
+    answered: unticked is "No".
+
+    Fields added in Setup — Segment, Segment Category, Subsegment — have no
+    column; their values are in custom_fields, as on every business table.
+
+    A Lead names a product by `product_id` in a plain column (no foreign key):
+    those columns held typed text before this table existed, and what was typed
+    stays readable until someone picks — see app/products.py.
+    """
+
+    __tablename__ = "products"
+
+    product_id: Mapped[str] = mapped_column(String(20), primary_key=True)
+    sku_code: Mapped[str] = mapped_column(String(30), nullable=False)
+    item_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    catalogue_category: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    charge_type: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    pricing_basis: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    supports_perpetual: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    has_annual_updates_option: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    quantity_allowed: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    unit_of_measure: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    display_order: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    effective_from: Mapped[datetime | None] = mapped_column(Date, nullable=True)
+    effective_to: Mapped[datetime | None] = mapped_column(Date, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
+    )
+
+    custom_fields: Mapped[dict] = _custom_fields_column()
+
+    # Every price this product has, in every book and edition. Deleted with the
+    # product by the database (ON DELETE CASCADE); app/price_books.py reads them.
+    price_entries = relationship(
+        "PriceBookEntry",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="select",
+        back_populates="product",
+    )
+
+    __table_args__ = (UniqueConstraint("sku_code", name="uq_products_sku_code"),)
+
+
+# --------------------------------------------------------------------------
+# Price Books and the Sizing Guide — Products phase 3 (13 Oct 2026), migration
+# 0045. `product_prices` (0044) became `price_book_entries`. The rules are in
+# app/price_books.py; this is only the shape.
+# --------------------------------------------------------------------------
+
+
+class PriceBook(Base):
+    """
+    One price book — Zoho's Price Book, and the price book file's "Region & FX"
+    row. Columns are named after the register's api_names, as on every table.
+
+    EXACTLY ONE IS THE STANDARD BOOK (`is_standard`, a partial unique index):
+    the master price list, in USA USD, whose prices are entered. Every other
+    book is regional. A regional price is
+
+        the Standard price x region_pricing_pct x fx_rate_local_per_usd
+
+    unless the book holds an entry of its own for that product — an override,
+    in the book's own currency.
+
+    Both multipliers are fractions and ratios as the file has them: a pricing
+    percentage of 1 is 100%, an FX rate is local units per one USD.
+    """
+
+    __tablename__ = "price_books"
+
+    price_book_id: Mapped[str] = mapped_column(String(20), primary_key=True)
+    price_book_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    is_standard: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    region_pricing_pct: Mapped[Decimal | None] = mapped_column(Numeric(9, 6), nullable=True)
+    fx_rate_local_per_usd: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
+    display_format: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    rate_effective_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
+    )
+
+    custom_fields: Mapped[dict] = _custom_fields_column()
+
+    __table_args__ = (
+        UniqueConstraint("price_book_name", name="uq_price_books_name"),
+        CheckConstraint("region_pricing_pct IS NULL OR region_pricing_pct >= 0", name="ck_price_books_pct"),
+        CheckConstraint("fx_rate_local_per_usd IS NULL OR fx_rate_local_per_usd > 0", name="ck_price_books_fx"),
+        Index("uq_price_books_one_standard", "is_standard", unique=True, postgresql_where=text("is_standard")),
+    )
+
+
+class PriceBookEdition(Base):
+    """
+    The price list as it stood at one time. An edition covers EVERY book: the
+    Standard prices, and each regional book's overrides.
+
+        DRAFT    being prepared — its prices are edited freely
+        CURRENT  what is sold from. One at a time (a partial unique index).
+                 A price can be ADDED where there is none; one already there
+                 can't be changed — a quote may have been priced on it.
+        RETIRED  what used to be current. Kept, never changed.
+
+    `price_book_version` is the edition's name — the register's field, which
+    sat on every price row until 0045.
+    """
+
+    __tablename__ = "price_book_editions"
+
+    edition_id: Mapped[str] = mapped_column(String(20), primary_key=True)
+    price_book_version: Mapped[str] = mapped_column(String(40), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="DRAFT", server_default="DRAFT")
+    effective_from: Mapped[datetime | None] = mapped_column(Date, nullable=True)
+    effective_to: Mapped[datetime | None] = mapped_column(Date, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    made_current_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
+    )
+
+    custom_fields: Mapped[dict] = _custom_fields_column()
+
+    __table_args__ = (
+        UniqueConstraint("price_book_version", name="uq_price_book_editions_name"),
+        CheckConstraint("status IN ('DRAFT', 'CURRENT', 'RETIRED')", name="ck_price_book_editions_status"),
+        Index(
+            "uq_price_book_editions_one_current", "status", unique=True, postgresql_where=text("status = 'CURRENT'")
+        ),
+    )
+
+
+class DeploymentSize(Base):
+    """
+    One T-shirt size — a row of CPQ's Sizing Guide. A record, where the price
+    book file made it a column heading and the register two dropdown lists: a
+    new size is added here, not in Setup, and a price names it by `size_id`.
+
+    `base_users_included` is what a deployment of this size comes with before
+    any user is bought; CPQ's rules read it (phase 4).
+    """
+
+    __tablename__ = "deployment_sizes"
+
+    size_id: Mapped[str] = mapped_column(String(20), primary_key=True)
+    size_code: Mapped[str] = mapped_column(String(20), nullable=False)
+    managed_assets_cap: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    typical_deployment: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    subsystem_types: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    base_users_included: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sort_order: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
+    )
+
+    custom_fields: Mapped[dict] = _custom_fields_column()
+
+    __table_args__ = (UniqueConstraint("size_code", name="uq_deployment_sizes_code"),)
+
+
+class PriceBookEntry(Base):
+    """
+    One price: a product, at one size or at none, in one book and one edition.
+
+    `size_id` is NULL for a product that costs the same at every size — a user
+    pack, a day rate. Exactly one of the two values is held (a CHECK):
+
+        list_price             an amount in the BOOK's currency — USD in the
+                               Standard book, local currency in a regional one,
+                               where it is an override of the derived price
+        pct_of_annual_licence  a Support product's price: a fraction of the
+                               licence value. Standard book only.
+    """
+
+    __tablename__ = "price_book_entries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    price_book_id: Mapped[str] = mapped_column(
+        String(20), ForeignKey("price_books.price_book_id", ondelete="CASCADE"), nullable=False
+    )
+    edition_id: Mapped[str] = mapped_column(
+        String(20), ForeignKey("price_book_editions.edition_id", ondelete="CASCADE"), nullable=False
+    )
+    product_id: Mapped[str] = mapped_column(
+        String(20), ForeignKey("products.product_id", ondelete="CASCADE"), nullable=False
+    )
+    size_id: Mapped[str | None] = mapped_column(
+        String(20), ForeignKey("deployment_sizes.size_id", ondelete="RESTRICT"), nullable=True
+    )
+    list_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
+    pct_of_annual_licence: Mapped[Decimal | None] = mapped_column(Numeric(9, 6), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
+    )
+
+    product = relationship("Product", back_populates="price_entries")
+
+    __table_args__ = (
+        CheckConstraint(
+            "(list_price IS NULL) <> (pct_of_annual_licence IS NULL)", name="ck_price_book_entries_one_value"
+        ),
+        CheckConstraint("list_price IS NULL OR list_price >= 0", name="ck_price_book_entries_price"),
+        CheckConstraint(
+            "pct_of_annual_licence IS NULL OR pct_of_annual_licence >= 0", name="ck_price_book_entries_pct"
+        ),
+        Index(
+            "uq_price_book_entries_cell",
+            "price_book_id",
+            "edition_id",
+            "product_id",
+            "size_id",
+            unique=True,
+            postgresql_nulls_not_distinct=True,
+        ),
+        Index("ix_price_book_entries_product", "product_id"),
+        Index("ix_price_book_entries_edition", "edition_id"),
     )
 
 

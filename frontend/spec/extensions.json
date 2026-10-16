@@ -116,6 +116,89 @@
     "registrations.estimated_value"
    ]
   },
+  "products": {
+   "columns": [
+    "products.item_name",
+    "products.sku_code",
+    "products.catalogue_category",
+    "products.segments",
+    "products.charge_type",
+    "products.pricing_basis",
+    "products.active"
+   ],
+   "default_sort": "product_id",
+   "search": [
+    "item_name",
+    "sku_code",
+    "description"
+   ],
+   "filters": [
+    "products.catalogue_category",
+    "products.segments",
+    "products.segment_categories",
+    "products.subsegments",
+    "products.charge_type",
+    "products.pricing_basis",
+    "products.active"
+   ]
+  },
+  "price_books": {
+   "$note": "Products phase 3 (13 Oct 2026). No default_sort on purpose: the server lists the Standard book first, then the regional ones in the order they were made.",
+   "columns": [
+    "price_books.price_book_name",
+    "price_books.is_standard",
+    "price_books.currency",
+    "price_books.region_pricing_pct",
+    "price_books.fx_rate_local_per_usd",
+    "price_books.effective_multiplier",
+    "price_books.rate_effective_date",
+    "price_books.active"
+   ],
+   "search": [
+    "price_book_name",
+    "currency"
+   ],
+   "filters": [
+    "price_books.currency",
+    "price_books.active"
+   ]
+  },
+  "price_book_editions": {
+   "$note": "Products phase 3. No default_sort: the server lists the edition in use first, then drafts, then past ones, newest first.",
+   "columns": [
+    "price_book_editions.price_book_version",
+    "price_book_editions.status",
+    "price_book_editions.effective_from",
+    "price_book_editions.effective_to",
+    "price_book_editions.notes"
+   ],
+   "search": [
+    "price_book_version",
+    "notes"
+   ],
+   "filters": [
+    "price_book_editions.status"
+   ]
+  },
+  "deployment_sizes": {
+   "$note": "Products phase 3 - CPQ's Sizing Guide. No default_sort: the server lists sizes by their own Sort Order, smallest first.",
+   "columns": [
+    "deployment_sizes.size_code",
+    "deployment_sizes.managed_assets_cap",
+    "deployment_sizes.typical_deployment",
+    "deployment_sizes.subsystem_types",
+    "deployment_sizes.base_users_included",
+    "deployment_sizes.active"
+   ],
+   "search": [
+    "size_code",
+    "typical_deployment",
+    "managed_assets_cap"
+   ],
+   "filters": [
+    "deployment_sizes.active"
+   ]
+  },
   "leads": {
    "$note": "days_since_last_update is Computed with no computed_expr in the register (see seed_normalisation.leads below and Spec Health) - the list cell derives it from modified_date/created_date directly rather than through the formula engine. lead_id is DELIBERATELY NOT A COLUMN: a record id is addressing, not information, and the row already navigates to the record by its name. The id is still on the record page as its subtitle, and leadListCell still knows how to render lead_id if the column is ever put back - it is an autonumber the store never stores under that key, so the cell reads the record id instead.",
    "columns": [
@@ -364,6 +447,13 @@
   "opportunities": {
    "$note": "Derived Opportunity rows cross the pipeline split after Lead seed normalization. This entry ensures picklist values in an already-persisted Opportunity are coerced on migration too.",
    "module": "opportunities"
+  },
+  "pricingParams": {
+   "module": "cpq",
+   "rename": {
+    "user_blended_rate_usd": "user_blended_rate_usd_user_yr"
+   },
+   "$note": "The one pricing table still bundled (src/lib/catalogue.ts): the multipliers CPQ's price rules will hold from phase 4. Shown read-only on CPQ's Price Rules tab. Sizes, regions, the rate card and the support tiers left this file in Products phase 3 (13 Oct 2026) - they are records in PostgreSQL now."
   }
  },
  "precision_limits": {
@@ -439,16 +529,24 @@
     "detail": "PROTOTYPE SEED EDIT. The suite lookup now offers exactly seven: S!aP Omnific, S!aP Cognus, S!aP Kolaz, S!aP KIM, S!aP Mazzant, S!aP Agentic AI, IVAR (Gorilla). The five that existed kept their SKUs (SEG-OMN, SEG-COG, SEG-KLZ, SEG-KIM, SEG-MAZ) and were only RENAMED to carry the S!aP prefix - seed/leads.json and all 35 price-matrix rows reference them by SKU, so renaming the name is safe and renaming the SKU would not be. SEG-AGAI and SEG-IVAR are new rows. build_spec.py will overwrite all of this on the next regenerate; make the same edit in the workbook's product sheet."
    },
    {
-    "ref": "products.catalogue_category",
-    "detail": "THE REGISTER HAS NO 'SUITE TYPE'. leads.sap_solution_suite's lookup_filter reads 'Suite Type must be Primary suite', but a catalogue item carries no such attribute - the closest thing is catalogue_category, whose values are Module, Segment Library, User Pack, Add-On, Service, Support. The filter is therefore bound to catalogue_category = Segment Library. That works only while 'the suites' and 'the Segment Library category' are the same set, which they now are by construction. Either restate the register's filter as 'Catalogue Category must be Segment Library', or add a real Suite Type field and say which items are Primary suites."
-   },
-   {
     "ref": "products.item_name",
     "detail": "TWO PROBLEMS WITH THE TWO SUITES ADDED AT REVIEW. (1) 'S!aP Agentic AI' (SEG-AGAI, Segment Library) sits alongside the pre-existing 'S!aP Agentic (S!a)' (SAP-AGNT, Module). Either they are the same capability sold two ways and the catalogue should say so, or they are different things whose names are too close to tell apart on a quote. (2) 'IVAR (Gorilla)' is the only suite not S!aP-branded, and it is carried under Segment Library because that is where the suite lookup reads from - confirm that is where it belongs rather than being its own product line. NEITHER NEW SUITE HAS PRICE-MATRIX ROWS: seed/prices.json covers the five original SKUs across seven sizes and nothing was invented for these two, so they cannot be quoted until the price book supplies them."
    },
    {
-    "ref": "leads.suite_demonstrated",
-    "detail": "NOT FILTERED, where sap_solution_suite now is. Suite Demonstrated at Stage 1 is a product lookup with no lookup_filter in the register, so it still offers the whole catalogue - modules, add-ons and user packs included. That may be deliberate, since a demo can cover a module rather than a whole suite. Decide whether it should be restricted to the same seven, and note leads.secondary_sap_suites has the same question: it is a multiselect with no picklist behind it at all."
+    "ref": "products",
+    "detail": "THE PRICE BOOK FILE STATES SEVEN OF THE FIFTEEN CATALOGUE FIELDS. seed/products.json carries sku, name, description, category, charge_type and pricing_basis; load_price_book.py adds Display Order from the item's position and marks every item Active. Supports Perpetual, Has Annual Updates Option, Quantity Allowed, Unit of Measure, Effective From and Effective To are in the register (four of them Mandatory) and in no file, so they are EMPTY on all 31 products - left unanswered, not defaulted to No. Price Book Version is Mandatory on a price row and the file names no edition, so it is blank on all 173. These need the price book's owner, not a guess."
+   },
+   {
+    "ref": "products",
+    "detail": "A USER PACK'S SIZE HAS NO FIELD. seed/products.json gives each user pack a `users` count (10, 50, 100, 500, 1000) that the register has no field for - today it survives only in the item's name ('+50 Users'). Quotes will need it to turn Additional Users Required into packs. It is not stored, because an unknown key is not data. Add a field to CATALOGUE ITEM if it is wanted."
+   },
+   {
+    "ref": "products",
+    "detail": "ONE REGISTER MODULE, EIGHT DIFFERENT TABLES. Products holds CATALOGUE ITEM and PRICE MATRIX (now real tables) and six sections that are tables of their own - Deployment Size, Region & FX, Pricing Parameters, Services Rate Card, Service Category, Support Tier. `sort_order` already appears in two of them. Step 1 leaves the register as it is and shows the five pricing tables read-only from the bundled files. When the price book becomes editable (with Quotes) they should become modules under Products, as Deal Registrations and Conflicts are under Partners - every field owned by one module."
+   },
+   {
+    "ref": "leads.feature_gaps_logged",
+    "detail": "SUITE / MODULE IS STILL FREE TEXT. The gap table's Suite / Module column was a products lookup until the 03 Sep 2026 freeze. Products has a table now, but this column was left typed in step 1: unlike the four pickers it should offer Modules and Add-Ons as well as suites, which is a decision nobody has made."
    },
    {
     "ref": "conflicts.decision",
@@ -657,9 +755,6 @@
   "registrations.acknowledgement_sla_met": {
    "note": "§6.2 states 48 hours. Both dates are typed `date`, so the rule is applied as 2 whole days and is stated that way on screen - never in hours. This is a precision limit of the register, not a gap to fill: see the Spec Health page."
   },
-  "products.is_derived": {
-   "note": "JUDGEMENT CALL. The prose 'Unlimited tier = XXL x 1.3' states how the Unlimited price is derived; is_derived is read as the flag marking that row. Confirm during the register correction pass."
-  },
   "quotes.our_ref": {
    "note": "Produces the QT-00087-R0 form given in CLAUDE.md Conventions."
   },
@@ -697,17 +792,16 @@
    "note": "PHASE-1 FREEZE, 03 Sep 2026: Quotes is a Round-5 table whose fields are not yet frozen, so there is no real record for this lookup to resolve against. Rendered locked (disabled, hover explains why) rather than as a working combobox against nothing. Revert phase1_locked once Quotes ships - see the Round-5 dependency plan."
   },
   "leads.sap_solution_suite": {
-   "lookup_filter_expr": "category == 'Segment Library'",
-   "type_override": "text",
-   "note": "READ AS the register's own filter, 'Suite Type must be Primary suite'. There is still no suite_type field on a product - the catalogue's keys are sku, name, description, category, charge_type, pricing_basis - so 'Primary suite' is mapped onto catalogue_category = Segment Library, which is the category the five original suites already sat in and where the two added at review were put. The filter names `category` rather than `catalogue_category` because a lookup_filter_expr runs against the SEED rows of the target collection, not against register api_names, and seed/products.json spells it `category`. This closes the unexpressed gap with a working expression but does not close the register question - see open_questions. PHASE-1 FREEZE, 03 Sep 2026: type_override to text until Products ships - the lookup_filter_expr above becomes live again on revert, nothing else has to change."
+   "lookup_filter_expr": "catalogue_category == 'Segment Library'",
+   "note": "Products, step 1 (12 Oct 2026): picks from the catalogue, served at /api/products. The register's filter reads 'Catalogue Category must be Segment Library' and this is that sentence as an expression - the suites are the Segment Library items. It runs against a product row, whose keys are the register's api_names, and compares slug-normalised, so the label matches the stored key SEGMENT_LIBRARY. The server applies the same expression when the field changes (backend/app/products.py). Was free text from the PHASE-1 FREEZE of 03 Sep 2026 until Products got a table; a value typed then stays as typed until someone picks."
   },
   "leads.suite_demonstrated": {
-   "type_override": "text",
-   "note": "PHASE-1 FREEZE, 03 Sep 2026: Products is a Round-5 table with no frozen fields yet, so there is nothing for this lookup to resolve against. Free text until Products ships, then revert to lookup - see the Round-5 dependency plan."
+   "lookup_filter_expr": "catalogue_category == 'Segment Library'",
+   "note": "Products, step 1 (12 Oct 2026): picks from the catalogue, served at /api/products. The register's filter reads 'Catalogue Category must be Segment Library' and this is that sentence as an expression - the suites are the Segment Library items. It runs against a product row, whose keys are the register's api_names, and compares slug-normalised, so the label matches the stored key SEGMENT_LIBRARY. The server applies the same expression when the field changes (backend/app/products.py). Suites only, decided 12 Oct 2026 - it used to offer the whole catalogue, user packs included. Free text from 03 Sep 2026 until Products got a table."
   },
   "leads.secondary_sap_suites": {
-   "type_override": "text",
-   "note": "PHASE-1 FREEZE, 03 Sep 2026: was a multiselect of product ids (backed by the lead_secondary_suites junction table); Products is a Round-5 table with no frozen fields yet, so there is nothing for the picker to offer. Free text until Products ships, then revert to multiselect."
+   "lookup_filter_expr": "catalogue_category == 'Segment Library'",
+   "note": "Products, step 1 (12 Oct 2026): picks from the catalogue, served at /api/products. The register's filter reads 'Catalogue Category must be Segment Library' and this is that sentence as an expression - the suites are the Segment Library items. It runs against a product row, whose keys are the register's api_names, and compares slug-normalised, so the label matches the stored key SEGMENT_LIBRARY. The server applies the same expression when the field changes (backend/app/products.py). A multiselect that names a lookup target: it picks SEVERAL products (LookupMultiSelect), stored as product ids joined by commas in the column it always had - not the junction table once planned, which could not have kept what was typed during the freeze."
   },
   "leads.poc_record": {
    "phase1_locked": true,
@@ -739,8 +833,8 @@
    "note": "Same rule as leads.project_stage, enforced through DealAdvanceStageDialog."
   },
   "deals.expansion_suites": {
-   "type_override": "text",
-   "note": "PHASE-1 FREEZE, 03 Sep 2026: was a multiselect of product ids (backed by the deal_expansion_suites junction table); Products is a Round-5 table with no frozen fields yet, so there is nothing for the picker to offer. Free text until Products ships, then revert to multiselect."
+   "lookup_filter_expr": "catalogue_category == 'Segment Library'",
+   "note": "Products, step 1 (12 Oct 2026): picks from the catalogue, served at /api/products. The register's filter reads 'Catalogue Category must be Segment Library' and this is that sentence as an expression - the suites are the Segment Library items. It runs against a product row, whose keys are the register's api_names, and compares slug-normalised, so the label matches the stored key SEGMENT_LIBRARY. The server applies the same expression when the field changes (backend/app/products.py). A multiselect that names a lookup target, exactly as leads.secondary_sap_suites - see the note there."
   },
   "leads.demo_debrief_notes": {
    "placeholder": "What resonated with the client, what did not, technical questions raised, and anything else worth recording."
@@ -1017,6 +1111,14 @@
   "deals.days_since_last_update": {
    "computed_by": "days_since_update",
    "note": "Was 'No formula in the field register for this field.', like days_in_current_stage beside it, though this one the list view had been answering all along -- leadListCell.tsx read modified_date directly because the register offered it no formula, so the List tab showed '14d' while the Details tab showed the apology. A resolver rather than a computed_expr because the expression language has no 'now': days_between(modified_date, TODAY) would need a TODAY identifier, and resolving one against the browser's own clock is the disagreement lib/time.ts exists to remove."
+  },
+  "price_books.region_pricing_pct": {
+   "stored_as": "fraction",
+   "note": "Products phase 3 (13 Oct 2026). Held as the price book file holds it - 1 is 100%, 0.56 is 56% - because it is multiplied straight into a price (backend/app/price_books.py). stored_as scales the EDIT box by 100, so a person types 56."
+  },
+  "price_book_entries.pct_of_annual_licence": {
+   "stored_as": "fraction",
+   "note": "Products phase 3. A Support product's price: a fraction of the licence value (0.18 is 18%), as the support tiers file held it. Typed as a whole percentage on a price book's Prices tab (components/priceBooks/PriceGrid.tsx)."
   }
  },
  "stage_scoped": {

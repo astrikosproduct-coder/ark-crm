@@ -472,8 +472,14 @@ def template_workbook(
     _brand_row(instructions, f"ARK CRM  ·  How to import {plural.lower()}  ·  {generated:%d-%b-%Y}", 2)
     instructions.column_dimensions["A"].width = 16
     instructions.column_dimensions["B"].width = 100
+    # A sheet that names no record of ARK's (Products) needs none of the advice about them.
+    names_records = any(c.type == "lookup" for c in columns)
     steps = [
-        "Import in this order: Accounts (and Partners), then Contacts, then Leads. A row can only name accounts and people already in ARK.",
+        *(
+            ["Import in this order: Accounts (and Partners), then Contacts, then Leads. A row can only name accounts and people already in ARK."]
+            if names_records
+            else []
+        ),
         f"Fill in the {main.title} sheet from row {FIRST_DATA_ROW}, one {noun} per row. Leave rows 1–5 as they are.",
         "Row 4 says what to enter in each column. Row 5 says when a column applies. Leave it blank otherwise.",
         "Dropdown columns: pick a value from the list.",

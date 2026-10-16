@@ -27,6 +27,8 @@ from .routers import (
     metadata,
     opportunities,
     pipeline_snapshots,
+    price_books,
+    products,
     pursuit_erase,
     pursuit_groups,
     registrations,
@@ -237,6 +239,19 @@ app.include_router(spreadsheets.router, prefix="/api", dependencies=PROTECTED)
 # require_target_editor. No screen yet. The /api prefix is already proxied.
 app.include_router(sales_targets.router, prefix="/api", dependencies=PROTECTED)
 app.include_router(pipeline_snapshots.router, prefix="/api", dependencies=PROTECTED)
+
+# Products, at /api/products (step 1, 12 Oct 2026) — the catalogue and its
+# price matrix, read by the Products screens and by every product picker on a
+# Lead or a Deal. Anyone with a role reads; since phase 2 (13 Oct 2026) the
+# write routes are there too, each behind require_catalogue_editor (ADMIN or
+# DEVELOPER) on the route itself. See app/products.py, app/routers/products.py.
+app.include_router(products.router, prefix="/api", dependencies=PROTECTED)
+
+# Price Books, their editions, and CPQ's Sizing Guide (Products phase 3,
+# 13 Oct 2026), at /api/price-books, /api/price-book-editions and /api/sizes.
+# Read by anyone with a role; written behind require_catalogue_editor, on each
+# route. See app/price_books.py.
+app.include_router(price_books.router, prefix="/api", dependencies=PROTECTED)
 
 
 @app.get("/")

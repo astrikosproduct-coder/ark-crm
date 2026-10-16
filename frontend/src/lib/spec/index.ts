@@ -729,6 +729,10 @@ const MODULE_OF_COLLECTION: Record<string, string> = {
   deals: 'deals',
   quotes: 'quotes',
   products: 'products',
+  // Products phase 3 (13 Oct 2026). Hyphenated where the API path is.
+  'price-books': 'price_books',
+  'price-book-editions': 'price_book_editions',
+  sizes: 'deployment_sizes',
   users: 'administration',
   // Their own modules since metadata v2 (24 Sep 2026), filed under Partners in
   // Administration. Until then both were sections of the Partners sheet.
@@ -783,8 +787,12 @@ const COLLECTION_OF: Record<string, string> = {
   deal_registration: 'registrations',
   // Hyphenated because it is the API path: /api/pursuit-groups.
   pursuit_group: 'pursuit-groups',
-  region: 'regions',
-  support_tier: 'supportTiers',
+  // A quote's region is a price book since Products phase 3; its support
+  // tier is a Support product. Neither is a bundled table any more.
+  region: 'price-books',
+  price_book: 'price-books',
+  deployment_size: 'sizes',
+  support_tier: 'products',
   approval: 'approvals',
   document: 'documents',
   stage_criteria: 'stageCriteria',
@@ -801,7 +809,20 @@ export function collectionFor(lookupTarget: string | null | undefined): string |
  * records do not agree on a name field, so this walks the likely ones.
  */
 export function displayNameOf(record: Record<string, unknown>): string {
-  for (const key of ['account_name', 'name', 'full_name', 'opportunity_name', 'project_name', 'item_name', 'code', 'tier', 'level']) {
+  for (const key of [
+    'account_name',
+    'name',
+    'full_name',
+    'opportunity_name',
+    'project_name',
+    'item_name',
+    'price_book_name',
+    'price_book_version',
+    'size_code',
+    'code',
+    'tier',
+    'level',
+  ]) {
     const v = record[key]
     if (typeof v === 'string' && v) return v
   }

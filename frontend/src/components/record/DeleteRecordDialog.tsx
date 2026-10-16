@@ -72,6 +72,13 @@ export interface DeleteRecordDialogProps {
    * of the generic sentence.
    */
   guidance?: ReactNode
+  /**
+   * The sentence under the title when no reference was found. For a record
+   * whose use the browser cannot scan for (a size's prices are not a lookup),
+   * "isn't used anywhere" would be a claim nobody checked — the screen says
+   * what Delete will do instead, and the server's refusal is shown if it can't.
+   */
+  freeDescription?: string
 }
 
 interface Reference {
@@ -96,14 +103,20 @@ export function DeleteRecordDialog({
   onDeleted,
   onDeactivated,
   guidance,
+  freeDescription,
 }: DeleteRecordDialogProps) {
   const queryClient = useQueryClient()
 
-  /** api_names on `module` whose lookup target is this record type. */
+  /**
+   * api_names on `module` whose lookup target is this record type — a lookup,
+   * or a multiselect that picks several records (Secondary S!aP Suites).
+   */
   const pointingFields = (module: string) =>
     fieldsOf(module)
       .filter(
-        (f) => f.type === 'lookup' && collectionFor(f.lookup_target) === collectionFor(lookupTarget)
+        (f) =>
+          (f.type === 'lookup' || (f.type === 'multiselect' && Boolean(f.lookup_target))) &&
+          collectionFor(f.lookup_target) === collectionFor(lookupTarget)
       )
       .map((f) => f.api_name)
 
@@ -202,7 +215,7 @@ export function DeleteRecordDialog({
               ? `This ${noun} is already inactive.`
               : blocked
                 ? `This ${noun} is used on ${references.length} ${references.length === 1 ? 'record' : 'records'}, so it can't be deleted.`
-                : `This ${noun} isn't used anywhere.`}
+                : (freeDescription ?? `This ${noun} isn't used anywhere.`)}
           </DialogDescription>
         </DialogHeader>
 

@@ -19,9 +19,9 @@ const NOT_BUILT = new Set(['quotes', 'gates', 'bids', 'pocs'])
  * Every row of a collection a lookup, filter or picker reads.
  *
  * The one place that decides WHERE a collection comes from:
- *   · the catalogue (products, the price book) — bundled, no request
- *   · a module not built yet                    — empty, no request
- *   · everything else                           — GET /api/<collection>
+ *   · the pricing tables (sizes, regions, rate card…) — bundled, no request
+ *   · a module not built yet                           — empty, no request
+ *   · everything else, products included               — GET /api/<collection>
  *
  * Every caller shares the query key ['collection', collection], so a screen
  * that has already opened one lookup pays nothing for the next.
@@ -43,7 +43,7 @@ export async function fetchCollection<T extends Row = Row>(collection: string): 
  *     deals           no parent and no history
  *   · pursuit-groups  formed by the server when two pursuits collide
  *   · registrations   their own page, with the conflict check
- *   · products        the price book, edited as a file
+ *   · products        made on the Products screen, by an admin or a developer
  *   · quotes, gates,  not built yet
  *     bids, pocs
  */

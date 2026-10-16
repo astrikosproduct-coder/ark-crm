@@ -270,6 +270,7 @@ def missing_fields(
     up_to: int | None,
     visited: set[int] | None = None,
     status_only: bool = False,
+    only: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     """
     The fields that must be filled and are not.
@@ -277,7 +278,8 @@ def missing_fields(
     `stage` is where the record stands (it decides which per-stage answer is
     read); `up_to` is the last stage whose fields are due. `status_only` keeps
     only fields whose rule reads the status — the reason for On Hold or
-    Closed Lost.
+    Closed Lost. `only` names the fields this KIND of record holds, where a
+    register module describes more than one — see check_save.
     """
     register = published(db)
     if register is None:
@@ -291,6 +293,8 @@ def missing_fields(
 
     out: list[dict[str, Any]] = []
     for field in register.fields_of(module):
+        if only is not None and field["api_name"] not in only:
+            continue
         if not _applies(field, module):
             continue
         if status_only and "lead_status" not in (field.get("condition") or ""):
@@ -391,10 +395,16 @@ def check_save(
     creating: bool,
     previous_stage: int | None = None,
     converting: bool = False,
+    only: set[str] | None = None,
 ) -> None:
     """
     Refuse this save (422 REQUIRED_FIELDS_MISSING) if it leaves a due field
     empty. Call after every value is applied, before the commit.
+
+    `only` is for a module whose register describes more than one kind of
+    record: Products holds a product's fields AND the price matrix and five
+    pricing tables, which are no part of a product. Given, only those fields
+    are asked for (app/products.py::record_fields). Not for a pipeline module.
     """
     if not ENFORCED or (creating and converting):
         return
@@ -468,7 +478,7 @@ def check_save(
             raise _refuse(missing, "Some required fields are empty.")
         return
 
-    missing = missing_fields(db, module, record, record_id=record_id, stage=None, up_to=None)
+    missing = missing_fields(db, module, record, record_id=record_id, stage=None, up_to=None, only=only)
     if missing:
         raise _refuse(missing, "Some required fields are empty.")
 

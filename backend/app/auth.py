@@ -147,6 +147,38 @@ def require_target_editor(user: User = Depends(require_access)) -> User:
     return user
 
 
+#: Who may add, change, deactivate and delete products.
+CATALOGUE_EDITOR_ROLES = frozenset({ADMIN_ROLE, DEVELOPER_ROLE})
+
+
+def is_catalogue_editor(user: User) -> bool:
+    return any(role.role_id in CATALOGUE_EDITOR_ROLES for role in user.roles)
+
+
+def require_catalogue_editor(user: User = Depends(require_access)) -> User:
+    """
+    The catalogue — create, edit, deactivate, delete, import — ADMIN or
+    DEVELOPER only (Products phase 2, 13 Oct 2026). A product is what every
+    Lead picks from and what every quote will be priced on, so changing one is
+    not a salesperson's edit. The same two roles as sales targets, for the same
+    reason: they are the two that exist. Reading the catalogue needs any role.
+
+    Enforced here, on the route, and again inside the import (a sheet row goes
+    through the same create). The buttons are hidden from everyone else, which
+    is presentation only. Profiles replace this when RBAC is built.
+    """
+    if not is_catalogue_editor(user):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            {
+                "code": "CATALOGUE_EDITOR_ONLY",
+                "message": "Only an admin or a developer can change products.",
+                "details": ["Ask one of them to make this change."],
+            },
+        )
+    return user
+
+
 def sign_in(request: Request, user: User, db: Session) -> None:
     """Attach the session to this user and stamp the sign-in."""
     request.session[SESSION_USER_KEY] = user.user_id

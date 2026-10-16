@@ -845,9 +845,11 @@ def validate_snapshot(snapshot: dict[str, Any]) -> ValidationResult:
                 result.warnings.append(
                     f"{ref} names picklist {row['picklist']!r}, which has no active values"
                 )
-        elif row["type"] in PICKLIST_TYPES:
+        elif row["type"] in PICKLIST_TYPES and not row.get("lookup_target"):
             # A register gap, not a build error: eleven of these ship today and
-            # the form engine already falls back to a free string.
+            # the form engine already falls back to a free string. A multiselect
+            # that names a lookup target is not one of them — it picks several
+            # records (Secondary S!aP Suites picks products), not choices.
             result.warnings.append(
                 f"{ref} is a {row['type']} but names no picklist — it will accept free text"
             )
@@ -929,6 +931,8 @@ def validate_snapshot(snapshot: dict[str, Any]) -> ValidationResult:
     # the module, and every pair names choices those picklists hold. A map
     # naming a choice the list does not have would filter a dropdown down to
     # nothing, or let the server accept a value no screen can show.
+    # A multi-choice field is a picklist too (Products, 13 Oct 2026): it then
+    # offers the choices of every parent choice held.
     placed = {(r["module"], r["api_name"]): r for r in snapshot["fields"]}
     for dep in snapshot.get("dependencies", []):
         where = f"{dep['module_key']}: {dep['parent_field']} -> {dep['child_field']}"
@@ -939,7 +943,7 @@ def validate_snapshot(snapshot: dict[str, Any]) -> ValidationResult:
         keys = []
         for end in ends:
             picklist = picklists.get(end.get("picklist") or "")
-            if end.get("type") != "picklist" or picklist is None:
+            if end.get("type") not in ("picklist", "multiselect") or end.get("lookup_target") or picklist is None:
                 result.errors.append(f"field dependency {where}: {end['api_name']} is not a picklist field")
                 break
             keys.append({v["key"] for v in picklist["values"]})

@@ -64,6 +64,13 @@ def refused(response) -> bool:
 
 created: dict[str, list[str]] = {"leads": [], "contacts": [], "accounts": []}
 
+# S!aP Solution Suite and Suite Demonstrated pick a suite from the catalogue
+# since Products, step 1 (12 Oct 2026) — typed text is refused. Any one will do.
+_suites = client.get("/api/products", params={"catalogue_category": "SEGMENT_LIBRARY"}).json()
+if not _suites:
+    raise SystemExit("The catalogue is not loaded — run load_price_book.py --apply, then run_tests.py again.")
+SUITE = _suites[0]["id"]
+
 ACCOUNT = {
     "account_name": "Required Fields Test Client",
     "account_type": ["END_CLIENT"],
@@ -80,7 +87,7 @@ ACCOUNT = {
 STAGE_1 = {
     "demo_completed": True,
     "demo_date": "2026-09-10",
-    "suite_demonstrated": "SAP-CORE",
+    "suite_demonstrated": SUITE,
     "demo_attendees": [],  # filled with the test Contact below
     "interest_level": "HIGH",
     "agreed_next_step": "PRESCRIPTION",
@@ -175,7 +182,7 @@ try:
         "end_client": account_id,
         "opportunity_type": "NEW_LOGO",
         "theme": "SMART_CITIES",
-        "sap_solution_suite": "SAP-CORE",
+        "sap_solution_suite": SUITE,
         "currency": "USD",
         "estimated_value": 100000,
         "remarks_notes": "Met at the expo.",

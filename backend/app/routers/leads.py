@@ -17,6 +17,7 @@ from ..custom_fields import apply_write, extras_of, merge_into_row, resolve_writ
 from ..register_defaults import apply_defaults
 from ..ids import next_reference_id
 from ..lead_deletion import delete_lead_and_linked, deletion_plan
+from ..products import PRODUCT_PICKS, check_picks, join_picks, pick_labels, product_names, split_picks
 from ..pursuits import (
     PURSUIT_STAMPED,
     guard_close,
@@ -71,6 +72,22 @@ FEATURE_GAP_ROW_COLUMNS = ("gap_description", "suite_module", "impact", "raised_
 # in the register carry editable=false since Sep 2026).
 SYSTEM_STAMPED = frozenset({"created_by", "created_date", "modified_by", "modified_date"})
 
+# The fields that pick from the catalogue, and whether each picks several —
+# S!aP Solution Suite, Suite Demonstrated, Secondary S!aP Suites. Each is
+# checked when it changes and stored in its own column. See app/products.py.
+PRODUCT_FIELDS = PRODUCT_PICKS["leads"]
+
+
+def _check_products(db: Session, payload, sent: set[str], lead: Lead | None) -> None:
+    for name in PRODUCT_FIELDS:
+        if name in sent:
+            check_picks(db, "leads", name, getattr(payload, name), getattr(lead, name, None))
+
+
+def _stored(name: str, value):
+    """A payload value as its column holds it: several picks are joined."""
+    return join_picks(split_picks(value)) if PRODUCT_FIELDS.get(name) else value
+
 
 def _next_lead_id(db: Session) -> str:
     """From a stored high-water mark, never max(existing) — see app/ids.py."""
@@ -100,6 +117,9 @@ def _label_maps(db: Session) -> dict[str, dict[str, str]]:
         # A pursuit group by name — "Al Waha … at Madinat Al Waha" — for the
         # list column and the record's lookup, never PG-0002.
         "pursuit_groups": group_names(db),
+        # Not in LEAD_LOOKUPS — those columns carry no foreign key (see
+        # app/products.py) — but joined to a name all the same.
+        "products": product_names(db),
         # Not a display-name join either: what each row contributes to its
         # stage's pipeline total, read once per page. See app/revenue.py.
         "revenue": revenue_context(db),
@@ -140,6 +160,10 @@ def _serialise(lead: Lead, labels: dict[str, dict[str, str]]) -> dict:
     for name in LEAD_SCALARS:
         value = getattr(lead, name)
         row[name] = float(value) if name in _MONEY_LIKE and value is not None else value
+    # A several-pick column reads back as the list the form holds.
+    for name, several in PRODUCT_FIELDS.items():
+        if several:
+            row[name] = split_picks(row[name])
     row["created_date"] = lead.created_date
     row["modified_date"] = lead.modified_date
 
@@ -171,6 +195,7 @@ def _serialise(lead: Lead, labels: dict[str, dict[str, str]]) -> dict:
     # reason as overridden_by.
     if lead.pursuit_group and lead.pursuit_group in labels["pursuit_groups"]:
         joined["pursuit_group"] = labels["pursuit_groups"][lead.pursuit_group]
+    joined.update(pick_labels("leads", lead, labels["products"]))
     if joined:
         row["__labels"] = joined
 
@@ -314,8 +339,12 @@ def list_leads(request: Request, response: Response, db: Session = Depends(get_d
     records = list(db.scalars(select(Lead)))
     rows = [_serialise(l, labels) for l in records]
 
+    # The product fields search, sort and filter by the product's name too.
     rows, total = run_list_query(
-        rows, request.query_params, lookups=LEAD_LOOKUPS, default_search=DEFAULT_SEARCH
+        rows,
+        request.query_params,
+        lookups={*LEAD_LOOKUPS, *PRODUCT_FIELDS},
+        default_search=DEFAULT_SEARCH,
     )
     response.headers["X-Total-Count"] = str(total)
     return rows
@@ -353,6 +382,7 @@ def insert_lead(payload: LeadCreate, db: Session, user: User) -> Lead:
         raise already_exists()
 
     _check_links(db, payload, set(LEAD_LOOKUPS))
+    _check_products(db, payload, set(PRODUCT_FIELDS), None)
     _check_registration(db, payload, set(payload.model_dump(exclude_unset=True)), None)
 
     lead = Lead(lead_id=lead_id)
@@ -376,7 +406,7 @@ def insert_lead(payload: LeadCreate, db: Session, user: User) -> Lead:
         value = getattr(payload, name)
         if value is None and name in _BOOL_DEFAULTS:
             value = _BOOL_DEFAULTS[name]
-        setattr(lead, name, value)
+        setattr(lead, name, _stored(name, value))
     # Starting values every new lead gets, however it was created — "+ New
     # Lead", a deal registration's Create lead, an expansion off a Deal — and
     # the user changes them afterwards (14 Sep 2026). Only a blank is filled.
@@ -499,6 +529,7 @@ def put_lead(
 def _write(db: Session, lead_id: str, payload: LeadUpdate, sent: set[str], user: User) -> dict:
     lead = _get_or_404(db, lead_id)
     _check_links(db, payload, sent & set(LEAD_LOOKUPS))
+    _check_products(db, payload, sent, lead)
     _check_registration(db, payload, sent, lead.partner_deal_registration, lead.lead_id)
 
     # The before half of the diff, read BEFORE a single value is applied —
@@ -526,7 +557,7 @@ def _write(db: Session, lead_id: str, payload: LeadUpdate, sent: set[str], user:
     for name in LEAD_SCALARS:
         if name not in sent or name in SYSTEM_STAMPED or name in PURSUIT_STAMPED:
             continue
-        setattr(lead, name, getattr(payload, name))
+        setattr(lead, name, _stored(name, getattr(payload, name)))
 
     if "demo_attendees" in sent:
         _apply_demo_attendees(db, lead, payload)

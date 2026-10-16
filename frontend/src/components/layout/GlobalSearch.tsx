@@ -33,6 +33,7 @@ const BASE_PATH: Record<string, string> = {
   deals: '/deals',
   accounts: '/accounts',
   contacts: '/contacts',
+  products: '/products',
 }
 
 /** Mirrors MIN_QUERY in backend/app/routers/search.py — change both. */

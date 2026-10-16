@@ -24,6 +24,8 @@ export function ModuleActions({
   onCreate,
   exportFilter,
   importNote,
+  allowImport = true,
+  importNamesRecords = true,
 }: {
   module: SpreadsheetModule
   plural: string
@@ -33,12 +35,16 @@ export function ModuleActions({
   /** The list's current filters, so an export holds what the screen shows. */
   exportFilter?: () => Record<string, string | string[]>
   importNote?: string
+  /** False where this person may not import — the catalogue, for most roles. */
+  allowImport?: boolean
+  /** False where a sheet names no account or person, so that advice is left off. */
+  importNamesRecords?: boolean
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [importing, setImporting] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<unknown>(null)
-  const canImport = IMPORTABLE.has(module)
+  const canImport = allowImport && IMPORTABLE.has(module)
   const split = Boolean(onCreate && createLabel)
 
   const runExport = async () => {
@@ -101,7 +107,15 @@ export function ModuleActions({
       </div>
       {error ? <ErrorNotice error={error} className="max-w-xs text-right" /> : null}
       {canImport && (
-        <ImportDialog open={importing} onOpenChange={setImporting} module={module} plural={plural} noun={noun} extraNote={importNote} />
+        <ImportDialog
+          open={importing}
+          onOpenChange={setImporting}
+          module={module}
+          plural={plural}
+          noun={noun}
+          extraNote={importNote}
+          namesRecords={importNamesRecords}
+        />
       )}
     </div>
   )

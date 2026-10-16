@@ -30,6 +30,11 @@ export function ListCell({ field, row }: { field: FieldSpec; row: ListRow }) {
       return <span>{row.__labels?.[field.api_name] ?? String(value)}</span>
 
     case 'multiselect':
+      // Several records picked (Secondary S!aP Suites): the list endpoint has
+      // already joined their names, as it does for a single lookup.
+      if (field.lookup_target && row.__labels?.[field.api_name]) {
+        return <span>{row.__labels[field.api_name]}</span>
+      }
       // Comma-separated text, not a row of filled chips: several values are
       // still one field, and they read as one sentence.
       return (

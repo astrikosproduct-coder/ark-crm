@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from ..auth import current_user
 from ..list_query import run_list_query
 from ..read_through_rows import attach_read_through
+from ..products import PRODUCT_PICKS
 from ..messages import already_exists, not_found, picked_record_missing, refusal
 from ..requirements import check_save
 from ..changes import child_snapshot, custom_field_diff, diff, list_changes, snapshot
@@ -314,7 +315,11 @@ def list_opportunities(request: Request, response: Response, db: Session = Depen
     attach_read_through(db, "opportunities", list(zip(records, rows)))
 
     rows, total = run_list_query(
-        rows, request.query_params, lookups=set(OPPORTUNITY_LOOKUPS) | set(LEAD_LOOKUPS), default_search=DEFAULT_SEARCH
+        rows,
+        request.query_params,
+        # …and the Lead's product fields, shown From the Lead, by product name.
+        lookups=set(OPPORTUNITY_LOOKUPS) | set(LEAD_LOOKUPS) | set(PRODUCT_PICKS["leads"]),
+        default_search=DEFAULT_SEARCH,
     )
     response.headers["X-Total-Count"] = str(total)
     return rows
