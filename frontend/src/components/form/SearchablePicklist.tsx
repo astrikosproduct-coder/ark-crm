@@ -25,6 +25,7 @@ export function SearchablePicklist({
   invalid,
   placeholder = 'Select…',
   noun = 'choice',
+  others,
 }: {
   id: string
   options: PicklistOption[]
@@ -34,9 +35,21 @@ export function SearchablePicklist({
   placeholder?: string
   /** "country", "state" — for the search box and the empty message. */
   noun?: string
+  /**
+   * More choices under their own heading, each with a muted hint — the
+   * countries of other Regions, with their Region beside them.
+   */
+  others?: { heading: string; options: (PicklistOption & { hint?: string })[] }
 }) {
   const [open, setOpen] = useState(false)
-  const selected = useMemo(() => options.find((o) => o.key === value)?.label ?? value ?? '', [options, value])
+  const selected = useMemo(
+    () => [...options, ...(others?.options ?? [])].find((o) => o.key === value)?.label ?? value ?? '',
+    [options, others, value]
+  )
+  const pick = (key: string) => {
+    onChange(key === value ? null : key)
+    setOpen(false)
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -62,21 +75,27 @@ export function SearchablePicklist({
           <CommandInput placeholder={`Search ${noun}…`} />
           <CommandList>
             <CommandEmpty>No {noun} found</CommandEmpty>
-            <CommandGroup>
-              {options.map((o) => (
-                <CommandItem
-                  key={o.key}
-                  value={`${o.label} ${o.key}`}
-                  onSelect={() => {
-                    onChange(o.key === value ? null : o.key)
-                    setOpen(false)
-                  }}
-                >
-                  <CheckIcon className={cn('size-4', value === o.key ? 'opacity-100' : 'opacity-0')} />
-                  <span className="truncate">{o.label}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            {options.length > 0 && (
+              <CommandGroup>
+                {options.map((o) => (
+                  <CommandItem key={o.key} value={`${o.label} ${o.key}`} onSelect={() => pick(o.key)}>
+                    <CheckIcon className={cn('size-4', value === o.key ? 'opacity-100' : 'opacity-0')} />
+                    <span className="truncate">{o.label}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+            {others && others.options.length > 0 && (
+              <CommandGroup heading={others.heading}>
+                {others.options.map((o) => (
+                  <CommandItem key={o.key} value={`${o.label} ${o.key}`} onSelect={() => pick(o.key)}>
+                    <CheckIcon className={cn('size-4', value === o.key ? 'opacity-100' : 'opacity-0')} />
+                    <span className="truncate">{o.label}</span>
+                    {o.hint && <span className="text-muted-foreground ml-auto shrink-0 text-xs">{o.hint}</span>}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>

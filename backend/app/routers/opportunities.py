@@ -1,6 +1,7 @@
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -19,7 +20,7 @@ from ..ids import next_reference_id
 from ..stage_entry import stage_entry_dates
 from ..progression import after_write as pct_after_write, plan_write, serialise_pct
 from ..models import Deal, Lead, Opportunity, OpportunityPaymentMilestone, User
-from ..priority_flags import PRIORITY_FLAGS, PriorityFlagError, resolve_priority_flag_patch
+from ..priority_flags import PRIORITY_FLAGS, PriorityFlagError, resolve_priority_flag_patch, resolve_reorder
 from ..conversion import begin_conversion, complete_conversion
 from ..pursuits import PURSUIT_STAMPED, group_names, guard_close, inherit_on_create
 from ..revenue import revenue_context, revenue_of
@@ -560,6 +561,48 @@ def _write(
     db.commit()
     db.refresh(opp)
     return _serialise(opp, _label_maps(db))
+
+
+class PriorityReorder(BaseModel):
+    #: opportunity id -> its new rank. Picks not named keep theirs.
+    ranks: dict[str, int]
+
+
+@router.put("/opportunities/priority/{flag}", status_code=status.HTTP_204_NO_CONTENT)
+def reorder_priority_list(
+    flag: str,
+    payload: PriorityReorder,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """
+    Re-rank picks already on Low Hanging or Top 10 together — the screen's drag
+    (Release 1.2, 15 Oct 2026): a pick dropped on an open slot moves there; on
+    another pick, the two swap. One transaction, one History line per record
+    that moved. Adding to or taking off a list stays the record's own save.
+    """
+    try:
+        moves = resolve_reorder(_all_priority_rows(db), flag, payload.ranks)
+    except PriorityFlagError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, refusal("PRIORITY_RANK", str(exc))) from exc
+    rank_field = next(pf.rank for pf in PRIORITY_FLAGS if pf.flag == flag)
+    stamp = now_utc()
+    for opportunity_id, (old, new) in moves.items():
+        opp = db.get(Opportunity, opportunity_id)
+        setattr(opp, rank_field, new)
+        opp.modified_by = user.user_id
+        opp.modified_date = stamp
+        record_audit(
+            db,
+            module="opportunities",
+            record_id=opportunity_id,
+            action="updated",
+            actor=user.user_id,
+            changed_fields=[rank_field],
+            changed=[{"field": rank_field, "from": old, "to": new}],
+        )
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.delete("/opportunities/{opportunity_id}", status_code=status.HTTP_204_NO_CONTENT)

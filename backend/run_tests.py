@@ -83,6 +83,8 @@ WRITING = [
     "test_products.py",
     "test_products_editing.py",
     "test_price_books.py",
+    "test_market_segments.py",
+    "test_priority_reorder.py",
 ]
 
 

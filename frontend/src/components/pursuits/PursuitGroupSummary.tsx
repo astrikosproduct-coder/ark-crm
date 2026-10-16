@@ -12,7 +12,14 @@ import { pathOfRecord, pursuitStatusLabel, usePursuitGroup } from '@/lib/pursuit
  * tab. Changing the primary or removing a pursuit stays on a pursuit's Related
  * tab (PursuitGroupPanel), where the record being changed is in front of you.
  */
-export function PursuitGroupSummary({ groupId }: { groupId: string }) {
+export function PursuitGroupSummary({
+  groupId,
+  hideName = false,
+}: {
+  groupId: string
+  /** The screen already says what the group is about — a conflict's own header. */
+  hideName?: boolean
+}) {
   const { data: group, isLoading } = usePursuitGroup(groupId)
 
   if (isLoading) return <p className="text-muted-foreground text-sm">Loading the pursuit group…</p>
@@ -20,10 +27,12 @@ export function PursuitGroupSummary({ groupId }: { groupId: string }) {
 
   return (
     <div className="space-y-2">
-      <p className="flex items-center gap-2 font-medium">
-        <UsersIcon className="size-4" />
-        {group.name ?? 'Pursuit group'}
-      </p>
+      {!hideName && (
+        <p className="flex items-center gap-2 font-medium">
+          <UsersIcon className="size-4" />
+          {group.name ?? 'Pursuit group'}
+        </p>
+      )}
 
       {group.alerts.map((alert) => (
         <div key={alert.code} className="text-amber-700 dark:text-amber-400">

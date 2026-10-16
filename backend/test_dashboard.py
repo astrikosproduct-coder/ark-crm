@@ -358,7 +358,9 @@ try:
 
     section("8  Month-end history: a gap is a gap")
     with SessionLocal() as db:
-        db.execute(delete(PipelineSnapshot).where(PipelineSnapshot.snapshot_date == today))
+        # Every snapshot of this month, not only today's: one taken on an earlier
+        # day of the month (the copied database may hold one) is still this month's.
+        db.execute(delete(PipelineSnapshot).where(PipelineSnapshot.snapshot_date >= month0))
         db.commit()
     history = dash(period="current_fy")["tiles"]["pipeline.month_end"]
     check("with no snapshot this month, this month is null — not zero", next(m for m in history["months"] if m["key"] == month0.isoformat())["usd"] is None)

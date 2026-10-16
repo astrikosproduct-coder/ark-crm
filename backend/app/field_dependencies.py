@@ -22,11 +22,12 @@ A record saved before the map existed may hold a pair the map refuses — a Lead
 whose free-text Country did not convert. Such a pair is refused only when the
 save CHANGES it, so an unrelated edit to that record still saves.
 
-SEVERAL CHOICES (Products, 13 Oct 2026). A product serves several markets, so
-its Segment -> Segment Category -> Subsegment are multi-choice. The rules are
-the same two, read for a list: a child offers the choices of EVERY parent
-choice held, and each child choice must be one of them. `allowed` is the one
-place that is worked out; the form's twin is allowedChoices.
+SEVERAL CHOICES (Products, 13 Oct 2026; Accounts in Release 1.2). A product
+serves several markets and an Account works in several Segments, so their
+Segment -> Segment Category -> Subsegment are multi-choice. The rules are the
+same two, read for a list: a child offers the choices of EVERY parent choice
+held, and each child choice must be one of them. `allowed` is the one place
+that is worked out; the form's twin is allowedChoices.
 """
 
 from __future__ import annotations

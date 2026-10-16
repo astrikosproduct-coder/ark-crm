@@ -1,7 +1,9 @@
 import { useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeftIcon } from 'lucide-react'
 
+import { useShellSlots } from '@/components/layout/shellSlots'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { requestDiscard } from '@/store/useUnsavedChangesStore'
 import { cn } from '@/lib/utils'
@@ -35,6 +37,11 @@ interface PageLayoutProps {
    */
   activeTab?: string
   onTabChange?: (key: string) => void
+  /**
+   * Put the title (and subtitle) in the top bar, as a list screen's is — the
+   * Dashboard (Release 1.2). The header row then holds only the actions.
+   */
+  titleInTopBar?: boolean
 }
 
 export function PageLayout({
@@ -46,8 +53,11 @@ export function PageLayout({
   back,
   activeTab,
   onTabChange,
+  titleInTopBar,
 }: PageLayoutProps) {
   const navigate = useNavigate()
+  const { titleSlot } = useShellSlots()
+  const inTopBar = Boolean(titleInTopBar && titleSlot)
   /**
    * Tabs are always controlled here, even when the caller does not care which
    * one is open. Radix would otherwise switch on its own and unmount whatever
@@ -65,7 +75,15 @@ export function PageLayout({
 
   return (
     <div className={cn('mx-auto px-6 py-6', wide ? 'max-w-7xl' : 'max-w-5xl')}>
-      <div className="mb-4 flex items-start justify-between gap-4">
+      {inTopBar &&
+        createPortal(
+          <>
+            <h1 className="text-page-title truncate font-bold">{title}</h1>
+            {subtitle && <span className="text-muted-foreground text-label shrink-0">{subtitle}</span>}
+          </>,
+          titleSlot!
+        )}
+      <div className={cn('mb-4 flex items-start justify-between gap-4', inTopBar && !actions && !back && 'hidden')}>
         {back && (
           <button
             type="button"
@@ -77,10 +95,14 @@ export function PageLayout({
             <ArrowLeftIcon className="size-5" />
           </button>
         )}
-        <div className="min-w-0 flex-1">
-          <h1 className="text-page-title flex flex-wrap items-center gap-2 font-bold">{title}</h1>
-          {subtitle && <div className="text-muted-foreground text-label mt-0.5">{subtitle}</div>}
-        </div>
+        {inTopBar ? (
+          <div className="flex-1" />
+        ) : (
+          <div className="min-w-0 flex-1">
+            <h1 className="text-page-title flex flex-wrap items-center gap-2 font-bold">{title}</h1>
+            {subtitle && <div className="text-muted-foreground text-label mt-0.5">{subtitle}</div>}
+          </div>
+        )}
         {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
       </div>
 

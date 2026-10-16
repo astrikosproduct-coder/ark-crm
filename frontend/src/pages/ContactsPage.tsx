@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PageLayout } from '@/components/layout/PageLayout'
-import { ListFilterBar } from '@/components/list/ListFilterBar'
+import { ListPageLayout } from '@/components/layout/ListPageLayout'
+import { ListFilterBar, ScopePicker } from '@/components/list/ListFilterBar'
 import { ModuleActions } from '@/components/list/ModuleActions'
 import { RecordListView } from '@/components/list/RecordListView'
 import { contactListCell } from '@/components/contacts/contactListCell'
@@ -13,9 +13,9 @@ export function ContactsPage() {
   const listFilter = useMemo(() => filters.params(), [filters])
 
   return (
-    <PageLayout
-      wide
+    <ListPageLayout
       title="Contacts"
+      scope={<ScopePicker filters={filters} />}
       actions={
         <ModuleActions
           module="contacts"
@@ -26,15 +26,17 @@ export function ContactsPage() {
           exportFilter={() => listFilter}
         />
       }
-      tabs={[
+      views={[
         {
           key: 'list',
           label: 'List',
+          toolbar: <ListFilterBar filters={filters} plural="Contacts" showScope={false} searchPlaceholder="Search name, title, email or account…" />,
           content: (
             <>
-              <ListFilterBar filters={filters} plural="Contacts" searchPlaceholder="Search name, title, email or account…" />
               <RecordListView
+                fill
                 module="contacts"
+                columnChoices={[...filters.common, ...filters.others].map((f) => f.field)}
                 collection="contacts"
                 basePath="/contacts"
                 filter={listFilter}

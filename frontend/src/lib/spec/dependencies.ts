@@ -14,10 +14,10 @@ import { specSource } from './source'
  *     choices — is never required (offersChoices);
  *   - a child choice its parent does not offer is refused on save.
  *
- * SEVERAL CHOICES (Products, 13 Oct 2026): a product's Segment -> Segment
- * Category -> Subsegment are multi-choice. A child then offers the choices of
- * EVERY parent choice held, and a parent choice taken away removes only the
- * child choices that came with it.
+ * SEVERAL CHOICES (Products, 13 Oct 2026; Accounts in Release 1.2): a product's
+ * and an Account's Segment -> Segment Category -> Subsegment are multi-choice. A
+ * child then offers the choices of EVERY parent choice held, and a parent choice
+ * taken away removes only the child choices that came with it.
  */
 
 export interface FieldDependency {
@@ -73,6 +73,56 @@ export function allowedChoices(module: string, apiName: string, values: Record<s
 export function offersChoices(module: string, apiName: string, values: Record<string, unknown>): boolean {
   const allowed = allowedChoices(module, apiName, values)
   return allowed === null || allowed.length > 0
+}
+
+/**
+ * Can this field be picked from ANY parent choice? (14 Oct 2026: "I could not
+ * find Vietnam".) True for a field whose parent follows nothing itself —
+ * Country under Region — so a person who does not know a country's region
+ * still finds it; picking it fills the Region in (fillParents). A State stays
+ * inside its Country: its parent follows Region, and a state name means
+ * nothing without its country.
+ */
+export function findableAcrossParents(module: string, apiName: string): boolean {
+  const dep = dependencyOf(module, apiName)
+  return dep !== null && dependencyOf(module, dep.parent) === null
+}
+
+/** The parent choice that offers `value` — Vietnam's Region is APAC. */
+export function parentChoiceFor(module: string, apiName: string, value: unknown): string | null {
+  const dep = dependencyOf(module, apiName)
+  if (!dep || blank(value)) return null
+  const wanted = String(value)
+  const hit = Object.entries(dep.map).find(([, choices]) => choices.includes(wanted))
+  return hit ? hit[0] : null
+}
+
+/** Every choice any parent offers, for a field that is findable across parents. */
+export function choicesOfEveryParent(module: string, apiName: string): Set<string> {
+  const dep = dependencyOf(module, apiName)
+  return new Set(dep ? Object.values(dep.map).flat() : [])
+}
+
+/**
+ * After `changed` takes a value its parent does not offer, set the parent to
+ * the choice that does — picking Vietnam with Region India (or none) makes the
+ * Region APAC. Only for a field findable across parents; returns `values`
+ * itself when nothing had to change. Run BEFORE clearOrphanedChoices, which
+ * then empties whatever followed the old value (the State).
+ */
+export function fillParents(
+  module: string | undefined,
+  values: Record<string, unknown>,
+  changed: string
+): Record<string, unknown> {
+  if (!module || !findableAcrossParents(module, changed)) return values
+  const dep = dependencyOf(module, changed)
+  const value = values[changed]
+  // One choice only: a several-choice field has no single parent to fill in.
+  if (!dep || blank(value) || Array.isArray(value)) return values
+  if ((allowedChoices(module, changed, values) ?? []).includes(String(value))) return values
+  const parent = parentChoiceFor(module, changed, value)
+  return parent ? { ...values, [dep.parent]: parent } : values
 }
 
 /**

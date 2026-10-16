@@ -3944,3 +3944,31 @@ def _section_joins_default_layout(mapper, connection, target) -> None:
                 Layout.__table__.c.is_default.is_(True),
             )
         )
+class UserViewPreference(Base):
+    """
+    One person's own layout of one list or board — never anyone else's.
+
+    Release 1.2 (14 Oct 2026, Zoho's Manage Columns and Kanban View Settings):
+    `view_key` is "list:<list view>", "kanban:<module>" or "page:<module>" (the view
+    a page opens on); `settings` holds what
+    that person chose — the columns and their order, widths, rows per page and
+    clip/wrap for a list; categorize-by, aggregate-by and the card's fields for
+    a board. Field names are register api_names, read against the PUBLISHED
+    register each time, so a field deleted later simply drops out. No row means
+    the default view, which is what everyone sees until they change it.
+
+    Whose it is comes from the session (app/auth.py::current_user), never a
+    request body. A user's rows go with them (ON DELETE CASCADE). Migration
+    r11_0003.
+    """
+
+    __tablename__ = "user_view_preferences"
+
+    user_id: Mapped[str] = mapped_column(
+        String(20), ForeignKey("users.user_id", ondelete="CASCADE"), primary_key=True
+    )
+    view_key: Mapped[str] = mapped_column(String(80), primary_key=True)
+    settings: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=now_utc, onupdate=now_utc
+    )

@@ -225,8 +225,8 @@ export function LeadAdvanceDialog({
       // the checks ticked by hand are recorded on its note instead.
       oppPayload.conversion_note =
         (isSkip
-          ? `${leadId} moved directly from Stage ${currentStage} to Opportunity Stage ${target}, skipping its own remaining stages — ${reason.trim()}`
-          : `${leadId} moved to Opportunities from Stage ${currentStage}.`) +
+          ? `Moved directly from Stage ${currentStage} to Opportunity Stage ${target}, skipping its own remaining stages — ${reason.trim()}`
+          : `Moved to Opportunities from Stage ${currentStage}.`) +
         (attestations.codes.length ? ` Confirmed by hand: ${attestations.codes.join(', ')}.` : '')
 
       const createdOpp = await api.post<Record<string, unknown>>('/opportunities', oppPayload)

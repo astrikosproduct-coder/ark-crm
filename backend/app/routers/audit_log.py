@@ -1,15 +1,50 @@
+import re
+
 from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import AuditLog
+from ..models import AuditLog, RegistrationConflict
 from ..schemas import AuditLogOut
 
 router = APIRouter(tags=["audit-log"])
 
 
-def _serialise(a: AuditLog) -> dict:
+#: "Conflict CONF-0002 decided: both pursued." — the wording pursuit groups
+#: wrote before History stopped showing record ids (14 Oct 2026).
+_CONFLICT_NUMBER = re.compile(r"Conflict (CONF-\d+)")
+
+
+def _conflict_names(db: Session, rows: list[AuditLog]) -> dict[str, str]:
+    """Every conflict number these rows' reasons mention, by its partners' names."""
+    wanted = {
+        m.group(1)
+        for a in rows
+        for e in (a.changed or [])
+        if isinstance(e, dict) and e.get("field") == "__reason"
+        for m in _CONFLICT_NUMBER.finditer(str(e.get("to") or ""))
+    }
+    if not wanted:
+        return {}
+    from ..registration_matching import account_names, conflict_name, partner_names_of_registrations
+
+    partner_of = partner_names_of_registrations(db, account_names(db))
+    return {
+        c.conflict_id: conflict_name(c, partner_of)
+        for c in db.scalars(select(RegistrationConflict).where(RegistrationConflict.conflict_id.in_(wanted)))
+    }
+
+
+def _serialise(a: AuditLog, conflicts: dict[str, str] | None = None) -> dict:
+    changed = a.changed
+    if conflicts and changed:
+        changed = [
+            {**e, "to": _CONFLICT_NUMBER.sub(lambda m: conflicts.get(m.group(1), "A conflict"), str(e["to"]))}
+            if isinstance(e, dict) and e.get("field") == "__reason" and e.get("to")
+            else e
+            for e in changed
+        ]
     return {
         "id": a.reference_id,
         "record_module": a.record_module,
@@ -17,7 +52,7 @@ def _serialise(a: AuditLog) -> dict:
         "action": a.action,
         "actor": a.actor,
         "changed_fields": a.changed_fields,
-        "changed": a.changed,
+        "changed": changed,
         "timestamp": a.timestamp,
     }
 
@@ -57,7 +92,8 @@ def list_audit_log(request: Request, response: Response, db: Session = Depends(g
     total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
 
     limit = min(int(params.get("_limit") or DEFAULT_LIMIT), MAX_LIMIT)
-    rows = db.scalars(query.order_by(AuditLog.timestamp.desc(), AuditLog.id.desc()).limit(limit))
+    rows = list(db.scalars(query.order_by(AuditLog.timestamp.desc(), AuditLog.id.desc()).limit(limit)))
+    conflicts = _conflict_names(db, rows)
 
     response.headers["X-Total-Count"] = str(total)
-    return [_serialise(r) for r in rows]
+    return [_serialise(r, conflicts) for r in rows]

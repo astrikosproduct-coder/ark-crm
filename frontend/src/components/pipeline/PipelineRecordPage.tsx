@@ -329,7 +329,7 @@ export function PipelineRecordPage({ spec }: { spec: PipelineModuleSpec }) {
     return (
       <div className="mx-auto max-w-5xl px-6 py-6">
         <p className="text-sm text-destructive">
-          No {spec.noun} with id {id}.
+          This {spec.noun} does not exist.
         </p>
       </div>
     )

@@ -179,7 +179,9 @@ def case_2_administration_sees_the_crm(db) -> None:
     # way. History of these numbers is in git.
     # Unchanged by Release 1.1 (6 Oct 2026) too: each module lost the old
     # Segment and gained State (own on Leads, From the Lead on the other two).
-    for module, expected in (("leads", 81), ("opportunities", 107), ("deals", 98)):
+    # Release 1.2 (15 Oct 2026): Segment Category and Subsegment, on Leads and
+    # From the Lead on the other two: 83, 109 and 100.
+    for module, expected in (("leads", 83), ("opportunities", 109), ("deals", 100)):
         resolved = len(R.resolved_fields(db, module))
         api = client.get(
             "/api/admin/metadata/fields", params={"module": module}
@@ -426,11 +428,13 @@ def case_9_read_through(db) -> None:
     plan = R.read_through_plan(db, "opportunities")
     # 27 since Pursuit Groups: fx_rate_at_entry reads through beside currency.
     # 27 -> 26 -> 27: Release 1.1 deleted the old Segment and added State.
-    check("Opportunities reads 27 fields through", len(plan) == 27, str(len(plan)))
+    # 27 -> 29: Release 1.2 added Segment Category and Subsegment.
+    check("Opportunities reads 29 fields through", len(plan) == 29, str(len(plan)))
     check("every one of them resolves to leads", set(plan.values()) == {"leads"})
     deals = R.read_through_plan(db, "deals")
     # 25 before G1; End Client joined them on 24 Sep 2026.
-    check("Deals reads 26 through (End Client since G1)", len(deals) == 26, str(len(deals)))
+    # 26 -> 28: Release 1.2 added Segment Category and Subsegment (merged 16 Oct 2026).
+    check("Deals reads 28 through (End Client since G1)", len(deals) == 28, str(len(deals)))
 
     rows = [
         f for f in R.resolved_fields(db, "opportunities") if f["value_mode"] == "read_through"

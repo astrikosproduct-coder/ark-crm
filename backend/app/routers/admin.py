@@ -163,7 +163,7 @@ def create_user_from_directory(payload: UserFromDirectory, db: Session = Depends
     if existing is not None:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            f"{person.name} is already in ARK CRM as {existing.user_id} — edit that user's roles instead.",
+            f"{person.name} is already in ARK CRM — edit that user's roles instead.",
         )
 
     user_id = (payload.user_id or "").strip() or _suggested_user_id(db)
@@ -226,7 +226,7 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)):
     if clash is not None:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            f"{payload.email} already belongs to {clash.user_id}",
+            f"{payload.email} already belongs to {clash.name}",
         )
 
     user = User(
@@ -260,7 +260,7 @@ def update_user(user_id: str, payload: UserUpdate, db: Session = Depends(get_db)
         if clash is not None:
             raise HTTPException(
                 status.HTTP_409_CONFLICT,
-                f"{changes['email']} already belongs to {clash.user_id}",
+                f"{changes['email']} already belongs to {clash.name}",
             )
 
     for key, value in changes.items():

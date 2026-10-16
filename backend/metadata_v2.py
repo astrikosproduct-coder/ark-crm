@@ -81,6 +81,9 @@ READ_THROUGH = {
     "presales_owner", "sales_owner", "total_project_value",
     # Release 1.1 (merged 8 Oct 2026): State, beside Country — Region -> Country -> State.
     "state",
+    # Release 1.2 (merged 16 Oct 2026): Segment -> Segment Category -> Subsegment,
+    # one choice each on the Lead.
+    "segment_category", "subsegment",
 }
 #: A2 — owned before the Deal, copied into a Deal-owned field at conversion.
 CARRIED_FROM_OPPORTUNITY = {
@@ -123,6 +126,10 @@ GLOBAL_PICKLISTS = {
     "theme": "Segment",
     "countries": "Country",
     "states": "State",
+    # Release 1.2 (merged 16 Oct 2026): Segment Category and Subsegment serve the
+    # Lead's one choice and the Account's several (and, on phase-2, a product's).
+    "segment_categories": "Segment Category",
+    "subsegments": "Subsegment",
     # Found on the dry run, 24 Sep: Phone and Mobile on a Contact share it.
     "contacts__dial_code": "Dial Code",
     # Found once nothing was hidden, 24 Sep: the Bid, Gate and POC status

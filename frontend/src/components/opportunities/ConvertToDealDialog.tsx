@@ -86,7 +86,7 @@ export function ConvertToDealDialog({ open, opportunityId, values, onClose }: Pr
       dealPayload.delivery_pm = currentUserId()
       dealPayload.order_booked = true
       dealPayload.booking_date = now.slice(0, 10)
-      dealPayload.conversion_note = `${opportunityId} moved to Deals from its Stage 6 detail page.`
+      dealPayload.conversion_note = 'Moved to Deals from Stage 6.'
 
       // ONE request. Creating the Deal converts the Opportunity and writes the
       // conversion record in the same server transaction, and a second press

@@ -46,7 +46,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "0038_metadata_v2_schema"
-down_revision = "r11_0002_account_groups"  # Release 1.1 comes first (merged 8 Oct 2026)
+down_revision = "r11_0003_user_view_preferences"  # Releases 1.1 and 1.2 come first (1.2 merged 16 Oct 2026)
 branch_labels = None
 depends_on = None
 

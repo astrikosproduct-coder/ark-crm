@@ -1,11 +1,13 @@
 import { useMemo } from 'react'
 
-import { PageLayout } from '@/components/layout/PageLayout'
+import { KanbanIcon, ListIcon } from 'lucide-react'
+
+import { ListPageLayout } from '@/components/layout/ListPageLayout'
 import { ModuleActions } from '@/components/list/ModuleActions'
 import { RecordListView } from '@/components/list/RecordListView'
 import { DealKanbanBoard } from '@/components/deals/DealKanbanBoard'
 import { dealListCell } from '@/components/deals/dealListCell'
-import { ListFilterBar } from '@/components/list/ListFilterBar'
+import { ListFilterBar, ScopePicker } from '@/components/list/ListFilterBar'
 import { useListFilters } from '@/lib/listFilters'
 import { ragAccent } from '@/lib/rag'
 
@@ -16,19 +18,23 @@ export function DealsPage() {
   const boardFilter = useMemo(() => filters.params({ withStage: false }), [filters])
 
   return (
-    <PageLayout
-      wide
+    <ListPageLayout
+      pageKey="deals"
       title="Deals"
+      scope={<ScopePicker filters={filters} />}
       actions={<ModuleActions module="deals" plural="Deals" noun="deal" exportFilter={() => listFilter} />}
-      tabs={[
+      views={[
         {
           key: 'list',
           label: 'List',
+          icon: <ListIcon className="size-4" />,
+          toolbar: <ListFilterBar filters={filters} plural="Deals" showScope={false} searchPlaceholder="Search name, client or code…" />,
           content: (
             <>
-              <ListFilterBar filters={filters} plural="Deals" searchPlaceholder="Search name, client or code…" />
               <RecordListView
+                fill
                 module="deals"
+                columnChoices={[...filters.common, ...filters.others].map((f) => f.field)}
                 collection="deals"
                 basePath="/deals"
                 filter={listFilter}
@@ -44,10 +50,13 @@ export function DealsPage() {
         {
           key: 'pipeline',
           label: 'Kanban',
+          icon: <KanbanIcon className="size-4" />,
+          toolbar: (
+            <ListFilterBar filters={filters} plural="Deals" showStage={false} showScope={false} searchPlaceholder="Search name, client or code…" />
+          ),
           content: (
             <>
-              <ListFilterBar filters={filters} plural="Deals" showStage={false} searchPlaceholder="Search name, client or code…" />
-              <DealKanbanBoard filter={boardFilter} />
+              <DealKanbanBoard filter={boardFilter} fields={[...filters.common, ...filters.others].map((f) => f.field)} />
             </>
           ),
         },

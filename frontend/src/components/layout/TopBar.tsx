@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { FeedbackButton } from '@/components/layout/FeedbackButton'
 import { ServerClock } from '@/components/layout/ServerClock'
 import { GlobalSearch } from '@/components/layout/GlobalSearch'
+import { useShellSlots } from '@/components/layout/shellSlots'
 import { UserMenu } from '@/components/layout/UserMenu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsDeveloper } from '@/lib/feedback'
@@ -36,6 +37,9 @@ import { cn } from '@/lib/utils'
  * TRAIL, not a title: it used to be drawn at the same size and weight as the
  * H1 below it, which is what made two headings look like a mistake even when
  * they said different things.
+ *
+ * Release 1.2 (15 Oct 2026): a list screen's heading now sits IN this bar, put
+ * there by ListPageLayout, as Zoho's list does — still once, still the <h1>.
  */
 function moduleCrumbFor(pathname: string): { label: string; to: string } | null {
   const segments = pathname.split('/').filter(Boolean)
@@ -89,6 +93,7 @@ function SetupButton() {
 export function TopBar() {
   const { pathname } = useLocation()
   const crumb = moduleCrumbFor(pathname)
+  const { setTitleSlot } = useShellSlots()
 
   return (
     // Sticky, not fixed: it takes part in normal flow (so it does not need a
@@ -109,6 +114,10 @@ export function TopBar() {
           <ChevronRightIcon aria-hidden className="text-muted-foreground size-3.5 shrink-0" />
         </nav>
       )}
+
+      {/* A list screen's title and scope, put here by ListPageLayout — the
+          module name sits in the bar, as Zoho's "Leads [All Leads ▾]". */}
+      <div ref={setTitleSlot} className="flex min-w-0 shrink items-center gap-3 empty:hidden" />
 
       <GlobalSearch />
 

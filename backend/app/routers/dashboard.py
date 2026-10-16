@@ -175,8 +175,13 @@ class Row:
         return bool(getattr(self.record, "pursuit_group", None)) and not self.record.is_primary_pursuit
 
     def lead(self, name: str) -> Any:
-        """A Lead field, read on the Lead this record descends from."""
-        return getattr(self.root, name, None) if self.root is not None else None
+        """A Lead field, read on the Lead this record descends from — its column,
+        else its custom_fields (Segment Category and Subsegment, Release 1.2)."""
+        if self.root is None:
+            return None
+        if hasattr(type(self.root), name):
+            return getattr(self.root, name, None)
+        return (self.root.custom_fields or {}).get(name)
 
     @property
     def customer(self) -> str | None:
@@ -320,6 +325,10 @@ FILTERS: dict[str, Callable[[Row], Any]] = {
     # Segment is the Lead's `theme` field, labelled Segment since Release 1.1;
     # the old 4-choice Segment was deleted, and with it the separate Theme filter.
     "segment": lambda r: r.lead("theme"),
+    # Release 1.2: the Lead's own Segment Category and Subsegment, read through
+    # to its Opportunity and Deal as Segment is.
+    "segment_category": lambda r: r.lead("segment_category"),
+    "subsegment": lambda r: r.lead("subsegment"),
     "owner": lambda r: r.lead("bd_owner"),
     "opportunity_type": lambda r: r.lead("opportunity_type"),
     "deal_source": lambda r: r.lead("deal_source"),
@@ -327,7 +336,7 @@ FILTERS: dict[str, Callable[[Row], Any]] = {
 }
 
 #: Filters a monthly target cannot be split by — targets are owner x month only.
-NOT_TARGETED = ("region", "segment", "opportunity_type", "deal_source", "partner")
+NOT_TARGETED = ("region", "segment", "segment_category", "subsegment", "opportunity_type", "deal_source", "partner")
 
 
 def _in_slice(row: Row, filters: dict[str, str | None]) -> bool:

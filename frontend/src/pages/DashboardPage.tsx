@@ -18,6 +18,7 @@ import { api } from '@/lib/api'
 import { date, money } from '@/lib/format'
 import { usd } from '@/lib/revenue'
 import { fieldOf, optionsFor } from '@/lib/spec'
+import { allowedChoices } from '@/lib/spec/dependencies'
 import { useServerDay } from '@/lib/serverClock'
 import { cn } from '@/lib/utils'
 
@@ -34,6 +35,17 @@ function plural(n: number, word: string): string {
 /** A Lead field's picklist, so every filter offers exactly what the Lead form offers. */
 function leadOptions(apiName: string) {
   return optionsFor(fieldOf('leads', apiName)?.picklist).map((o) => ({ value: o.key, label: o.label }))
+}
+
+/**
+ * A Lead field's choices as the Lead form would offer them for these parent
+ * values: Segment Category under the Segment chosen, Subsegment under the
+ * Category. Everything when nothing above it is chosen.
+ */
+function dependentLeadOptions(apiName: string, values: Record<string, unknown>) {
+  const allowed = allowedChoices('leads', apiName, values)
+  const all = leadOptions(apiName)
+  return allowed === null || allowed.length === 0 ? all : all.filter((o) => allowed.includes(o.value))
 }
 
 /** "01 Jan 2027 – 30 Apr 2027", or the one end that is set. */
@@ -59,6 +71,10 @@ const SLICES: { key: SliceFilter; label: string; name: string; options: (data?: 
   { key: 'region', name: 'Booking Region', label: 'All booking regions', options: () => leadOptions('booking_region') },
   // Segment is the Lead's `theme` field since Release 1.1; the old Segment and a separate Theme filter are gone.
   { key: 'segment', name: 'Segment', label: 'All segments', options: () => leadOptions('theme') },
+  // Release 1.2: the Lead's Segment Category and Subsegment. The row narrows each
+  // to the choice above it (categoryOptions / subsegmentOptions in the page).
+  { key: 'segment_category', name: 'Segment Category', label: 'All segment categories', options: () => leadOptions('segment_category') },
+  { key: 'subsegment', name: 'Subsegment', label: 'All subsegments', options: () => leadOptions('subsegment') },
   { key: 'owner', name: 'BD Owner', label: 'All BD owners', options: (d) => (d?.owners ?? []).map((o) => ({ value: o.id, label: o.name })) },
   { key: 'opportunity_type', name: 'Opportunity Type', label: 'All opportunity types', options: () => leadOptions('opportunity_type') },
   { key: 'partner', name: 'Partner', label: 'All partners', options: (d) => (d?.partners ?? []).map((p) => ({ value: p.id, label: p.name })) },
@@ -104,6 +120,29 @@ export function DashboardPage() {
   }, [serverDay, refetch])
 
   const setFilter = (key: SliceFilter) => (value: string) => setFilters((f) => ({ ...f, [key]: value === ALL ? undefined : value }))
+
+  // Segment -> Segment Category -> Subsegment narrow one another, as on the
+  // Lead form; a new Segment drops a Category (and Subsegment) outside it.
+  const categoryOptions = dependentLeadOptions('segment_category', { theme: filters.segment })
+  const subsegmentOptions = filters.segment_category
+    ? dependentLeadOptions('subsegment', { segment_category: filters.segment_category })
+    : dependentLeadOptions('subsegment', { segment_category: categoryOptions.map((o) => o.value) })
+  const setSegment = (value: string) =>
+    setFilters((f) => {
+      const segment = value === ALL ? undefined : value
+      const categories = dependentLeadOptions('segment_category', { theme: segment }).map((o) => o.value)
+      const category = f.segment_category && categories.includes(f.segment_category) ? f.segment_category : undefined
+      const subsegments = dependentLeadOptions('subsegment', { segment_category: category ?? categories }).map((o) => o.value)
+      const subsegment = f.subsegment && subsegments.includes(f.subsegment) ? f.subsegment : undefined
+      return { ...f, segment, segment_category: category, subsegment }
+    })
+  const setCategory = (value: string) =>
+    setFilters((f) => {
+      const category = value === ALL ? undefined : value
+      const subsegments = category ? dependentLeadOptions('subsegment', { segment_category: category }).map((o) => o.value) : null
+      const subsegment = f.subsegment && (!subsegments || subsegments.includes(f.subsegment)) ? f.subsegment : undefined
+      return { ...f, segment_category: category, subsegment }
+    })
 
   const setRange = (from: string, to: string) => {
     setDraft({ from, to })
@@ -207,7 +246,15 @@ export function DashboardPage() {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {SLICES.map((s) => (
-          <FilterSelect key={s.key} label={s.label} value={filters[s.key]} onChange={setFilter(s.key)} options={s.options(data)} />
+          <FilterSelect
+            key={s.key}
+            label={s.label}
+            value={filters[s.key]}
+            onChange={s.key === 'segment' ? setSegment : s.key === 'segment_category' ? setCategory : setFilter(s.key)}
+            options={
+              s.key === 'segment_category' ? categoryOptions : s.key === 'subsegment' ? subsegmentOptions : s.options(data)
+            }
+          />
         ))}
         {moved && (
           <button type="button" onClick={clearAll} className="text-link text-label px-2 hover:underline">
@@ -244,6 +291,7 @@ export function DashboardPage() {
     <>
       <PageLayout
         wide
+        titleInTopBar
         title="Dashboard"
         tabs={[
           {

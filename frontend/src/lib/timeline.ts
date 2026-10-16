@@ -72,10 +72,15 @@ export interface ConversionRow {
   source_id: string
   target_module: string
   target_id: string
+  /** The two records' names, served with the row — History shows no record ids. */
+  source_name?: string | null
+  target_name?: string | null
   actor: string | null
   timestamp: string
   note: string | null
 }
+
+const NOUN: Record<string, string> = { leads: 'Lead', opportunities: 'Opportunity', deals: 'Deal' }
 
 /** How an empty value reads inside the sentence. See displayValue. */
 export const BLANK = 'blank value'
@@ -423,12 +428,16 @@ export function buildTimeline({
   // record being viewed, so the id is compared rather than assumed.
   for (const c of conversions ?? []) {
     const isSource = c.source_id === recordId
+    // "Converted to Opportunity: Esyasoft: Azerbaijan Gas…" — the other
+    // record by its kind and name, never its number.
+    const [module, name] = isSource ? [c.target_module, c.target_name] : [c.source_module, c.source_name]
+    const other = [NOUN[module] ?? 'record', name].filter(Boolean).join(': ')
     events.push({
       id: c.id,
       kind: 'conversion',
       timestamp: c.timestamp,
       actor: c.actor,
-      summary: isSource ? `Converted to ${c.target_id}` : `Converted from ${c.source_id}`,
+      summary: isSource ? `Converted to ${other}` : `Converted from ${other}`,
       reason: c.note,
       changes: [],
     })

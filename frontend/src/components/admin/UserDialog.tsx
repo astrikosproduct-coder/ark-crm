@@ -222,22 +222,8 @@ export function UserDialog({ open, onOpenChange, user }: Props) {
           />
         ) : (
           <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="user_id">User ID</Label>
-              <Input
-                id="user_id"
-                value={form.user_id}
-                disabled={Boolean(existing)}
-                onChange={(e) => set('user_id', e.target.value)}
-                placeholder="USR-001"
-              />
-              {!existing && (
-                <p className="text-muted-foreground text-xs">
-                  Suggested from the highest existing id. You can change it.
-                </p>
-              )}
-            </div>
-
+            {/* No User ID box: ARK shows no record numbers (14 Oct 2026). The
+                next number is still suggested into form.user_id and saved. */}
             <div className="space-y-1.5">
               <Label htmlFor="name">Name</Label>
               <Input

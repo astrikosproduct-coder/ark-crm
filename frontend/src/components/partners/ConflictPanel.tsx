@@ -5,18 +5,18 @@ import { AlertTriangleIcon, CheckCircle2Icon, ExternalLinkIcon, PencilIcon } fro
 
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { RecordForm } from '@/components/form/RecordForm'
+import { FormSection } from '@/components/form/RecordForm'
 import { RecordEditor } from '@/components/record/RecordEditor'
+import { RecordFormProvider } from '@/hooks/useRecordForm'
 import { PursuitGroupSummary } from '@/components/pursuits/PursuitGroupSummary'
 import { api } from '@/lib/api'
 import { ErrorNotice } from '@/components/ui/notice'
 import { date as fmtDate } from '@/lib/format'
-import { adjudicationLoser, adjudicationWinner } from '@/lib/partners'
+import { adjudicationLoser } from '@/lib/partners'
 import { MIN_REASON } from '@/lib/pursuitGroups'
 import { invalidateRegistrationWorld, type PossibleConflictMatch, useConflictCheck } from '@/lib/registrations'
-import { fieldsInSet, labelForValue, partnerRegistration } from '@/lib/spec'
+import { labelForValue, partnerRegistration } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
-import { cn } from '@/lib/utils'
 
 const MODULE = 'conflicts'
 const SECTION = 'CONFLICT ADJUDICATION'
@@ -72,20 +72,10 @@ export function ConflictPanel({
   if (conflicts.length === 0 && candidates.length === 0) {
     const client = (registration.__labels as Labels)?.end_client
     return (
-      <div className="space-y-4 py-3">
-        <div className="rounded-lg border p-4 text-sm">
-          <p className="font-medium">No competing registration</p>
-          <p className="text-muted-foreground mt-1">
-            No other partner has a live registration at{' '}
-            <span className="text-foreground">{client ?? 'this End Client'}</span>. Exclusivity is granted per
-            client and project, so a different project at the same client is not a conflict.
-          </p>
-          <p className="text-muted-foreground mt-2">
-            When another partner registers at this client, ARK asks on save whether it is the same project.
-          </p>
-        </div>
-        <CriteriaReference />
-      </div>
+      <p className="text-muted-foreground py-6 text-sm">
+        No other partner is registered at {client ?? 'this End Client'}. If one registers, ARK asks on save whether
+        it is the same project.
+      </p>
     )
   }
 
@@ -97,33 +87,6 @@ export function ConflictPanel({
       {conflicts.map((conflict) => (
         <AdjudicationCard key={String(conflict.id)} conflict={conflict} registrations={registrations} />
       ))}
-    </div>
-  )
-}
-
-/** The register's three criteria, shown when there is nothing to adjudicate. */
-function CriteriaReference() {
-  const criteria = fieldsInSet(partnerRegistration.adjudication_criteria)
-
-  return (
-    <div className="rounded-lg border">
-      <div className="border-b px-4 py-3">
-        <p className="text-sm font-semibold tracking-wide">{SECTION}</p>
-        <p className="text-muted-foreground mt-0.5 text-sm">
-          Three criteria are weighed. Registration order alone does not decide the outcome.
-        </p>
-      </div>
-      <ol className="divide-y">
-        {criteria.map((field, i) => (
-          <li key={field.qref} className="flex gap-3 px-4 py-3 text-sm">
-            <span className="text-muted-foreground tabular-nums">{i + 1}</span>
-            <div className="min-w-0">
-              <p className="font-medium">{field.label}</p>
-              <p className="text-muted-foreground">{field.description}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
     </div>
   )
 }
@@ -148,11 +111,6 @@ function CandidateCard({ registrationId, match }: { registrationId: string; matc
         <span className="font-medium">{match.project_name}</span>
         {match.end_client_name ? ` at ${match.end_client_name}` : ''}
         {match.submitted_date ? `, submitted ${fmtDate(match.submitted_date)}` : ''}.
-      </p>
-      <p className="text-muted-foreground">
-        {match.same_partner
-          ? 'The same partner registered a similar project. If it is a separate project, say why.'
-          : 'Another partner registered at the same client. Raise a conflict if it is the same project.'}
       </p>
 
       {declining ? (
@@ -215,42 +173,25 @@ function CandidateCard({ registrationId, match }: { registrationId: string; matc
   )
 }
 
-/** One side of the pair: partner, project, when it was submitted, and whether it won. */
-function SlotRow({ slot, registration, won }: { slot: 'A' | 'B'; registration: Values | undefined; won: boolean | null }) {
-  const status = String(registration?.registration_status ?? '')
+/** One side of the pair, as a line of text — shown while editing, where the form has no A / B fields. */
+function SlotLine({ slot, registration }: { slot: 'A' | 'B'; registration: Values | undefined }) {
   return (
-    <div
-      className={cn(
-        'flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border px-3 py-2 text-sm',
-        won === true && 'border-emerald-500/50 bg-emerald-500/10',
-        won === false && 'opacity-60'
-      )}
-    >
-      <span className="text-muted-foreground shrink-0 font-medium">Registration {slot}</span>
+    <p className="text-sm">
+      <span className="text-muted-foreground">Registration {slot} · </span>
       {registration ? (
         <>
-          <Link className="underline underline-offset-2" to={`/partners/registrations/${String(registration.id)}`}>
+          <Link className="underline-offset-2 hover:underline" to={`/partners/registrations/${String(registration.id)}`}>
             {partnerOf(registration)}
           </Link>
-          <span aria-hidden>·</span>
-          <span className="min-w-0">{String(registration.project_name ?? '')}</span>
-          <span aria-hidden>·</span>
-          <span className="text-muted-foreground">
-            submitted {registration.submitted_date ? fmtDate(registration.submitted_date) : 'date not recorded'}
-          </span>
-          {(status === 'WITHDRAWN' || status === 'SUPERSEDED') && (
-            <span className="text-muted-foreground">
-              · {labelForValue('partners__registration_status', status)}
-            </span>
-          )}
+          {` · ${String(registration.project_name ?? '')}`}
+          {registration.submitted_date ? (
+            <span className="text-muted-foreground"> · submitted {fmtDate(registration.submitted_date)}</span>
+          ) : null}
         </>
       ) : (
-        <span className="text-muted-foreground">This registration was deleted.</span>
+        <span className="text-muted-foreground">deleted</span>
       )}
-      {won === true && (
-        <span className="ml-auto font-medium text-emerald-700 dark:text-emerald-400">Awarded</span>
-      )}
-    </div>
+    </p>
   )
 }
 
@@ -261,9 +202,7 @@ function AdjudicationCard({ conflict, registrations }: { conflict: Values; regis
 
   const a = registrations.find((r) => r.id === conflict.registration_a)
   const b = registrations.find((r) => r.id === conflict.registration_b)
-  const primary = registrations.find((r) => r.id === conflict.primary_registration)
 
-  const winner = adjudicationWinner(conflict)
   const loser = adjudicationLoser(conflict)
   const loserRecord = loser === String(a?.id) ? a : loser === String(b?.id) ? b : undefined
   const loserStatus = String(loserRecord?.registration_status ?? '')
@@ -277,18 +216,23 @@ function AdjudicationCard({ conflict, registrations }: { conflict: Values; regis
   })
 
   const decided = Boolean(conflict.decision)
+  const bothPursued = String(conflict.decision ?? '') === 'BOTH_PURSUED'
 
   return (
-    <div className="rounded-lg border">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+    // One record, laid out as Zoho lays one out: a header line, then flat
+    // parts under small headings — no box inside a box (14 Oct 2026).
+    <div className="bg-card space-y-5 rounded-lg px-5 py-4 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-sm font-semibold">
-            {String(conflict.name ?? `Conflict: ${partnerOf(a)} vs ${partnerOf(b)}`)}
+          <p className="font-semibold">
+            {partnerOf(a)} vs {partnerOf(b)}
           </p>
-          <p className="text-muted-foreground mt-0.5 text-sm">
+          <p className="text-muted-foreground text-sm">
             {decided
-              ? `Decided${conflict.decision_date ? ` ${fmtDate(conflict.decision_date)}` : ''}: ${labelForValue('partners__decision', conflict.decision)}.`
-              : 'Awaiting adjudication — assess the criteria, then record the decision and the evidence behind it.'}
+              ? [labelForValue('partners__decision', conflict.decision), conflict.decision_date && fmtDate(conflict.decision_date)]
+                  .filter(Boolean)
+                  .join(' · ')
+              : 'Awaiting a decision'}
           </p>
         </div>
         {!editing && (
@@ -299,57 +243,51 @@ function AdjudicationCard({ conflict, registrations }: { conflict: Values; regis
         )}
       </div>
 
-      {/* Both pursued — neither registration lost, so there is nothing to
-          supersede. There is a pursuit group instead, which keeps the two
-          pursuits from both reaching the pipeline. First on the card: it is
-          the outcome, and it was easy to miss below the form. */}
-      {!editing && String(conflict.decision ?? '') === 'BOTH_PURSUED' && (
-        <div className="px-4 pt-3">
-          <div className="space-y-2 rounded-md border border-sky-500/40 bg-sky-500/10 p-3 text-sm">
-            <p className="font-medium">Both registrations are pursued</p>
-            <p className="text-muted-foreground">
-              Only {primary ? `${partnerOf(primary)}'s` : "the primary registration's"} pursuit counts toward pipeline.
-              Each registration's lead joins the pursuit group when it is created; the primary can be changed from
-              any pursuit's Related tab.
-            </p>
-            {typeof conflict.pursuit_group === 'string' && <PursuitGroupSummary groupId={conflict.pursuit_group} />}
-          </div>
+      {/* Both pursued: the pursuit group is the outcome, so it comes first.
+          Its Role column says which pursuit counts. */}
+      {!editing && bothPursued && typeof conflict.pursuit_group === 'string' && (
+        <div className="space-y-2">
+          <p className="text-sm font-semibold">Pursuits</p>
+          <PursuitGroupSummary groupId={conflict.pursuit_group} hideName />
         </div>
       )}
 
-      <div className="space-y-2 px-4 py-3">
-        <SlotRow slot="A" registration={a} won={winner ? winner === String(a?.id) : null} />
-        <SlotRow slot="B" registration={b} won={winner ? winner === String(b?.id) : null} />
-        <p className="text-muted-foreground text-xs">Registration A is the one submitted first.</p>
-      </div>
-
-      <div className="border-t px-4 py-3">
+      <div>
         {editing ? (
-          <RecordEditor
-            key={`edit:${String(conflict.id)}`}
-            module={MODULE}
-            collection={COLLECTION}
-            recordId={String(conflict.id)}
-            initialValues={conflict}
-            sections={[SECTION]}
-            only={FILLABLE}
-            // Stamped, never typed: the pair IS the collision that raised this.
-            stamp={{ registration_a: conflict.registration_a, registration_b: conflict.registration_b }}
-            saveLabel={decided ? 'Save adjudication' : 'Record adjudication'}
-            onSaved={() => {
-              setEditing(false)
-              void invalidateRegistrationWorld(queryClient)
-            }}
-            onCancel={() => setEditing(false)}
-          />
+          <>
+            <div className="mb-4 space-y-1">
+              <SlotLine slot="A" registration={a} />
+              <SlotLine slot="B" registration={b} />
+            </div>
+            <RecordEditor
+              key={`edit:${String(conflict.id)}`}
+              module={MODULE}
+              collection={COLLECTION}
+              recordId={String(conflict.id)}
+              initialValues={conflict}
+              sections={[SECTION]}
+              sectionTitle="Adjudication"
+              flat
+              only={FILLABLE}
+              // Stamped, never typed: the pair IS the collision that raised this.
+              stamp={{ registration_a: conflict.registration_a, registration_b: conflict.registration_b }}
+              saveLabel={decided ? 'Save adjudication' : 'Record adjudication'}
+              onSaved={() => {
+                setEditing(false)
+                void invalidateRegistrationWorld(queryClient)
+              }}
+              onCancel={() => setEditing(false)}
+            />
+          </>
         ) : (
-          <RecordForm
+          <RecordFormProvider
             key={`view:${String(conflict.id)}:${String(conflict.modified_date ?? '')}`}
             module={MODULE}
             mode="view"
-            values={conflict}
-            sections={[SECTION]}
-          />
+            initialValues={conflict}
+          >
+            <FormSection module={MODULE} section={SECTION} title="Adjudication" flat />
+          </RecordFormProvider>
         )}
 
         {!editing && loser && loserRecord && loserStatus !== 'SUPERSEDED' && loserStatus !== 'WITHDRAWN' && (

@@ -144,7 +144,7 @@ def complete_conversion(
             target_module=target_module,
             target_id=target_id,
             copied_fields=sorted(sent - NOT_COPIED),
-            note=note or f"{source_id} converted to {BECAME[target_module]}, {target_id}.",
+            note=note or f"Converted to {BECAME[target_module]}.",
             actor=actor,
             timestamp=stamp,
         )

@@ -1,9 +1,6 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PlusIcon } from 'lucide-react'
-
-import { Button } from '@/components/ui/button'
-import { PageLayout } from '@/components/layout/PageLayout'
+import { ListPageLayout } from '@/components/layout/ListPageLayout'
 import { ListFilterBar } from '@/components/list/ListFilterBar'
 import { ModuleActions } from '@/components/list/ModuleActions'
 import { RecordListView } from '@/components/list/RecordListView'
@@ -43,29 +40,35 @@ export function PartnersPage() {
   )
 
   return (
-    <PageLayout
-      wide
+    <ListPageLayout
+      pageKey="partners"
       title="Partners"
       actions={
-        <>
-          {/* Import / Export are the partner RECORDS — accounts with a partner
-              type. Registrations are created one at a time, with their checks. */}
-          <ModuleActions module="partners" plural="Partners" noun="partner" exportFilter={() => partnerFilters.params()} />
-          <Button onClick={() => navigate('/partners/registrations/new')}>
-            <PlusIcon className="size-4" />
-            New Registration
-          </Button>
-        </>
+        // One split button, as Leads and Accounts: New Registration, and ▾ for
+        // Import / Export — which are the partner RECORDS, accounts with a
+        // partner type. Registrations are created one at a time, with their checks.
+        <ModuleActions
+          module="partners"
+          plural="Partners"
+          noun="partner"
+          createLabel="New Registration"
+          onCreate={() => navigate('/partners/registrations/new')}
+          exportFilter={() => partnerFilters.params()}
+        />
       }
-      tabs={[
+      views={[
         {
           key: 'registrations',
           label: 'Registrations',
+          toolbar: (
+            <ListFilterBar filters={registrationFilters} plural="Registrations" searchPlaceholder="Search project, partner or client…" />
+          ),
           content: (
-            <div>
-              <ListFilterBar filters={registrationFilters} plural="Registrations" searchPlaceholder="Search project, partner or client…" />
+            <div className="flex min-h-0 flex-1 flex-col">
               <RecordListView
+                fill
                 module="registrations"
+                columnChoices={[...registrationFilters.common, ...registrationFilters.others].map((f) => f.field)}
                 collection="registrations"
                 basePath="/partners/registrations"
                 filter={registrationFilter}
@@ -79,11 +82,13 @@ export function PartnersPage() {
         {
           key: 'partners',
           label: 'Partner records',
+          toolbar: <ListFilterBar filters={partnerFilters} plural="Partners" searchPlaceholder="Search name, region or segment…" />,
           content: (
-            <div>
-              <ListFilterBar filters={partnerFilters} plural="Partners" searchPlaceholder="Search name, region or segment…" />
+            <div className="flex min-h-0 flex-1 flex-col">
               <RecordListView
+                fill
                 module="partners"
+                columnChoices={[...partnerFilters.common, ...partnerFilters.others].map((f) => f.field)}
                 collection="accounts"
                 basePath="/partners"
                 filter={partnerFilter}

@@ -32,7 +32,13 @@ import { useResolvedRecord } from '@/hooks/useResolvedRecord'
 import { fetchCollection } from '@/lib/collections'
 import { date as fmtDate, dateTime as fmtDateTime, money, number, percent } from '@/lib/format'
 import { compileFor } from '@/lib/spec/conditions'
-import { allowedChoices, dependencyOf } from '@/lib/spec/dependencies'
+import {
+  allowedChoices,
+  choicesOfEveryParent,
+  dependencyOf,
+  findableAcrossParents,
+  parentChoiceFor,
+} from '@/lib/spec/dependencies'
 import { computedGap } from '@/lib/spec/formula'
 import {
   collectionFor,
@@ -201,6 +207,35 @@ export function FieldControl({ field, onCreateNew, scope }: Props) {
       // offers only the choices mapped to that field's value. Nothing to offer
       // yet says why, instead of opening an empty list.
       const allowed = scope ? null : allowedChoices(field.module, field.api_name, form.values)
+      // Country: findable without knowing its Region (14 Oct 2026). The
+      // Region's own countries first, then every other country with its
+      // Region beside it; picking one of those sets the Region.
+      if (allowed !== null && findableAcrossParents(field.module, field.api_name)) {
+        const parent = fieldOf(field.module, dependencyOf(field.module, field.api_name)?.parent ?? '')
+        const everywhere = choicesOfEveryParent(field.module, field.api_name)
+        const own = all.filter((o) => allowed.includes(o.key))
+        const rest = all
+          .filter((o) => everywhere.has(o.key) && !allowed.includes(o.key))
+          .map((o) => ({
+            ...o,
+            hint: labelForValue(parent?.picklist, parentChoiceFor(field.module, field.api_name, o.key)),
+          }))
+        const parentNoun = (parent?.label ?? 'region').toLowerCase()
+        return (
+          <SearchablePicklist
+            id={id}
+            options={own}
+            others={{
+              heading: own.length ? `Other ${parentNoun}s` : `Every ${field.label.toLowerCase()}`,
+              options: rest,
+            }}
+            value={(value as string) || null}
+            onChange={set}
+            invalid={invalid}
+            noun={field.label.toLowerCase()}
+          />
+        )
+      }
       if (allowed !== null && allowed.length === 0) {
         const parent = fieldOf(field.module, dependencyOf(field.module, field.api_name)?.parent ?? '')
         const parentLabel = parent?.label ?? 'the field above'

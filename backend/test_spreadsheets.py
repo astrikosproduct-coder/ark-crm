@@ -215,7 +215,8 @@ try:
 
     print("\n4  Filling in the sample file")
     body = filled_sample("accounts", [
-        {"Account Name": f"{TAG} partner", "Account Type · Partner / SI": "Yes", "Partner Tier": "Registered"},
+        # A Systems Integrator: Partner Tier applies to it only (Release 1.2, 14 Oct 2026).
+        {"Account Name": f"{TAG} partner", "Account Type · Partner / SI": "Yes", "Partner Type": "Systems Integrator", "Partner Tier": "Registered"},
         {"Account Name": f"{TAG} end client", "Account Type · End Client": "Yes", "Partner Tier": "Registered"},
     ])
     r = upload("accounts", body, "Astrikos ARK - Accounts import sample.xlsx", commit=False)

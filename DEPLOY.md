@@ -11,6 +11,8 @@ There are two ways to install it:
 
 **Moving a server from V1 to Release 1.1?** Follow [Release 1.1: the one-time update](#release-11-the-one-time-update), not the ordinary update steps.
 
+**Moving a server to Release 1.2?** Follow [Release 1.2](#release-12-the-update-and-bringing-a-pipeline-in). A V1 server takes 1.1's steps first, in the same sitting.
+
 ---
 
 ## The astrikos.xyz server (crm.astrikos.xyz)
@@ -595,6 +597,82 @@ Every script is safe to run twice: a second run prints "nothing to do".
 - **Each person reloads once** to get the new fields.
 - **Existing Accounts have no Country yet.** Country is required, so the next edit of each asks for it. Choosing it is also when the duplicate check first runs on that account: if a look-alike name exists, it asks once.
 - **Undo:** stop both processes, restore the dump from step 1 (`pg_restore --clean`), `git reset --hard v1.0.0`, rebuild and start.
+
+## Release 1.2: the update, and bringing a pipeline in
+
+Release 1.2 (`v1.2.0`, October 2026) carries what was planned as 1.1.1 and 1.2:
+- record numbers (LEAD-…, CONF-…) shown nowhere, as in Zoho;
+- the Registration page header and the Conflict tab, cleaned up;
+- Partner Tier only for a Systems Integrator or a Strategic MSI;
+- Country findable without knowing its Region;
+- each person's own list columns and Kanban board (Manage Columns, View Settings);
+- Zoho's list screen: the module name in the top bar, one toolbar line, and a records box that fills the screen;
+- Segment Category and Subsegment on Leads (one each, shown From the Lead on Opportunities and Deals) and Accounts (several), and as Dashboard filters;
+- `bring_in.py`, which brings a BD owner's existing pipeline in at each pursuit's stage.
+
+**A server still on V1 takes Release 1.1 first, in the same sitting:** follow [Release 1.1](#release-11-the-one-time-update) steps 1–5, then continue below from step 3. `alembic upgrade head` runs every migration either way.
+
+It has **one migration and two register scripts**. **Stop the backend for the update**, as for 1.1.
+
+### On the astrikos.xyz server
+
+```sh
+cd ~/ark-crm
+
+# 1. Copy the database FIRST: the only way back
+docker exec crm-postgres pg_dump -U ark -Fc ark_crm > ~/crm_before_1_2_$(date +%Y%m%d_%H%M).dump
+
+# 2. Stop the backend, then get v1.2.0
+pm2 stop crm_be_4329
+git checkout -- frontend/spec
+git pull
+git describe --tags                                  # v1.2.0
+backend/.venv/bin/pip install -r backend/requirements.txt
+cd backend
+
+# 3. The migration: each person's own list and board layouts
+.venv/bin/alembic upgrade head                       # ends at r11_0003_user_view_preferences
+
+# 4. The two register scripts, IN THIS ORDER. Each: a dry run, read it, then --apply.
+.venv/bin/python release_1_2_partner_tier_metadata.py && .venv/bin/python release_1_2_partner_tier_metadata.py --apply
+.venv/bin/python release_1_2_market_segments_metadata.py && .venv/bin/python release_1_2_market_segments_metadata.py --apply
+
+# 5. Build and start
+cd ../frontend && npm ci && npm run build && cd ..
+pm2 restart crm_be_4329 crm_3329
+```
+
+With Docker it is the same as 1.1 with these three commands: `docker compose run --rm backend alembic upgrade head`, then `docker compose run --rm backend python release_1_2_partner_tier_metadata.py --apply`, then `docker compose run --rm backend python release_1_2_market_segments_metadata.py --apply`.
+
+| Step | Prints | Action |
+|---|---|---|
+| `release_1_2_partner_tier_metadata.py` | Accounts holding a tier whose Partner Type is neither Systems Integrator nor Strategic MSI | Nothing. The tier is kept in the database and no longer shown. |
+| `release_1_2_market_segments_metadata.py` | The 41 Segment Categories and 132 Subsegments it loads, the fields it places, and three Segments the workbook spells differently ("Data Centres") | Nothing. The Segments are the same choices and are not renamed. A second run says "nothing to do". |
+
+**Each person reloads once.** Nobody's lists change until they choose their own columns.
+
+**Undo:** stop both processes, restore the dump from step 1 (`pg_restore --clean`), `git reset --hard v1.1.0` (or `v1.0.0` if the server was on V1), rebuild and start.
+
+### Bringing a BD owner's pipeline in (`bring_in.py`)
+
+Once per person, after the update is running. It reads the import template workbook: an Accounts sheet and a Pursuits sheet with an **ARK Stage** column (and **Primary**, only for one project pursued through two partners — two rows, one per partner, exactly one marked Yes). Each pursuit becomes a Lead and is moved and converted to its stage by the app's own routes, so every Opportunity and Deal has its Lead and its history. The fields of the stages it already passed are not asked for; the report lists them. Read the docstring at the top of `backend/bring_in.py` for the rules.
+
+```sh
+# 0. In Administration, add every BD Owner and Account Owner the sheet names (from the directory).
+# 1. Copy the database first, as above.
+# 2. Copy the workbook to the server, then a dry run: a full rehearsal, rolled back
+cd ~/ark-crm/backend
+.venv/bin/python bring_in.py ~/Amit.xlsx --as you@astrikos.ai
+
+# 3. Fix every refused row (✗) in the sheet and dry-run again. A choice the sheet
+#    spells its own way is answered like the import's review screen:
+.venv/bin/python bring_in.py ~/Amit.xlsx --as you@astrikos.ai --answer "Country|UAE|United Arab Emirates"
+
+# 4. When it says 0 refused: the same command with --apply. All of it goes in, or nothing.
+.venv/bin/python bring_in.py ~/Amit.xlsx --as you@astrikos.ai --answer "Country|UAE|United Arab Emirates" --apply
+```
+
+Safe to run again: an account or pursuit already in ARK is skipped, so a second run adds only what is missing. The records are created by the person named in `--as`, who must have a role. Rehearsing on a copy of production on your own machine first is the safest way: restore the dump there and run the same commands against it.
 
 ---
 

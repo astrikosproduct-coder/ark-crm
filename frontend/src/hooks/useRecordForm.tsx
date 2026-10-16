@@ -15,7 +15,7 @@ import {
 } from '@/lib/stageScope'
 import { isChildColumnOnly } from '@/lib/spec/childSpec'
 import { isVisible, requirementOf, type Values } from '@/lib/spec/conditions'
-import { clearOrphanedChoices } from '@/lib/spec/dependencies'
+import { clearOrphanedChoices, fillParents } from '@/lib/spec/dependencies'
 import { computeAll, type Children } from '@/lib/spec/formula'
 import { defaultValuesOf, fieldsOf } from '@/lib/spec'
 import type { InheritedSource, ResolvedRecord } from '@/lib/spec/resolveRecord'
@@ -72,9 +72,11 @@ function reducer(state: State, action: Action): State {
       if (state.values[action.api_name] === action.value) return state
       return {
         ...state,
+        // A Country picked from another Region brings its Region with it
+        // (fillParents); then whatever followed the old value is emptied.
         values: clearOrphanedChoices(
           action.module,
-          { ...state.values, [action.api_name]: action.value },
+          fillParents(action.module, { ...state.values, [action.api_name]: action.value }, action.api_name),
           action.api_name
         ),
         touched: { ...state.touched, [action.api_name]: true },
@@ -611,6 +613,10 @@ export function visibleFieldsOf(
     // Status that reveals it. Every filter below then applies to it unchanged.
     .filter((f) => homeSectionOf(module, f) === section)
     .filter((f) => !hidden?.has(f.api_name))
+    // A record's number (LEAD-00005, CONF-0002) is never drawn — Zoho keeps it
+    // out of every layout, and people name a record by what it is (decided
+    // 14 Oct 2026). It still exists: in the address bar and in Export.
+    .filter((f) => f.type !== 'autonumber')
     // The register writes some child-row columns as loose fields in the same
     // section as their table — the milestone_—_* dates beside Payment
     // Milestones. They belong to the row, so they render only as columns.

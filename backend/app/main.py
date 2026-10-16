@@ -21,6 +21,7 @@ from .routers import (
     dashboard,
     deals,
     feedback,
+    view_preferences,
     spreadsheets,
     directory,
     leads,
@@ -252,6 +253,9 @@ app.include_router(products.router, prefix="/api", dependencies=PROTECTED)
 # Read by anyone with a role; written behind require_catalogue_editor, on each
 # route. See app/price_books.py.
 app.include_router(price_books.router, prefix="/api", dependencies=PROTECTED)
+# Each person's own list columns and Kanban board, at /api/view-preferences
+# (Release 1.2, 14 Oct 2026). PROTECTED; always the caller's own, from the session.
+app.include_router(view_preferences.router, prefix="/api", dependencies=PROTECTED)
 
 
 @app.get("/")

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PageLayout } from '@/components/layout/PageLayout'
-import { ListFilterBar } from '@/components/list/ListFilterBar'
+import { ListPageLayout } from '@/components/layout/ListPageLayout'
+import { ListFilterBar, ScopePicker } from '@/components/list/ListFilterBar'
 import { ModuleActions } from '@/components/list/ModuleActions'
 import { RecordListView } from '@/components/list/RecordListView'
 import { useListFilters } from '@/lib/listFilters'
@@ -12,9 +12,9 @@ export function AccountsPage() {
   const listFilter = useMemo(() => filters.params(), [filters])
 
   return (
-    <PageLayout
-      wide
+    <ListPageLayout
       title="Accounts"
+      scope={<ScopePicker filters={filters} />}
       actions={
         <ModuleActions
           module="accounts"
@@ -25,14 +25,22 @@ export function AccountsPage() {
           exportFilter={() => listFilter}
         />
       }
-      tabs={[
+      views={[
         {
           key: 'list',
           label: 'List',
+          toolbar: <ListFilterBar filters={filters} plural="Accounts" showScope={false} searchPlaceholder="Search name, region or segment…" />,
           content: (
             <>
-              <ListFilterBar filters={filters} plural="Accounts" searchPlaceholder="Search name, region or segment…" />
-              <RecordListView module="accounts" collection="accounts" basePath="/accounts" filter={listFilter} hideSearch />
+              <RecordListView
+                fill
+                module="accounts"
+                collection="accounts"
+                basePath="/accounts"
+                filter={listFilter}
+                hideSearch
+                columnChoices={[...filters.common, ...filters.others].map((f) => f.field)}
+              />
             </>
           ),
         },

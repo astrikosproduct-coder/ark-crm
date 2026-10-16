@@ -1,11 +1,13 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PageLayout } from '@/components/layout/PageLayout'
+import { KanbanIcon, ListIcon } from 'lucide-react'
+
+import { ListPageLayout } from '@/components/layout/ListPageLayout'
 import { ModuleActions } from '@/components/list/ModuleActions'
 import { RecordListView } from '@/components/list/RecordListView'
 import { LeadKanbanBoard } from '@/components/leads/LeadKanbanBoard'
 import { leadListCell } from '@/components/leads/leadListCell'
-import { ListFilterBar } from '@/components/list/ListFilterBar'
+import { ListFilterBar, ScopePicker } from '@/components/list/ListFilterBar'
 import { useListFilters } from '@/lib/listFilters'
 import { ragAccent } from '@/lib/rag'
 
@@ -17,9 +19,10 @@ export function LeadsPage() {
   const boardFilter = useMemo(() => filters.params({ withStage: false }), [filters])
 
   return (
-    <PageLayout
-      wide
+    <ListPageLayout
+      pageKey="leads"
       title="Leads"
+      scope={<ScopePicker filters={filters} />}
       actions={
         <ModuleActions
           module="leads"
@@ -31,15 +34,18 @@ export function LeadsPage() {
           importNote="Leads are imported at Stage 0 · Connect. Move them forward in ARK, where each move's checks are recorded."
         />
       }
-      tabs={[
+      views={[
         {
           key: 'list',
           label: 'List',
+          icon: <ListIcon className="size-4" />,
+          toolbar: <ListFilterBar filters={filters} plural="Leads" showScope={false} searchPlaceholder="Search name or client…" />,
           content: (
             <>
-              <ListFilterBar filters={filters} plural="Leads" searchPlaceholder="Search name or client…" />
               <RecordListView
+                fill
                 module="leads"
+                columnChoices={[...filters.common, ...filters.others].map((f) => f.field)}
                 collection="leads"
                 basePath="/leads"
                 filter={listFilter}
@@ -55,10 +61,13 @@ export function LeadsPage() {
         {
           key: 'pipeline',
           label: 'Kanban',
+          icon: <KanbanIcon className="size-4" />,
+          toolbar: (
+            <ListFilterBar filters={filters} plural="Leads" showStage={false} showScope={false} searchPlaceholder="Search name or client…" />
+          ),
           content: (
             <>
-              <ListFilterBar filters={filters} plural="Leads" showStage={false} searchPlaceholder="Search name or client…" />
-              <LeadKanbanBoard filter={boardFilter} />
+              <LeadKanbanBoard filter={boardFilter} fields={[...filters.common, ...filters.others].map((f) => f.field)} />
             </>
           ),
         },
