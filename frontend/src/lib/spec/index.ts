@@ -454,6 +454,19 @@ export function fieldOptions(field: Pick<FieldSpec, 'picklist' | 'exclude_option
 }
 
 /**
+ * What a person may PICK in an editing control: fieldOptions minus the values
+ * only the system sets (the sidecar's system_options — "Converted"). Boards,
+ * filters and labels keep using fieldOptions, where those values still exist.
+ */
+export function pickableOptions(
+  field: Pick<FieldSpec, 'picklist' | 'exclude_options' | 'system_options'>
+): PicklistOption[] {
+  const system = field.system_options
+  const options = fieldOptions(field)
+  return system?.length ? options.filter((o) => !system.includes(o.key)) : options
+}
+
+/**
  * Resolve a stored value or an expression literal to a picklist key.
  *
  * The register writes conditions against labels (`deal_source ==

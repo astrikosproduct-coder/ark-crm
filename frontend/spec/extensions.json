@@ -714,6 +714,18 @@
    "max_length": 40,
    "note": "ABG Advance and PBG Performance are the two the register names, and a bid can be asked for a retention, a warranty, a mobilisation or a payment guarantee that none of them covers. The Bid Commitments Register therefore offers the register's options plus '+ Other', and what is typed is stored verbatim in deal_bid_commitments.guarantee_—_type - String(40), and no server-side value check, which is why max_length is stated here. A typed value is NOT a new picklist value: it lives on that row, nobody else's dropdown gains it, and a condition comparing against ABG_ADVANCE will not match it. When a typed value keeps coming back, add it as a real option in Administration > Picklists and publish."
   },
+  "leads.lead_status": {
+   "system_options": [
+    "CONVERTED"
+   ],
+   "system_options_note": "Converted is the system's (v1.2.1, 22 Oct 2026): picking it by hand locked the record as converted with no next record made. Only Update Stage / Convert creates the next record and converts this one; the server refuses a hand-set Converted (app/progression.py, CONVERTED_NOT_PICKABLE). Still a real state: boards and filters show it."
+  },
+  "opportunities.lead_status": {
+   "system_options": [
+    "CONVERTED"
+   ],
+   "system_options_note": "Converted is the system's (v1.2.1, 22 Oct 2026): picking it by hand locked the record as converted with no next record made. Only Update Stage / Convert creates the next record and converts this one; the server refuses a hand-set Converted (app/progression.py, CONVERTED_NOT_PICKABLE). Still a real state: boards and filters show it."
+  },
   "deals.lead_status": {
    "exclude_options": [
     "CONVERTED"

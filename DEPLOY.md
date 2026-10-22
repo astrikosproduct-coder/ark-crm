@@ -13,6 +13,8 @@ There are two ways to install it:
 
 **Moving a server to Release 1.2?** Follow [Release 1.2](#release-12-the-update-and-bringing-a-pipeline-in). A V1 server takes 1.1's steps first, in the same sitting.
 
+**Already on 1.2.0?** [v1.2.1](#v121-a-hotfix-on-120) is code only: pull, build, restart.
+
 ---
 
 ## The astrikos.xyz server (crm.astrikos.xyz)
@@ -652,6 +654,33 @@ With Docker it is the same as 1.1 with these three commands: `docker compose run
 **Each person reloads once.** Nobody's lists change until they choose their own columns.
 
 **Undo:** stop both processes, restore the dump from step 1 (`pg_restore --clean`), `git reset --hard v1.1.0` (or `v1.0.0` if the server was on V1), rebuild and start.
+
+### v1.2.1: a hotfix on 1.2.0
+
+Released 22 Oct 2026. **No migration and no register script.** It contains:
+- "Converted" can no longer be picked as a Status by hand. It is hidden from the dropdown and refused by the server (`CONVERTED_NOT_PICKABLE`). Only the Convert buttons and Update Stage convert;
+- a Convert button on a Lead at Stage 3, with its own dialog like Convert to Deal;
+- exports that no longer fail on invisible control characters in text (an Opportunities export failed on one). Imports drop them too;
+- Export Low Hanging and Export Top 10 under the Opportunities Actions button, and a hover note on every Export saying what it holds.
+
+```sh
+cd ~/ark-crm
+docker exec crm-postgres pg_dump -U ark -Fc ark_crm > ~/crm_before_1_2_1_$(date +%Y%m%d_%H%M).dump
+git checkout -- frontend/spec
+git pull
+git describe --tags                                  # v1.2.1
+cd frontend && npm ci && npm run build && cd ..
+pm2 restart crm_be_4329 crm_3329
+```
+
+A record marked Converted by hand before 1.2.1 has no next record and stays locked. List them, then set each one back to Open:
+
+```sh
+docker exec crm-postgres psql -U ark -d ark_crm -c "select opportunity_id from opportunities o where lead_status='CONVERTED' and not exists (select 1 from deals d where d.parent_opportunity=o.opportunity_id);"
+docker exec crm-postgres psql -U ark -d ark_crm -c "select lead_id from leads l where lead_status='CONVERTED' and not exists (select 1 from opportunities o where o.parent_lead=l.lead_id) and not exists (select 1 from deals d where d.parent_lead=l.lead_id);"
+```
+
+**Undo:** `git reset --hard v1.2.0`, rebuild and restart. The database needs nothing.
 
 ### Bringing a BD owner's pipeline in (`bring_in.py`)
 

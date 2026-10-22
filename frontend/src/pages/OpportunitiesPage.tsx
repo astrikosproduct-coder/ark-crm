@@ -11,6 +11,9 @@ import { RankedOpportunityList } from '@/components/opportunities/RankedOpportun
 import { PRIORITY_ICONS } from '@/components/opportunities/priorityIcons'
 import { ListFilterBar, ScopePicker } from '@/components/list/ListFilterBar'
 import { useListFilters } from '@/lib/listFilters'
+import { format } from 'date-fns'
+
+import { PRIORITY_FLAGS } from '@/lib/priorityFlags'
 import { ragAccent } from '@/lib/rag'
 
 /** The same mark a flagged opportunity carries, so the tab teaches what it means. */
@@ -45,6 +48,16 @@ export function OpportunitiesPage() {
           plural="Opportunities"
           noun="opportunity"
           exportFilter={() => listFilter}
+          // Low Hanging and Top 10, each the whole list in rank order — as
+          // their views show it. lib/priorityFlags names the two; nothing here does.
+          extraExports={PRIORITY_FLAGS.map((pick) => ({
+            label: `Export ${pick.label}`,
+            hint: `Every ${pick.label} pick is exported, in rank order, whatever the filters on screen.`,
+            filter: () => ({ [pick.flag]: 'True', _sort: pick.rank, _order: 'asc' }),
+            // Named as the server names every other export: "Astrikos ARK -
+            // Opportunities 22-Oct-2026.xlsx" (exporter.export_filename).
+            filename: () => `Astrikos ARK - ${pick.label} ${format(new Date(), 'dd-MMM-yyyy')}.xlsx`,
+          }))}
         />
       }
       views={[

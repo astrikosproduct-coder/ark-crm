@@ -251,6 +251,15 @@ export interface FieldExtension {
    */
   exclude_options?: string[]
   /**
+   * Picklist keys only the SYSTEM sets on this placement, never a person —
+   * "Converted" on a Lead or an Opportunity, which only a real conversion
+   * writes (v1.2.1, 22 Oct 2026). Unlike exclude_options, the value is still a
+   * real state a record can be in: the Kanban draws its column and the filter
+   * panel finds it; only the EDITING control leaves it out. The server refuses
+   * it too (app/progression.py, CONVERTED_NOT_PICKABLE).
+   */
+  system_options?: string[]
+  /**
    * This list is not closed: the control offers the register's options plus
    * "+ Other", and choosing it swaps the dropdown for a text box.
    *

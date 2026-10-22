@@ -6,6 +6,7 @@ import { ArrowRightIcon, LockIcon, Trash2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DeleteLeadDialog } from '@/components/leads/DeleteLeadDialog'
 import { backfillContactsFromDemoAttendees } from '@/components/leads/DemoAttendeeSync'
+import { ConvertToOpportunityDialog } from '@/components/leads/ConvertToOpportunityDialog'
 import { LeadAdvanceDialog } from '@/components/leads/LeadAdvanceDialog'
 import { PipelineRecordPage } from '@/components/pipeline/PipelineRecordPage'
 import { PipelineRelated } from '@/components/pipeline/PipelineRelated'
@@ -22,6 +23,8 @@ const MODULE = 'leads'
  * ranges.leads. See PipelineModuleSpec.stages: this is the one place that
  * range reaches the Lead screens. */
 const LEADS_STAGES = stagesFor(MODULE)
+/** Where Convert is offered — the end of the Leads range, as Opportunities offer it at theirs. */
+const LAST_LEAD_STAGE = LEADS_STAGES[LEADS_STAGES.length - 1]?.stage ?? 3
 
 /**
  * A converted Lead is history: it stays visible and stops being editable, so
@@ -99,16 +102,22 @@ function LeadHeader({ ctx }: { ctx: PipelineRecordContext }) {
  * dialog to the body, so rendering it beside the button costs nothing in
  * layout and keeps the state where it belongs.
  *
- * One button at every stage — not "Advance to Stage N" plus a separate
- * "Move to Opportunity's Module" at Stage 3 — because LeadAdvanceDialog's own
- * Move to picker already offers every reachable stage, Leads' own and
- * Opportunities', from wherever the lead currently sits.
+ * Update Stage at every stage — its Move to picker offers every reachable
+ * stage, Leads' own and Opportunities'. At Stage 3 a Convert button sits
+ * beside it, as Convert to Deal does on an Opportunity at Stage 6 (v1.2.1,
+ * 22 Oct 2026), and it behaves the same: one question, one request, then
+ * "Open the Opportunity" (ConvertToOpportunityDialog). Since
+ * "Converted" can no longer be picked as a Status, Convert is the visible
+ * door to the next module. Update Stage stays, so a Lead at Stage 3 can still
+ * go back.
  */
 function LeadActions({ ctx }: { ctx: PipelineRecordContext }) {
   const navigate = useNavigate()
   const dealId = useConvertedDeal(ctx)
   const oppId = useConvertedOpportunity(ctx)
   const [advanceOpen, setAdvanceOpen] = useState(false)
+  const [converting, setConverting] = useState(false)
+  const atLastStage = ctx.currentStage === LAST_LEAD_STAGE
   const [deleting, setDeleting] = useState(false)
 
   return (
@@ -140,9 +149,24 @@ function LeadActions({ ctx }: { ctx: PipelineRecordContext }) {
           )
         )
       ) : (
-        <Button onClick={() => setAdvanceOpen(true)} disabled={ctx.isLoading || !ctx.values}>
-          Update Stage
-        </Button>
+        <>
+          <Button
+            variant={atLastStage ? 'outline' : 'default'}
+            onClick={() => setAdvanceOpen(true)}
+            disabled={ctx.isLoading || !ctx.values}
+          >
+            Update Stage
+          </Button>
+          {atLastStage && (
+            <Button
+              onClick={() => setConverting(true)}
+              disabled={ctx.isLoading || !ctx.values}
+            >
+              <ArrowRightIcon className="size-4" />
+              Convert
+            </Button>
+          )}
+        </>
       )}
 
       {/* OUTSIDE the readOnly branch, deliberately. A move into Opportunities
@@ -158,6 +182,16 @@ function LeadActions({ ctx }: { ctx: PipelineRecordContext }) {
           skipped={ctx.skipped}
           onClose={() => setAdvanceOpen(false)}
           onAdvancedWithinLeads={(stage) => ctx.selectStage(stage)}
+        />
+      )}
+      {/* Outside the readOnly branch too: converting flips it mid-dialog. */}
+      {ctx.values && (
+        <ConvertToOpportunityDialog
+          open={converting}
+          leadId={ctx.id}
+          values={ctx.values}
+          currentStage={ctx.currentStage}
+          onClose={() => setConverting(false)}
         />
       )}
     </>
