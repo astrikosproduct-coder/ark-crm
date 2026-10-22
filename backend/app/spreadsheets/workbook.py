@@ -39,7 +39,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 
 from .conditions import ConditionError, _tokens
-from .fields import Column, Directory, lookup_choices, section_title, split_choices
+from .fields import Column, Directory, clean_text, lookup_choices, section_title, split_choices
 
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
@@ -362,7 +362,7 @@ def template_workbook(
             letter = get_column_letter(index)
             lists.cell(row=1, column=index, value=title).font = HEADER_FONT
             for row, value in enumerate(values, start=2):
-                _as_text(lists.cell(row=row, column=index, value=value))
+                _as_text(lists.cell(row=row, column=index, value=clean_text(value)))
             list_ranges[cache_key] = f"Lists!${letter}$2:${letter}${len(values) + 1}"
         return list_ranges[cache_key]
 
@@ -559,7 +559,7 @@ def _autosize(sheet, minimum: int = 10, maximum: int = 48) -> None:
 def _excel_value(value: Any) -> Any:
     if isinstance(value, datetime) and value.tzinfo is not None:
         return value.replace(tzinfo=None)
-    return value
+    return clean_text(value)
 
 
 def new_book() -> Workbook:

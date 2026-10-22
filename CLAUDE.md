@@ -186,6 +186,23 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
      case (the head's rule). The value lands as the Lead's Estimated Value, the Opportunity's
      One-Time Revenue (so TCV equals it) and the Deal's Contract Value.
 
+   **v1.2.1** (hotfix, 22 Oct 2026; DEPLOY.md, "v1.2.1"). What it decided:
+   - **"Converted" is never picked by hand.** A hand-picked Converted locked a production
+     Opportunity with no Deal. Lead and Opportunity Status list it under the sidecar's
+     `system_options`: shown on a record, never offered in an editing control
+     (`pickableOptions`; `exclude_options` hides a value everywhere). The server refuses it
+     (`CONVERTED_NOT_PICKABLE`, `progression.plan_write`) unless the write is a conversion.
+     Only creating the next record converts.
+   - **A Lead at Stage 3 has a Convert button** (`ConvertToOpportunityDialog`), the twin of
+     Convert to Deal. It sends the same request as Update Stage crossing into Opportunities.
+   - **Spreadsheet text is cleaned** (`spreadsheets/fields.py::clean_text`): a vertical tab
+     (Excel's in-cell line break) becomes a line break, and other control characters are
+     dropped, on export and on import. openpyxl refuses them, and one such Lead failed every
+     Opportunities export.
+   - **Export Low Hanging / Export Top 10** under the Opportunities Actions button: the whole
+     list in rank order, whatever the screen's filters. Each Export says on hover what it
+     holds (`ModuleActions`, the user's choice over a confirm dialog).
+
    **Import / export** (`backend/app/spreadsheets/`). Export: every live module, a workbook of
    Summary + one sheet per form section + Stage history + child lists, rows from the module's
    own list endpoint under the screen's filters. Import: Leads, Accounts, Contacts, Partners —

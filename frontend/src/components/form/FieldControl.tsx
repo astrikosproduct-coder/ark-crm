@@ -44,6 +44,7 @@ import {
   displayNameOf,
   fieldOf,
   fieldOptions,
+  pickableOptions,
   idOf,
   labelForValue,
   moduleForCollection,
@@ -201,7 +202,7 @@ export function FieldControl({ field, onCreateNew, scope }: Props) {
 
   switch (field.type) {
     case 'picklist': {
-      const all = fieldOptions(field)
+      const all = pickableOptions(field)
       // Region -> Country -> State (Release 1.1): a field that follows another
       // offers only the choices mapped to that field's value. Nothing to offer
       // yet says why, instead of opening an empty list.
@@ -464,7 +465,7 @@ export function FieldControl({ field, onCreateNew, scope }: Props) {
       return (
         <PhoneInput
           id={id}
-          options={fieldOptions(field)}
+          options={pickableOptions(field)}
           value={value}
           onChange={set}
           invalid={invalid}
@@ -842,7 +843,7 @@ function DependentMultiSelect({
   /** The record's values, or null where the field stands alone (a child row). */
   values: Values | null
 }) {
-  const all = fieldOptions(field)
+  const all = pickableOptions(field)
   const held = Array.isArray(value) ? (value as string[]) : []
   const allowed = values ? allowedChoices(field.module, field.api_name, values) : null
   if (allowed !== null && allowed.length === 0 && held.length === 0) {

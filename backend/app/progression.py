@@ -200,6 +200,28 @@ def plan_write(
             },
         )
 
+    # "Converted" is the system's, never picked (v1.2.1, 22 Oct 2026). Picking it
+    # by hand locked a record as converted with no Opportunity or Deal made —
+    # read-only, off the default list, and nothing in the next module. Only a
+    # real conversion sets it: creating the next record converts this one in
+    # the same transaction (app/conversion.py), and a paid pilot's save does it
+    # server-side. Re-sending the status a record already has is not a change.
+    already = None if creating else getattr(record, "lead_status", None)
+    if new_status == CONVERTED and already != CONVERTED:
+        how = {
+            "leads": "Move it past Stage 3 with Update Stage. That creates its Opportunity.",
+            "opportunities": "Use Convert to Deal at Stage 6. That creates its Deal.",
+            "deals": "A Deal doesn't convert into anything.",
+        }[module]
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            {
+                "code": "CONVERTED_NOT_PICKABLE",
+                "message": "\"Converted\" can't be picked here.",
+                "details": [how],
+            },
+        )
+
     before = {
         name: (None if creating else getattr(record, name, None))
         for name in (*PCT_FIELDS, "progression_default_pct", "probability_default_pct")

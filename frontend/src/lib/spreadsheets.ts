@@ -81,9 +81,15 @@ function saveBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url)
 }
 
-async function download(path: string, params: Record<string, string | string[]>, fallback: string): Promise<void> {
+async function download(
+  path: string,
+  params: Record<string, string | string[]>,
+  fallback: string,
+  /** A name of the caller's own, over the server's — an export of part of a module. */
+  named?: string
+): Promise<void> {
   const res = await api.get<Blob>(path, { params, responseType: 'blob' })
-  saveBlob(res.data, filenameFrom(res.headers['content-disposition'] as string | undefined, fallback))
+  saveBlob(res.data, named ?? filenameFrom(res.headers['content-disposition'] as string | undefined, fallback))
 }
 
 export function downloadSample(module: SpreadsheetModule, format: 'xlsx' | 'csv'): Promise<void> {
@@ -91,8 +97,12 @@ export function downloadSample(module: SpreadsheetModule, format: 'xlsx' | 'csv'
 }
 
 /** The export follows the list's own filters, so it holds exactly what the screen shows. */
-export function downloadExport(module: SpreadsheetModule, filter: Record<string, string | string[]> = {}): Promise<void> {
-  return download(`/spreadsheets/${module}/export`, filter, `Astrikos ARK - ${module}.xlsx`)
+export function downloadExport(
+  module: SpreadsheetModule,
+  filter: Record<string, string | string[]> = {},
+  named?: string
+): Promise<void> {
+  return download(`/spreadsheets/${module}/export`, filter, `Astrikos ARK - ${module}.xlsx`, named)
 }
 
 async function sendFile(path: string, file: File, mapping: Record<string, string>, answers: ValueAnswers): Promise<ImportReport> {

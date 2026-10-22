@@ -75,6 +75,8 @@ WRITING = [
     "test_release_1_1.py",
     "test_market_segments.py",
     "test_priority_reorder.py",
+    "test_converted_status.py",
+    "test_export_text.py",
 ]
 
 

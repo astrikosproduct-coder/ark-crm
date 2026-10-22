@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ImportDialog } from '@/components/list/ImportDialog'
 import { ErrorNotice } from '@/components/ui/notice'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { downloadExport, IMPORTABLE, readBlobError, type SpreadsheetModule } from '@/lib/spreadsheets'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +25,7 @@ export function ModuleActions({
   onCreate,
   exportFilter,
   importNote,
+  extraExports = [],
 }: {
   module: SpreadsheetModule
   plural: string
@@ -33,6 +35,17 @@ export function ModuleActions({
   /** The list's current filters, so an export holds what the screen shows. */
   exportFilter?: () => Record<string, string | string[]>
   importNote?: string
+  /**
+   * More exports under ▾, each of PART of the module — Opportunities' Low
+   * Hanging and Top 10 (v1.2.1). Each names its own filter and file.
+   */
+  extraExports?: {
+    label: string
+    /** What it exports, shown on hover like the main Export's. */
+    hint: string
+    filter: () => Record<string, string | string[]>
+    filename: () => string
+  }[]
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -41,12 +54,12 @@ export function ModuleActions({
   const canImport = IMPORTABLE.has(module)
   const split = Boolean(onCreate && createLabel)
 
-  const runExport = async () => {
+  const runExport = async (filter?: Record<string, string | string[]>, filename?: string) => {
     setMenuOpen(false)
     setError(null)
     setExporting(true)
     try {
-      await downloadExport(module, exportFilter?.() ?? {})
+      await downloadExport(module, filter ?? exportFilter?.() ?? {}, filename)
     } catch (err) {
       setError(await readBlobError(err))
     } finally {
@@ -92,10 +105,24 @@ export function ModuleActions({
                 Import {plural}
               </button>
             )}
-            <button type="button" className={item} onClick={() => void runExport()}>
-              <DownloadIcon className="text-muted-foreground size-4" />
-              Export {plural}
-            </button>
+            <ExportHint text={`Only the ${plural.toLowerCase()} that match your current filters and search are exported.`}>
+              <button type="button" className={item} onClick={() => void runExport()}>
+                <DownloadIcon className="text-muted-foreground size-4" />
+                Export {plural}
+              </button>
+            </ExportHint>
+            {extraExports.map((extra) => (
+              <ExportHint key={extra.label} text={extra.hint}>
+                <button
+                  type="button"
+                  className={item}
+                  onClick={() => void runExport(extra.filter(), extra.filename())}
+                >
+                  <DownloadIcon className="text-muted-foreground size-4" />
+                  {extra.label}
+                </button>
+              </ExportHint>
+            ))}
           </PopoverContent>
         </Popover>
       </div>
@@ -104,5 +131,21 @@ export function ModuleActions({
         <ImportDialog open={importing} onOpenChange={setImporting} module={module} plural={plural} noun={noun} extraNote={importNote} />
       )}
     </div>
+  )
+}
+
+/**
+ * Says on hover what an Export item holds (v1.2.1, the user's choice over a
+ * confirm dialog): the main Export follows the screen's filters, which nothing
+ * else said. Shown to the left so it never covers the next item.
+ */
+function ExportHint({ text, children }: { text: string; children: React.ReactElement }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="left" className="max-w-60">
+        {text}
+      </TooltipContent>
+    </Tooltip>
   )
 }

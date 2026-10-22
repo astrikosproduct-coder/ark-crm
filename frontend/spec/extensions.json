@@ -620,13 +620,21 @@
    "exclude_options": [
     "POC_PILOT_DEAL"
    ],
-   "note": "POC/Pilot Deal is a Deals-only value on the status picklist all three pipeline modules share (one definition, one picklist). Hidden here and refused by the server (app/progression.py::plan_write); a Lead becomes one by marking its pilot Paid."
+   "note": "POC/Pilot Deal is a Deals-only value on the status picklist all three pipeline modules share (one definition, one picklist). Hidden here and refused by the server (app/progression.py::plan_write); a Lead becomes one by marking its pilot Paid.",
+   "system_options": [
+    "CONVERTED"
+   ],
+   "system_options_note": "Converted is the system's (v1.2.1, 22 Oct 2026): picking it by hand locked the record as converted with no next record made. Only Update Stage / Convert creates the next record and converts this one; the server refuses a hand-set Converted (app/progression.py, CONVERTED_NOT_PICKABLE). Still a real state: boards and filters show it."
   },
   "opportunities.lead_status": {
    "exclude_options": [
     "POC_PILOT_DEAL"
    ],
-   "note": "POC/Pilot Deal is a Deals-only value on the status picklist all three pipeline modules share (one definition, one picklist). Hidden here and refused by the server (app/progression.py::plan_write); a Lead becomes one by marking its pilot Paid."
+   "note": "POC/Pilot Deal is a Deals-only value on the status picklist all three pipeline modules share (one definition, one picklist). Hidden here and refused by the server (app/progression.py::plan_write); a Lead becomes one by marking its pilot Paid.",
+   "system_options": [
+    "CONVERTED"
+   ],
+   "system_options_note": "Converted is the system's (v1.2.1, 22 Oct 2026): picking it by hand locked the record as converted with no next record made. Only Update Stage / Convert creates the next record and converts this one; the server refuses a hand-set Converted (app/progression.py, CONVERTED_NOT_PICKABLE). Still a real state: boards and filters show it."
   },
   "deals.lead_status": {
    "exclude_options": [

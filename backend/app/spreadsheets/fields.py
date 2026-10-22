@@ -23,6 +23,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -495,6 +496,23 @@ def read_checkbox(raw: Any) -> bool | None:
     raise CellError("enter Yes or No")
 
 
+VERTICAL_TAB, FORM_FEED, LINE_BREAK = chr(11), chr(12), chr(10)
+
+
+def clean_text(value: Any) -> Any:
+    """
+    Text a worksheet can hold. Excel's own line break inside a cell (a vertical
+    tab) and a form feed become ordinary line breaks; every other invisible
+    control character is dropped. One such character in one record's text made
+    the whole Opportunities export fail on production (v1.2.1, 22 Oct 2026) —
+    the spreadsheet library refuses them. Applied when a sheet is read, so they
+    are not stored, and when one is written, for anything stored before.
+    """
+    if not isinstance(value, str):
+        return value
+    return ILLEGAL_CHARACTERS_RE.sub("", value.replace(VERTICAL_TAB, LINE_BREAK).replace(FORM_FEED, LINE_BREAK))
+
+
 def read_cell(column: Column, raw: Any, directory: Directory, answers: dict[str, str] | None = None) -> Any:
     """
     The stored value for one cell, or CellError. A blank cell is None.
@@ -507,7 +525,7 @@ def read_cell(column: Column, raw: Any, directory: Directory, answers: dict[str,
     kind = column.type
 
     if kind in ("text", "longtext", "richtext", "url", "email", "phone"):
-        text = str(raw).strip() if not isinstance(raw, float) or not raw.is_integer() else str(int(raw))
+        text = clean_text(str(raw)).strip() if not isinstance(raw, float) or not raw.is_integer() else str(int(raw))
         if column.max_length and len(text) > column.max_length:
             raise CellError(f"is too long — {column.max_length} characters at most")
         return text
@@ -566,7 +584,7 @@ def read_cell(column: Column, raw: Any, directory: Directory, answers: dict[str,
         return chosen or None
 
     if kind == "lookup":
-        text = str(raw).strip() if not isinstance(raw, float) or not raw.is_integer() else str(int(raw))
+        text = clean_text(str(raw)).strip() if not isinstance(raw, float) or not raw.is_integer() else str(int(raw))
         candidates = [t for t in directory.targets(column.lookup_target) if t.attrs.get("active", True) is not False]
         by_id = [t for t in candidates if t.id.lower() == text.lower()]
         tagged = _NAME_AND_ID.match(text)
