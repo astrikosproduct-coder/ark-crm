@@ -1,7 +1,7 @@
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class RoleOut(BaseModel):
@@ -857,7 +857,9 @@ class OpportunityPaymentMilestoneIn(BaseModel):
 
     milestone: str | None = None
     pct_of_contract: float | None = None
-    trigger: str | None = Field(default=None, max_length=200)
+    amount: float | None = None
+    custom_name: str | None = Field(default=None, max_length=120)
+    entered_as: Literal["amount", "pct"] | None = None
     milestone_planned_date: date | None = Field(default=None, alias="milestone_—_planned_date")
     milestone_actual_date: date | None = Field(default=None, alias="milestone_—_actual_date")
     milestone_invoice_date: date | None = Field(default=None, alias="milestone_—_invoice_date")
@@ -865,6 +867,12 @@ class OpportunityPaymentMilestoneIn(BaseModel):
         default=None, alias="milestone_—_payment_received_date"
     )
     milestone_status: str | None = None
+
+    @field_validator("pct_of_contract", "amount", "entered_as", "custom_name", mode="before")
+    @classmethod
+    def _blank_is_nothing(cls, value: Any) -> Any:
+        """A box a person cleared arrives as '' — nothing was typed, not a bad number."""
+        return None if isinstance(value, str) and value.strip() == "" else value
 
 
 class OpportunityPaymentMilestoneOut(OpportunityPaymentMilestoneIn):
@@ -889,7 +897,7 @@ class DealMilestoneDeliveryIn(BaseModel):
     What a Deal may write onto a milestone row: WHEN IT HAPPENED, never what
     was agreed.
 
-    Milestone, % of Contract, Trigger and Planned Date are commercial terms
+    Milestone, % of Contract, Amount and Planned Date are commercial terms
     negotiated before signature and are not in this model at all — a delivery
     screen that could rewrite the payment schedule would be a way to change the
     deal after it was signed. The Opportunity is read-only by then, which is

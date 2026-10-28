@@ -1498,7 +1498,16 @@ class OpportunityPaymentMilestone(Base):
 
     pct_of_contract: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
 
+    # No longer typed or shown (v1.2.2): what an older row holds is kept, and the
+    # standard milestones' trigger text is now their hover message.
     trigger: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+    # v1.2.2 — the milestone's VALUE beside its percentage; type one and the other
+    # is worked out against the Opportunity's Final Negotiated Value. `entered_as`
+    # remembers which one the person typed: that one stays put if the value moves.
+    amount: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
+    custom_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    entered_as: Mapped[str | None] = mapped_column(String(6), nullable=True)
 
     milestone_planned_date: Mapped[datetime | None] = mapped_column(
         "milestone_—_planned_date", Date, nullable=True

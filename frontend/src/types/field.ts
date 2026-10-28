@@ -59,6 +59,14 @@ export interface ChildColumn {
   max_length?: number
   /** Tooltip on the column header. */
   description?: string
+  /** picklist columns: a line shown on hover for each choice, keyed by choice. */
+  option_hints?: Record<string, string>
+  /**
+   * The cell is for one choice of a sibling column only — a milestone's own
+   * name, for "Other". Elsewhere it is drawn empty and read-only, and when it
+   * applies it is demanded.
+   */
+  only_when?: { column: string; equals: string }
 }
 
 /**
@@ -122,6 +130,18 @@ export interface ChildSpec {
    * flagged rather than refused.
    */
   total_columns?: string[]
+  /**
+   * Columns of which a row needs AT LEAST ONE — a milestone's % of Contract or
+   * its Amount. Checked on a row that has something in it.
+   */
+  one_of?: string[]
+  /**
+   * An amount and a percentage of one base value, each worked out from the other
+   * as a person types (payment milestones: Amount and % of Contract against the
+   * Opportunity's Final Negotiated Value). `remembered` is the row key that holds
+   * which of the two was typed: that one stays put when the base moves.
+   */
+  linked_values?: { percent: string; amount: string; base: string; remembered: string }
   /**
    * Values a new row takes when one column is chosen — the eight standard
    * payment milestones and their percentages and triggers.
@@ -283,6 +303,8 @@ export interface FieldExtension {
    * database.
    */
   allow_custom_value?: boolean
+  /** picklist: a line shown on hover for each choice, keyed by choice. */
+  option_hints?: Record<string, string>
 }
 
 /** Exactly the columns build_spec.py emits. Do not add to this interface. */

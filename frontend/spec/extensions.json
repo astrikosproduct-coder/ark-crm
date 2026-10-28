@@ -869,22 +869,40 @@
       "type": "picklist",
       "picklist": "administration__milestone",
       "required": true,
-      "width": 190
+      "width": 190,
+      "option_hints": {
+       "CONTRACT_SIGNING": "Signed contract or LOI + ABG (if advance > 15%)",
+       "DESIGN_APPROVAL": "Client approval of detailed design / architecture document",
+       "SUBMITTAL_APPROVAL": "Client approval of material submittals (hardware/software BOQ)",
+       "FAT": "FAT completion certificate signed by client representative",
+       "DELIVERY": "Delivery note / goods receipt at site",
+       "INSTALLATION": "Installation completion and site acceptance sign-off",
+       "TANDC": "T&C completion certificate",
+       "HANDOVER": "Signed final handover certificate"
+      }
+     },
+     {
+      "api_name": "custom_name",
+      "label": "Milestone Name",
+      "type": "text",
+      "width": 190,
+      "max_length": 120,
+      "only_when": {"column": "milestone", "equals": "OTHER"},
+      "description": "Only for an Other milestone: what it is called."
      },
      {
       "api_name": "pct_of_contract",
       "label": "% of Contract",
       "type": "percent",
-      "required": true,
       "width": 130,
-      "description": "Unit unresolved - see conventions.percent_unit."
+      "description": "A whole number, e.g. 30. Type this or the Amount; the other is worked out from the Final Negotiated Value."
      },
      {
-      "api_name": "trigger",
-      "label": "Trigger",
-      "type": "text",
-      "width": 240,
-      "max_length": 200
+      "api_name": "amount",
+      "label": "Amount",
+      "type": "currency",
+      "width": 150,
+      "description": "The milestone's value in the deal's currency. Type this or the % of Contract; the other is worked out from the Final Negotiated Value."
      },
      "leads.milestone_—_planned_date",
      "leads.milestone_—_actual_date",
@@ -905,43 +923,46 @@
      "milestone_status"
     ],
     "total_columns": [
-     "pct_of_contract"
+     "pct_of_contract",
+     "amount"
     ],
+    "one_of": [
+     "pct_of_contract",
+     "amount"
+    ],
+    "linked_values": {
+     "percent": "pct_of_contract",
+     "amount": "amount",
+     "base": "final_negotiated_value",
+     "remembered": "entered_as"
+    },
     "row_defaults": {
      "by": "milestone",
      "add_all_label": "Add the standard milestones",
      "values": {
       "CONTRACT_SIGNING": {
-       "pct_of_contract": 10,
-       "trigger": "Signed contract or LOI + ABG (if advance > 15%)"
+       "pct_of_contract": 10
       },
       "DESIGN_APPROVAL": {
-       "pct_of_contract": 5,
-       "trigger": "Client approval of detailed design / architecture document"
+       "pct_of_contract": 5
       },
       "SUBMITTAL_APPROVAL": {
-       "pct_of_contract": 5,
-       "trigger": "Client approval of material submittals (hardware/software BOQ)"
+       "pct_of_contract": 5
       },
       "FAT": {
-       "pct_of_contract": 20,
-       "trigger": "FAT completion certificate signed by client representative"
+       "pct_of_contract": 20
       },
       "DELIVERY": {
-       "pct_of_contract": 40,
-       "trigger": "Delivery note / goods receipt at site"
+       "pct_of_contract": 40
       },
       "INSTALLATION": {
-       "pct_of_contract": 10,
-       "trigger": "Installation completion and site acceptance sign-off"
+       "pct_of_contract": 10
       },
       "TANDC": {
-       "pct_of_contract": 5,
-       "trigger": "T&C completion certificate"
+       "pct_of_contract": 5
       },
       "HANDOVER": {
-       "pct_of_contract": 5,
-       "trigger": "Signed final handover certificate"
+       "pct_of_contract": 5
       }
      }
     }

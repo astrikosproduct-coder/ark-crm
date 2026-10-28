@@ -23,6 +23,7 @@ import { ErrorNotice } from '@/components/ui/notice'
 import { answerableRefusalOf } from '@/lib/pursuitGroups'
 import { refusalOf } from '@/lib/errors'
 import { requestRegisterCheck } from '@/lib/spec/source'
+import { revealField } from '@/lib/revealField'
 import { fieldOf, fieldsOf, idOf, sectionsFor } from '@/lib/spec'
 import type { Values } from '@/lib/spec/conditions'
 import type { ResolvedRecord } from '@/lib/spec/resolveRecord'
@@ -281,7 +282,15 @@ function EditorBody({
     // a required field it may not leave empty (see missingOnSave). Problems in
     // other sections do not, for the reason given on elsewhereErrors.
     const blocking = Object.keys(form.allErrors).filter((k) => onScreen.has(k))
-    if (blocking.length > 0 || dueHere.length > 0) return
+    if (blocking.length > 0 || dueHere.length > 0) {
+      // Taken to the first field that stops the save, in form order. Save sits
+      // in the page header and the reason under the last section, so without
+      // this a press that did nothing looked like a press that didn't register.
+      const stopping = new Set([...blocking, ...dueHere])
+      const first = fieldsOf(module).find((f) => stopping.has(f.api_name))
+      if (first) revealField(first.api_name)
+      return
+    }
     save.mutate(undefined)
   }
 

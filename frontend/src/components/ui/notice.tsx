@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 
 import { refusalOf, type RefusalOptions } from '@/lib/errors'
 import { cn } from '@/lib/utils'
@@ -79,14 +79,19 @@ export function ErrorNotice({
   className,
   ...options
 }: { error: unknown; suffix?: string; className?: string } & RefusalOptions) {
+  const ref = useRef<HTMLDivElement>(null)
+  // Brought into view each time a NEW failure arrives. A refusal drawn above
+  // the fold was easy to miss: someone kept pressing a button that kept being
+  // refused, with the reason sitting off screen. A retry clears the error
+  // while it runs, so a second refusal is a new object and scrolls again.
+  useEffect(() => {
+    if (error) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [error])
   if (!error) return null
   const refusal = refusalOf(error, options)
   return (
-    <Notice
-      tone="error"
-      lead={refusal.message}
-      bullets={suffix ? [...refusal.details, suffix] : refusal.details}
-      className={className}
-    />
+    <div ref={ref} role="alert" className={cn('scroll-mt-28 scroll-mb-4', className)}>
+      <Notice tone="error" lead={refusal.message} bullets={suffix ? [...refusal.details, suffix] : refusal.details} />
+    </div>
   )
 }

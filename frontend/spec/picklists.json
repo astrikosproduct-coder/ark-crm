@@ -2974,6 +2974,12 @@
    "label": "Handover",
    "sort": 8,
    "active": true
+  },
+  {
+   "key": "OTHER",
+   "label": "Other",
+   "sort": 9,
+   "active": true
   }
  ],
  "administration__milestone_status": [

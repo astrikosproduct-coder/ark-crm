@@ -568,8 +568,10 @@ DELIVERY_ROW_COLUMNS = (
 #: The whole row, for the audit before/after. Matches opportunities.py.
 MILESTONE_ROW_COLUMNS = (
     "milestone",
+    "custom_name",
     "pct_of_contract",
-    "trigger",
+    "amount",
+    "entered_as",
     "milestone_planned_date",
     *DELIVERY_ROW_COLUMNS,
 )
@@ -606,6 +608,7 @@ def _milestone_row(m) -> dict:
     row["pct_of_contract"] = (
         float(m.pct_of_contract) if m.pct_of_contract is not None else None
     )
+    row["amount"] = float(m.amount) if m.amount is not None else None
     row["row_order"] = m.row_order
     return row
 

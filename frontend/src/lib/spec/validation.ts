@@ -221,6 +221,21 @@ export function validateChildRows(
       if (column.required && !skipRequired && BLANK(value)) {
         out.push({ row: index, api_name: column.field.api_name, label: column.field.label, message: 'Required' })
       }
+
+      // A cell for one choice of another column (a milestone's own name, for
+      // Other) is demanded exactly when that choice is made.
+      const only = column.only_when
+      if (only && !skipRequired && row[only.column] === only.equals && BLANK(value)) {
+        out.push({ row: index, api_name: column.field.api_name, label: column.field.label, message: 'Required' })
+      }
+    }
+
+    // At least one of the named columns — a % of Contract or an Amount.
+    if (spec.one_of.length > 0 && !skipRequired && spec.one_of.every((name) => BLANK(row[name]))) {
+      const first = spec.columns.find((c) => c.field.api_name === spec.one_of[0])
+      if (first) {
+        out.push({ row: index, api_name: first.field.api_name, label: first.field.label, message: 'Type a % or an Amount' })
+      }
     }
   })
 

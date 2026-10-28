@@ -52,8 +52,10 @@ SYSTEM_STAMPED = frozenset({"created_by", "created_date", "modified_by", "modifi
 # see models.OpportunityPaymentMilestone and extensions.json's child_spec.
 MILESTONE_ROW_COLUMNS = (
     "milestone",
+    "custom_name",
     "pct_of_contract",
-    "trigger",
+    "amount",
+    "entered_as",
     "milestone_planned_date",
     "milestone_actual_date",
     "milestone_invoice_date",
@@ -143,8 +145,10 @@ def _serialise(opp: Opportunity, labels: dict[str, dict[str, str]]) -> dict:
     row["payment_milestones"] = [
         {
             "milestone": m.milestone,
+            "custom_name": m.custom_name,
             "pct_of_contract": float(m.pct_of_contract) if m.pct_of_contract is not None else None,
-            "trigger": m.trigger,
+            "amount": float(m.amount) if m.amount is not None else None,
+            "entered_as": m.entered_as,
             "milestone_planned_date": m.milestone_planned_date,
             "milestone_actual_date": m.milestone_actual_date,
             "milestone_invoice_date": m.milestone_invoice_date,
@@ -287,17 +291,63 @@ def _children_of(opp: Opportunity) -> dict[str, list[dict]]:
     return {"payment_milestones": child_snapshot(opp.payment_milestones, MILESTONE_ROW_COLUMNS)}
 
 
+#: The milestone choice that lets a person name their own (picklist administration__milestone).
+OTHER_MILESTONE = "OTHER"
+
+
+def _milestone_values(opp: Opportunity, row) -> dict:
+    """
+    One milestone row as it is stored: its name settled, and Amount and % worked
+    out from each other against the Final Negotiated Value (v1.2.2).
+
+    The browser does the same sum as a person types; this is the server's own,
+    so a row sent by anything else still lands whole. Both given: kept as sent.
+    No Final Negotiated Value yet: only what was typed is stored — nothing is
+    guessed, and the value is worked out on the first save after it is filled.
+    """
+    values = {name: getattr(row, name) for name in MILESTONE_ROW_COLUMNS}
+    other = values["milestone"] == OTHER_MILESTONE
+    name = (values["custom_name"] or "").strip()
+    if other and not name:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            refusal(
+                "MILESTONE_NAME_NEEDED",
+                "A milestone of your own needs a name.",
+                ["Type its name in the Milestone Name box, then save."],
+            ),
+        )
+    values["custom_name"] = name if other else None
+
+    pct, amount = values["pct_of_contract"], values["amount"]
+    if values["milestone"] and pct is None and amount is None:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            refusal(
+                "MILESTONE_VALUE_NEEDED",
+                "Each milestone needs a % of Contract or an Amount.",
+                ["Type either one; the other is worked out."],
+            ),
+        )
+    base = float(opp.final_negotiated_value) if opp.final_negotiated_value else 0.0
+    if base > 0:
+        if pct is not None and amount is None:
+            values["amount"] = round(pct * base / 100, 2)
+            values["entered_as"] = "pct"
+        elif amount is not None and pct is None:
+            values["pct_of_contract"] = round(amount / base * 100, 2)
+            values["entered_as"] = "amount"
+    if values["entered_as"] is None and (pct is not None or amount is not None):
+        values["entered_as"] = "amount" if pct is None else "pct"
+    return values
+
+
 def _apply_payment_milestones(db: Session, opp: Opportunity, payload) -> None:
+    rows = [_milestone_values(opp, row) for row in payload.payment_milestones or []]
     opp.payment_milestones.clear()
     db.flush()
-    for order, row in enumerate(payload.payment_milestones or []):
-        db.add(
-            OpportunityPaymentMilestone(
-                opportunity_id=opp.opportunity_id,
-                row_order=order,
-                **{name: getattr(row, name) for name in MILESTONE_ROW_COLUMNS},
-            )
-        )
+    for order, values in enumerate(rows):
+        db.add(OpportunityPaymentMilestone(opportunity_id=opp.opportunity_id, row_order=order, **values))
 
 
 @router.get("/opportunities", response_model=list[OpportunityOut])

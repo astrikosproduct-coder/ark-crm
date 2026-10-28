@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react'
 import { useBlocker } from 'react-router-dom'
 
-import { hasUnsavedChanges, useUnsavedChangesStore } from '@/store/useUnsavedChangesStore'
+import { consumeAnsweredNavigation, hasUnsavedChanges, useUnsavedChangesStore } from '@/store/useUnsavedChangesStore'
 
 export interface UnsavedChangesGuard {
   /** Whether the confirm dialog should be on screen. */
@@ -37,7 +37,11 @@ export function useUnsavedChangesGuard(): UnsavedChangesGuard {
   const blocker = useBlocker(
     useCallback(
       ({ currentLocation, nextLocation }) =>
-        hasUnsavedChanges() && currentLocation.pathname !== nextLocation.pathname,
+        hasUnsavedChanges() &&
+        currentLocation.pathname !== nextLocation.pathname &&
+        // Already asked: the person chose "Leave" in the dialog that held this
+        // navigation back (Back, Cancel). Asking again was the double dialog.
+        !consumeAnsweredNavigation(),
       []
     )
   )

@@ -18,6 +18,8 @@ export interface ResolvedChildColumn {
   field: FieldSpec
   required: boolean
   width?: number
+  /** See ChildColumn.only_when. */
+  only_when?: { column: string; equals: string }
 }
 
 export interface ResolvedChildSpec {
@@ -37,6 +39,8 @@ export interface ResolvedChildSpec {
   elsewhereColumns: ResolvedChildColumn[]
   row_defaults?: ChildSpec['row_defaults']
   total_columns: string[]
+  one_of: string[]
+  linked_values?: ChildSpec['linked_values']
   /** Column refs that name a field the register no longer carries. Dropped. */
   orphanedColumns: string[]
 }
@@ -100,6 +104,7 @@ function resolve(field: FieldSpec): ResolvedChildSpec | undefined {
       field: childColumnAsField(field, entry),
       required: !readonly && entry.required === true,
       width: entry.width,
+      only_when: entry.only_when,
     })
   }
 
@@ -121,6 +126,8 @@ function resolve(field: FieldSpec): ResolvedChildSpec | undefined {
     elsewhereColumns,
     row_defaults: spec.row_defaults,
     total_columns: spec.total_columns ?? [],
+    one_of: spec.one_of ?? [],
+    linked_values: spec.linked_values,
     orphanedColumns,
   }
 }
@@ -184,6 +191,7 @@ function childColumnAsField(parent: FieldSpec, column: ChildColumn): FieldSpec {
     computed_formula: column.computed_formula ?? null,
     computed_expr: column.computed_expr ?? null,
     lookup_filter_expr: column.lookup_filter_expr,
+    option_hints: column.option_hints,
     ref: `${parent.module}.${column.api_name}`,
     qref: `${parent.module}.${section}.${column.api_name}`,
   }

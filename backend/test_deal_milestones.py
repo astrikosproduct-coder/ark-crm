@@ -89,15 +89,27 @@ try:
             "final_negotiated_value": 1_000_000,
             "conversion_note": "Milestone probe moved to Opportunities.",
             "payment_milestones": [
-                {"milestone": "CONTRACT_SIGNING", "pct_of_contract": 10, "trigger": "Signed contract or LOI", PLANNED: "2026-10-01"},
-                {"milestone": "DELIVERY", "pct_of_contract": 40, "trigger": "Delivery note at site", PLANNED: "2027-02-01"},
+                {"milestone": "CONTRACT_SIGNING", "pct_of_contract": 10, PLANNED: "2026-10-01"},
+                {"milestone": "DELIVERY", "amount": 400_000, PLANNED: "2027-02-01"},
             ],
         },
         "opportunities",
     )
     check("the Opportunity saves with two milestones", r.status_code == 201, r.text[:300])
     opp_id = r.json()["id"]
-    check("…and reads them back", len(get(f"/opportunities/{opp_id}")["payment_milestones"]) == 2)
+    saved = get(f"/opportunities/{opp_id}")["payment_milestones"]
+    check("…and reads them back", len(saved) == 2)
+    check(
+        "a % typed: the Amount is worked out from the Final Negotiated Value",
+        saved[0]["pct_of_contract"] == 10 and saved[0]["amount"] == 100_000 and saved[0]["entered_as"] == "pct",
+        str(saved[0])[:200],
+    )
+    check(
+        "an Amount typed: the % is worked out, and it is remembered as the one typed",
+        saved[1]["amount"] == 400_000 and saved[1]["pct_of_contract"] == 40 and saved[1]["entered_as"] == "amount",
+        str(saved[1])[:200],
+    )
+    check("the old Trigger is no longer part of a row", "trigger" not in saved[0], str(saved[0])[:200])
 
     print("\n2  The Deal sees the same rows")
     deal = post(
@@ -141,7 +153,7 @@ try:
     )
     check(
         "…the agreed half is untouched",
-        rows[0]["pct_of_contract"] == 10 and rows[0]["trigger"] == "Signed contract or LOI" and rows[0][PLANNED] == "2026-10-01",
+        rows[0]["pct_of_contract"] == 10 and rows[0]["amount"] == 100_000 and rows[0][PLANNED] == "2026-10-01",
         str(rows[0])[:240],
     )
     check("…and the other milestone stays undelivered", rows[1][ACTUAL] is None)
@@ -153,15 +165,15 @@ try:
     print("\n4  What the Deal may not do")
     r = client.put(
         f"/api/deals/{deal_id}/payment-milestones",
-        json=[{"row_order": 0, "pct_of_contract": 90, "milestone": "HANDOVER", "trigger": "rewritten", PLANNED: "2030-01-01"}],
+        json=[{"row_order": 0, "pct_of_contract": 90, "amount": 1, "milestone": "HANDOVER", PLANNED: "2030-01-01"}],
     )
     check("a write that tries to rewrite the schedule is accepted but ignores it", r.status_code == 200, r.text[:200])
     rows = get(f"/deals/{deal_id}/payment-milestones")
     check(
-        "…the percentage, milestone, trigger and planned date all stand",
+        "…the percentage, amount, milestone and planned date all stand",
         rows[0]["pct_of_contract"] == 10
+        and rows[0]["amount"] == 100_000
         and rows[0]["milestone"] == "CONTRACT_SIGNING"
-        and rows[0]["trigger"] == "Signed contract or LOI"
         and rows[0][PLANNED] == "2026-10-01",
         str(rows[0])[:240],
     )
@@ -174,6 +186,58 @@ try:
         f"{r.status_code} {r.text[:200]}",
     )
     check("…and no row was added", len(get(f"/deals/{deal_id}/payment-milestones")) == 2)
+
+    print("\n4b  A milestone of your own, and what a row needs")
+    lead3 = post("/leads", {"opportunity_name": "Milestone probe — own milestone", "project_stage": "3_PRESCRIPTION", "lead_status": "OPEN"}, "leads")
+    own = post(
+        "/opportunities",
+        {
+            "parent_lead": lead3.json()["id"],
+            "project_stage": "6_COMMERCIAL_EVAL",
+            "lead_status": "OPEN",
+            "arr_annual_recurring": 1_000_000,
+            "contract_years": 1,
+            "final_negotiated_value": 1_000_000,
+            "conversion_note": "Own-milestone probe.",
+        },
+        "opportunities",
+    )
+    check("a second, unconverted Opportunity saves", own.status_code == 201, own.text[:300])
+    own_id = own.json()["id"]
+
+    def save_rows(rows):
+        return client.patch(f"/api/opportunities/{own_id}", json={"payment_milestones": rows})
+
+    bad = save_rows([{"milestone": "OTHER", "pct_of_contract": 5}])
+    check(
+        "Other with no name is refused",
+        bad.status_code == 422 and code_of(bad) == "MILESTONE_NAME_NEEDED",
+        f"{bad.status_code} {bad.text[:200]}",
+    )
+    bad = save_rows([{"milestone": "FAT"}])
+    check(
+        "a milestone with neither a % nor an Amount is refused",
+        bad.status_code == 422 and code_of(bad) == "MILESTONE_VALUE_NEEDED",
+        f"{bad.status_code} {bad.text[:200]}",
+    )
+    ok = save_rows(
+        [
+            {"milestone": "OTHER", "custom_name": "  Commissioning bonus  ", "amount": 150_000},
+            {"milestone": "FAT", "pct_of_contract": 20, "custom_name": "should be dropped"},
+        ]
+    )
+    check("an Other milestone with a name saves", ok.status_code == 200, f"{ok.status_code} {ok.text[:200]}")
+    saved = get(f"/opportunities/{own_id}")["payment_milestones"]
+    check(
+        "…its name is kept, trimmed, and its % is worked out (150,000 of 1,000,000)",
+        saved[0]["milestone"] == "OTHER" and saved[0]["custom_name"] == "Commissioning bonus" and saved[0]["pct_of_contract"] == 15,
+        str(saved[0])[:200],
+    )
+    check("…a standard milestone never carries a name", saved[1]["custom_name"] is None, str(saved[1])[:200])
+    blank = save_rows([{"milestone": "FAT", "pct_of_contract": 20, "amount": "", "custom_name": ""}])
+    check("a cleared box (blank, not a number) is nothing, not an error", blank.status_code == 200, f"{blank.status_code} {blank.text[:200]}")
+    saved = get(f"/opportunities/{own_id}")["payment_milestones"]
+    check("…and the % typed still gets its Amount (20% of 1,000,000)", saved[0]["amount"] == 200_000, str(saved[0])[:200])
 
     print("\n5  A Deal converted straight from a Lead has no schedule")
     lead2 = post("/leads", {"opportunity_name": "Milestone probe — POC fast path", "project_stage": "3_PRESCRIPTION", "lead_status": "OPEN"}, "leads")

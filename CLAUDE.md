@@ -203,6 +203,28 @@ docstring on `app/audit.py::record_audit`. What is still out of scope is role-ba
      list in rank order, whatever the screen's filters. Each Export says on hover what it
      holds (`ModuleActions`, the user's choice over a confirm dialog).
 
+   **v1.2.2** (28 Oct 2026; DEPLOY.md, "v1.2.2"; migration `r12_0001_milestone_amount`,
+   `release_1_2_2_metadata.py`). The head's asks. What it decided:
+   - **A payment milestone carries an Amount beside its % of Contract**; type either and the other
+     is worked out against the Opportunity's **Final Negotiated Value** (the user, 28 Oct). The one
+     typed is remembered (`entered_as`) and stays fixed if the value moves. The browser does the sum
+     as a person types (`child_spec.linked_values` in the sidecar, `ChildListTable`); the server does
+     it again (`opportunities._milestone_values`) so a row sent by anything else lands whole. Totals
+     are stated, never enforced. A blank box is nothing, not an error.
+   - **The eight standard milestones stay, plus Other.** An Other row needs a name (`custom_name`,
+     `MILESTONE_NAME_NEEDED`); a row needs a % or an Amount (`MILESTONE_VALUE_NEEDED`). **Trigger is
+     no longer typed**: its text is each standard milestone's hover message (`option_hints` on the
+     sidecar column). The `trigger` column is kept, unread and unwritten.
+   - **Alliance Structure, Pre-Bid Alliance Partner and PBAA Signed Date sit in Stage 0**, shown only
+     when Deal Source is Partner-sourced, on Leads and read through on Opportunities and Deals. They
+     are still DEMANDED at the move out of Stage 3 (`mandatory_from` untouched): showing a field early
+     is not demanding it early. Alliance Structure used to show on every Lead, Direct included.
+     Pay-When-Paid keeps its own rule (Alliance Structure = Partner prime).
+   - **Two screen fixes**: Leave without saving no longer asks twice after Back or Cancel
+     (`consumeAnsweredNavigation`), and a refusal or a stopped Save scrolls to what is wrong
+     (`ErrorNotice`, `revealField` from `RecordEditor`). Both were built on phase-2 first.
+   - Merging into phase 2: its 0038 must revise `r12_0001_milestone_amount` (one head).
+
    **Import / export** (`backend/app/spreadsheets/`). Export: every live module, a workbook of
    Summary + one sheet per form section + Stage history + child lists, rows from the module's
    own list endpoint under the screen's filters. Import: Leads, Accounts, Contacts, Partners —

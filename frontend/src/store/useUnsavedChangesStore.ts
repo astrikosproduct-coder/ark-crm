@@ -56,6 +56,10 @@ export const useUnsavedChangesStore = create<UnsavedChangesState>()((set, get) =
   confirmDiscard: () => {
     const { pending } = get()
     set({ pending: null })
+    // The person has just said "leave". If the held action navigates (Back,
+    // Cancel), the router's blocker must not ask the same question again —
+    // the form is still marked unsaved until its page unmounts.
+    allowNextNavigation()
     pending?.()
   },
 
@@ -69,6 +73,30 @@ export const useUnsavedChangesStore = create<UnsavedChangesState>()((set, get) =
  */
 export function hasUnsavedChanges(): boolean {
   return Object.keys(useUnsavedChangesStore.getState().dirtyForms).length > 0
+}
+
+/**
+ * One navigation already answered "Leave without saving" — let it through.
+ * Consumed by the first navigation the blocker sees, or dropped after a moment
+ * if the held action was not a navigation (a tab switch, closing an editor).
+ * A Back is a browser history step, which arrives a little later than a click,
+ * hence a window rather than the same tick.
+ */
+let answered: ReturnType<typeof setTimeout> | null = null
+
+function allowNextNavigation(): void {
+  if (answered) clearTimeout(answered)
+  answered = setTimeout(() => {
+    answered = null
+  }, 1500)
+}
+
+/** True once, for the navigation the person has just agreed to. */
+export function consumeAnsweredNavigation(): boolean {
+  if (!answered) return false
+  clearTimeout(answered)
+  answered = null
+  return true
 }
 
 /** Ask before running an action that would throw unsaved edits away. */

@@ -300,12 +300,19 @@ export function FieldControl({ field, onCreateNew, scope }: Props) {
 
       return (
         <Select value={(value as string) || undefined} onValueChange={set}>
-          <SelectTrigger id={id} aria-invalid={invalid} className="w-full">
+          {/* A choice the sidecar gives a hint to says it on hover — the closed
+              box for the one picked, each row for the ones on offer. */}
+          <SelectTrigger
+            id={id}
+            aria-invalid={invalid}
+            className="w-full"
+            title={field.option_hints?.[value as string]}
+          >
             <SelectValue placeholder="Select…" />
           </SelectTrigger>
           <SelectContent>
             {options.map((o) => (
-              <SelectItem key={o.key} value={o.key}>
+              <SelectItem key={o.key} value={o.key} title={field.option_hints?.[o.key]}>
                 {o.label}
               </SelectItem>
             ))}

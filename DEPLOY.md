@@ -15,6 +15,8 @@ There are two ways to install it:
 
 **Already on 1.2.0?** [v1.2.1](#v121-a-hotfix-on-120) is code only: pull, build, restart.
 
+**Already on 1.2.1?** [v1.2.2](#v122-milestone-amounts-alliance-fields-at-stage-0-and-two-screen-fixes) has one migration and one register script, in that order, before the restart.
+
 ---
 
 ## The astrikos.xyz server (crm.astrikos.xyz)
@@ -492,6 +494,52 @@ docker exec crm-postgres psql -U ark -d ark_crm -c "select lead_id from leads l 
 ```
 
 **Undo:** `git reset --hard v1.2.0`, rebuild and restart. The database needs nothing.
+
+### v1.2.2: milestone amounts, Alliance fields at Stage 0, and two screen fixes
+
+28 Oct 2026. **One migration (`r12_0001_milestone_amount`) and one register script (`release_1_2_2_metadata.py`).** It contains:
+- **Payment milestones carry an Amount** beside the % of Contract: type either and the other is worked out from the Opportunity's Final Negotiated Value (the one typed stays fixed if the value moves). The Trigger box is gone; each standard milestone shows its trigger text on hover. A ninth choice, **Other**, lets the head name a milestone of their own. Rows already saved keep their % and gain their Amount the next time the Opportunity is saved;
+- **Alliance Structure, Pre-Bid Alliance Partner and PBAA Signed Date move to Stage 0** and show only when Deal Source is Partner-sourced (Alliance Structure used to show on every Lead, Direct included). They are still asked for when a Lead leaves Stage 3, not earlier. Pay-When-Paid appears once Alliance Structure is Partner prime;
+- **Leave without saving** no longer asks twice when you press Back or Cancel;
+- **a refusal or a stopped Save scrolls to what is wrong** instead of leaving the page looking unchanged.
+
+```sh
+cd ~/ark-crm
+
+# 1. Copy the database FIRST
+docker exec crm-postgres pg_dump -U ark -Fc ark_crm > ~/crm_before_1_2_2_$(date +%Y%m%d_%H%M).dump
+
+# 2. Stop the backend, then get v1.2.2. NEVER start the new code before the migration:
+#    the app's create_all would not add the new columns to the existing table.
+pm2 stop crm_be_4329
+git checkout -- frontend/spec
+git pull
+git describe --tags                                  # v1.2.2
+backend/.venv/bin/pip install -r backend/requirements.txt
+cd backend
+
+# 3. The migration, then the register script (a dry run first, read it, then --apply)
+.venv/bin/alembic upgrade head                       # ends at r12_0001_milestone_amount
+.venv/bin/python release_1_2_2_metadata.py && .venv/bin/python release_1_2_2_metadata.py --apply
+
+# 4. Build and start
+cd ../frontend && npm ci && npm run build && cd ..
+pm2 restart crm_be_4329 crm_3329
+```
+
+With Docker: `docker compose run --rm backend alembic upgrade head`, then `docker compose run --rm backend python release_1_2_2_metadata.py --apply`.
+
+| Step | Prints | Action |
+|---|---|---|
+| `release_1_2_2_metadata.py` | Each field it moves or re-conditions, and the milestone choice it adds | Read it. A second run says "nothing to do". |
+| | Leads holding an Alliance Structure that are not Partner-sourced | Nothing. The value is kept and no longer shown. |
+| | How many Partner-sourced Leads have no Alliance Structure yet | Nothing. It shows on them now; it is asked for when each leaves Stage 3, as before. |
+
+**Each person reloads once** (a publish reaches the app on the next page load).
+
+**Undo:** stop both processes, restore the dump from step 1 (`pg_restore --clean`), `git reset --hard v1.2.1`, rebuild and start.
+
+**Merging into phase 2:** phase 2's migration 0038 also revises `r11_0003`. Point its `down_revision` at `r12_0001_milestone_amount` so there is one head. `release_1_2_2_metadata.py` names the register by module and field as v1 stores it; phase 2 owns fields per module, so dry-run it on the phase-2 database first and adjust if it stops on something.
 
 ### Bringing a BD owner's pipeline in (`bring_in.py`)
 

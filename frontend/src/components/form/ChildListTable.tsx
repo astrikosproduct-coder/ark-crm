@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { PlusIcon, Trash2Icon } from 'lucide-react'
 
@@ -18,6 +18,7 @@ import { type Values } from '@/lib/spec/conditions'
 import { evaluate } from '@/lib/spec/evaluate'
 import { useRecordForm } from '@/hooks/useRecordForm'
 import { api } from '@/lib/api'
+import { money } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { ChildFieldSync, FieldSpec } from '@/types/field'
 
@@ -69,22 +70,76 @@ export function ChildListTable({ field }: Props) {
 
   const isEmpty = (v: unknown) => v === undefined || v === null || v === ''
 
+  // An Amount and a % of one base value (payment milestones: the Final
+  // Negotiated Value), each worked out from the other as it is typed.
+  const linked = spec.linked_values
+  const baseValue = linked ? Number(form.values[linked.base]) || 0 : 0
+  const cents = (n: number) => Math.round(n * 100) / 100
+
+  /**
+   * The one of Amount / % the person did NOT type, worked out from the one they
+   * did and remembered as `entered_as`. With no base yet nothing is guessed: the
+   * typed one stands alone, and the other fills in once the base is entered.
+   */
+  const settle = (row: Values, typed: 'percent' | 'amount'): Values => {
+    if (!linked) return row
+    const next: Values = { ...row }
+    const from = typed === 'percent' ? linked.percent : linked.amount
+    const to = typed === 'percent' ? linked.amount : linked.percent
+    next[linked.remembered] = isEmpty(next[from]) ? null : typed === 'percent' ? 'pct' : 'amount'
+    if (isEmpty(next[from])) {
+      next[to] = null
+    } else if (baseValue > 0) {
+      const n = Number(next[from])
+      next[to] = typed === 'percent' ? cents((n * baseValue) / 100) : cents((n / baseValue) * 100)
+    }
+    return next
+  }
+
   const update = (index: number, apiName: string, value: unknown) => {
     setRows(
       rows.map((r, i) => {
         if (i !== index) return r
-        const next: Values = { ...r, [apiName]: value }
-        // Choosing the milestone fills in its percentage and trigger. A
-        // DEFAULT, not a rule: a column the row already carries is left as it
-        // was typed, and both stay editable afterwards.
+        let next: Values = { ...r, [apiName]: value }
+        // Choosing the milestone fills in its percentage. A DEFAULT, not a
+        // rule: a column the row already carries is left as it was typed, and
+        // both stay editable afterwards. An Amount typed first is not argued
+        // with by a standard percentage.
         if (defaults && apiName === defaults.by) {
           for (const [column, preset] of Object.entries(presetFor(value))) {
+            if (linked && column === linked.percent && !isEmpty(next[linked.amount])) continue
             if (isEmpty(next[column])) next[column] = preset
           }
+          if (linked && !isEmpty(next[linked.percent]) && isEmpty(next[linked.amount])) next = settle(next, 'percent')
+        }
+        if (linked && apiName === linked.percent) next = settle(next, 'percent')
+        if (linked && apiName === linked.amount) next = settle(next, 'amount')
+        // A name belongs to its own choice: moving off it forgets the name.
+        for (const c of columns) {
+          if (c.only_when?.column === apiName && value !== c.only_when.equals) next[c.field.api_name] = ''
         }
         return next
       })
     )
+  }
+
+  // The base moved. Rows already settled keep what the person typed and have the
+  // other worked out again; the first time a base exists, only the rows missing
+  // their other half are filled — a record just opened changes nothing.
+  const onBaseMoved = (before: number | null) => {
+    if (!linked) return
+    let changed = false
+    const next = rows.map((r) => {
+      const hasPct = !isEmpty(r[linked.percent])
+      const hasAmount = !isEmpty(r[linked.amount])
+      if (!hasPct && !hasAmount) return r
+      if (!before && hasPct && hasAmount) return r
+      const typed = !hasAmount ? 'percent' : !hasPct ? 'amount' : r[linked.remembered] === 'amount' ? 'amount' : 'percent'
+      const settled = settle(r, typed)
+      if (settled[linked.percent] !== r[linked.percent] || settled[linked.amount] !== r[linked.amount]) changed = true
+      return settled
+    })
+    if (changed) setRows(next)
   }
 
   const addRow = () => setRows([...rows, {}])
@@ -94,15 +149,22 @@ export function ChildListTable({ field }: Props) {
     ? Object.entries(defaults.values).filter(([key]) => !rows.some((r) => r[defaults.by] === key))
     : []
   const addAllDefaults = () =>
-    setRows([...rows, ...missingDefaults.map(([key, preset]) => ({ [defaults!.by]: key, ...(preset as Values) }))])
+    setRows([
+      ...rows,
+      ...missingDefaults.map(([key, preset]) => {
+        const row: Values = { [defaults!.by]: key, ...(preset as Values) }
+        return linked && !isEmpty(row[linked.percent]) ? settle(row, 'percent') : row
+      }),
+    ])
 
   // Summed, never enforced — see ChildSpec.total_columns.
   const totals = spec.total_columns
     .map((apiName) => ({
       column: columns.find((c) => c.field.api_name === apiName),
       sum: rows.reduce((running, r) => running + (Number(r[apiName]) || 0), 0),
+      isAmount: linked?.amount === apiName,
     }))
-    .filter((t): t is { column: ResolvedChildColumn; sum: number } => Boolean(t.column))
+    .filter((t): t is { column: ResolvedChildColumn; sum: number; isAmount: boolean } => Boolean(t.column))
   const deleteRow = (index: number) => {
     setRows(rows.filter((_, i) => i !== index))
     setConfirmingRow(null)
@@ -122,6 +184,8 @@ export function ChildListTable({ field }: Props) {
           space between them. The only stroke left is the hairline under the
           header row; rows are told apart by the alternating raised ground,
           which is the same layer their inputs sit on. */}
+      {linked && !readOnly && <BaseWatcher base={baseValue} onMoved={onBaseMoved} />}
+
       <div className="overflow-x-auto">
         <table className="w-full border-separate border-spacing-0 text-sm">
           <colgroup>
@@ -185,6 +249,9 @@ export function ChildListTable({ field }: Props) {
                 )}
                 {columns.map((c) => {
                   const cellError = errors.find((e) => e.row === i && e.api_name === c.field.api_name)
+                  // A cell for one choice of another column is empty and read-only
+                  // on every other row.
+                  const notHere = Boolean(c.only_when && row[c.only_when.column] !== c.only_when.equals)
                   return (
                     <td key={c.key} className="px-4 py-2.5">
                       <FieldControl
@@ -193,10 +260,12 @@ export function ChildListTable({ field }: Props) {
                           value:
                             c.field.type === 'computed'
                               ? computedCellValue(c, columns, row, form.values)
-                              : row[c.field.api_name],
+                              : notHere
+                                ? ''
+                                : row[c.field.api_name],
                           set: (v) => update(i, c.field.api_name, v),
                           invalid: Boolean(cellError),
-                          mode: readOnly ? 'view' : 'edit',
+                          mode: readOnly || notHere ? 'view' : 'edit',
                           id: `${field.module}.${field.api_name}.${i}.${c.field.api_name}`,
                         }}
                       />
@@ -243,18 +312,27 @@ export function ChildListTable({ field }: Props) {
       )}
 
       {rows.length > 0 &&
-        totals.map(({ column, sum }) => (
-          <p
-            key={column.key}
-            className={cn(
-              'text-xs',
-              sum === 100 ? 'text-muted-foreground' : 'text-amber-700 dark:text-amber-400'
-            )}
-          >
-            {column.field.label} totals {sum}%
-            {sum === 100 ? '' : ' — the rows do not add up to 100%.'}
-          </p>
-        ))}
+        totals.map(({ column, sum, isAmount }) => {
+          // A % adds to 100; an Amount adds to the base it is a share of. With no
+          // base yet there is nothing to compare an Amount with, so it is only stated.
+          const target = isAmount ? baseValue : 100
+          const matches = target <= 0 || Math.abs(sum - target) < 0.01
+          return (
+            <p
+              key={column.key}
+              className={cn('text-xs', matches ? 'text-muted-foreground' : 'text-amber-700 dark:text-amber-400')}
+            >
+              {isAmount
+                ? `${column.field.label} totals ${money(sum)}${target > 0 ? ` of ${money(target)}` : ''}`
+                : `${column.field.label} totals ${Math.round(sum * 100) / 100}%`}
+              {matches
+                ? ''
+                : isAmount
+                  ? ' — the rows do not add up to the Final Negotiated Value.'
+                  : ' — the rows do not add up to 100%.'}
+            </p>
+          )
+        })}
 
       {field.values_note && (
         <p className="text-xs text-muted-foreground">{field.values_note}</p>
@@ -287,6 +365,24 @@ export function ChildListTable({ field }: Props) {
       </Dialog>
     </div>
   )
+}
+
+/**
+ * Logic-only: tells the table when the base value its Amounts are shares of has
+ * moved (the Final Negotiated Value). The first reading, and a base that is
+ * empty, move nothing; `before` is what the base was, 0 when it had no value.
+ */
+function BaseWatcher({ base, onMoved }: { base: number; onMoved: (before: number | null) => void }) {
+  const last = useRef<number | null>(null)
+  useEffect(() => {
+    const before = last.current
+    last.current = base
+    if (before === null || before === base || base <= 0) return
+    onMoved(before)
+    // onMoved is read at the moment the base moves, never watched.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [base])
+  return null
 }
 
 /**

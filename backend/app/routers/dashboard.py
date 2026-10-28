@@ -583,7 +583,7 @@ def dashboard(
             continue
         for m in opp.payment_milestones:
             if not m.milestone_payment_received_date and day_in(m.milestone_planned_date, due_from, due_to):
-                due.append(_item(r, users, stage_names, kind="payment", date=m.milestone_planned_date, detail=m.milestone))
+                due.append(_item(r, users, stage_names, kind="payment", date=m.milestone_planned_date, detail=m.custom_name or m.milestone))
 
     live_deals = [r.record_id for r in live_any if r.module == "deals"]
     if live_deals:
